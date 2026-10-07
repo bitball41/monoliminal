@@ -100,7 +100,7 @@ test('no token, banned profiles, and missing profiles never reach storage', asyn
 
 // A malformed responsive rule can silently put every later rule behind a
 // viewport condition. JavaScript interaction checks do not detect that.
-test('Drive CSS is balanced and desktop cards/avatar styles remain outside media queries', async () => {
+test('Drive CSS is balanced and the Chat shell/auth/file styles apply at desktop widths', async () => {
   const html = await readFile(new URL('../Drive/Liminal-Drive.html', import.meta.url), 'utf8');
   const css = html.match(/<style>([\s\S]*?)<\/style>/)?.[1];
   assert(css, 'Drive has an embedded stylesheet');
@@ -113,7 +113,7 @@ test('Drive CSS is balanced and desktop cards/avatar styles remain outside media
     if (c === '/' && next === '*') { comment = true; i++; continue; }
     if (c === '"' || c === "'") { quote = c; continue; }
     if ('{(['.includes(c)) {
-      if (c === '{' && stack.length === 0) selectors.add(css.slice(ruleStart, i).trim());
+      if (c === '{' && stack.length === 0) selectors.add(css.slice(ruleStart, i).replace(/\/\*[\s\S]*?\*\//g, '').trim());
       stack.push(c);
       if (c === '{') ruleStart = i + 1;
     } else if ('})]'.includes(c)) {
@@ -125,7 +125,7 @@ test('Drive CSS is balanced and desktop cards/avatar styles remain outside media
   assert.equal(stack.length, 0, 'CSS blocks are closed');
   assert.equal(quote, '', 'CSS strings are closed');
   assert.equal(comment, false, 'CSS comments are closed');
-  for (const selector of ['.libraryArt', '.libraryGrid', '.libraryFooter', '.brand', '.avatar>img']) {
+  for (const selector of ['.auth-screen', '.auth-card', '.fileRow', '.brand', '.avatar img']) {
     assert(selectors.has(selector), `${selector} is available at desktop widths`);
   }
 });
@@ -189,18 +189,78 @@ test('unchanged account updates preserve avatar nodes while role changes still r
   const elements = new Map();
   const $ = id => {
     if (!elements.has(id)) elements.set(id, {
-      writes: 0, classList: { toggle() {} }, setAttribute() {},
+      writes: 0, classList: { toggle() {} }, style: { setProperty() {}, removeProperty() {} }, setAttribute() {},
       set innerHTML(value) { this.writes++; this.html = value; },
     });
     return elements.get(id);
   };
   const state = { view: 'games', auth: { username: 'mod' }, profile: { username: 'mod', displayName: 'Mod', pfp: 'https://avatar.test/a.gif', role: 'mod' }, canUpload: true };
-  const c = frontSection('let accountRenderKey=', 'function applySession(', { state, $, I: { check: '' }, ROLE_LABELS: { mod: 'Mod', admin: 'Admin' }, esc: String });
+  const c = frontSection('const ROLE_CLASSES=', 'function applySession(', { state, $, I: { check: '' }, ROLE_LABELS: { mod: 'Mod', admin: 'Admin' }, esc: String });
   c.updateAccount();
-  const avatar = $('#accountBtn'), firstMarkup = avatar.html;
+  const avatar = $('#sideAvatar'), firstMarkup = avatar.html;
   state.view = 'apps'; c.updateAccount(); c.updateAccount();
   assert.equal(avatar.writes, 1, 'unchanged avatars are not decoded/restarted on UI updates');
   assert.equal(avatar.html, firstMarkup);
   state.profile = { ...state.profile, role: 'admin' }; c.updateAccount();
-  assert.match($('#accountRole').html, /Admin/);
+  assert.match($('#accountName').html, /Admin/);
+  assert.equal(avatar.writes, 1, 'role updates preserve the same profile image');
+});
+
+
+test('HTML files open download details while ordinary files keep their preview', () => {
+  const calls = [];
+  let library = true;
+  const c = frontSection('function openItem(f)', 'function preview(f)', {
+    libraryView: () => library, details: f => calls.push(['details', f.key]),
+    preview: f => calls.push(['preview', f.key]), navigate: key => calls.push(['folder', key]),
+  });
+  c.openItem({ type: 'html', key: 'Games/a.html' });
+  library = false;
+  c.openItem({ type: 'html', key: 'a.html' });
+  c.openItem({ type: 'image', key: 'a.png' });
+  c.openItem({ type: 'folder', key: 'folder/' });
+  assert.deepEqual(calls, [['details', 'Games/a.html'], ['details', 'a.html'], ['preview', 'a.png'], ['folder', 'folder/']]);
+});
+
+test('Account opens immediately while server verification is still pending', () => {
+  const calls = [], elements = new Map();
+  const $ = id => { if (!elements.has(id)) elements.set(id, {}); return elements.get(id); };
+  const state = { auth: { username: 'viewer' }, profile: { displayName: 'Viewer' }, canUpload: false };
+  const c = frontSection('function account(){', 'function validName(', {
+    state, $, esc: String, roleCheck: () => '', fillAvatar() {}, I: { close: '' },
+    showModal: () => { calls.push('open'); return {}; },
+    loadAccount: () => { calls.push('verify'); return new Promise(() => {}); },
+  });
+  c.account();
+  assert.deepEqual(calls, ['open', 'verify']);
+  assert.equal(typeof $('#signOut').onclick, 'function');
+});
+
+test('signup validates confirmation and creates the shared Chat account before signing in', async () => {
+  const elements = new Map(Object.entries({
+    '#signup-username': { value: 'newuser' }, '#signup-display-name': { value: 'New User' },
+    '#signup-password': { value: 'test-password' }, '#signup-confirm': { value: 'wrong-password' },
+    '#signup-error': {}, '#signup-submit': {},
+  }));
+  const requests = [], signIns = [], closed = [];
+  const c = frontSection('async function submitSignup(', 'function account(){', {
+    state: { authDialog: {} }, $: id => elements.get(id),
+    CHAT_AUTH_URL: 'https://liminal.test/functions/v1/chat-auth', PUBLISHABLE_KEY: 'public-test-key',
+    deviceId: () => 'shared-liminal-device',
+    net: async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => ({}) }; },
+    signInAccount: async (username, password) => signIns.push({ username, password }),
+    closeAuth: value => closed.push(value),
+  });
+  await c.submitSignup({ preventDefault() {} });
+  assert.equal(requests.length, 0);
+  assert.match(elements.get('#signup-error').textContent, /match/);
+  elements.get('#signup-confirm').value = 'test-password';
+  await c.submitSignup({ preventDefault() {} });
+  assert.equal(requests[0].url, 'https://liminal.test/functions/v1/chat-auth');
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    action: 'signup', username: 'newuser', display_name: 'New User',
+    password: 'test-password', device_id: 'shared-liminal-device',
+  });
+  assert.deepEqual(signIns, [{ username: 'newuser', password: 'test-password' }]);
+  assert.deepEqual(closed, [true]);
 });
