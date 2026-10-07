@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'none'">
+  <title>Liminal Control</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+  <style>
+    /* ===== 1. TOKENS ===================================================== */
+    :root {
+      color-scheme: dark;
+
+      /* Pitch black base; every surface is a lift off true #000. */
+      --bg:            #000000;
+      --surface:       #0a0a0c;
+      --surface-hi:    #111114;
+      --surface-inset: #050506;
+
+      --line:    rgba(255, 255, 255, .07);
+      --line-hi: rgba(255, 255, 255, .13);
+
+      --text:  #ededf2;
+      --soft:  #b2b0be;
+      --muted: #76747f;
+
+      /* Classic Liminal violet. */
+      --accent:      #a78bfa;
+      --accent-hi:   #c9b8fd;
+      --accent-dim:  rgba(167, 139, 250, .12);
+      --accent-line: rgba(167, 139, 250, .34);
+      --on-accent:   #0a0614;
+
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --bad:  #f87171;
+
+      --radius:    10px;
+      --radius-lg: 14px;
+      --focus:     0 0 0 3px rgba(167, 139, 250, .22);
+
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, monospace;
+
+      font-family: var(--sans);
+      font-size: 14px;
+    }
+
+    /* ===== 2. BASE ======================================================= */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    [hidden] { display: none !important; }
+    button, input, textarea, select { font: inherit; line-height: 1.35; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    code { font-family: var(--mono); }
+    ::selection { background: rgba(167, 139, 250, .3); }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 99px; background: rgba(255,255,255,.14); background-clip: content-box; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.24); background-clip: content-box; }
+    .loading { opacity: .5; pointer-events: none; }
+
+    /* Stroke icons inherit colour from their button/heading. */
+    .icon {
+      width: 16px; height: 16px; flex: 0 0 auto;
+      fill: none; stroke: currentColor;
+      stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ===== 3. CONTROLS =================================================== */
+    .primary, .secondary, .danger, .ghost {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      min-height: 34px; padding: 7px 13px;
+      border: 1px solid transparent; border-radius: 8px;
+      color: var(--text); font-size: 12.5px; font-weight: 600; white-space: nowrap;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 650; }
+    .primary:hover:not(:disabled) { background: var(--accent-hi); border-color: var(--accent-hi); }
+    .secondary { background: var(--surface-hi); border-color: var(--line-hi); }
+    .secondary:hover:not(:disabled) { background: #191920; border-color: var(--accent-line); }
+    .ghost { background: transparent; border-color: var(--line); color: var(--soft); }
+    .ghost:hover:not(:disabled) { background: var(--surface-hi); border-color: var(--line-hi); color: var(--text); }
+    .danger { background: rgba(248, 113, 113, .1); border-color: rgba(248, 113, 113, .28); color: #fca5a5; }
+    .danger:hover:not(:disabled) { background: rgba(248, 113, 113, .18); border-color: rgba(248, 113, 113, .45); }
+    :where(button, a, input, textarea, select):focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .field { display: grid; gap: 6px; margin-bottom: 14px; }
+    label { color: var(--soft); font-size: 12.5px; font-weight: 550; }
+    input, textarea, select {
+      width: 100%; padding: 9px 11px;
+      border: 1px solid var(--line-hi); border-radius: 8px;
+      background: var(--surface-inset); color: var(--text);
+      font-size: 13px; outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+    input::placeholder, textarea::placeholder { color: #5d5b66; }
+    textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: var(--focus); }
+    .counter { margin-top: -8px; color: var(--muted); font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .switch {
+      position: relative; flex: 0 0 auto; width: 42px; height: 24px;
+      border: 1px solid var(--line-hi); border-radius: 99px; background: #17171c;
+      transition: background-color .14s ease, border-color .14s ease;
+    }
+    .switch::after {
+      content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px;
+      border-radius: 50%; background: #6c6a75; transition: transform .14s ease, background-color .14s ease;
+    }
+    .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+    .switch[aria-checked="true"]::after { transform: translateX(18px); background: var(--on-accent); }
+
+    /* ===== 4. LOGIN ====================================================== */
+    .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    .login-card {
+      width: min(400px, 100%); padding: 32px;
+      border: 1px solid var(--line); border-radius: var(--radius-lg);
+      background: var(--surface);
+    }
+    .login-card .primary { width: 100%; margin-top: 6px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 38px; height: 38px;
+      border: 1px solid var(--accent-line); border-radius: 10px;
+      background: var(--accent-dim); color: var(--accent);
+    }
+    .brand-mark .icon { width: 20px; height: 20px; }
+    .brand h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 11.5px; }
+    .error { min-height: 18px; margin-top: 12px; color: var(--bad); font-size: 12px; line-height: 1.5; }
+
+    /* ===== 5. SHELL + SIDEBAR ============================================ */
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 244px minmax(0, 1fr); }
+    aside {
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column;
+      padding: 20px 12px 16px;
+      border-right: 1px solid var(--line); background: var(--bg);
+    }
+    aside .brand { margin: 0 10px 22px; }
+    nav { display: grid; gap: 2px; align-content: start; flex: 1; min-height: 0; overflow-y: auto; }
+    .nav-section-label {
+      margin: 16px 12px 6px; color: #5f5d68;
+      font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    }
+    .nav-section-label:first-child { margin-top: 0; }
+    .nav-btn {
+      position: relative; display: flex; align-items: center; gap: 10px;
+      width: 100%; min-height: 36px; padding: 8px 11px;
+      border: 0; border-radius: 8px; background: transparent;
+      color: var(--muted); text-align: left; font-size: 13px; font-weight: 550;
+      transition: background-color .12s ease, color .12s ease;
+    }
+    .nav-btn:hover { background: var(--surface-hi); color: var(--soft); }
+    .nav-btn.active { background: var(--accent-dim); color: var(--accent-hi); font-weight: 600; }
+    .nav-btn.active::before {
+      content: ""; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+      width: 2px; height: 18px; border-radius: 0 2px 2px 0; background: var(--accent);
+    }
+    .nav-icon { display: inline-flex; color: inherit; opacity: .9; }
+
+    .aside-bottom { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .aside-user { overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 650; }
+    .aside-role { margin: 2px 0 11px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+    .aside-links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .aside-links a {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 32px; border: 1px solid var(--line); border-radius: 8px;
+      color: var(--soft); text-decoration: none; font-size: 11px; font-weight: 600;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .aside-links a:hover { background: var(--surface-hi); border-color: var(--line-hi); color: var(--text); }
+    .aside-links .aside-link-wide { grid-column: 1 / -1; }
+    .aside-links .icon { width: 13px; height: 13px; }
+    .aside-bottom button { width: 100%; }
+
+    /* ===== 6. MAIN + TOPBAR ============================================== */
+    main { min-width: 0; padding: 26px clamp(18px, 3.4vw, 44px) 64px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line);
+    }
+    .topbar-heading { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .page-icon {
+      display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px;
+      border: 1px solid var(--accent-line); border-radius: 9px;
+      background: var(--accent-dim); color: var(--accent);
+    }
+    .page-icon .icon { width: 18px; height: 18px; }
+    .topbar h2 { margin: 0; font-size: clamp(19px, 2vw, 23px); font-weight: 650; letter-spacing: -.02em; }
+    .topbar p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+    .topbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
+    .live-pill {
+      display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 12px;
+      border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+      color: var(--soft); font-size: 11.5px; font-weight: 600;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+    .live-pill.offline .live-dot { background: var(--bad); }
+
+    /* ===== 7. CARDS + STATS ============================================== */
+    .grid { display: grid; gap: 12px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+    .pad { padding: 18px; }
+    .stat-card { min-height: 118px; transition: border-color .12s ease; }
+    .stat-card:hover { border-color: var(--line-hi); }
+    .stat-label {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--muted); font-size: 11px; font-weight: 650;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .stat-icon { display: inline-flex; color: var(--accent); opacity: .85; }
+    .stat-icon .icon { width: 15px; height: 15px; }
+    .stat-value { margin-top: 12px; font-size: 26px; font-weight: 650; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .stat-sub { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .section-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .section-title h3 { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 14.5px; font-weight: 650; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .heading-icon { display: inline-flex; color: var(--accent); opacity: .85; }
+    .stack { display: grid; gap: 10px; }
+
+    .control-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .control-row:first-child { padding-top: 0; }
+    .control-row:last-child { padding-bottom: 0; border-bottom: 0; }
+    .control-copy strong { display: block; font-size: 13px; font-weight: 600; }
+    /* Direct child only: spans nested inside <strong> (the channel hash) keep their own styling. */
+    .control-copy > span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    .banner-preview {
+      padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--surface-hi); color: var(--soft); font-size: 12.5px; line-height: 1.55;
+    }
+    .notice {
+      padding: 12px 14px; border: 1px solid rgba(251, 191, 36, .24); border-radius: var(--radius);
+      background: rgba(251, 191, 36, .07); color: #f4d58d; font-size: 12.5px; line-height: 1.55;
+    }
+    .empty { padding: 28px; color: var(--muted); text-align: center; font-size: 13px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .toolbar input { flex: 1 1 220px; }
+    .toolbar select { width: auto; min-width: 150px; }
+    .inline-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* ===== 8. TABLES + BADGES ============================================ */
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-inset); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      padding: 11px 12px; background: var(--surface-hi); color: var(--muted);
+      font-size: 10.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; text-align: left;
+      position: sticky; top: 0; z-index: 1;
+    }
+    td { padding: 12px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+    tbody tr:hover { background: rgba(255, 255, 255, .018); }
+    td.user-cell { min-width: 170px; white-space: normal; }
+    .display-name { display: block; font-weight: 600; }
+    .username { color: var(--muted); font-size: 11.5px; }
+
+    .badge {
+      display: inline-flex; align-items: center; min-height: 21px; padding: 2px 8px;
+      border: 1px solid var(--line-hi); border-radius: 6px;
+      background: var(--surface-hi); color: var(--soft);
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge.good { border-color: rgba(74, 222, 128, .24); background: rgba(74, 222, 128, .09); color: var(--good); }
+    .badge.bad  { border-color: rgba(248, 113, 113, .26); background: rgba(248, 113, 113, .09); color: var(--bad); }
+    .badge.warn { border-color: rgba(251, 191, 36, .26); background: rgba(251, 191, 36, .09); color: var(--warn); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .actions button { min-height: 28px; padding: 4px 9px; font-size: 11.5px; }
+
+    .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-pill {
+      min-height: 30px; padding: 5px 11px;
+      border: 1px solid var(--line); border-radius: 7px; background: transparent;
+      color: var(--muted); font-size: 11.5px; font-weight: 600;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .filter-pill:hover { background: var(--surface-hi); color: var(--soft); }
+    .filter-pill.active { border-color: var(--accent-line); background: var(--accent-dim); color: var(--accent-hi); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px; padding: 5px 6px 5px 11px;
+      border: 1px solid var(--line); border-radius: 7px; background: var(--surface-hi); font-size: 12.5px;
+    }
+    .chip button {
+      display: grid; place-items: center; width: 19px; height: 19px; padding: 0;
+      border: 0; border-radius: 5px; background: transparent; color: var(--muted);
+      font-size: 15px; line-height: 1;
+    }
+    .chip button:hover { background: rgba(248, 113, 113, .14); color: var(--bad); }
+
+    /* ===== 9. LISTS ====================================================== */
+    .deploy-drop {
+      display: grid; place-items: center; min-height: 150px; padding: 24px;
+      border: 1px dashed var(--line-hi); border-radius: var(--radius);
+      background: var(--surface-inset); text-align: center; cursor: pointer;
+      transition: border-color .12s ease, background-color .12s ease;
+    }
+    .deploy-drop:hover { border-color: var(--accent-line); background: var(--surface-hi); }
+    .deploy-drop input { max-width: 400px; margin-top: 14px; }
+    .deploy-drop strong { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; }
+    .deploy-drop span { color: var(--muted); font-size: 12px; }
+
+    .history { display: grid; gap: 8px; }
+    .history-item {
+      display: flex; align-items: center; gap: 13px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-hi);
+    }
+    .history-main { min-width: 0; flex: 1; }
+    .history-main strong { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    .history-main p { margin: 4px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11.5px; }
+    .history-meta { color: var(--soft); font-size: 11.5px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .audit-item { display: grid; grid-template-columns: 160px 1fr auto; gap: 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+    .audit-item:last-child { border-bottom: 0; }
+    .audit-actor { overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+    .audit-action { color: var(--soft); }
+    .audit-time { color: var(--muted); font-size: 11.5px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .message-item { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(240px, 2fr) auto; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .message-item:last-child { border-bottom: 0; }
+    .message-meta strong { display: block; font-size: 12.5px; font-weight: 600; }
+    .message-meta span, .message-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11.5px; }
+    .message-copy { min-width: 0; color: var(--soft); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+    .message-copy.deleted { color: var(--muted); font-style: italic; }
+
+    .channel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .channel-item { padding: 15px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-hi); }
+    .channel-item strong { display: block; font-size: 13px; font-weight: 600; }
+    .channel-item > span { display: block; margin-top: 4px; color: var(--muted); font-size: 11.5px; }
+    .channel-hash { color: var(--accent); opacity: .85; font-family: var(--mono); }
+    .channel-metrics { display: flex; gap: 14px; margin-top: 13px; color: var(--soft); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+    .channel-metrics b { font-weight: 550; }
+
+    .diagnostic { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+    .diagnostic:last-child { border-bottom: 0; }
+    .diagnostic span:first-child { color: var(--muted); }
+    .diagnostic strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* ===== 10. OVERLAYS ================================================== */
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 40; max-width: 380px;
+      padding: 12px 15px; border: 1px solid var(--line-hi); border-radius: var(--radius);
+      background: var(--surface-hi); box-shadow: 0 16px 40px rgba(0, 0, 0, .7);
+      font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .14s ease;
+    }
+    .toast.show { opacity: 1; }
+    .toast.error { border-color: rgba(248, 113, 113, .4); color: #fca5a5; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .78); }
+    .modal-card {
+      width: min(430px, 100%); padding: 24px;
+      border: 1px solid var(--line-hi); border-radius: var(--radius-lg);
+      background: var(--surface); box-shadow: 0 24px 70px rgba(0, 0, 0, .8);
+    }
+    .modal-card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+    .modal-card p { margin: 0 0 16px; color: var(--soft); font-size: 13px; line-height: 1.6; white-space: pre-line; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .modal-secret {
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      border: 1px dashed var(--accent-line); border-radius: var(--radius); background: var(--surface-inset);
+    }
+    .modal-secret code { flex: 1; color: var(--accent-hi); font-size: 15px; letter-spacing: .08em; word-break: break-all; }
+
+    /* ===== 11. RESPONSIVE ================================================ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+    @media (max-width: 1080px) {
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 980px) {
+      .two { grid-template-columns: 1fr; }
+      .channel-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 720px) {
+      .shell { display: block; }
+      aside { position: static; display: block; width: auto; height: auto; padding: 10px; border-right: 0; border-bottom: 1px solid var(--line); }
+      aside .brand, .aside-bottom { display: none; }
+      nav { display: flex; overflow-x: auto; }
+      .nav-section-label { display: none; }
+      .nav-btn { width: auto; flex: 0 0 auto; }
+      .nav-btn.active::before { display: none; }
+      main { padding: 20px 14px 52px; }
+      .topbar { flex-wrap: wrap; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .history-item { align-items: flex-start; flex-wrap: wrap; }
+      .history-meta { text-align: left; }
+      .audit-item { grid-template-columns: 1fr auto; }
+      .audit-action { grid-column: 1 / -1; grid-row: 2; }
+      .channel-grid, .inline-settings { grid-template-columns: 1fr; }
+      .message-item { grid-template-columns: 1fr auto; }
+      .message-copy { grid-column: 1 / -1; grid-row: 2; }
+    }
+    @media (max-width: 460px) {
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Stroke icon sprite. Everything inherits stroke/fill from .icon, so a
+       <use> picks up the colour of whatever button or heading contains it. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-brand" viewBox="0 0 24 24"><path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M3 21h18"/><path d="M12.5 12.5v1"/></symbol>
+    <symbol id="i-overview" viewBox="0 0 24 24"><path d="M3 3h7v8H3z"/><path d="M14 3h7v5h-7z"/><path d="M14 12h7v9h-7z"/><path d="M3 15h7v6H3z"/></symbol>
+    <symbol id="i-controls" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></symbol>
+    <symbol id="i-broadcast" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 0 0 1 1h3l7 4.5V5.5L7 10H4a1 1 0 0 0-1 1z"/><path d="M17.5 9a4 4 0 0 1 0 6"/><path d="M20 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-moderation" viewBox="0 0 24 24"><path d="M12 21s7.5-3.6 7.5-9.4V5.4L12 2.7 4.5 5.4v6.2C4.5 17.4 12 21 12 21z"/><path d="m9.2 11.8 2 2 3.6-3.6"/></symbol>
+    <symbol id="i-content" viewBox="0 0 24 24"><path d="M20.5 14.5a2 2 0 0 1-2 2H8l-4.5 4V5.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 8.5h8"/><path d="M8 12h5"/></symbol>
+    <symbol id="i-channels" viewBox="0 0 24 24"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></symbol>
+    <symbol id="i-words" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol>
+    <symbol id="i-deploys" viewBox="0 0 24 24"><path d="M12 16V3"/><path d="m7 8 5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-devtools" viewBox="0 0 24 24"><path d="M9.5 3v6L4.8 17.1A2 2 0 0 0 6.5 20h11a2 2 0 0 0 1.7-2.9L14.5 9V3"/><path d="M8 3h8"/><path d="M7.5 14.5h9"/></symbol>
+    <symbol id="i-audit" viewBox="0 0 24 24"><path d="M9 3.5h6v3H9z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8.5 11.5h7"/><path d="M8.5 15.5h4.5"/></symbol>
+    <symbol id="i-members" viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></symbol>
+    <symbol id="i-active" viewBox="0 0 24 24"><path d="m3 16 5-5 4 4 8-8"/><path d="M15 7h5v5"/></symbol>
+    <symbol id="i-devices" viewBox="0 0 24 24"><path d="M3 5h18v11H3z"/><path d="M8 20h8"/><path d="M12 16v4"/></symbol>
+    <symbol id="i-dm" viewBox="0 0 24 24"><path d="M3 5.5h18v13H3z"/><path d="m3 6.5 9 6.5 9-6.5"/></symbol>
+    <symbol id="i-status" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.7 6.7a7.5 7.5 0 1 0 10.6 0"/></symbol>
+    <symbol id="i-diagnostics" viewBox="0 0 24 24"><path d="M21 12h-4l-2.5 7L9.5 5 7 12H3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 4v5h-5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.2 1.9"/></symbol>
+    <symbol id="i-signout" viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="m10 16 4-4-4-4"/><path d="M14 12H3"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+    <symbol id="i-games" viewBox="0 0 24 24"><path d="M7.5 7h9a5 5 0 0 1 4.9 4l.8 5a2.6 2.6 0 0 1-4.7 1.9L16 16H8l-1.5 1.9A2.6 2.6 0 0 1 1.8 16l.8-5a5 5 0 0 1 4.9-4z"/><path d="M7 11v3"/><path d="M5.5 12.5h3"/><path d="M15.5 11.5h.01"/><path d="M18 13.5h.01"/></symbol>
+  </svg>
+
+  <section class="login-screen" id="login-screen">
+    <form class="login-card" id="login-form">
+      <div class="brand">
+        <div class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-brand"/></svg></div>
+        <div><h1>Liminal Control</h1><p>Owner and administrator dashboard</p></div>
+      </div>
+      <div class="field"><label for="username">Admin username</label><input id="username" autocomplete="username" required></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+      <button class="primary" id="login-button" type="submit">Open dashboard</button>
+      <div class="error" id="login-error" role="alert"></div>
+    </form>
+  </section>
+
+  <div class="shell" id="dashboard" hidden>
+    <aside>
+      <div class="brand">
+        <div class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-brand"/></svg></div>
+        <div><h1>Liminal Control</h1><p>Chat operations</p></div>
+      </div>
+      <nav>
+        <div class="nav-section-label">Workspace</div>
+        <button class="nav-btn active" data-view="overview"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-overview"/></svg></span>Overview</button>
+        <button class="nav-btn" data-view="controls"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-controls"/></svg></span>App controls</button>
+        <button class="nav-btn owner-only" data-view="broadcast"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-broadcast"/></svg></span>Announcements</button>
+        <div class="nav-section-label">Community</div>
+        <button class="nav-btn" data-view="moderation"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-moderation"/></svg></span>Moderation</button>
+        <button class="nav-btn" data-view="content"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-content"/></svg></span>Messages</button>
+        <button class="nav-btn" data-view="channels"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-channels"/></svg></span>Channels</button>
+        <button class="nav-btn" data-view="words"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-words"/></svg></span>Banned words</button>
+        <div class="nav-section-label">System</div>
+        <button class="nav-btn owner-only" data-view="deploys"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-deploys"/></svg></span>Deploys</button>
+        <button class="nav-btn owner-only" data-view="devtools"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-devtools"/></svg></span>Dev tools</button>
+        <button class="nav-btn" data-view="audit"><span class="nav-icon"><svg class="icon" aria-hidden="true"><use href="#i-audit"/></svg></span>Audit log</button>
+      </nav>
+      <div class="aside-bottom">
+        <div class="aside-user" id="aside-user"></div>
+        <div class="aside-role" id="aside-role"></div>
+        <div class="aside-links">
+          <a href="./liminal-chat-launcher.html" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-content"/></svg>Chat</a>
+          <a href="./liminal-games-launcher.html" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-games"/></svg>Games</a>
+          <a class="aside-link-wide" href="https://supabase.com/dashboard/project/ucgjwrjqmexenmrpbdkh" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-database"/></svg>Supabase</a>
+        </div>
+        <button class="ghost" id="sign-out" type="button"><svg class="icon" aria-hidden="true"><use href="#i-signout"/></svg>Sign out</button>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header class="topbar">
+        <div class="topbar-heading">
+          <span class="page-icon" id="page-icon"><svg class="icon" aria-hidden="true"><use href="#i-overview"/></svg></span>
+          <div><h2 id="page-title">Overview</h2><p id="page-subtitle">Live health and community activity.</p></div>
+        </div>
+        <div class="topbar-actions">
+          <button class="secondary owner-only" data-force-refresh="chat" type="button">Force refresh</button>
+          <button class="ghost" id="auto-refresh" type="button" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg><span id="auto-refresh-label">Auto refresh: on</span></button>
+          <button class="secondary" id="refresh-dashboard" type="button"><svg class="icon" aria-hidden="true"><use href="#i-refresh"/></svg>Refresh</button>
+          <div class="live-pill" id="live-pill"><span class="live-dot"></span><span id="connection-label">Connected</span></div>
+        </div>
+      </header>
+
+      <section data-page="overview">
+        <div class="grid stats" id="stats"></div>
+        <div class="grid two" style="margin-top:16px">
+          <article class="card pad"><div class="section-title"><div><h3><span class="heading-icon"><svg class="icon" aria-hidden="true"><use href="#i-controls"/></svg></span>Current configuration</h3><p>Feature state read from Supabase.</p></div></div><div id="overview-flags" class="stack"></div></article>
+          <article class="card pad"><div class="section-title"><div><h3><span class="heading-icon"><svg class="icon" aria-hidden="true"><use href="#i-deploys"/></svg></span>Latest deployment</h3><p>Newest build recorded for each deployable app.</p></div></div><div class="history" id="latest-deploy"></div></article>
+        </div>
+        <div class="grid two" style="margin-top:16px">
+          <article class="card pad"><div class="section-title"><div><h3><span class="heading-icon"><svg class="icon" aria-hidden="true"><use href="#i-channels"/></svg></span>Channel activity</h3><p>Where the community is talking.</p></div></div><div id="overview-channels"></div></article>
+          <article class="card pad"><div class="section-title"><div><h3><span class="heading-icon"><svg class="icon" aria-hidden="true"><use href="#i-diagnostics"/></svg></span>Diagnostics</h3><p>Current dashboard connection and state.</p></div></div><div id="diagnostics"></div></article>
+        </div>
+      </section>
+
+      <section data-page="controls" hidden>
+        <div class="grid two">
+          <article class="card pad">
+            <div class="section-title"><div><h3>Availability</h3><p>Changes propagate to connected clients.</p></div></div>
+            <div id="feature-controls"></div>
+          </article>
+          <article class="card pad">
+            <div class="section-title"><div><h3>Maintenance screen</h3><p>Shown when the owner turns off the app.</p></div></div>
+            <div class="field"><label for="maintenance-message">Message</label><textarea id="maintenance-message" maxlength="4000"></textarea></div>
+            <button class="primary" id="save-maintenance" type="button">Save maintenance message</button>
+          </article>
+        </div>
+        <article class="card pad owner-only" style="margin-top:16px">
+          <div class="section-title"><div><h3>Launcher migration</h3><p>Old downloaded launchers never announce a version, so they cannot open chat or the game stash. Raise a minimum only after people have the matching launcher file.</p></div></div>
+          <div class="inline-settings">
+            <div class="field"><label for="min-chat-launcher-version">Chat launcher version</label><input id="min-chat-launcher-version" type="number" min="1" max="999" step="1"></div>
+            <div class="field"><label for="min-games-launcher-version">Games launcher version</label><input id="min-games-launcher-version" type="number" min="1" max="999" step="1"></div>
+          </div>
+          <div class="field"><label for="launcher-migrate-message">Chat message</label><textarea id="launcher-migrate-message" maxlength="4000"></textarea></div>
+          <div class="counter" id="launcher-migrate-count">0 / 4000</div>
+          <div class="field"><label for="games-launcher-migrate-message">Games message</label><textarea id="games-launcher-migrate-message" maxlength="4000"></textarea></div>
+          <div class="counter" id="games-launcher-migrate-count">0 / 4000</div>
+          <button class="primary" id="save-launcher-migrate" type="button">Save launcher migration</button>
+        </article>
+        <article class="card pad" style="margin-top:16px">
+          <div class="section-title"><div><h3>Message policy</h3><p>Server-enforced limits shared with chat.html.</p></div></div>
+          <div class="inline-settings">
+            <div class="field"><label for="slow-mode">Slow mode seconds (0-300)</label><input id="slow-mode" type="number" min="0" max="300" step="1"></div>
+            <div class="field"><label for="max-message-length">Maximum message length (100-4000)</label><input id="max-message-length" type="number" min="100" max="4000" step="1"></div>
+          </div>
+          <button class="primary" id="save-message-policy" type="button">Save message policy</button>
+        </article>
+        <article class="card pad owner-only" style="margin-top:16px">
+          <div class="section-title"><div><h3>Voice TURN servers</h3><p>Optional JSON array of RTCIceServer objects. School Wi-Fi often blocks UDP, so include a TURNS URL on port 443. Leave empty to use the built-in STUN plus Open Relay fallback. Chromebooks on the same LAN still connect directly.</p></div></div>
+          <div class="field"><label for="turn-servers">turn_servers</label><textarea id="turn-servers" maxlength="8000" style="min-height:120px;font-family:var(--mono)" placeholder='[{"urls":"turns:turn.example.com:443","username":"...","credential":"..."}]'></textarea></div>
+          <button class="primary" id="save-turn-servers" type="button">Save TURN servers</button>
+        </article>
+      </section>
+
+      <section data-page="broadcast" hidden>
+        <div class="notice" style="margin-bottom:16px">Owner-only communication controls. Administrators can manage operations, but cannot publish or clear announcements or What's new.</div>
+        <div class="grid two">
+          <article class="card pad">
+            <div class="section-title"><div><h3>Announcement banner</h3><p>Displayed above the active chat view.</p></div></div>
+            <div class="field"><label for="announcement">Announcement</label><textarea id="announcement" maxlength="300" style="min-height:100px"></textarea></div>
+            <div class="counter" id="announcement-count">0 / 300</div>
+            <div class="banner-preview" id="announcement-preview">No announcement is active.</div>
+          </article>
+          <article class="card pad">
+            <div class="section-title"><div><h3>What's new</h3><p>Shown once per user whenever its content changes.</p></div></div>
+            <div class="field"><label for="whats-new">Release message</label><textarea id="whats-new" maxlength="4000"></textarea></div>
+            <div class="counter" id="whats-new-count">0 / 4000</div>
+          </article>
+          <article class="card pad">
+            <div class="section-title"><div><h3>Luna custom status</h3><p>Shown only when you set it. Luna remains hidden from the member sidebar.</p></div></div>
+            <div class="field"><label for="luna-custom-status">Custom status</label><input id="luna-custom-status" maxlength="120" placeholder="No custom status"></div>
+            <div class="counter" id="luna-custom-status-count">0 / 120</div>
+            <div class="toolbar"><button class="primary" id="save-luna-custom-status" type="button">Save Luna status</button><button class="ghost" id="clear-luna-custom-status" type="button">Clear Luna status</button></div>
+          </article>
+        </div>
+        <div class="toolbar" style="margin-top:16px">
+          <button class="primary" id="save-broadcast" type="button">Publish broadcast settings</button>
+          <button class="ghost" id="clear-announcement" type="button">Clear announcement</button>
+          <button class="ghost" id="clear-whats-new" type="button">Clear What's new</button>
+        </div>
+      </section>
+
+      <section data-page="moderation" hidden>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Community accounts</h3><p>Ban, unban, or temporarily mute accounts.</p></div></div>
+          <div class="toolbar" style="margin-bottom:12px"><input id="user-search" type="search" placeholder="Search usernames or display names"><button class="secondary" id="refresh-users" type="button">Refresh</button></div>
+          <div class="filter-pills" id="user-filters" style="margin-bottom:14px">
+            <button class="filter-pill active" data-user-filter="all" type="button">All</button>
+            <button class="filter-pill" data-user-filter="staff" type="button">Staff</button>
+            <button class="filter-pill" data-user-filter="restricted" type="button">Restricted</button>
+            <button class="filter-pill" data-user-filter="test" type="button">Test accounts</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Activity</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="users-body"></tbody></table></div>
+        </article>
+      </section>
+
+      <section data-page="content" hidden>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Recent channel messages</h3><p>Review and tombstone public channel messages. Direct messages are not exposed here.</p></div></div>
+          <div class="toolbar" style="margin-bottom:14px">
+            <input id="message-search" type="search" placeholder="Search message text or sender">
+            <select id="message-channel"><option value="">All channels</option></select>
+            <button class="secondary" id="refresh-messages" type="button">Refresh</button>
+          </div>
+          <div id="message-list"></div>
+        </article>
+      </section>
+
+      <section data-page="channels" hidden>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Channel health</h3><p>Message volume and recent activity for every public channel.</p></div></div>
+          <div class="channel-grid" id="channel-grid"></div>
+        </article>
+      </section>
+
+      <section data-page="words" hidden>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Banned words</h3><p>Messages containing one of these entries are rejected by the database.</p></div></div>
+          <div class="toolbar"><input id="new-word" maxlength="40" placeholder="Add a word or phrase"><button class="primary" id="add-word" type="button">Add word</button></div>
+          <div class="chips" id="word-chips" style="margin-top:18px"></div>
+        </article>
+      </section>
+
+      <section data-page="deploys" hidden>
+        <div class="filter-pills" id="deploy-apps" style="margin-bottom:16px">
+          <button class="filter-pill active" data-deploy-app="chat" type="button">Liminal Chat</button>
+          <button class="filter-pill" data-deploy-app="games" type="button">Liminal Games</button>
+        </div>
+        <div class="grid two">
+          <article class="card pad">
+            <div class="section-title"><div><h3 id="deploy-target-title">Publish chat.html</h3><p>Owner-only. Every upload is archived before going live.</p></div></div>
+            <div class="field"><label for="deploy-version">Version</label><input id="deploy-version" maxlength="80" placeholder="2026.06.11-1"></div>
+            <div class="field"><label for="deploy-notes">Release notes</label><textarea id="deploy-notes" maxlength="2000" style="min-height:90px"></textarea></div>
+            <label class="deploy-drop" for="deploy-file"><div><strong id="deploy-drop-title">Select the new Liminal Chat build</strong><span>HTML only, up to 5 MB</span></div><input id="deploy-file" type="file" accept=".html,text/html"></label>
+            <button class="primary" id="deploy-button" type="button" style="margin-top:14px;width:100%">Publish deployment</button>
+          </article>
+          <article class="card pad">
+            <div class="section-title"><div><h3>Deployment safety</h3><p>What the deploy service does.</p></div></div>
+            <div class="stack">
+              <div class="banner-preview">1. Verifies your current owner session.</div>
+              <div class="banner-preview">2. Archives the exact HTML with a timestamp and SHA-256 hash.</div>
+              <div class="banner-preview">3. Replaces <strong id="deploy-safety-target">liminal-apps/chat.html</strong> using the correct HTML content type.</div>
+              <div class="banner-preview">4. Records the release for one-click rollback.</div>
+            </div>
+            <button class="secondary owner-only" id="deploy-force-refresh" data-force-refresh type="button" style="margin-top:14px;width:100%">Force refresh connected users</button>
+          </article>
+        </div>
+        <article class="card pad" style="margin-top:16px">
+          <div class="section-title"><div><h3 id="deploy-history-title">Deployment history</h3><p>Recent releases and rollback points for the selected app.</p></div></div>
+          <div class="history" id="deploy-history"></div>
+        </article>
+      </section>
+
+      <section data-page="devtools" hidden>
+        <div class="grid two">
+          <article class="card pad">
+            <div class="section-title"><div><h3>Create test session</h3><p>Spawn a fresh account to exercise onboarding and new features.</p></div></div>
+            <div class="field"><label for="devtest-name">Display name</label><input id="devtest-name" value="Dev Tester" maxlength="40"></div>
+            <button class="primary" id="devtest-create" type="button" style="width:100%;margin-top:4px">Create dev session</button>
+          </article>
+          <article class="card pad">
+            <div class="section-title"><div><h3>How it works</h3><p>What dev sessions can and cannot do.</p></div></div>
+            <div class="stack">
+              <div class="banner-preview">Creates a real member account: full onboarding, chat access, all features.</div>
+              <div class="banner-preview">No admin or owner privileges. Logs in with the one-time password shown at creation.</div>
+              <div class="banner-preview">Appears in Moderation with a <strong>Test</strong> badge. Delete it here when done.</div>
+            </div>
+          </article>
+        </div>
+        <article class="card pad" style="margin-top:16px">
+          <div class="section-title">
+            <div><h3>Active test accounts</h3><p>Dev sessions spawned from this dashboard.</p></div>
+            <button class="ghost" id="refresh-devtest" type="button">Refresh</button>
+          </div>
+          <div id="devtest-list"></div>
+        </article>
+      </section>
+
+      <section data-page="audit" hidden>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Administrative audit</h3><p>Recent dashboard, moderation, settings, and deployment events.</p></div><button class="ghost" id="export-audit" type="button">Export JSON</button></div>
+          <div class="toolbar" style="margin-bottom:12px"><input id="audit-search" type="search" placeholder="Filter actor, action, or target"></div>
+          <div id="audit-list"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title"></h3>
+      <p id="modal-message"></p>
+      <div class="field" id="modal-field" hidden>
+        <label for="modal-input" id="modal-label"></label>
+        <input id="modal-input" autocomplete="off">
+      </div>
+      <div class="modal-secret" id="modal-secret" hidden>
+        <code id="modal-secret-value"></code>
+        <button class="secondary" id="modal-copy" type="button">Copy</button>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost" id="modal-cancel" type="button">Cancel</button>
+        <button class="primary" id="modal-ok" type="button">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+    <script>
+    const SUPABASE_URL = "https://ucgjwrjqmexenmrpbdkh.supabase.co";
+    const FUNCTION_URL = SUPABASE_URL + "/functions/v1/admin-deploy";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: sessionStorage }
+    });
+    const $ = (id) => document.getElementById(id);
+    const qsa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    // Defensive: a corrupt session value must not throw at init and leave the
+    // dashboard a blank page with no login screen.
+    let admin = (() => {
+      try { return JSON.parse(sessionStorage.getItem("liminal_admin") || "null"); }
+      catch { sessionStorage.removeItem("liminal_admin"); return null; }
+    })();
+    let state = null;
+    let activeView = "overview";
+    let activeUserFilter = "all";
+    // Deployable apps in the liminal-apps bucket. `file` is the live object the
+    // deploy service overwrites; keys must match APP_TARGETS in admin-deploy.
+    const DEPLOY_APPS = {
+      chat: { label: "Liminal Chat", file: "chat.html" },
+      games: { label: "Liminal Games", file: "games.html" }
+    };
+    let activeDeployApp = "chat";
+    let autoRefreshEnabled = true;
+    let autoRefreshTimer = null;
+    let lastRefreshDuration = 0;
+    let toastTimer = null;
+
+    // crypto.subtle only exists on secure origins (https/localhost/file); the
+    // pure-JS path keeps login working when the dashboard is opened over plain http.
+    function jsSha256(text) {
+      const bytes = new TextEncoder().encode(text);
+      const K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+      const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+      const len = bytes.length;
+      const padded = new Uint8Array((((len + 8) >> 6) + 1) << 6);
+      padded.set(bytes);
+      padded[len] = 0x80;
+      const dv = new DataView(padded.buffer);
+      dv.setUint32(padded.length - 8, Math.floor((len * 8) / 0x100000000));
+      dv.setUint32(padded.length - 4, (len * 8) >>> 0);
+      const w = new Uint32Array(64);
+      const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+      for (let i = 0; i < padded.length; i += 64) {
+        for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+        for (let t = 16; t < 64; t++) {
+          const s0 = rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
+          const s1 = rotr(w[t - 2], 17) ^ rotr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+          w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+        }
+        let [a, b, c, d, e, f, g, h] = H;
+        for (let t = 0; t < 64; t++) {
+          const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+          const t1 = (h + S1 + ((e & f) ^ (~e & g)) + K[t] + w[t]) >>> 0;
+          const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+          const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+          h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+        }
+        H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+        H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+      }
+      return Array.from(H, (x) => x.toString(16).padStart(8, "0")).join("");
+    }
+    async function sha256Hex(text) {
+      if (!window.crypto || !crypto.subtle) return jsSha256(text);
+      const bytes = new TextEncoder().encode(text);
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+    function toast(message, error = false) {
+      const el = $("toast");
+      el.textContent = message;
+      el.className = "toast show" + (error ? " error" : "");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = "toast"; }, 3500);
+    }
+    function setBusy(busy) { $("main").classList.toggle("loading", busy); }
+    // In-page replacement for confirm()/prompt(): native dialogs are silently
+    // suppressed in sandboxed iframes and embedded browsers, which made every
+    // gated action look broken. Resolves null on cancel; input value or true on confirm.
+    function dialog({ title, message = "", input = null, value = "", okLabel = "Confirm", danger = false, secret = null }) {
+      return new Promise((resolve) => {
+        $("modal-title").textContent = title;
+        $("modal-message").textContent = message;
+        $("modal-field").hidden = !input;
+        $("modal-label").textContent = input || "";
+        $("modal-input").value = value;
+        $("modal-secret").hidden = !secret;
+        $("modal-secret-value").textContent = secret || "";
+        $("modal-cancel").hidden = !!secret;
+        $("modal-ok").textContent = secret ? "Done" : okLabel;
+        $("modal-ok").className = danger ? "danger" : "primary";
+        $("modal").hidden = false;
+        const finish = (result) => {
+          $("modal").hidden = true;
+          $("modal-ok").onclick = $("modal-cancel").onclick = $("modal").onclick = $("modal-input").onkeydown = null;
+          document.removeEventListener("keydown", onKey);
+          resolve(result);
+        };
+        const onKey = (event) => { if (event.key === "Escape") finish(null); };
+        document.addEventListener("keydown", onKey);
+        $("modal-ok").onclick = () => finish(input ? $("modal-input").value : true);
+        $("modal-cancel").onclick = () => finish(null);
+        $("modal").onclick = (event) => { if (event.target === $("modal")) finish(null); };
+        $("modal-input").onkeydown = (event) => { if (event.key === "Enter") { event.preventDefault(); finish($("modal-input").value); } };
+        (input ? $("modal-input") : $("modal-ok")).focus();
+      });
+    }
+    function tempPassword() {
+      const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+      return Array.from(crypto.getRandomValues(new Uint8Array(12)), (byte) => alphabet[byte % alphabet.length]).join("");
+    }
+    function fmtDate(value) {
+      if (!value) return "Never";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+    }
+    function fmtBytes(bytes) {
+      const value = Number(bytes || 0);
+      if (value < 1024) return value + " B";
+      if (value < 1048576) return (value / 1024).toFixed(1) + " KB";
+      return (value / 1048576).toFixed(2) + " MB";
+    }
+    function fmtRelative(value) {
+      if (!value) return "Never";
+      const diff = Date.now() - new Date(value).getTime();
+      if (!Number.isFinite(diff)) return "Unknown";
+      if (diff < 60000) return "Just now";
+      if (diff < 3600000) return Math.floor(diff / 60000) + "m ago";
+      if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago";
+      return Math.floor(diff / 86400000) + "d ago";
+    }
+    function downloadJson(filename, value) {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    // Icons are <use> references into the sprite at the top of <body>; `name`
+    // must match a symbol id there minus the "i-" prefix.
+    function svgIcon(name) { return `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`; }
+    function boolSetting(key) { return state?.settings?.[key] !== "false"; }
+    function words() {
+      try {
+        const parsed = JSON.parse(state?.settings?.banned_words || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch { return []; }
+    }
+    async function rpc(name, params) {
+      const { data, error } = await sb.rpc(name, params);
+      if (error) {
+        if (/expired administrator session|invalid administrator session/i.test(error.message || "")) logout(false);
+        throw error;
+      }
+      return data;
+    }
+    function accountEmail(username) {
+      return String(username || "").trim().toLowerCase() + "@accounts.liminal.invalid";
+    }
+    async function callChatAuth(payload) {
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Signed-in session required");
+      const response = await fetch(SUPABASE_URL + "/functions/v1/chat-auth", {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Account request failed");
+      return result;
+    }
+    async function login(event) {
+      event.preventDefault();
+      const button = $("login-button");
+      const errorEl = $("login-error");
+      errorEl.textContent = "";
+      button.disabled = true;
+      try {
+        const username = $("username").value.trim();
+        const { error: authError } = await sb.auth.signInWithPassword({
+          email: accountEmail(username),
+          password: $("password").value
+        });
+        if (authError) throw new Error("Invalid administrator credentials");
+        const data = await rpc("admin_dashboard_sign_in_auth");
+        admin = data;
+        sessionStorage.setItem("liminal_admin", JSON.stringify(admin));
+        $("password").value = "";
+        await openDashboard();
+      } catch (error) {
+        console.error(error);
+        const message = error?.message || "";
+        if (/invalid administrator credentials/i.test(message)) {
+          errorEl.textContent = "Those credentials do not belong to an active Liminal administrator.";
+        } else if (/failed to fetch|network|load failed/i.test(message)) {
+          errorEl.textContent = "Could not reach the Liminal server. Check your connection and try again.";
+        } else {
+          errorEl.textContent = "Sign-in failed: " + (message || "unknown error");
+        }
+      } finally {
+        button.disabled = false;
+      }
+    }
+    async function logout(callServer = true) {
+      const token = admin?.token;
+      clearInterval(autoRefreshTimer);
+      admin = null;
+      state = null;
+      sessionStorage.removeItem("liminal_admin");
+      $("dashboard").hidden = true;
+      $("login-screen").hidden = false;
+      if (callServer && token) {
+        try { await sb.rpc("admin_dashboard_sign_out", { p_admin_token: token }); } catch {}
+      }
+      try { await sb.auth.signOut({ scope: "local" }); } catch {}
+    }
+    async function openDashboard() {
+      $("login-screen").hidden = true;
+      $("dashboard").hidden = false;
+      $("aside-user").textContent = "@" + admin.username;
+      $("aside-role").textContent = admin.is_owner ? "Owner" : "Administrator";
+      qsa(".owner-only").forEach((el) => { el.hidden = !admin.is_owner; });
+      if (!admin.is_owner && ["broadcast", "deploys", "devtools"].includes(activeView)) showView("overview");
+      await refreshState();
+      startAutoRefresh();
+    }
+    async function refreshState(silent = false) {
+      if (!admin?.token) return logout(false);
+      if (!silent) setBusy(true);
+      const startedAt = performance.now();
+      try {
+        state = await rpc("admin_dashboard_get_state", { p_admin_token: admin.token });
+        lastRefreshDuration = Math.round(performance.now() - startedAt);
+        renderAll();
+        $("connection-label").textContent = "Connected · " + lastRefreshDuration + " ms";
+        $("live-pill").classList.remove("offline");
+      } catch (error) {
+        console.error(error);
+        $("connection-label").textContent = "Connection error";
+        $("live-pill").classList.add("offline");
+        toast(error.message || "Could not refresh the dashboard.", true);
+      } finally {
+        setBusy(false);
+      }
+    }
+    // An empty data-force-refresh follows the Deploys app picker; the topbar
+    // button pins itself to chat so it means the same thing from any view.
+    async function forceRefreshUsers(trigger) {
+      if (!admin?.is_owner) return toast("Owner access is required.", true);
+      const appKey = trigger?.dataset.forceRefresh || activeDeployApp;
+      const app = DEPLOY_APPS[appKey] || DEPLOY_APPS.chat;
+      const buttons = qsa("[data-force-refresh]");
+      buttons.forEach((button) => {
+        button.disabled = true;
+        button.dataset.label = button.textContent;
+        button.textContent = "Refreshing users...";
+      });
+      try {
+        await rpc("admin_dashboard_force_refresh", { p_admin_token: admin.token, p_app: appKey });
+        await refreshState(true);
+        toast("Force refresh sent to connected " + app.label + " users.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not force refresh connected users.", true);
+      } finally {
+        buttons.forEach((button) => {
+          button.disabled = false;
+          button.textContent = button.dataset.label || "Force refresh";
+          delete button.dataset.label;
+        });
+      }
+    }
+    function startAutoRefresh() {
+      clearInterval(autoRefreshTimer);
+      if (!autoRefreshEnabled) return;
+      autoRefreshTimer = setInterval(() => {
+        if (!document.hidden && admin?.token) refreshState(true);
+      }, 30000);
+    }
+    function showView(view) {
+      if (["broadcast", "deploys", "devtools"].includes(view) && !admin?.is_owner) return;
+      activeView = view;
+      const copy = {
+        overview: ["Overview", "Live health and community activity."],
+        controls: ["App controls", "Availability and feature switches."],
+        broadcast: ["Announcements", "Owner-only messages sent to the whole community."],
+        moderation: ["Moderation", "Account bans and temporary restrictions."],
+        content: ["Messages", "Review and remove recent public channel content."],
+        channels: ["Channels", "Activity and health across public rooms."],
+        words: ["Banned words", "Server-enforced message filtering."],
+        deploys: ["Deployments", "Publish and roll back Liminal Chat builds."],
+        devtools: ["Developer tools", "Create and manage temporary test sessions."],
+        audit: ["Audit log", "Recent administrative actions."]
+      }[view];
+      $("page-title").textContent = copy[0];
+      $("page-subtitle").textContent = copy[1];
+      // Sprite ids intentionally mirror the view keys.
+      $("page-icon").innerHTML = svgIcon(view);
+      qsa("[data-page]").forEach((page) => { page.hidden = page.dataset.page !== view; });
+      qsa(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+    }
+    function renderAll() {
+      renderOverview();
+      renderControls();
+      renderBroadcast();
+      renderUsers();
+      renderMessages();
+      renderChannels();
+      renderWords();
+      renderDeployments();
+      renderDevtools();
+      renderAudit();
+    }
+    function renderOverview() {
+      const users = state.users || [];
+      const stats = state.stats || {};
+      // The Release tile tracks chat, the flagship app; the card below it lists
+      // the newest build of every deployable app.
+      const deploy = deploymentsFor("chat")[0];
+      $("stats").innerHTML = [
+        ["status", "App", boolSetting("app_enabled") ? "Online" : "Offline", boolSetting("app_enabled") ? "Community access enabled" : "Maintenance mode"],
+        ["members", "Members", stats.users_total ?? users.length, (stats.staff_total ?? 0) + " staff accounts"],
+        ["content", "Messages", stats.messages_total ?? 0, (stats.messages_24h ?? 0) + " in the last 24 hours"],
+        ["active", "Active", stats.active_senders_7d ?? 0, "senders in the last 7 days"],
+        ["moderation", "Restricted", stats.banned_total ?? 0, (stats.timed_out_total ?? 0) + " active timeouts"],
+        ["devices", "Devices", stats.devices_total ?? 0, (stats.devices_seen_7d ?? 0) + " seen in 7 days"],
+        ["dm", "DM messages", stats.dm_messages_total ?? 0, boolSetting("dms_enabled") ? "Direct messages enabled" : "Direct messages paused"],
+        ["channels", "Channels", stats.channels_total ?? 0, (stats.messages_7d ?? 0) + " messages in 7 days"],
+        ["deploys", "Release", deploy ? esc(deploy.version) : "Untracked", deploy ? fmtDate(deploy.deployed_at) : "No Control deployment yet"]
+      ].map(([icon, label, value, sub]) => `<article class="card pad stat-card"><div class="stat-label"><span class="stat-icon">${svgIcon(icon)}</span>${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></article>`).join("");
+      const flags = [
+        ["App access", "app_enabled"],
+        ["Message sending", "messages_enabled"],
+        ["Direct messages", "dms_enabled"],
+        ["GIFs", "gifs_enabled"],
+        ["Media uploads", "uploads_enabled"],
+        ["New registrations", "registrations_enabled"]
+      ];
+      $("overview-flags").innerHTML = flags.map(([label, key]) => `<div class="control-row"><div class="control-copy"><strong>${label}</strong></div><span class="badge ${boolSetting(key) ? "good" : "bad"}">${boolSetting(key) ? "Enabled" : "Disabled"}</span></div>`).join("");
+      $("latest-deploy").innerHTML = Object.entries(DEPLOY_APPS).map(([key, app]) => {
+        const latest = deploymentsFor(key)[0];
+        return latest
+          ? `<div class="history-item"><div class="history-main"><strong>${esc(app.label)}<span class="badge">${esc(latest.version)}</span></strong><p>${esc(latest.notes || "No release notes")}</p></div><div class="history-meta">${fmtBytes(latest.size_bytes)}<br>${fmtDate(latest.deployed_at)}</div></div>`
+          : `<div class="history-item"><div class="history-main"><strong>${esc(app.label)}<span class="badge warn">Untracked</span></strong><p>No Control deployment recorded for ${esc(app.file)}</p></div></div>`;
+      }).join("");
+      const activeChannels = [...(state.channels || [])].sort((a, b) => Number(b.messages_24h || 0) - Number(a.messages_24h || 0)).slice(0, 5);
+      $("overview-channels").innerHTML = activeChannels.map((channel) => `<div class="control-row"><div class="control-copy"><strong><span class="channel-hash">#</span> ${esc(channel.label)}</strong><span>Last message ${fmtRelative(channel.last_message_at)}</span></div><span class="badge">${channel.messages_24h || 0} today</span></div>`).join("") || `<div class="empty">No channels found.</div>`;
+      $("diagnostics").innerHTML = [
+        ["Project", "Liminal Ecosystem"],
+        ["Region", "us-east-1"],
+        ["Postgres", "17.6"],
+        ["State generated", fmtDate(state.generated_at)],
+        ["RPC round trip", lastRefreshDuration + " ms"],
+        ["Dashboard sessions", stats.active_dashboard_sessions ?? 0],
+        ["Auto refresh", autoRefreshEnabled ? "Every 30 seconds" : "Paused"]
+      ].map(([label, value]) => `<div class="diagnostic"><span>${label}</span><strong>${esc(value)}</strong></div>`).join("");
+    }
+    function renderControls() {
+      const controls = [
+        ["app_enabled", "App enabled", "Owner-only master switch. Non-owners receive the maintenance screen."],
+        ["messages_enabled", "Message sending enabled", "Pauses new channel and direct messages for regular members while keeping history readable."],
+        ["dms_enabled", "Direct messages enabled", "Prevents regular members from sending new private messages."],
+        ["gifs_enabled", "GIFs enabled", "Hides the GIF picker and rejects new GIF messages at the database."],
+        ["uploads_enabled", "Media uploads enabled", "Disables new images and stickers in chat."],
+        ["registrations_enabled", "New registrations enabled", "Prevents creation of new chat profiles."]
+      ];
+      $("feature-controls").innerHTML = controls.map(([key, title, copy]) => `<div class="control-row"><div class="control-copy"><strong>${title}</strong><span>${copy}</span></div><button class="switch" type="button" data-setting-toggle="${key}" aria-checked="${boolSetting(key)}" ${key === "app_enabled" && !admin.is_owner ? "disabled" : ""}></button></div>`).join("");
+      $("maintenance-message").value = state.settings.maintenance_message || "";
+      $("slow-mode").value = state.settings.slow_mode_seconds || "0";
+      $("max-message-length").value = state.settings.max_message_length || "2000";
+      const minLauncher = $("min-chat-launcher-version");
+      if (minLauncher) minLauncher.value = state.settings.min_chat_launcher_version || "2";
+      const minGamesLauncher = $("min-games-launcher-version");
+      if (minGamesLauncher) minGamesLauncher.value = state.settings.min_games_launcher_version || "2";
+      const migrateField = $("launcher-migrate-message");
+      if (migrateField) migrateField.value = state.settings.launcher_migrate_message || "";
+      const migrateCount = $("launcher-migrate-count");
+      if (migrateCount && migrateField) migrateCount.textContent = migrateField.value.length + " / 4000";
+      const gamesMigrateField = $("games-launcher-migrate-message");
+      if (gamesMigrateField) gamesMigrateField.value = state.settings.games_launcher_migrate_message || "";
+      const gamesMigrateCount = $("games-launcher-migrate-count");
+      if (gamesMigrateCount && gamesMigrateField) gamesMigrateCount.textContent = gamesMigrateField.value.length + " / 4000";
+      const turnField = $("turn-servers");
+      if (turnField) turnField.value = state.settings.turn_servers || "";
+    }
+    function renderBroadcast() {
+      $("announcement").value = state.settings.announcement || "";
+      $("whats-new").value = state.settings.whats_new || "";
+      $("luna-custom-status").value = state.settings.luna_custom_status || "";
+      $("announcement-preview").textContent = state.settings.announcement || "No announcement is active.";
+      updateBroadcastCounters();
+    }
+    function updateBroadcastCounters() {
+      $("announcement-count").textContent = $("announcement").value.length + " / 300";
+      $("whats-new-count").textContent = $("whats-new").value.length + " / 4000";
+      $("luna-custom-status-count").textContent = $("luna-custom-status").value.length + " / 120";
+    }
+    function renderUsers() {
+      const query = $("user-search").value.trim().toLowerCase();
+      const users = (state.users || []).filter((user) => {
+        const activeTimeout = user.timeout_until && new Date(user.timeout_until) > new Date();
+        const matchesFilter = activeUserFilter === "all"
+          || (activeUserFilter === "staff" && (user.is_admin || user.is_owner))
+          || (activeUserFilter === "restricted" && (user.is_banned || activeTimeout))
+          || (activeUserFilter === "test" && user.is_test_account);
+        const matchesQuery = !query || user.username.toLowerCase().includes(query) || String(user.display_name || "").toLowerCase().includes(query);
+        return matchesFilter && matchesQuery;
+      });
+      $("users-body").innerHTML = users.map((user) => {
+        const activeTimeout = user.timeout_until && new Date(user.timeout_until) > new Date();
+        const role = user.is_owner ? "Owner" : user.is_admin ? "Admin" : user.is_test_account ? "Test" : "Member";
+        const status = user.is_banned ? `<span class="badge bad">Banned</span>` : activeTimeout ? `<span class="badge warn">Timed out</span>` : `<span class="badge good">Active</span>`;
+        const protectedUser = user.username === admin.username || user.is_owner || (user.is_admin && !admin.is_owner);
+        let actions = "";
+        if (user.is_banned) actions += `<button class="secondary" data-user-action="unban" data-username="${esc(user.username)}">Unban</button>`;
+        else if (!protectedUser) actions += `<button class="danger" data-user-action="ban" data-username="${esc(user.username)}">Ban</button>`;
+        if (activeTimeout) actions += `<button class="secondary" data-user-action="clear-timeout" data-username="${esc(user.username)}">Clear timeout</button>`;
+        else if (!protectedUser && !user.is_banned) actions += `<button class="ghost" data-user-action="timeout" data-username="${esc(user.username)}">Timeout</button>`;
+        if (!protectedUser && !user.is_banned) actions += `<button class="ghost" data-user-action="kick" data-username="${esc(user.username)}">Kick</button>`;
+        const canResetPassword = admin.is_owner || (!user.is_admin && !user.is_owner);
+        if (canResetPassword) actions += `<button class="ghost" data-user-action="reset-password" data-username="${esc(user.username)}">Reset password</button>`;
+        if (admin.is_owner && !user.is_owner && user.username !== admin.username) actions += `<button class="secondary" data-user-action="${user.is_admin ? "revoke-admin" : "make-admin"}" data-username="${esc(user.username)}">${user.is_admin ? "Revoke admin" : "Make admin"}</button>`;
+        if (admin.is_owner && (user.is_admin || user.is_owner)) actions += `<button class="ghost" data-user-action="revoke-sessions" data-username="${esc(user.username)}">Revoke sessions</button>`;
+        if (!actions) actions = `<span class="username">Protected</span>`;
+        const activity = `<span class="display-name">${user.message_count || 0} messages</span><span class="username">${user.device_count || 0} devices · ${fmtRelative(user.last_message_at || user.last_device_seen)}</span>`;
+        return `<tr><td class="user-cell"><span class="display-name">${esc(user.display_name || user.username)}</span><span class="username">@${esc(user.username)}</span></td><td><span class="badge${user.is_test_account ? " warn" : ""}">${role}</span></td><td>${status}</td><td>${activity}</td><td>${fmtDate(user.created_at)}</td><td><div class="actions">${actions}</div></td></tr>`;
+      }).join("") || `<tr><td colspan="6" class="empty">No matching accounts.</td></tr>`;
+    }
+    function renderMessages() {
+      const query = $("message-search").value.trim().toLowerCase();
+      const channel = $("message-channel").value;
+      const options = [`<option value="">All channels</option>`].concat((state.channels || []).map((item) => `<option value="${esc(item.id)}">#${esc(item.label)}</option>`));
+      const selected = $("message-channel").value;
+      $("message-channel").innerHTML = options.join("");
+      $("message-channel").value = selected;
+      const messages = (state.recent_messages || []).filter((message) => {
+        const matchesChannel = !channel || message.channel_id === channel;
+        const haystack = `${message.sender} ${message.content || ""} ${message.type || ""}`.toLowerCase();
+        return matchesChannel && (!query || haystack.includes(query));
+      });
+      $("message-list").innerHTML = messages.map((message) => {
+        const text = message.deleted ? "This message was deleted." : (message.content || (message.media_url ? `[${message.type || "media"}]` : "[empty message]"));
+        return `<div class="message-item"><div class="message-meta"><strong>@${esc(message.sender)}</strong><span>#${esc(message.channel_id)} · ${fmtRelative(message.created_at)}</span></div><div class="message-copy${message.deleted ? " deleted" : ""}">${esc(text)}${message.edited ? '<span>Edited</span>' : ""}</div><div>${message.deleted ? '<span class="badge">Deleted</span>' : `<button class="danger" type="button" data-delete-message="${esc(message.id)}">Delete</button>`}</div></div>`;
+      }).join("") || `<div class="empty">No matching recent messages.</div>`;
+    }
+    function renderChannels() {
+      $("channel-grid").innerHTML = (state.channels || []).map((channel) => `<article class="channel-item"><strong><span class="channel-hash">#</span> ${esc(channel.label)}</strong><span>${esc(channel.topic || "No topic")}</span><div class="channel-metrics"><b>${channel.message_count || 0} total</b><b>${channel.messages_24h || 0} today</b><b>${fmtRelative(channel.last_message_at)}</b></div></article>`).join("") || `<div class="empty">No channels found.</div>`;
+    }
+    function renderWords() {
+      const list = words();
+      $("word-chips").innerHTML = list.map((word, index) => `<span class="chip">${esc(word)}<button type="button" data-remove-word="${index}" aria-label="Remove ${esc(word)}">×</button></span>`).join("") || `<div class="empty">No banned words configured.</div>`;
+    }
+    // Rows written before multi-app support have no `app` and were all chat.
+    function deployApp(deploy) { return deploy.app || "chat"; }
+    function deploymentsFor(app) { return (state.deployments || []).filter((d) => deployApp(d) === app); }
+    function renderDeployments() {
+      const app = DEPLOY_APPS[activeDeployApp];
+      $("deploy-target-title").textContent = "Publish " + app.file;
+      $("deploy-drop-title").textContent = "Select the new " + app.label + " build";
+      $("deploy-safety-target").textContent = "liminal-apps/" + app.file;
+      $("deploy-history-title").textContent = app.label + " history";
+      $("deploy-force-refresh").textContent = "Force refresh connected " + app.label + " users";
+      qsa("[data-deploy-app]").forEach((b) => b.classList.toggle("active", b.dataset.deployApp === activeDeployApp));
+      const deployments = deploymentsFor(activeDeployApp);
+      $("deploy-history").innerHTML = deployments.map((deploy) => `<div class="history-item"><div class="history-main"><strong>${esc(deploy.version)} ${deploy.is_rollback ? '<span class="badge warn">Rollback</span>' : ""}</strong><p>${esc(deploy.notes || deploy.storage_path)} · SHA ${esc(String(deploy.sha256).slice(0, 12))}</p></div><div class="history-meta">${esc(deploy.deployed_by)}<br>${fmtDate(deploy.deployed_at)}</div>${admin.is_owner ? `<button class="ghost" type="button" data-rollback-path="${esc(deploy.storage_path)}" data-rollback-version="${esc(deploy.version)}" data-rollback-app="${esc(deployApp(deploy))}">Roll back</button>` : ""}</div>`).join("") || `<div class="empty">No tracked ${esc(app.label)} deployments yet.</div>`;
+    }
+    function renderAudit() {
+      const query = $("audit-search").value.trim().toLowerCase();
+      const entries = (state.audit || []).filter((entry) => !query || `${entry.actor_username} ${entry.action} ${entry.target || ""}`.toLowerCase().includes(query));
+      $("audit-list").innerHTML = entries.map((entry) => `<div class="audit-item"><div class="audit-actor">@${esc(entry.actor_username)}</div><div class="audit-action">${esc(entry.action.replaceAll("_", " "))}${entry.target ? " · " + esc(entry.target) : ""}</div><div class="audit-time">${fmtDate(entry.created_at)}</div></div>`).join("") || `<div class="empty">No matching audit events.</div>`;
+    }
+    async function setSetting(key, value) {
+      setBusy(true);
+      try {
+        await rpc("admin_dashboard_set_setting", { p_admin_token: admin.token, p_key: key, p_value: value });
+        state.settings[key] = value;
+        renderAll();
+        toast("Setting updated.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not update the setting.", true);
+      } finally { setBusy(false); }
+    }
+    async function setLunaCustomStatus(value) {
+      if (!admin?.is_owner) return toast("Owner access is required.", true);
+      setBusy(true);
+      try {
+        await rpc("admin_dashboard_set_luna_custom_status", {
+          p_admin_token: admin.token,
+          p_custom_status: value
+        });
+        state.settings.luna_custom_status = value;
+        renderAll();
+        toast(value ? "Luna's status updated." : "Luna's status cleared.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not update Luna's status.", true);
+      } finally { setBusy(false); }
+    }
+    async function userAction(action, username) {
+      try {
+        if (action === "ban") {
+          const reason = await dialog({
+            title: "Ban @" + username,
+            message: "Permanently bans this account and all of its registered browser devices.",
+            input: "Reason (shown to the user)",
+            okLabel: "Ban account",
+            danger: true
+          });
+          if (reason === null) return;
+          await rpc("admin_dashboard_ban_user", { p_admin_token: admin.token, p_target_username: username, p_reason: reason.trim() });
+        } else if (action === "unban") {
+          if (!await dialog({ title: "Unban @" + username, message: "Restores full access for this account.", okLabel: "Unban" })) return;
+          await rpc("admin_dashboard_unban_user", { p_admin_token: admin.token, p_target_username: username });
+        } else if (action === "timeout") {
+          const raw = await dialog({
+            title: "Timeout @" + username,
+            message: "The user cannot send messages until the timeout expires.",
+            input: "Length in minutes (1–10080)",
+            value: "30",
+            okLabel: "Apply timeout"
+          });
+          if (raw === null) return;
+          const minutes = Number(raw);
+          if (!Number.isInteger(minutes) || minutes < 1 || minutes > 10080) return toast("Enter a valid timeout length.", true);
+          await rpc("admin_dashboard_timeout_user", { p_admin_token: admin.token, p_target_username: username, p_minutes: minutes });
+        } else if (action === "clear-timeout") {
+          await rpc("admin_dashboard_clear_timeout", { p_admin_token: admin.token, p_target_username: username });
+        } else if (action === "kick") {
+          if (!await dialog({ title: "Kick @" + username, message: "Signs this account out immediately. They may log back in.", okLabel: "Kick" })) return;
+          await rpc("admin_dashboard_kick_user", { p_admin_token: admin.token, p_target_username: username });
+        } else if (action === "make-admin" || action === "revoke-admin") {
+          const makeAdmin = action === "make-admin";
+          if (!await dialog({
+            title: (makeAdmin ? "Make @" : "Revoke admin from @") + username,
+            message: makeAdmin ? "This grants access to moderation and dashboard controls. Broadcasts and deployments remain owner-only." : "This removes dashboard and moderation access and revokes active dashboard sessions.",
+            okLabel: makeAdmin ? "Make admin" : "Revoke admin",
+            danger: !makeAdmin
+          })) return;
+          await rpc("admin_dashboard_set_admin", { p_admin_token: admin.token, p_target_username: username, p_make_admin: makeAdmin });
+        } else if (action === "revoke-sessions") {
+          if (!await dialog({ title: "Revoke dashboard sessions", message: "Signs @" + username + " out of every other active Control session.", okLabel: "Revoke sessions", danger: true })) return;
+          const count = await rpc("admin_dashboard_revoke_sessions", { p_admin_token: admin.token, p_target_username: username });
+          toast(count + " dashboard session" + (count === 1 ? "" : "s") + " revoked.");
+        } else if (action === "reset-password") {
+          if (!await dialog({
+            title: "Reset password for @" + username,
+            message: "Passwords are stored as one-way hashes and can never be viewed.\nThis generates a new temporary password for the account. Share it with the user and ask them to change it.",
+            okLabel: "Generate new password"
+          })) return;
+          const password = tempPassword();
+          await callChatAuth({ action: "admin_reset_password", username, password });
+          await refreshState(true);
+          await dialog({
+            title: "New password for @" + username,
+            message: "This is shown only once. The user signs in with it in chat and the dashboard, and can change it in chat settings.",
+            secret: password
+          });
+          return;
+        }
+        await refreshState(true);
+        toast("Moderation action completed.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Moderation action failed.", true);
+      }
+    }
+    async function deleteMessage(messageId) {
+      if (!await dialog({
+        title: "Delete message",
+        message: "The message is replaced with a deletion marker in chat and recorded in the audit log.",
+        okLabel: "Delete message",
+        danger: true
+      })) return;
+      try {
+        await rpc("admin_dashboard_delete_message", { p_admin_token: admin.token, p_message_id: messageId });
+        await refreshState(true);
+        toast("Message deleted.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not delete the message.", true);
+      }
+    }
+    async function deploy() {
+      const app = DEPLOY_APPS[activeDeployApp];
+      const file = $("deploy-file").files[0];
+      const version = $("deploy-version").value.trim();
+      if (!file || !version) return toast("Choose an HTML file and enter a version.", true);
+      if (!await dialog({ title: "Publish deployment", message: "Publish " + file.name + " as " + app.label + " " + version + "?\nThis overwrites liminal-apps/" + app.file + ". The previous build is archived automatically.", okLabel: "Publish" })) return;
+      const button = $("deploy-button");
+      button.disabled = true;
+      button.textContent = "Publishing...";
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("app", activeDeployApp);
+        form.append("version", version);
+        form.append("notes", $("deploy-notes").value.trim());
+        const response = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "x-admin-token": admin.token },
+          body: form
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Deployment failed");
+        $("deploy-file").value = "";
+        $("deploy-version").value = "";
+        $("deploy-notes").value = "";
+        await refreshState(true);
+        toast(app.label + " published: " + result.version);
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Deployment failed.", true);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Publish deployment";
+      }
+    }
+    async function rollback(path, version, appKey) {
+      const app = DEPLOY_APPS[appKey] || DEPLOY_APPS.chat;
+      if (!await dialog({ title: "Roll back " + app.label, message: "Replace live " + app.file + " with archived deployment " + version + "?", okLabel: "Roll back", danger: true })) return;
+      try {
+        const response = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json", "x-admin-token": admin.token },
+          body: JSON.stringify({ action: "rollback", app: appKey, storage_path: path, version, notes: "Rollback to " + version })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Rollback failed");
+        await refreshState(true);
+        toast("Rollback published.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Rollback failed.", true);
+      }
+    }
+
+    function renderDevtools() {
+      if (!admin?.is_owner || !$("devtest-list")) return;
+      const tests = (state?.users || []).filter((u) => u.is_test_account);
+      $("devtest-list").innerHTML = tests.length
+        ? `<div class="table-wrap"><table><thead><tr><th>Username</th><th>Display name</th><th>Created</th><th>Actions</th></tr></thead><tbody>${
+            tests.map((u) => `<tr>
+              <td><code style="font-size:12px;color:var(--accent-hi)">@${esc(u.username)}</code></td>
+              <td>${esc(u.display_name || "")}</td>
+              <td>${fmtDate(u.created_at)}</td>
+              <td><div class="actions"><button class="danger" data-devtest-delete="${esc(u.username)}">Delete</button></div></td>
+            </tr>`).join("")
+          }</tbody></table></div>`
+        : `<div class="empty">No active test accounts. Create one above.</div>`;
+    }
+    async function createDevSession() {
+      const displayName = $("devtest-name").value.trim() || "Dev Tester";
+      if (!await dialog({
+        title: "Create dev session",
+        message: `Creates a test account "${displayName}" that goes through the full onboarding flow.\nYou will receive a one-time password.`,
+        okLabel: "Create session"
+      })) return;
+      const password = tempPassword();
+      setBusy(true);
+      try {
+        const result = await callChatAuth({ action: "create_dev", display_name: displayName, password });
+        const profile = result.profile;
+        await refreshState(true);
+        await dialog({
+          title: "Dev session ready",
+          message: `@${profile.username} is live. Log into Liminal Chat with:\n  Username:  ${profile.username}\n  Password:`,
+          secret: password
+        });
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not create dev session.", true);
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function deleteDevSession(username) {
+      if (!await dialog({
+        title: "Delete test account",
+        message: `Permanently delete @${username} and all of its messages?`,
+        okLabel: "Delete",
+        danger: true
+      })) return;
+      setBusy(true);
+      try {
+        await callChatAuth({ action: "delete_dev", username });
+        await refreshState(true);
+        toast("Test account deleted.");
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not delete test account.", true);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    $("modal-copy").addEventListener("click", async () => {
+      const text = $("modal-secret-value").textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copied to clipboard.");
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents($("modal-secret-value"));
+        const selection = getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        toast("Press Ctrl+C to copy the selected password.");
+      }
+    });
+    $("login-form").addEventListener("submit", login);
+    $("sign-out").addEventListener("click", () => logout(true));
+    $("refresh-dashboard").addEventListener("click", () => refreshState());
+    qsa("[data-force-refresh]").forEach((button) => button.addEventListener("click", () => forceRefreshUsers(button)));
+    $("auto-refresh").addEventListener("click", () => {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      $("auto-refresh").setAttribute("aria-pressed", String(autoRefreshEnabled));
+      $("auto-refresh-label").textContent = "Auto refresh: " + (autoRefreshEnabled ? "on" : "off");
+      startAutoRefresh();
+      renderOverview();
+    });
+    qsa(".nav-btn").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
+    $("feature-controls").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-setting-toggle]");
+      if (button) setSetting(button.dataset.settingToggle, button.getAttribute("aria-checked") === "true" ? "false" : "true");
+    });
+    $("save-maintenance").addEventListener("click", () => setSetting("maintenance_message", $("maintenance-message").value.trim()));
+    $("save-launcher-migrate").addEventListener("click", async () => {
+      if (!admin?.is_owner) return toast("Owner access is required.", true);
+      const chatVersion = Number($("min-chat-launcher-version").value);
+      const gamesVersion = Number($("min-games-launcher-version").value);
+      const chatMessage = $("launcher-migrate-message").value.trim();
+      const gamesMessage = $("games-launcher-migrate-message").value.trim();
+      if (!Number.isInteger(chatVersion) || chatVersion < 1 || chatVersion > 999) return toast("Chat launcher version must be between 1 and 999.", true);
+      if (!Number.isInteger(gamesVersion) || gamesVersion < 1 || gamesVersion > 999) return toast("Games launcher version must be between 1 and 999.", true);
+      if (chatMessage.length < 20 || gamesMessage.length < 20) return toast("Write a short instruction so people know to download the new file.", true);
+      await setSetting("min_chat_launcher_version", String(chatVersion));
+      await setSetting("launcher_migrate_message", chatMessage);
+      await setSetting("min_games_launcher_version", String(gamesVersion));
+      await setSetting("games_launcher_migrate_message", gamesMessage);
+    });
+    $("launcher-migrate-message").addEventListener("input", () => {
+      $("launcher-migrate-count").textContent = $("launcher-migrate-message").value.length + " / 4000";
+    });
+    $("games-launcher-migrate-message").addEventListener("input", () => {
+      $("games-launcher-migrate-count").textContent = $("games-launcher-migrate-message").value.length + " / 4000";
+    });
+    $("save-message-policy").addEventListener("click", async () => {
+      const slowMode = Number($("slow-mode").value);
+      const maxLength = Number($("max-message-length").value);
+      if (!Number.isInteger(slowMode) || slowMode < 0 || slowMode > 300) return toast("Slow mode must be between 0 and 300 seconds.", true);
+      if (!Number.isInteger(maxLength) || maxLength < 100 || maxLength > 4000) return toast("Message length must be between 100 and 4000.", true);
+      await setSetting("slow_mode_seconds", String(slowMode));
+      await setSetting("max_message_length", String(maxLength));
+    });
+    $("save-turn-servers").addEventListener("click", async () => {
+      if (!admin?.is_owner) return toast("Owner access is required.", true);
+      const raw = $("turn-servers").value.trim();
+      if (!raw) {
+        await setSetting("turn_servers", "");
+        return;
+      }
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch { return toast("TURN servers must be valid JSON.", true); }
+      if (!Array.isArray(parsed) || !parsed.every((item) => item && item.urls)) {
+        return toast("TURN servers must be an array of objects with a urls field.", true);
+      }
+      await setSetting("turn_servers", JSON.stringify(parsed));
+    });
+    $("save-broadcast").addEventListener("click", async () => {
+      if (!admin?.is_owner) return toast("Owner access is required.", true);
+      const announcement = $("announcement").value.trim();
+      const whatsNew = $("whats-new").value.trim();
+      await setSetting("announcement", announcement);
+      await setSetting("whats_new", whatsNew);
+    });
+    $("clear-announcement").addEventListener("click", async () => {
+      if (!await dialog({ title: "Clear announcement", message: "Remove the current banner from every connected chat client?", okLabel: "Clear" })) return;
+      $("announcement").value = "";
+      await setSetting("announcement", "");
+    });
+    $("clear-whats-new").addEventListener("click", async () => {
+      if (!await dialog({ title: "Clear What's new", message: "Stop showing the current release message to users who have not seen it?", okLabel: "Clear" })) return;
+      $("whats-new").value = "";
+      await setSetting("whats_new", "");
+    });
+    $("save-luna-custom-status").addEventListener("click", async () => {
+      await setLunaCustomStatus($("luna-custom-status").value.trim());
+    });
+    $("clear-luna-custom-status").addEventListener("click", async () => {
+      if (!await dialog({ title: "Clear Luna status", message: "Remove Luna's custom status from her profile?", okLabel: "Clear" })) return;
+      $("luna-custom-status").value = "";
+      await setLunaCustomStatus("");
+    });
+    $("announcement").addEventListener("input", () => {
+      $("announcement-preview").textContent = $("announcement").value.trim() || "No announcement is active.";
+      updateBroadcastCounters();
+    });
+    $("whats-new").addEventListener("input", updateBroadcastCounters);
+    $("luna-custom-status").addEventListener("input", updateBroadcastCounters);
+    $("user-search").addEventListener("input", renderUsers);
+    $("user-filters").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-user-filter]");
+      if (!button) return;
+      activeUserFilter = button.dataset.userFilter;
+      qsa("[data-user-filter]").forEach((item) => item.classList.toggle("active", item === button));
+      renderUsers();
+    });
+    $("refresh-users").addEventListener("click", () => refreshState());
+    $("users-body").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-user-action]");
+      if (button) userAction(button.dataset.userAction, button.dataset.username);
+    });
+    $("message-search").addEventListener("input", renderMessages);
+    $("message-channel").addEventListener("change", renderMessages);
+    $("refresh-messages").addEventListener("click", () => refreshState());
+    $("message-list").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-message]");
+      if (button) deleteMessage(button.dataset.deleteMessage);
+    });
+    $("add-word").addEventListener("click", async () => {
+      const word = $("new-word").value.trim().toLowerCase();
+      if (!word) return;
+      const list = words();
+      if (!list.includes(word)) list.push(word);
+      $("new-word").value = "";
+      await setSetting("banned_words", JSON.stringify(list));
+    });
+    $("new-word").addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); $("add-word").click(); } });
+    $("word-chips").addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-remove-word]");
+      if (!button) return;
+      const list = words();
+      list.splice(Number(button.dataset.removeWord), 1);
+      await setSetting("banned_words", JSON.stringify(list));
+    });
+    $("deploy-button").addEventListener("click", deploy);
+    $("deploy-apps").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-deploy-app]");
+      if (!button || button.dataset.deployApp === activeDeployApp) return;
+      activeDeployApp = button.dataset.deployApp;
+      renderDeployments();
+    });
+    $("deploy-history").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-rollback-path]");
+      if (button) rollback(button.dataset.rollbackPath, button.dataset.rollbackVersion, button.dataset.rollbackApp);
+    });
+    $("audit-search").addEventListener("input", renderAudit);
+    $("export-audit").addEventListener("click", () => {
+      downloadJson("liminal-control-audit-" + new Date().toISOString().slice(0, 10) + ".json", state?.audit || []);
+    });
+
+    $("devtest-create").addEventListener("click", createDevSession);
+    $("refresh-devtest").addEventListener("click", () => refreshState());
+    $("devtest-list").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-devtest-delete]");
+      if (button) deleteDevSession(button.dataset.devtestDelete);
+    });
+
+    if (admin?.token) openDashboard().catch(() => logout(false));
+  </script>
+</body>
+</html>

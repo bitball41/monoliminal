@@ -13,6 +13,7 @@ One cloud development folder for the Liminal ecosystem. Edit here from GitHub or
 | Drive | [`Drive/Liminal-Drive.html`](Drive/Liminal-Drive.html) | `Liminal-Drive.html` |
 | Games | [`Games/games.html`](Games/games.html) | `games.html` |
 | Movies | [`Movies/movies.htm`](Movies/movies.htm) | `movies.htm` |
+| Admin dashboard | [`Admin/liminal-admin-dashboard.html`](Admin/liminal-admin-dashboard.html) | Not configured |
 
 All seven existing app files were moved into these folders without changing their contents. Download suffixes such as `(27)` were removed. The production object names above match the existing `liminal-apps` bucket.
 
