@@ -35,4 +35,4 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/validate-deployments.mjs
-      - run: node --test scripts/deployment.test.mjs
+      - run: node --experimental-strip-types --test scripts/deployment.test.mjs scripts/drive.test.mjs

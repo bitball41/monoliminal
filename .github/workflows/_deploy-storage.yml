@@ -45,7 +45,7 @@ jobs:
       - name: Validate deployment files
         run: node scripts/validate-deployments.mjs
       - name: Test deployment and recovery
-        run: node --test scripts/deployment.test.mjs
+        run: node --experimental-strip-types --test scripts/deployment.test.mjs scripts/drive.test.mjs
       - name: Record checked-out source revision
         id: revision
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
