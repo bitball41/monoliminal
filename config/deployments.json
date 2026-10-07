@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "deployments": [
+    {
+      "app": "chat",
+      "source": "Chat/chat.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "chat.html",
+      "historyPrefix": "deployments/chat/",
+      "enabled": false
+    },
+    {
+      "app": "chat-launcher",
+      "source": "Chat/liminal-chat-launcher.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "liminal-chat-launcher.html",
+      "historyPrefix": "deployments/chat-launcher/",
+      "enabled": false
+    },
+    {
+      "app": "player",
+      "source": "Player/liminalplayer.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "liminalplayer.html",
+      "historyPrefix": "deployments/player/",
+      "enabled": false
+    },
+    {
+      "app": "ai",
+      "source": "AI/luna.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "luna.html",
+      "historyPrefix": "deployments/ai/",
+      "enabled": false
+    },
+    {
+      "app": "drive",
+      "source": "Drive/Liminal-Drive.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "Liminal-Drive.html",
+      "historyPrefix": "deployments/drive/",
+      "enabled": false
+    },
+    {
+      "app": "games",
+      "source": "Games/games.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "games.html",
+      "historyPrefix": "deployments/games/",
+      "enabled": false
+    },
+    {
+      "app": "movies",
+      "source": "Movies/movies.htm",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "movies.htm",
+      "historyPrefix": "deployments/movies/",
+      "enabled": false
+    }
+  ]
+}
