@@ -314,7 +314,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     img { -webkit-user-drag: none; }
 
     ::selection { background: var(--accent-soft); }
-    /* One scrollbar treatment for every current and dynamically created scroller. */
+    /* Scrollbar tracks keep their geometry; thumbs appear only while scrolling. */
     :root {
       --scrollbar-size: 6px;
       --scrollbar-thumb: color-mix(in srgb, var(--text) 30%, transparent);
@@ -323,24 +323,26 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     * {
       scrollbar-width: thin;
-      scrollbar-color: var(--scrollbar-thumb) transparent;
+      scrollbar-color: transparent transparent;
     }
+    .is-scrolling { scrollbar-color: var(--scrollbar-thumb) transparent; }
     *::-webkit-scrollbar { width: var(--scrollbar-size); height: var(--scrollbar-size); }
     *::-webkit-scrollbar-track,
     *::-webkit-scrollbar-corner { background: transparent; }
     *::-webkit-scrollbar-thumb {
       min-height: 28px; min-width: 28px;
       border: 1px solid transparent; border-radius: 999px;
-      background: var(--scrollbar-thumb); background-clip: padding-box;
+      background: transparent; background-clip: padding-box;
     }
-    *::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
-    *::-webkit-scrollbar-thumb:active { background-color: var(--scrollbar-thumb-active); }
+    .is-scrolling::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb); }
+    .is-scrolling::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover); }
+    .is-scrolling::-webkit-scrollbar-thumb:active { background-color: var(--scrollbar-thumb-active); }
     *::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 
     /* Chromium/Safari use the exact geometry above; non-auto standard properties
        would override those pseudo-elements. Firefox uses the thin fallback. */
     @supports selector(::-webkit-scrollbar) {
-      * { scrollbar-width: auto; scrollbar-color: auto; }
+      *, .is-scrolling { scrollbar-width: auto; scrollbar-color: auto; }
     }
 
     .skip-link {
@@ -2570,6 +2572,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .brand-copy { align-items: baseline; gap: 7px; }
 .brand-title { font-size: 1.48rem; }
 .brand-subtitle { font-size: .95rem; letter-spacing: -.04em; }
+.brand .brand-subtitle { font-family: "Pacifico", cursive; font-weight: 400; font-style: normal; letter-spacing: 0; }
 .sidebar-scroll { padding: 12px 12px 20px; }
 .section-label {
   margin: 20px 10px 8px;
@@ -16035,6 +16038,22 @@ void main() {
       if (!ready) { reportBootFailure(); return; }
       init();
     });
+  </script>
+  <script>
+    // Capturing scroll events also covers scrollers added later in dialogs/lists.
+    (() => {
+      const hideTimers = new WeakMap();
+      document.addEventListener('scroll', (event) => {
+        const scroller = event.target === document ? document.scrollingElement : event.target;
+        if (!(scroller instanceof Element)) return;
+        scroller.classList.add('is-scrolling');
+        clearTimeout(hideTimers.get(scroller));
+        hideTimers.set(scroller, setTimeout(() => {
+          scroller.classList.remove('is-scrolling');
+          hideTimers.delete(scroller);
+        }, 700));
+      }, { capture: true, passive: true });
+    })();
   </script>
 </body>
 </html>
