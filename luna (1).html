@@ -1,0 +1,2098 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#050506">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'none'"
+  >
+  <title>Liminal AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://ucgjwrjqmexenmrpbdkh.supabase.co" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Pacifico&family=Rock+Salt&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.min.js" integrity="sha384-JWEyvHh+lRf0sN/WWY+QTQwX+CyWqmNg4tkc8GQzAMEtR2wGNrCJlvnu1lHD1kDm" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #050506;
+      --fg: #f6f6f8;
+      --muted: #9b9ba6;
+      --line: #1c1c22;
+      --soft: #121217;
+      --bubble: #17171e;
+      --you: #f3f3f6;
+      --you-fg: #101014;
+      --danger: #ff7a8a;
+      --sans: Nunito, ui-rounded, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --display: Fredoka, var(--sans);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; height: 100dvh; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 700px at 50% -10%, #16161d 0%, var(--bg) 58%);
+      color: var(--fg);
+      font: 16px/1.55 var(--sans);
+    }
+    button, textarea, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    [hidden] { display: none !important; }
+    a { color: inherit; }
+    .screen { min-height: 100%; display: grid; place-items: center; padding: 28px; }
+    #boot .wordmark { flex-direction: column; align-items: center; gap: 4px; }
+    #boot .brand-title { font-size: 2.6rem; }
+    #boot .brand-subtitle { font-size: 1.05rem; }
+    .app { height: 100%; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+    .rail {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: #09090d;
+      min-height: 0;
+      border-right: 1px solid #14141a;
+    }
+    .rail-head, .rail-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 16px;
+    }
+    .rail-head strong { font: 700 1.15rem/1 var(--display); }
+    .wordmark { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+    .wordmark .brand-title {
+      font-family: Pacifico, cursive;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .wordmark .brand-subtitle {
+      color: #bda6fb;
+      font-family: "Rock Salt", cursive;
+      font-weight: 700;
+      font-style: italic;
+      line-height: 1.15;
+      transform: rotate(-2deg);
+    }
+    .rail-head .wordmark { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .rail-head .brand-title { font-size: 1.5rem; }
+    .rail-head .brand-subtitle { font-size: .78rem; }
+    .quiet {
+      border: 0;
+      border-radius: 999px;
+      background: #1a1a22;
+      padding: 7px 12px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .rail-foot { color: var(--muted); font-size: .78rem; }
+    .chats { overflow: auto; padding: 8px; }
+    .chat {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 2px;
+      border-radius: 18px;
+      padding: 4px 4px 4px 8px;
+    }
+    .chat:hover { background: #14141b; }
+    .chat.on { background: #1c1c26; }
+    .chat-open {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      padding: 8px 4px;
+    }
+    .chat b { font-size: .86rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat span { color: var(--muted); font-size: .72rem; }
+    .chat-del {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+    .chat-del:hover { background: #2a2a34; color: var(--fg); }
+    .chat-del svg { width: 14px; height: 14px; }
+    .empty { padding: 32px 12px; color: var(--muted); font-size: .86rem; }
+    .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; }
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 22px;
+    }
+    .top h1 { margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: 800; }
+    .icon {
+      width: 38px; height: 38px; padding: 0;
+      display: grid; place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: #1a1a22;
+    }
+    .icon svg { width: 16px; height: 16px; }
+    .thread { overflow: auto; }
+    .thread-inner { width: min(760px, calc(100% - 36px)); margin: 12px auto 24px; display: grid; gap: 18px; }
+    .welcome { min-height: 42vh; display: grid; place-content: center; justify-items: center; text-align: center; gap: 14px; }
+    .welcome .wordmark { flex-direction: column; align-items: center; gap: 6px; }
+    .welcome .brand-title { font-size: clamp(3rem, 10vw, 5.6rem); }
+    .welcome .brand-subtitle { font-size: clamp(1.35rem, 4.2vw, 2.15rem); }
+    .welcome p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #14141b;
+    }
+    .msg { display: grid; gap: 7px; max-width: min(640px, 100%); }
+    .msg.me { margin-left: auto; justify-items: end; }
+    .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .74rem; font-weight: 700; }
+    .who b { color: var(--fg); }
+    .mode-tag {
+      border-radius: 999px;
+      background: #1a1a22;
+      padding: 2px 8px;
+      font-size: .7rem;
+    }
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 24px 24px 24px 10px;
+      background: var(--bubble);
+      box-shadow: 0 10px 30px #0004;
+    }
+    .msg.me .bubble {
+      background: var(--you);
+      color: var(--you-fg);
+      border-radius: 24px 24px 10px 24px;
+    }
+    .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .body a { text-decoration: underline; text-underline-offset: 3px; }
+    .body img { max-width: min(420px, 100%); display: block; margin-top: 10px; border-radius: 16px; }
+    .file {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 10px; padding: 10px 12px;
+      border-radius: 16px;
+      background: #101016;
+      font-size: .86rem;
+    }
+    .msg.me .file { background: #e7e7ee; }
+    .file small { color: var(--muted); font-size: .74rem; }
+    .md-h { margin: .5em 0 .2em; font-size: 1.06em; }
+    .md-quote { display: block; border-left: 3px solid #fff4; padding-left: 10px; color: var(--muted); border-radius: 0 8px 8px 0; }
+    .md-subtext { display: block; color: var(--muted); font-size: .8em; }
+    code { font-family: var(--mono); font-size: .86em; background: #101016; padding: .12em .4em; border-radius: 8px; }
+    .msg.me code { background: #dddde6; }
+    .code { margin: 10px 0; border-radius: 16px; background: #0c0c12; overflow: hidden; }
+    .code header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; color: var(--muted); font-size: .74rem; font-weight: 700; }
+    .code pre { margin: 0; padding: 12px; overflow: auto; font: 12.5px/1.5 var(--mono); }
+    .code button, .file button { border: 0; background: transparent; color: var(--muted); padding: 0; font-weight: 800; font-size: .74rem; }
+    .spoiler { background: var(--fg); color: transparent; cursor: pointer; border-radius: 8px; }
+    .spoiler.on { background: transparent; color: inherit; }
+    .receipt {
+      display: grid;
+      gap: 7px;
+      width: 100%;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      font-size: .8rem;
+    }
+    .receipt summary {
+      list-style: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+    .receipt summary::-webkit-details-marker { display: none; }
+    .receipt summary::after { content: " ▾"; font-weight: 600; }
+    .receipt[open] summary { margin-bottom: 2px; }
+    .receipt .kicker, .sources .kicker, .reason .kicker { color: var(--muted); font-size: .72rem; font-weight: 800; }
+    .reason {
+      display: grid;
+      gap: 7px;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: #14141b;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .reason summary {
+      list-style: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+    .reason summary::-webkit-details-marker { display: none; }
+    .reason summary::after { content: " ▾"; font-weight: 600; }
+    .reason[open] summary { margin-bottom: 2px; }
+    .reason-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fg); }
+    .tool { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+    .tool i {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+      margin-top: 6px;
+    }
+    .tool.running i { background: var(--fg); animation: pulse 1s ease-in-out infinite; }
+    .tool.done i { background: var(--fg); }
+    .tool span { min-width: 0; overflow-wrap: anywhere; }
+    .tool b { font-weight: 800; color: var(--fg); }
+    .tool em { font-style: normal; color: var(--muted); }
+    @keyframes pulse { 50% { opacity: .25; transform: scale(.7); } }
+    .live { display: grid; gap: 10px; justify-items: start; max-width: min(640px, 100%); }
+    .live-extra { display: grid; gap: 10px; width: 100%; }
+    .think {
+      display: inline-flex; align-items: center; gap: 12px;
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+    }
+    .ai-thinking {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .thinking-grid {
+      width: 52px;
+      height: 52px;
+      display: block;
+      color: #fff;
+    }
+    .thinking-grid .dot {
+      fill: currentColor;
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: .20;
+    }
+    .thinking-grid .d0 { animation: think-d0 2.2s linear infinite; }
+    .thinking-grid .d1 { animation: think-d1 2.2s linear infinite; }
+    .thinking-grid .d2 { animation: think-d2 2.2s linear infinite; }
+    .thinking-grid .d3 { animation: think-d3 2.2s linear infinite; }
+    .thinking-grid .d4 { animation: think-d4 2.2s linear infinite; }
+    .thinking-grid .d5 { animation: think-d5 2.2s linear infinite; }
+    .thinking-grid .d6 { animation: think-d6 2.2s linear infinite; }
+    .thinking-grid .d7 { animation: think-d7 2.2s linear infinite; }
+    .thinking-grid .d8 { animation: think-d8 2.2s linear infinite; }
+    @keyframes think-d0 {
+      0%,100% { transform:scale(1.12); opacity:.82; }
+      6%,94% { transform:scale(1.05); opacity:.44; }
+      12%,88%,50% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d1 {
+      0%,100% { transform:scale(1.05); opacity:.44; }
+      6%,94% { transform:scale(1.12); opacity:.82; }
+      12%,88% { transform:scale(1.05); opacity:.44; }
+      18%,82%,50% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d2 {
+      6%,94% { transform:scale(1.05); opacity:.44; }
+      12%,88% { transform:scale(1.12); opacity:.82; }
+      18%,82% { transform:scale(1.05); opacity:.44; }
+      24%,76% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d3 {
+      12%,88% { transform:scale(1.05); opacity:.44; }
+      18%,82% { transform:scale(1.12); opacity:.82; }
+      24%,76% { transform:scale(1.05); opacity:.44; }
+      30%,70% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d4 {
+      18%,82% { transform:scale(1.05); opacity:.44; }
+      25%,75% { transform:scale(1.12); opacity:.82; }
+      32%,68% { transform:scale(1.05); opacity:.44; }
+      39%,61% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d5 {
+      25%,75% { transform:scale(1.05); opacity:.44; }
+      31%,69% { transform:scale(1.12); opacity:.82; }
+      37%,63% { transform:scale(1.05); opacity:.44; }
+      43%,57% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d6 {
+      31%,69% { transform:scale(1.05); opacity:.44; }
+      37%,63% { transform:scale(1.12); opacity:.82; }
+      43%,57% { transform:scale(1.05); opacity:.44; }
+      50% { transform:scale(1); opacity:.20; }
+    }
+    @keyframes think-d7 {
+      37%,63% { transform:scale(1.05); opacity:.44; }
+      43%,57% { transform:scale(1.12); opacity:.82; }
+      50% { transform:scale(1.05); opacity:.44; }
+    }
+    @keyframes think-d8 {
+      0%,37%,63%,100% { transform:scale(1); opacity:.20; }
+      43%,57% { transform:scale(1.05); opacity:.44; }
+      50% { transform:scale(1.12); opacity:.82; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .thinking-grid .dot { animation: none !important; opacity: .36; }
+      .thinking-grid .d4 { opacity: .82; }
+    }
+    .sources { display: grid; gap: 8px; width: 100%; }
+    .src-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .src {
+      display: grid;
+      gap: 1px;
+      max-width: 220px;
+      padding: 8px 12px;
+      border-radius: 16px;
+      background: #14141b;
+      text-decoration: none;
+      font-size: .8rem;
+      font-weight: 700;
+    }
+    .src small { color: var(--muted); font-size: .7rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dock { padding: 0 18px 18px; overflow: visible; position: relative; z-index: 4; }
+    .composer { width: min(760px, 100%); margin: 0 auto; display: grid; gap: 8px; overflow: visible; }
+    .box {
+      border-radius: 28px;
+      background: #101016;
+      padding: 12px 12px 10px;
+      box-shadow: 0 16px 40px #0006, 0 0 0 1px #ffffff10;
+      overflow: visible;
+    }
+    .box:focus-within { box-shadow: 0 16px 40px #0006, 0 0 0 2px #fff; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 4px 8px; }
+    .chip {
+      display: flex; align-items: center; gap: 8px;
+      border-radius: 999px;
+      background: #1a1a22;
+      padding: 5px 10px 5px 6px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+    .chip img { width: 22px; height: 22px; object-fit: cover; border-radius: 50%; }
+    .chip button { border: 0; background: transparent; color: var(--muted); padding: 0; }
+    .box textarea,
+    .box textarea:focus,
+    .box textarea:focus-visible,
+    #input,
+    #input:focus,
+    #input:focus-visible {
+      display: block;
+      width: 100%;
+      border: 0 !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      appearance: none;
+      -webkit-appearance: none;
+      resize: none;
+      max-height: 180px;
+      padding: 8px 10px 4px;
+      min-height: 44px;
+      color: var(--fg);
+      caret-color: var(--fg);
+    }
+    #input::placeholder { color: var(--muted); opacity: 1; }
+    .bar { display: flex; align-items: center; gap: 8px; padding: 4px 4px 2px; flex-wrap: wrap; }
+    .modes {
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 999px;
+      background: #0b0b10;
+      flex-shrink: 0;
+    }
+    .modes button {
+      border: 0; background: transparent; color: var(--muted);
+      padding: 6px 12px; border-radius: 999px; font-size: .78rem; font-weight: 800;
+    }
+    .modes button.on { background: #fff; color: #111; }
+    .picker { position: relative; flex-shrink: 0; }
+    .picker-btn {
+      display: flex; align-items: center; gap: 10px;
+      max-width: min(220px, 100%);
+      border: 0;
+      border-radius: 999px;
+      background: #0b0b10;
+      padding: 6px 10px 6px 12px;
+      text-align: left;
+    }
+    .picker-btn .copy { display: grid; min-width: 0; }
+    .picker-btn b {
+      font-size: .82rem; font-weight: 800; line-height: 1.15;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .picker-btn small {
+      color: var(--muted); font-size: .68rem; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .picker-btn svg { width: 12px; height: 12px; color: var(--muted); flex-shrink: 0; }
+    .picker.open .picker-btn { box-shadow: 0 0 0 1px #ffffff22; }
+    .picker-menu {
+      position: absolute; left: 0; right: auto; top: auto; bottom: calc(100% + 8px);
+      width: min(320px, calc(100vw - 28px));
+      display: grid; gap: 4px;
+      padding: 8px;
+      border-radius: 22px;
+      background: #101016;
+      box-shadow: 0 18px 50px #000a, 0 0 0 1px #ffffff12;
+      z-index: 8;
+    }
+    .pick {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1px 10px;
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .pick:hover { background: #1a1a22; }
+    .pick.on { background: #fff; color: #111; }
+    .pick b { font-size: .86rem; font-weight: 800; }
+    .pick span { grid-column: 1; color: var(--muted); font-size: .72rem; font-weight: 700; }
+    .pick.on span { color: #5c5c66; }
+    .pick em {
+      grid-column: 2; grid-row: 1 / span 2;
+      align-self: center;
+      font-style: normal; font-size: .68rem; font-weight: 800;
+      color: var(--muted);
+    }
+    .pick.on em { color: #111; }
+    .pick .scarce, .picker-btn .scarce { color: #d8c48a; }
+    .pick.on .scarce { color: #7a6430; }
+    .icon.off { opacity: .38; }
+    .limit-card {
+      min-height: 42vh;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      text-align: center;
+      gap: 12px;
+      padding: 56px 18px;
+    }
+    .limit-card h2 { margin: 0; font: 800 1.4rem/1.2 var(--display); }
+    .limit-card p { margin: 0; max-width: 38ch; color: var(--muted); font-size: .92rem; }
+    .limit-card button {
+      margin-top: 8px;
+      border: 0; border-radius: 999px;
+      background: #fff; color: #111;
+      padding: 8px 14px;
+      font-size: .8rem; font-weight: 800;
+    }
+    .grow { flex: 1; }
+    .send {
+      width: 40px; height: 40px; border: 0; border-radius: 50%;
+      background: #fff; color: #111; display: grid; place-items: center; padding: 0;
+    }
+    .send svg { width: 15px; height: 15px; }
+    .send:disabled { opacity: .35; }
+    .status { min-height: 1.1em; color: var(--muted); font-size: .78rem; padding: 0 12px; }
+    .status.bad { color: var(--danger); }
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .rail { position: fixed; inset: 0 auto 0 0; width: min(280px, 88vw); z-index: 2; transform: translateX(-100%); border-radius: 0 24px 24px 0; }
+      .rail.open { transform: none; }
+      .scrim { position: fixed; inset: 0; background: #000a; z-index: 1; }
+      .thread-inner, .dock { width: auto; }
+    }
+
+    .auth-screen {
+      --bg: #050506;
+      --accent: #ffffff;
+      --text: #f6f6f8;
+      --on-accent: #101014;
+      --muted: #9b9ba6;
+      --text-soft: #c8c8d0;
+      --line: #1c1c22;
+      --line-strong: #2a2a34;
+      --surface: #121217;
+      --surface-2: #17171e;
+      --panel-strong: #101016;
+      --bg-deep: #050506;
+      --accent-soft: rgba(255, 255, 255, 0.08);
+      --accent-line: rgba(255, 255, 255, 0.22);
+      --accent-strong: #ffffff;
+      --accent-glow: rgba(255, 255, 255, 0.14);
+      --danger: #ff7a8a;
+      --font-ui: "Montserrat", system-ui, sans-serif;
+      --radius-lg: 20px;
+      --shadow: 0 20px 56px rgba(0, 0, 0, 0.55);
+      --focus: 0 0 0 3px rgba(255, 255, 255, 0.28);
+      --ease-slide: cubic-bezier(0.32, 0.72, 0, 1);
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      position: fixed; inset: 0; z-index: 30;
+      display: grid; place-items: center; overflow: auto;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      animation: fade-in 250ms ease;
+    }
+    .auth-screen .brand-subtitle { color: var(--text); }
+    .auth-card {
+      width: min(420px, 100%);
+      padding: 34px 30px 26px;
+      border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
+      background: var(--panel-strong);
+      box-shadow: var(--shadow);
+      animation: pop-in 300ms ease;
+      overflow: hidden;
+    }
+    .auth-brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; text-align: center; }
+    .auth-brand p { margin: 0; color: var(--muted); font-size: 0.78rem; }
+    .auth-brand .wordmark { flex-direction: column; align-items: center; gap: 5px; overflow: visible; }
+    .auth-brand .brand-title { font-size: 2.25rem; color: var(--text); }
+    .auth-brand .brand-subtitle { font-size: 1rem; color: var(--accent-strong); }
+    .auth-tabs {
+      position: relative;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+      padding: 4px; margin-bottom: 22px;
+      border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+    }
+    .auth-tabs::before {
+      content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px;
+      width: calc(50% - 6px); border-radius: 9px;
+      background: var(--accent-strong);
+      transition: transform 340ms var(--ease-slide);
+    }
+    .auth-tabs.signup-active::before { transform: translateX(calc(100% + 4px)); }
+    .auth-tabs button {
+      position: relative; z-index: 1;
+      min-height: 36px; border: none; border-radius: 9px;
+      background: transparent; color: var(--muted);
+      font-family: var(--font-ui); font-weight: 750; font-size: 0.8rem;
+      transition: color 200ms ease;
+    }
+    .auth-tabs button[aria-selected="true"] { color: var(--on-accent); }
+    .auth-footer { margin-top: 18px; text-align: center; color: var(--muted); font-size: 0.7rem; }
+    .auth-screen .primary-button,
+    .auth-screen .guest-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 40px; padding: 9px 18px; width: 100%;
+      border-radius: 11px; border: 1px solid transparent;
+      font-family: var(--font-ui); font-weight: 700; font-size: 0.82rem;
+      transition: filter 130ms ease, transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out), background 130ms ease, border-color 130ms ease;
+    }
+    .auth-screen .primary-button {
+      color: var(--on-accent); background: var(--accent);
+    }
+    .auth-screen .primary-button:hover:not(:disabled) { filter: brightness(0.94); transform: translateY(-1px); box-shadow: 0 6px 18px var(--accent-glow); }
+    .auth-screen .primary-button:active { transform: translateY(1px); box-shadow: none; }
+    .auth-screen .guest-button {
+      margin-top: 10px;
+      color: var(--text);
+      background: transparent;
+      border-color: var(--line-strong);
+    }
+    .auth-screen .guest-button:hover { background: var(--surface-2); transform: translateY(-1px); }
+    .auth-screen .guest-button:active { transform: translateY(1px); }
+    .auth-screen .field { display: grid; gap: 7px; margin-bottom: 14px; }
+    .auth-screen .field label { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-soft); }
+    .auth-screen .field input {
+      width: 100%; padding: 11px 13px;
+      border: 1px solid var(--line-strong); border-radius: 11px;
+      color: var(--text); background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+      transition: border-color 130ms ease;
+    }
+    .auth-screen .field input:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); }
+    .auth-screen .field-help { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+    .auth-screen .pw-wrap { position: relative; }
+    .auth-screen .pw-wrap input { width: 100%; padding-right: 56px; }
+    .auth-screen .pw-toggle { position: absolute; top: 50%; right: 7px; padding: 4px 7px; border: none; background: none; color: var(--muted); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 750; cursor: pointer; transform: translateY(-50%); }
+    .auth-screen .pw-toggle:hover { color: var(--text); }
+    .auth-screen .field-error { color: var(--danger); font-size: 0.76rem; font-weight: 600; min-height: 1.1em; }
+    @keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(0.985); } to { opacity: 1; transform: none; } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div class="screen" id="boot">
+    <div class="wordmark"><span class="brand-title">Liminal</span><span class="brand-subtitle">AI</span></div>
+  </div>
+
+  <div class="auth-screen" id="auth-screen" hidden>
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="wordmark">
+          <div class="brand-title">Liminal</div>
+          <div class="brand-subtitle">AI</div>
+        </div>
+        <p>Same account as Liminal Chat.</p>
+      </div>
+      <div class="auth-tabs" role="tablist" aria-label="Sign in or create account">
+        <button type="button" id="auth-tab-login" role="tab" aria-selected="true">Log in</button>
+        <button type="button" id="auth-tab-signup" role="tab" aria-selected="false">Sign up</button>
+      </div>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input id="login-username" type="text" autocomplete="username" maxlength="20" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <div class="pw-wrap">
+            <input id="login-password" type="password" autocomplete="current-password" required>
+            <button class="pw-toggle" type="button" data-pw-toggle="login-password" aria-label="Show password">Show</button>
+          </div>
+          <div class="field-help" id="login-forgot" hidden>Forgot your password? Any admin can reset it for you from the staff dashboard. Ask in the community or contact the owner.</div>
+        </div>
+        <div class="field-error" id="login-error" role="alert"></div>
+        <button class="primary-button" type="submit" id="login-submit">Log in</button>
+      </form>
+      <form id="signup-form" hidden>
+        <div class="field">
+          <label for="signup-display-name">Display name</label>
+          <input id="signup-display-name" type="text" autocomplete="name" maxlength="40" required>
+          <div class="field-help">Shown in chat. Spaces, emoji, and punctuation are welcome.</div>
+        </div>
+        <div class="field">
+          <label for="signup-username">Username</label>
+          <input id="signup-username" type="text" autocomplete="username" maxlength="20" required>
+          <div class="field-help">3–20 characters. Letters, numbers, and underscores only.</div>
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <div class="pw-wrap">
+            <input id="signup-password" type="password" autocomplete="new-password" required>
+            <button class="pw-toggle" type="button" data-pw-toggle="signup-password" aria-label="Show password">Show</button>
+          </div>
+          <div class="field-help">At least 6 characters. Write it down: there is no email recovery, only admin resets.</div>
+        </div>
+        <div class="field">
+          <label for="signup-confirm">Confirm password</label>
+          <input id="signup-confirm" type="password" autocomplete="new-password" required>
+        </div>
+        <div class="field-error" id="signup-error" role="alert"></div>
+        <button class="primary-button" type="submit" id="signup-submit">Create account</button>
+      </form>
+      <button class="guest-button" type="button" id="auth-dismiss">Continue as guest</button>
+      <div class="auth-footer">Liminal AI</div>
+    </div>
+  </div>
+
+  <div class="app" id="app" hidden>
+    <div class="scrim" id="scrim" hidden></div>
+    <aside class="rail" id="rail">
+      <div class="rail-head">
+        <div class="wordmark"><span class="brand-title">Liminal</span><span class="brand-subtitle">AI</span></div>
+        <button class="quiet" id="new" type="button">New</button>
+      </div>
+      <nav class="chats" id="chats"></nav>
+      <div class="rail-foot">
+        <span id="who"></span>
+        <button class="quiet" id="out" type="button">Save progress</button>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="top">
+        <button class="icon" id="menu" type="button" aria-label="Conversations" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 8h14M5 12h14M5 16h10"></path></svg>
+        </button>
+        <h1 id="title">New conversation</h1>
+      </header>
+      <section class="thread" id="thread">
+        <div class="thread-inner" id="list"></div>
+      </section>
+      <div class="dock">
+        <div class="composer">
+          <form id="form">
+            <div class="box">
+              <div class="chips" id="chips" hidden></div>
+              <textarea id="input" rows="1" maxlength="4000" placeholder="Ask Liminal" aria-label="Message Liminal"></textarea>
+              <div class="bar">
+                <div class="picker" id="picker">
+                  <button class="picker-btn" id="picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="picker-menu">
+                    <span class="copy"><b id="picker-name">Luna</b><small id="picker-meta">OpenAI</small></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg>
+                  </button>
+                  <div class="picker-menu" id="picker-menu" hidden role="listbox" aria-label="Model"></div>
+                </div>
+                <div class="modes" role="radiogroup" aria-label="Mode">
+                  <button type="button" data-mode="chat" class="on">Chat</button>
+                  <button type="button" data-mode="thinking">Thinking</button>
+                  <button type="button" data-mode="code">Code</button>
+                </div>
+                <span class="grow"></span>
+                <input id="photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                <input id="file" type="file" accept=".html,.htm,.js,.mjs,.cjs,.jsx,.ts,.tsx,.css,.md,.txt,.json,.xml,.svg,.yml,.yaml,.toml,.ini,.csv,.sql,.py,.rb,.go,.rs,.java,.c,.h,.cpp,.cs,.php,.sh,.bash" hidden>
+                <button class="icon" id="photo-btn" type="button" aria-label="Attach photo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="4"></rect><circle cx="8.5" cy="10" r="1.4"></circle><path d="m21 16-5.2-5.2-8.8 8.2"></path></svg>
+                </button>
+                <button class="icon" id="file-btn" type="button" aria-label="Attach file">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H7a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8Z"></path><path d="M14 3v5h5"></path></svg>
+                </button>
+                <button class="send" id="send" type="submit" aria-label="Send">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>
+                </button>
+              </div>
+            </div>
+          </form>
+          <div class="status" id="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
+    const AI_USERNAME = 'Luna';
+    const AI_FUNCTION = 'luna-direct';
+    const COLS = 'id,dm_id,sender,content,type,media_url,reply_to,deleted,edited,created_at';
+    const LAST_KEY = 'luna_dm';
+    const MODE_KEY = 'luna_mode';
+    const PROVIDER_KEY = 'luna_provider';
+    const GUEST_KEY = 'liminal_ai_guest_v1';
+    const DEVICE_ID_KEY = 'lc_device_id';
+    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'admin', 'luna'];
+    const TEXT_EXTS = new Set(['html','htm','js','mjs','cjs','jsx','ts','tsx','css','md','txt','json','xml','svg','yml','yaml','toml','ini','csv','sql','py','rb','go','rs','java','c','h','cpp','cs','php','sh','bash']);
+    const MODE_META = {
+      chat: { label: 'Chat', effort: 'low' },
+      thinking: { label: 'Thinking', effort: 'high' },
+      code: { label: 'Code', effort: 'xhigh' },
+    };
+    const PROVIDER_ORDER = ['openai', 'groq', 'workersai', 'glm', 'gemini'];
+    const PROVIDER_META = {
+      openai: { label: 'Luna', meta: 'OpenAI', vision: true },
+      groq: { label: 'GPT OSS 120B', meta: 'Scarce Model · Text only', vision: false, scarce: true },
+      workersai: { label: 'Qwen 3.8 27B', meta: 'Scarce Model', vision: true, scarce: true },
+      glm: { label: 'GLM 5.2', meta: 'Scarce Model · ModelScope · Text only', vision: false, scarce: true },
+      gemini: { label: 'Gemini', meta: 'Scarce Model', vision: true, scarce: true },
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t ?? '')
+      .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+    const emailOf = (name) => `${String(name || '').trim().toLowerCase()}@accounts.liminal.invalid`;
+    const timeFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
+    const humanSize = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+
+    let sb, me;
+    let chats = [];
+    let currentId = null;
+    let msgs = [];
+    let seen = new Set();
+    const pendingFor = new Set();
+    const liveBy = new Map();
+    let sending = false;
+    let mode = 'chat';
+    let provider = 'openai';
+    let attachments = [];
+    let notice = null;
+    let openSeq = 0;
+
+    function liveFor(id) {
+      let state = liveBy.get(id);
+      if (!state) {
+        state = { label: 'thinking', tools: [], sources: [] };
+        liveBy.set(id, state);
+      }
+      return state;
+    }
+    function syncSendBtn() {
+      const btn = $('send');
+      if (btn) btn.disabled = pendingFor.has(currentId);
+    }
+    function nearBottom() {
+      const thread = $('thread');
+      return thread.scrollHeight - thread.scrollTop - thread.clientHeight < 120;
+    }
+    function scrollThread(force) {
+      if (force || nearBottom()) $('thread').scrollTop = $('thread').scrollHeight;
+    }
+
+    function isGuest() { return !me || me.guest; }
+    function uid() {
+      try { return crypto.randomUUID(); } catch { return `g-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`; }
+    }
+    let guestQuotaWarned = false;
+    function persistGuest() {
+      if (!isGuest()) return;
+      const current = chats.find((d) => d.id === currentId);
+      if (current) current.messages = msgs.slice();
+      // Guest history lives in a ~5 MB localStorage box and image previews are
+      // data URLs. On quota pressure, degrade gracefully: first drop stored
+      // image bytes (text survives), then the oldest conversations.
+      let payload = { chats, currentId };
+      try { localStorage.setItem(GUEST_KEY, JSON.stringify(payload)); return; } catch {}
+      try {
+        for (const chat of chats) {
+          for (const m of chat.messages || []) {
+            if (m.media_url && String(m.media_url).startsWith('data:')) m.media_url = null;
+          }
+        }
+        payload = { chats, currentId };
+        localStorage.setItem(GUEST_KEY, JSON.stringify(payload));
+        return;
+      } catch {}
+      while (chats.length > 1) {
+        chats.splice(chats.length - 1, 1);
+        try { localStorage.setItem(GUEST_KEY, JSON.stringify({ chats, currentId })); break; } catch {}
+      }
+      if (!guestQuotaWarned) {
+        guestQuotaWarned = true;
+        setStatus('Guest storage is full on this device, so older history was trimmed. Sign in to keep everything.', true);
+      }
+    }
+    function readGuest() {
+      try { return JSON.parse(localStorage.getItem(GUEST_KEY) || 'null'); } catch { return null; }
+    }
+    function clearGuest() {
+      try { localStorage.removeItem(GUEST_KEY); } catch {}
+    }
+    function showAuth() {
+      $('login-error').textContent = '';
+      $('signup-error').textContent = '';
+      $('login-forgot').hidden = true;
+      $('boot').hidden = true;
+      setAuthTab('login');
+      $('auth-screen').hidden = false;
+      $('login-username').focus();
+    }
+    function hideAuth() { $('auth-screen').hidden = true; }
+    function setAuthTab(tab) {
+      const signup = tab === 'signup';
+      $('auth-tab-login').setAttribute('aria-selected', signup ? 'false' : 'true');
+      $('auth-tab-signup').setAttribute('aria-selected', signup ? 'true' : 'false');
+      document.querySelector('.auth-tabs').classList.toggle('signup-active', signup);
+      $('signup-form').hidden = !signup;
+      $('login-form').hidden = signup;
+    }
+    function syncAccountChrome() {
+      if (isGuest()) {
+        $('who').textContent = 'Guest';
+        $('out').textContent = 'Save progress';
+      } else {
+        $('who').textContent = `@${me.username}`;
+        $('out').textContent = 'Sign out';
+      }
+    }
+
+    function untitled(dm) {
+      const raw = String(dm?.title || '').trim();
+      return !raw || /^(new( luna)? chat|luna chat|new conversation)$/i.test(raw);
+    }
+    function titleOf(dm) { return untitled(dm) ? 'New conversation' : dm.title; }
+    function isEmpty(dm) { return dm && !dm.lastMsg && untitled(dm); }
+    function current() { return chats.find((d) => d.id === currentId) || null; }
+    function setStatus(text, bad) {
+      $('status').textContent = text || '';
+      $('status').classList.toggle('bad', !!bad);
+    }
+    function clearNotice() {
+      notice = null;
+    }
+    function showNotice(kind, title, body) {
+      notice = { kind, title, body };
+    }
+    function classifyNotice(code, message) {
+      const text = String(message || '').trim();
+      const meta = PROVIDER_META[provider] || PROVIDER_META.openai;
+      const key = String(code || '');
+      if (/^vision_/.test(key) || /text-only|photos or switch|cannot see photos/i.test(text)) {
+        return { kind: 'capability', title: `${meta.label} cannot see photos`, body: text };
+      }
+      if (key === 'rate_minute' || key === 'rate_day' || /_429_|_unavailable$|_paid_fallback$/.test(key)) {
+        return {
+          kind: 'limit',
+          title: meta.scarce ? 'This scarce model is at capacity' : 'This model is at capacity',
+          body: text,
+        };
+      }
+      if (/_not_configured$/.test(key)) {
+        return { kind: 'error', title: `${meta.label} is not configured yet`, body: text };
+      }
+      if (!key && /limit|capacity|too quickly|quota|scarce model/i.test(text)) {
+        return {
+          kind: 'limit',
+          title: meta.scarce ? 'This scarce model is at capacity' : 'This model is at capacity',
+          body: text,
+        };
+      }
+      return { kind: 'error', title: 'Liminal could not answer', body: text };
+    }
+    function noticeHtml() {
+      if (!notice) return '';
+      return `<div class="limit-card ${esc(notice.kind)}">
+        <h2>${esc(notice.title)}</h2>
+        <p>${esc(notice.body)}</p>
+        <button type="button" data-open-picker>Choose another model</button>
+      </div>`;
+    }
+    function modeLine() {
+      const meta = PROVIDER_META[provider] || PROVIDER_META.openai;
+      const name = meta.scarce ? `${meta.label} · Scarce Model` : meta.label;
+      return `${name} · ${MODE_META[mode].label} · ${MODE_META[mode].effort} effort`;
+    }
+    function refreshWelcome() {
+      const welcome = document.querySelector('#list .welcome p');
+      if (welcome) welcome.textContent = modeLine();
+    }
+    function setMode(next) {
+      mode = MODE_META[next] ? next : 'chat';
+      try { localStorage.setItem(MODE_KEY, mode); } catch {}
+      document.querySelectorAll('[data-mode]').forEach((btn) => btn.classList.toggle('on', btn.dataset.mode === mode));
+      $('input').placeholder = mode === 'code' ? 'Describe the program' : mode === 'thinking' ? 'Give Liminal something to work through' : 'Ask Liminal';
+      refreshWelcome();
+    }
+    function closePicker() {
+      $('picker').classList.remove('open');
+      $('picker-menu').hidden = true;
+      $('picker-btn').setAttribute('aria-expanded', 'false');
+    }
+    function openPicker() {
+      renderPicker();
+      $('picker').classList.add('open');
+      $('picker-menu').hidden = false;
+      $('picker-btn').setAttribute('aria-expanded', 'true');
+    }
+    function renderPicker() {
+      $('picker-menu').innerHTML = PROVIDER_ORDER.map((id) => {
+        const meta = PROVIDER_META[id];
+        const on = id === provider;
+        const mark = on ? 'On' : (meta.scarce ? 'Scarce' : '');
+        return `<button class="pick ${on ? 'on' : ''}" type="button" role="option" data-provider="${id}" aria-selected="${on}">
+          <b>${esc(meta.label)}</b>
+          <span class="${meta.scarce ? 'scarce' : ''}">${esc(meta.meta)}</span>
+          ${mark ? `<em class="${meta.scarce && !on ? 'scarce' : ''}">${esc(mark)}</em>` : ''}
+        </button>`;
+      }).join('');
+      $('picker-menu').querySelectorAll('[data-provider]').forEach((btn) => btn.addEventListener('click', () => {
+        setProvider(btn.dataset.provider);
+        closePicker();
+      }));
+    }
+    function syncPhotoBtn() {
+      const vision = !!PROVIDER_META[provider]?.vision;
+      $('photo-btn').classList.toggle('off', !vision);
+      $('photo-btn').title = vision ? 'Attach photo' : `${PROVIDER_META[provider].label} is text-only`;
+      $('photo-btn').setAttribute('aria-label', vision ? 'Attach photo' : `${PROVIDER_META[provider].label} is text-only`);
+    }
+    function syncPicker() {
+      const meta = PROVIDER_META[provider] || PROVIDER_META.openai;
+      $('picker-name').textContent = meta.label;
+      $('picker-meta').textContent = meta.meta;
+      $('picker-meta').classList.toggle('scarce', !!meta.scarce);
+      syncPhotoBtn();
+      if (!$('picker-menu').hidden) renderPicker();
+    }
+    function visionError() {
+      const meta = PROVIDER_META[provider] || PROVIDER_META.openai;
+      return `${meta.label} is text-only. Remove photos or switch to Luna, Gemini, or Qwen 3.8 27B.`;
+    }
+    function hasQueuedImages(queued) {
+      return (queued || attachments).some((att) => att.kind === 'image');
+    }
+    function setProvider(next) {
+      provider = PROVIDER_META[next] ? next : 'openai';
+      try { localStorage.setItem(PROVIDER_KEY, provider); } catch {}
+      clearNotice();
+      setStatus('');
+      syncPicker();
+      refreshWelcome();
+      if (me) renderList();
+    }
+    function replyTag(meta) {
+      const bits = [];
+      const named = PROVIDER_META[meta?.provider]?.label || '';
+      if (named) bits.push(named);
+      if (meta?.mode) bits.push(`${MODE_META[meta.mode]?.label || meta.mode} · ${meta.reasoning_effort || ''}`.trim());
+      return bits.filter(Boolean).join(' · ');
+    }
+
+    function renderChats() {
+      const shown = chats.filter((d) => !isEmpty(d) || d.id === currentId);
+      $('chats').innerHTML = shown.length
+        ? shown.map((d) => {
+            const when = d.lastMsg?.created_at || d.created_at;
+            const meta = when ? new Date(when).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+            return `<div class="chat ${d.id === currentId ? 'on' : ''}" data-id="${esc(d.id)}"><button class="chat-open" type="button" data-open="${esc(d.id)}"><b>${esc(titleOf(d))}</b><span>${esc(meta)}</span></button><button class="chat-del" type="button" data-del="${esc(d.id)}" aria-label="Delete conversation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>`;
+          }).join('')
+        : '<div class="empty">No threads yet.</div>';
+      $('chats').querySelectorAll('[data-open]').forEach((btn) => btn.addEventListener('click', () => openChat(btn.dataset.open)));
+      $('chats').querySelectorAll('[data-del]').forEach((btn) => btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        deleteChat(btn.dataset.del);
+      }));
+    }
+
+    function toolSummary(tools) {
+      const searches = (tools || []).filter((t) => t.name === 'web_search');
+      const files = (tools || []).filter((t) => t.name !== 'web_search');
+      const bits = [];
+      if (searches.length === 1) bits.push(searches[0].detail ? `Searched “${searches[0].detail}”` : 'Searched the web');
+      else if (searches.length > 1) bits.push(`${searches.length} searches`);
+      if (files.length === 1) bits.push(files[0].detail || files[0].label || 'File');
+      else if (files.length > 1) bits.push(`${files.length} files`);
+      return bits.join(' · ') || `${tools.length} tools`;
+    }
+    function toolRow(t) {
+      const state = t.status === 'running' ? 'running' : 'done';
+      if (t.name === 'web_search') {
+        const query = String(t.detail || '').trim();
+        const line = query ? `Search <b>${esc(query)}</b>` : esc(t.label || 'Searching the web');
+        return `<div class="tool ${state}"><i></i><span>${line}</span></div>`;
+      }
+      return `<div class="tool ${state}"><i></i><span>${esc(t.label || t.name)}</span>${t.detail ? `<em>${esc(t.detail)}</em>` : ''}</div>`;
+    }
+    function toolReceipt(tools, collapsed) {
+      if (!tools?.length) return '';
+      const rows = tools.map(toolRow).join('');
+      if (collapsed) return `<details class="receipt"><summary>${esc(toolSummary(tools))}</summary>${rows}</details>`;
+      return `<div class="receipt">${rows}</div>`;
+    }
+    function reasoningText(meta) {
+      return String(meta?.reasoning || '').trim();
+    }
+    function reasonBlock(meta) {
+      const text = reasoningText(meta);
+      if (!text) return '';
+      return `<details class="reason"><summary>Reasoning</summary><div class="reason-body">${renderBody(text)}</div></details>`;
+    }
+
+    function sourceHost(url) {
+      try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+    }
+    function safeHttpUrl(url) {
+      try {
+        const parsed = new URL(String(url || ''));
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
+      } catch { return ''; }
+    }
+    function lookupSources(meta) {
+      const seen = new Set();
+      return (meta?.sources || []).flatMap((item) => {
+        const url = safeHttpUrl(item?.url);
+        if (!url || seen.has(url)) return [];
+        seen.add(url);
+        return [{ url, title: String(item.title || sourceHost(url) || url).trim() }];
+      });
+    }
+    function stripSourceDump(text, sources) {
+      let out = String(text || '').replace(/\r/g, '');
+      out = out.replace(/\n+(?:#{1,3}\s*)?(?:\*\*)?(?:sources?|citations?|references?)(?:\*\*)?\s*:?[ \t]*\n(?:[ \t]*(?:[-*]|\d+\.)?\s*https?:\/\/\S+[ \t]*\n?)+$/i, '');
+      for (const item of sources || []) {
+        const url = safeHttpUrl(item?.url) || String(item?.url || '').trim();
+        if (!url) continue;
+        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Only strip list-item lines that are just the URL; bare inline
+        // mentions stay so sentences are not mangled.
+        out = out.replace(new RegExp(`(?:\\n|^)[ \\t]*(?:[-*]|\\d+\\.)?[ \\t]*${escaped}[ \\t]*`, 'g'), '\n');
+      }
+      out = out.replace(/\n+(?:#{1,3}\s*)?(?:\*\*)?(?:sources?|citations?|references?)(?:\*\*)?\s*:?[ \t]*$/i, '');
+      return out.replace(/\n{3,}/g, '\n\n').trim();
+    }
+    function sourcesBlock(meta) {
+      const items = lookupSources(meta);
+      if (!items.length) return '';
+      return `<div class="sources"><div class="kicker">Sources</div><div class="src-list">${items.map((item) =>
+        `<a class="src" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(item.title)}<small>${esc(sourceHost(item.url))}</small></a>`
+      ).join('')}</div></div>`;
+    }
+
+    function artifactCards(files) {
+      if (!files?.length) return '';
+      return files.map((f, i) => `
+        <div class="file">
+          <span>${esc(f.path || 'file')}</span>
+          <small>${esc(humanSize(f.bytes || (f.content || '').length))}</small>
+          <span class="grow"></span>
+          <button type="button" data-dl="${i}">Download</button>
+        </div>`).join('');
+    }
+
+    function renderList(forceScroll) {
+      const visible = msgs.filter((m) => !m.deleted);
+      const pending = pendingFor.has(currentId);
+      const stick = forceScroll || nearBottom();
+      $('title').textContent = titleOf(current());
+      if (!visible.length && !pending) {
+        $('list').innerHTML = notice
+          ? noticeHtml()
+          : `<div class="welcome"><div class="wordmark"><span class="brand-title">Liminal</span><span class="brand-subtitle">AI</span></div><p>${esc(modeLine())}</p></div>`;
+        wireRendered($('list'));
+        syncSendBtn();
+        return;
+      }
+      $('list').innerHTML = visible.map((m) => {
+        const mine = m.sender === me.username;
+        const meta = m.reply_to || {};
+        const media = (m.type === 'image' || m.type === 'gif') && m.media_url ? `<img src="${esc(m.media_url)}" alt="">` : '';
+        const file = m.type === 'file' && m.media_url ? `<div class="file"><span>${esc(fileName(m.media_url))}</span><a href="${esc(m.media_url)}" target="_blank" rel="noopener">open</a></div>` : '';
+        const files = !mine ? artifactCards(meta.files) : '';
+        return `<article class="msg ${mine ? 'me' : ''}">
+          <div class="who"><b>${mine ? 'You' : 'Luna'}</b>${!mine && replyTag(meta) ? `<span class="mode-tag">${esc(replyTag(meta))}</span>` : ''}<time>${esc(timeFmt.format(new Date(m.created_at)))}</time></div>
+          ${!mine ? toolReceipt(meta.tools, true) : ''}
+          ${!mine ? reasonBlock(meta) : ''}
+          <div class="bubble"><div class="body">${renderBody(mine ? m.content : stripSourceDump(m.content, meta.sources))}${media}${file}${files}</div></div>
+          ${!mine ? sourcesBlock(meta) : ''}
+        </article>`;
+      }).join('') + (pending ? liveHtml() : '') + (!pending && notice ? noticeHtml() : '');
+      wireRendered($('list'));
+      scrollThread(stick);
+      syncSendBtn();
+    }
+
+    function thinkingGrid() {
+      const xs = [44, 72, 100, 128, 156];
+      const radii = [
+        [6, 7, 8, 7, 6],
+        [7, 9, 10, 9, 7],
+        [8, 10, 12, 10, 8],
+        [7, 9, 10, 9, 7],
+        [6, 7, 8, 7, 6],
+      ];
+      const dots = [];
+      for (let row = 0; row < 5; row++) {
+        for (let col = 0; col < 5; col++) {
+          dots.push(`<circle class="dot d${row + col}" cx="${xs[col]}" cy="${xs[row]}" r="${radii[row][col]}"/>`);
+        }
+      }
+      return `<div class="ai-thinking" aria-hidden="true"><svg class="thinking-grid" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${dots.join('')}</svg></div>`;
+    }
+    function liveHtml() {
+      const live = liveFor(currentId);
+      const label = live.label || 'thinking';
+      return `<div class="live">
+        <div class="think" aria-live="polite" aria-label="${esc(label)}">
+          ${thinkingGrid()}
+          <span class="think-label">${esc(label)}</span>
+        </div>
+        <div class="live-extra">${toolReceipt(live.tools)}${sourcesBlock({ sources: live.sources })}</div>
+      </div>`;
+    }
+    function renderLive(dmId) {
+      if (dmId !== currentId || !pendingFor.has(dmId)) return;
+      const live = liveFor(dmId);
+      const root = $('list').querySelector('.live');
+      if (!root) { renderList(); return; }
+      const label = live.label || 'thinking';
+      const think = root.querySelector('.think');
+      const text = root.querySelector('.think-label');
+      if (think) think.setAttribute('aria-label', label);
+      if (text) text.textContent = label;
+      let extra = root.querySelector('.live-extra');
+      if (!extra) {
+        extra = document.createElement('div');
+        extra.className = 'live-extra';
+        root.appendChild(extra);
+      }
+      extra.innerHTML = toolReceipt(live.tools) + sourcesBlock({ sources: live.sources });
+      scrollThread(false);
+    }
+
+    function wireRendered(root) {
+      root.querySelectorAll('.spoiler').forEach((el) => el.addEventListener('click', () => el.classList.add('on')));
+      root.querySelectorAll('.code button').forEach((btn) => btn.addEventListener('click', async () => {
+        const code = btn.closest('.code')?.querySelector('code');
+        if (!code) return;
+        try { await navigator.clipboard.writeText(code.textContent || ''); btn.textContent = 'Copied'; }
+        catch { btn.textContent = 'Failed'; }
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1100);
+      }));
+      root.querySelectorAll('[data-open-picker]').forEach((btn) => btn.addEventListener('click', () => {
+        openPicker();
+        $('picker-btn').focus();
+      }));
+      root.querySelectorAll('[data-dl]').forEach((btn) => btn.addEventListener('click', () => {
+        const node = btn.closest('.msg');
+        const idx = [...$('list').querySelectorAll('.msg')].indexOf(node);
+        const file = msgs.filter((m) => !m.deleted)[idx]?.reply_to?.files?.[Number(btn.dataset.dl)];
+        if (!file?.path) return;
+        const blob = new Blob([file.content || ''], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.path; a.click();
+        URL.revokeObjectURL(url);
+      }));
+    }
+
+    const URL_RE = /https?:\/\/[^\s<>"'`]+/g;
+    const PL = '\u0001';
+    function renderBody(raw) {
+      const tokens = [];
+      const hold = (html) => { tokens.push(html); return PL + (tokens.length - 1) + PL; };
+      let text = String(raw || '');
+      text = text.replace(/```([A-Za-z0-9+#._-]*)[ \t]*\r?\n([\s\S]*?)```/g, (_, lang, code) =>
+        hold(`<section class="code"><header><span>${esc(lang || 'code')}</span><button type="button">Copy</button></header><pre><code>${highlight(code.replace(/\n$/, ''))}</code></pre></section>`));
+      text = text.replace(/`([^`\n]+)`/g, (_, code) => hold(`<code>${esc(code)}</code>`));
+      text = text.replace(URL_RE, (m) => {
+        const trail = m.match(/[.,;:!?]+$/)?.[0] || '';
+        if (trail) m = m.slice(0, -trail.length);
+        return hold(`<a href="${esc(m)}" target="_blank" rel="noopener noreferrer nofollow">${esc(m.length > 64 ? m.slice(0, 61) + '…' : m)}</a>`) + trail;
+      });
+      const html = esc(text).split('\n').map((line) => {
+        const q = /^&gt;\s(.*)$/.exec(line);
+        if (q) return `<span class="md-quote">${inline(q[1])}</span>`;
+        const h = /^(#{1,3})\s+(.+)$/.exec(line);
+        if (h) return `<h${h[1].length} class="md-h">${inline(h[2])}</h${h[1].length}>`;
+        const sub = /^-#\s+(.+)$/.exec(line);
+        if (sub) return `<span class="md-subtext">${inline(sub[1])}</span>`;
+        return inline(line);
+      }).join('\n');
+      return html.replace(new RegExp(PL + '(\\d+)' + PL, 'g'), (_, i) => tokens[Number(i)] || _);
+    }
+    function inline(s) {
+      return s
+        .replace(/\|\|([\s\S]+?)\|\|/g, '<span class="spoiler">$1</span>')
+        .replace(/\*\*\*([\s\S]+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^\s*](?:[^*\n]*[^\s*])?)\*/g, '<em>$1</em>')
+        .replace(/~~([\s\S]+?)~~/g, '<s>$1</s>')
+        .replace(/__([^_\n]+?)__/g, '<u>$1</u>');
+    }
+    function highlight(code) {
+      const held = [];
+      const hold = (html) => String.fromCharCode(0xE000 + held.push(html) - 1);
+      let text = String(code || '');
+      text = text.replace(/(["'`])(?:\\.|(?!\1)[^\\\r\n])*\1/g, (m) => hold(`<span style="color:#d0d0d0">${esc(m)}</span>`));
+      text = text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, (m) => hold(`<span style="color:#666">${esc(m)}</span>`));
+      text = esc(text)
+        .replace(/\b(const|let|var|function|return|if|else|for|while|async|await|class|new|import|from|export|default|try|catch|throw|def)\b/g, '<span style="color:#fff">$1</span>')
+        .replace(/\b(true|false|null|undefined)\b/g, '<span style="color:#bbb">$1</span>');
+      return text.replace(/[\uE000-\uF8FF]/g, (t) => held[t.charCodeAt(0) - 0xE000] || t);
+    }
+    function fileName(url) {
+      try {
+        const segment = decodeURIComponent(new URL(url, location.href).pathname.split('/').pop() || '');
+        const marked = segment.split('__');
+        return (marked.length > 1 ? marked.slice(1).join('__') : segment) || 'file';
+      } catch { return 'file'; }
+    }
+
+    async function loadChats() {
+      const { data, error } = await sb.from('dms').select('*').contains('participants', [me.username]);
+      if (error) throw error;
+      chats = (data || [])
+        .map((d) => ({ ...d, other: (d.participants || []).find((u) => u !== me.username), lastMsg: null }))
+        .filter((d) => d.other === AI_USERNAME);
+      if (chats.length) {
+        const { data: lasts } = await sb.from('dm_messages')
+          .select('dm_id,sender,content,type,created_at,deleted')
+          .in('dm_id', chats.map((d) => d.id)).order('created_at', { ascending: false }).limit(400);
+        const seenLast = new Set();
+        (lasts || []).forEach((m) => {
+          if (seenLast.has(m.dm_id)) return;
+          seenLast.add(m.dm_id);
+          const dm = chats.find((d) => d.id === m.dm_id);
+          if (dm) dm.lastMsg = m;
+        });
+      }
+      chats.sort((a, b) => new Date(b.lastMsg?.created_at || b.created_at) - new Date(a.lastMsg?.created_at || a.created_at));
+    }
+
+    async function loadMessages(id) {
+      // Newest 200, then restored to chronological order. Ascending+limit would
+      // silently freeze long conversations at their first 200 messages.
+      const { data, error } = await sb.from('dm_messages').select(COLS).eq('dm_id', id).order('created_at', { ascending: false }).limit(200);
+      if (error) throw error;
+      msgs = (data || []).reverse();
+      seen = new Set(msgs.map((m) => m.id));
+    }
+
+    function ingest(m) {
+      if (!m?.id || seen.has(m.id) || !chats.some((d) => d.id === m.dm_id)) return;
+      seen.add(m.id);
+      const dm = chats.find((d) => d.id === m.dm_id);
+      if (dm) {
+        dm.lastMsg = m;
+        if (isGuest()) {
+          dm.messages = dm.messages || [];
+          if (!dm.messages.some((row) => row.id === m.id)) dm.messages.push(m);
+        }
+      }
+      chats.sort((a, b) => new Date(b.lastMsg?.created_at || b.created_at) - new Date(a.lastMsg?.created_at || a.created_at));
+      if (m.sender === AI_USERNAME) pendingFor.delete(m.dm_id);
+      if (m.dm_id === currentId) {
+        msgs.push(m);
+        renderList();
+      }
+      renderChats();
+      persistGuest();
+    }
+
+    async function openChat(id) {
+      const seq = ++openSeq;
+      if (isGuest()) {
+        const prev = chats.find((d) => d.id === currentId);
+        if (prev) prev.messages = msgs.slice();
+      }
+      currentId = id;
+      try { sessionStorage.setItem(LAST_KEY, id || ''); } catch {}
+      closeRail();
+      if (!id) {
+        msgs = []; seen = new Set();
+        renderChats(); renderList(true); setStatus(''); $('input').focus();
+        persistGuest();
+        return;
+      }
+      if (isGuest()) {
+        const chat = chats.find((d) => d.id === id);
+        msgs = (chat?.messages || []).slice();
+        seen = new Set(msgs.map((m) => m.id));
+        renderChats(); renderList(true); $('input').focus();
+        persistGuest();
+        return;
+      }
+      await loadMessages(id);
+      if (seq !== openSeq) return;
+      renderChats(); renderList(true); $('input').focus();
+    }
+
+    async function ensureChat() {
+      if (currentId) return currentId;
+      const reusable = chats.find(isEmpty);
+      if (reusable) { currentId = reusable.id; return currentId; }
+      if (isGuest()) {
+        const now = new Date().toISOString();
+        const data = { id: uid(), title: 'New conversation', created_at: now, other: AI_USERNAME, lastMsg: null, messages: [] };
+        chats.unshift(data);
+        currentId = data.id;
+        persistGuest();
+        return currentId;
+      }
+      const parts = [me.username, AI_USERNAME].sort();
+      const { data, error } = await sb.from('dms').insert({ participants: parts, title: 'New conversation' }).select().single();
+      if (error || !data) throw new Error(error?.message || 'Could not start a conversation.');
+      chats.unshift({ ...data, other: AI_USERNAME, lastMsg: null });
+      currentId = data.id;
+      try { sessionStorage.setItem(LAST_KEY, currentId); } catch {}
+      return currentId;
+    }
+
+    function applyTitle(title, dmId) {
+      const dm = chats.find((d) => d.id === (dmId || currentId));
+      const candidate = String(title || '').replace(/\s+/g, ' ').trim().slice(0, 64);
+      if (!dm || !candidate || untitled({ title: candidate })) return;
+      dm.title = candidate;
+      if (dm.id === currentId) $('title').textContent = titleOf(dm);
+      renderChats();
+      persistGuest();
+    }
+    function titleFromMessage(content) {
+      const words = String(content || '')
+        .replace(/https?:\/\/\S+/gi, ' ')
+        .replace(/@\w+/g, ' ')
+        .replace(/[`*_~|>#]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 6);
+      if (!words.length) return '';
+      const named = words.join(' ');
+      return named.charAt(0).toUpperCase() + named.slice(1);
+    }
+    async function maybeTitle(ev, dmId) {
+      try {
+        const dm = chats.find((d) => d.id === (dmId || currentId));
+        if (!dm || !untitled(dm)) return;
+        const named = String(ev?.title || '').replace(/\s+/g, ' ').trim();
+        if (named && !untitled({ title: named })) {
+          applyTitle(named, dm.id);
+          if (!isGuest()) {
+            try {
+              const { data } = await sb.rpc('chat_update_luna_conversation_title', { p_dm_id: dm.id, p_title: named });
+              if (data) applyTitle(String(data), dm.id);
+            } catch { /* local title still applied */ }
+          }
+          return;
+        }
+        const history = dm.id === currentId ? msgs : (dm.messages || []);
+        const source = (history.filter((m) => m.sender !== AI_USERNAME && !m.deleted).slice(-1)[0] || {}).content || '';
+        const fallback = titleFromMessage(source);
+        if (!fallback) return;
+        applyTitle(fallback, dm.id);
+        if (!isGuest()) {
+          try {
+            const { data } = await sb.rpc('chat_update_luna_conversation_title', { p_dm_id: dm.id, p_title: fallback });
+            if (data) applyTitle(String(data), dm.id);
+          } catch { /* local title still applied */ }
+        }
+      } catch { /* title is best-effort */ }
+    }
+
+    async function deleteChat(id) {
+      const dm = chats.find((d) => d.id === id);
+      if (!dm) return;
+      if (pendingFor.has(id)) {
+        setStatus('Luna is still answering in that conversation. Wait for the reply, then delete it.', true);
+        return;
+      }
+      if (!isGuest()) {
+        // Server first: removing locally before the delete succeeds makes the
+        // conversation silently reappear on the next load.
+        try {
+          const { data: sessionData } = await sb.auth.getSession();
+          const token = sessionData.session?.access_token;
+          if (!token) throw new Error('Your session expired. Sign in again.');
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/${AI_FUNCTION}`, {
+            method: 'POST',
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_conversation', dm_id: id }),
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(payload.error || 'Could not delete conversation.');
+        } catch (err) {
+          setStatus(err?.message || 'Could not delete conversation.', true);
+          return;
+        }
+      }
+      const nextId = currentId === id
+        ? (chats.find((d) => d.id !== id && !isEmpty(d))?.id || chats.find((d) => d.id !== id)?.id || null)
+        : currentId;
+      chats = chats.filter((d) => d.id !== id);
+      liveBy.delete(id);
+      persistGuest();
+      if (currentId === id) await openChat(nextId);
+      else renderChats();
+    }
+
+    async function compressImage(file) {
+      const url = URL.createObjectURL(file);
+      const img = await new Promise((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error('Could not read image'));
+        el.src = url;
+      });
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.86));
+      if (!blob) throw new Error('Could not process that image. Try a different one.');
+      return { blob, preview: canvas.toDataURL('image/jpeg', 0.7), name: file.name || 'image.jpg' };
+    }
+
+    async function upload(att) {
+      if (!me.user_id) throw new Error('Signed-in upload identity is missing.');
+      if (att.kind === 'image') {
+        const path = `${me.user_id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const { error } = await sb.storage.from('liminal-media').upload(path, att.blob, { upsert: true, contentType: 'image/jpeg' });
+        if (error) throw error;
+        return { url: sb.storage.from('liminal-media').getPublicUrl(path).data.publicUrl, path };
+      }
+      const safeName = String(att.name || 'file.txt').replace(/[^\w.\-]+/g, '_').slice(-80) || 'file.txt';
+      const path = `${me.user_id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}__${encodeURIComponent(safeName)}`;
+      const blob = new Blob([await att.file.text()], { type: 'text/plain' });
+      const { error } = await sb.storage.from('liminal-media').upload(path, blob, { upsert: true, contentType: 'text/plain' });
+      if (error) throw error;
+      return { url: sb.storage.from('liminal-media').getPublicUrl(path).data.publicUrl, path };
+    }
+
+    function renderChips() {
+      $('chips').hidden = !attachments.length;
+      $('chips').innerHTML = attachments.map((att, i) => `
+        <span class="chip">${att.preview ? `<img src="${esc(att.preview)}" alt="">` : ''}<span>${esc(att.name)}</span><button type="button" data-x="${i}" aria-label="Remove">×</button></span>
+      `).join('');
+      $('chips').querySelectorAll('[data-x]').forEach((btn) => btn.addEventListener('click', () => {
+        attachments.splice(Number(btn.dataset.x), 1);
+        renderChips();
+      }));
+    }
+
+    async function addPhoto(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      if (!PROVIDER_META[provider]?.vision) {
+        const text = visionError();
+        setStatus(text, true);
+        showNotice('capability', `${PROVIDER_META[provider].label} cannot see photos`, text);
+        renderList();
+        return;
+      }
+      if (attachments.length >= 4) { setStatus('Four attachments max.', true); return; }
+      const packed = await compressImage(file);
+      attachments.push({ kind: 'image', ...packed });
+      renderChips();
+    }
+    async function addFile(file) {
+      if (!file) return;
+      if (file.type.startsWith('image/')) return addPhoto(file);
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (!TEXT_EXTS.has(ext) && !(file.type || '').startsWith('text/')) { setStatus('Text files only.', true); return; }
+      if (file.size > 2 * 1024 * 1024) { setStatus('Files are limited to 2 MB.', true); return; }
+      if (attachments.length >= 4) { setStatus('Four attachments max.', true); return; }
+      attachments.push({ kind: 'file', file, name: file.name });
+      renderChips();
+    }
+
+    async function consumeStream(res, dmId, onDone) {
+      const live = liveFor(dmId);
+      const ctype = res.headers.get('content-type') || '';
+      if (!ctype.includes('text/event-stream')) {
+        const payload = await res.json().catch(() => ({}));
+        const err = new Error(payload.error || 'Liminal could not answer.');
+        err.code = payload.code || '';
+        throw err;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let last = null;
+      const handle = (part) => {
+        const dataLines = part.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim());
+        if (!dataLines.length) return;
+        let ev;
+        try { ev = JSON.parse(dataLines.join('\n')); } catch { return; }
+        if (ev.type === 'thinking') live.label = ev.label || live.label;
+        if (ev.type === 'tool') {
+          const i = live.tools.findIndex((t) => t.id === ev.id);
+          const row = { id: ev.id, name: ev.name, label: ev.label, status: ev.status, detail: ev.detail };
+          if (i >= 0) live.tools[i] = { ...live.tools[i], ...row };
+          else live.tools.push(row);
+        }
+        if (ev.type === 'sources') live.sources = Array.isArray(ev.sources) ? ev.sources : [];
+        if (ev.type === 'error') {
+          const err = new Error(ev.error || 'Liminal could not answer.');
+          err.code = ev.code || '';
+          throw err;
+        }
+        if (ev.type === 'done') last = ev;
+        if (ev.type === 'thinking' || ev.type === 'tool' || ev.type === 'sources') renderLive(dmId);
+        else if (ev.type !== 'done') renderList();
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        for (const part of parts) handle(part);
+      }
+      if (buffer.trim()) handle(buffer);
+      if (onDone) await onDone(last);
+    }
+
+    async function askLuna(message) {
+      const dmId = message.dm_id;
+      pendingFor.add(dmId);
+      liveBy.set(dmId, { label: mode === 'code' ? 'working' : mode === 'thinking' ? 'thinking' : 'answering', tools: [], sources: [] });
+      let delivered = false;
+      if (dmId === currentId) renderList(true);
+      syncSendBtn();
+      clearNotice();
+      try {
+        if (isGuest()) {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/${AI_FUNCTION}`, {
+            method: 'POST',
+            headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'guest_reply',
+              mode,
+              provider,
+              needs_title: untitled(chats.find((d) => d.id === dmId)),
+              messages: msgs.filter((m) => !m.deleted).map((m) => ({
+                id: m.id, sender: m.sender, content: m.content, type: m.type, media_url: m.media_url,
+              })),
+            }),
+          });
+          await consumeStream(res, dmId, async (ev) => {
+            if (!ev) throw new Error('Liminal ran out of time on that one. Try again.');
+            if (!ev.reply) throw new Error('Liminal could not answer that one. Try again.');
+            ingest({
+              id: ev.response_message_id || uid(),
+              dm_id: dmId,
+              sender: AI_USERNAME,
+              content: ev.reply || '',
+              type: 'text',
+              media_url: null,
+              reply_to: {
+                mode: ev.mode || mode,
+                provider: ev.provider || provider,
+                reasoning_effort: ev.reasoning_effort || MODE_META[mode].effort,
+                reasoning: String(ev.reasoning || '').trim(),
+                sources: ev.sources || liveFor(dmId).sources || [],
+                tools: ev.tools || liveFor(dmId).tools || [],
+                files: (ev.files || []).map((f) => ({ ...f, content: f.content || '' })),
+              },
+              deleted: false,
+              created_at: new Date().toISOString(),
+            });
+            delivered = true;
+            await maybeTitle(ev, dmId);
+          });
+          return;
+        }
+        const { data: sessionData } = await sb.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error('Your session expired. Sign in again.');
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/${AI_FUNCTION}`, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'reply',
+            source_message_id: message.id,
+            mode,
+            provider,
+            needs_title: untitled(current()),
+          }),
+        });
+        await consumeStream(res, dmId, async (ev) => {
+          // A stream that ends with no done event means the function died or
+          // the provider ran out of time: say so instead of failing silently.
+          if (!ev) {
+            const err = new Error('Liminal ran out of time on that one. Try again.');
+            err.code = 'luna_timeout';
+            throw err;
+          }
+          const doneId = ev.response_message_id;
+          if (!doneId) return;
+          const { data: row } = await sb.from('dm_messages').select(COLS).eq('id', doneId).maybeSingle();
+          if (row) {
+            ingest(row);
+            delivered = true;
+          }
+          await maybeTitle(ev, dmId);
+        });
+      } catch (err) {
+        const text = err?.message || 'Liminal could not answer.';
+        const clientBug = /is not a function|cannot read|undefined is not|null is not/i.test(text);
+        // If the reply actually landed and only our rendering broke, stay quiet.
+        if (clientBug && delivered) return;
+        if (clientBug) {
+          setStatus('Something went wrong on this page. Refresh and try again.', true);
+          return;
+        }
+        const card = classifyNotice(err?.code, text);
+        showNotice(card.kind, card.title, card.body);
+        setStatus(text, true);
+      } finally {
+        pendingFor.delete(dmId);
+        syncSendBtn();
+        if (dmId === currentId) renderList();
+      }
+    }
+
+    async function send(event) {
+      event.preventDefault();
+      if (sending || pendingFor.has(currentId)) return;
+      const input = $('input');
+      const content = input.value.trim();
+      const queued = attachments.slice();
+      if (!content && !queued.length) return;
+      if (!PROVIDER_META[provider]?.vision && hasQueuedImages(queued)) {
+        const text = visionError();
+        setStatus(text, true);
+        showNotice('capability', `${PROVIDER_META[provider].label} cannot see photos`, text);
+        renderList();
+        return;
+      }
+      sending = true;
+      input.value = '';
+      input.style.height = 'auto';
+      attachments = [];
+      renderChips();
+      clearNotice();
+      setStatus('');
+      try {
+        const dmId = await ensureChat();
+        let last = null;
+        for (let i = 0; i < queued.length; i++) {
+          const att = queued[i];
+          const caption = i === queued.length - 1 ? content : '';
+          if (isGuest()) {
+            let media = null;
+            let body = caption;
+            if (att.kind === 'image') media = att.preview || null;
+            if (att.kind === 'file') {
+              const text = await att.file.text();
+              body = [caption, `Attached file ${att.name}:\n${text}`].filter(Boolean).join('\n\n');
+            }
+            const row = {
+              id: uid(), dm_id: dmId, sender: me.username, content: body, type: att.kind,
+              media_url: media, reply_to: null, deleted: false, created_at: new Date().toISOString(),
+            };
+            ingest(row);
+            last = row;
+            continue;
+          }
+          const uploaded = await upload(att);
+          const { data, error } = await sb.from('dm_messages').insert({
+            sender: me.username, content: caption, type: att.kind, media_url: uploaded.url, dm_id: dmId, read_by: [me.username],
+          }).select(COLS).single();
+          if (error || !data) {
+            // The upload already landed; do not leave an orphaned object behind.
+            try { await sb.storage.from('liminal-media').remove([uploaded.path]); } catch {}
+            throw new Error(error?.message || 'Upload failed.');
+          }
+          ingest(data);
+          last = data;
+        }
+        if (!queued.length) {
+          if (isGuest()) {
+            const row = {
+              id: uid(), dm_id: dmId, sender: me.username, content, type: 'text',
+              media_url: null, reply_to: null, deleted: false, created_at: new Date().toISOString(),
+            };
+            ingest(row);
+            last = row;
+          } else {
+            const { data, error } = await sb.from('dm_messages').insert({
+              sender: me.username, content, type: 'text', dm_id: dmId, read_by: [me.username],
+            }).select(COLS).single();
+            if (error || !data) throw new Error(error?.message || 'Message failed to send.');
+            ingest(data);
+            last = data;
+          }
+        }
+        void askLuna(last);
+      } catch (err) {
+        input.value = content;
+        attachments = queued;
+        renderChips();
+        setStatus(err?.message || 'Message failed to send.', true);
+      } finally {
+        sending = false;
+        input.focus();
+      }
+    }
+
+    function closeRail() { $('rail').classList.remove('open'); $('scrim').hidden = true; }
+
+    function setupRealtime() {
+      if (isGuest()) return;
+      sb.channel('luna-dms')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dm_messages' }, ({ new: row }) => { if (row) ingest(row); })
+        .subscribe();
+    }
+
+    function guestThreadsPayload() {
+      const current = chats.find((d) => d.id === currentId);
+      if (current) current.messages = msgs.slice();
+      const pack = (stripFiles) => chats
+        .filter((d) => (d.messages || []).some((m) => !m.deleted))
+        .map((d) => ({
+          title: titleOf(d),
+          messages: (d.messages || []).filter((m) => !m.deleted).map((m) => ({
+            sender: m.sender === AI_USERNAME ? AI_USERNAME : 'user',
+            content: m.content || '',
+            type: m.type || 'text',
+            media_url: m.media_url || null,
+            reply_to: m.reply_to ? {
+              ...m.reply_to,
+              files: (m.reply_to.files || []).map((f) => ({
+                path: f.path,
+                bytes: f.bytes,
+                content: stripFiles ? '' : String(f.content || '').slice(0, 20000),
+              })).filter((f) => f.content),
+            } : null,
+          })),
+        }));
+      // Keep the import request comfortably under the function's body limit:
+      // artifact contents are the first thing to shrink.
+      let threads = pack(false);
+      try {
+        if (JSON.stringify(threads).length > 2_500_000) threads = pack(true);
+      } catch { threads = pack(true); }
+      return threads;
+    }
+
+    async function importGuestHistory() {
+      const threads = guestThreadsPayload();
+      if (!threads.length) { clearGuest(); return; }
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/${AI_FUNCTION}`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'import_guest', threads }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error || 'Could not save guest conversations.');
+      clearGuest();
+    }
+
+    async function boot(profile) {
+      me = profile;
+      $('boot').hidden = true;
+      hideAuth();
+      $('app').hidden = false;
+      syncAccountChrome();
+      // The database trigger enforces the community message-length setting;
+      // mirror it into the composer so long drafts are stopped before sending.
+      try {
+        const { data: limitRow } = await sb.from('app_settings').select('value').eq('key', 'max_message_length').maybeSingle();
+        const limit = Math.min(4000, Math.max(100, parseInt(limitRow?.value || '', 10) || 2000));
+        $('input').maxLength = limit;
+      } catch { $('input').maxLength = 2000; }
+      await loadChats();
+      setupRealtime();
+      const saved = (() => { try { return sessionStorage.getItem(LAST_KEY); } catch { return ''; } })();
+      await openChat(chats.find((d) => d.id === saved)?.id || chats[0]?.id || null);
+    }
+
+    function bootGuest() {
+      me = { username: 'You', guest: true };
+      const saved = readGuest();
+      chats = Array.isArray(saved?.chats) ? saved.chats : [];
+      $('boot').hidden = true;
+      hideAuth();
+      $('app').hidden = false;
+      syncAccountChrome();
+      const start = chats.find((d) => d.id === saved?.currentId)?.id || chats[0]?.id || null;
+      openChat(start);
+    }
+
+    async function restore() {
+      const { data: sessionData } = await sb.auth.getSession();
+      if (!sessionData.session) return false;
+      const { data: profile, error } = await sb.rpc('chat_get_my_profile');
+      if (error || !profile) { await sb.auth.signOut({ scope: 'local' }); return false; }
+      if (profile.is_banned) {
+        // Drop the dead session so the user lands on the auth screen instead
+        // of a dead-end boot message.
+        try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+        showAuth();
+        $('login-error').textContent = 'This account is banned.';
+        return true;
+      }
+      await boot(profile);
+      return true;
+    }
+
+    function validUsername(name) {
+      if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) return 'Usernames are 3–20 characters: letters, numbers, underscores.';
+      if (RESERVED_NAMES.includes(name.toLowerCase())) return 'That name is reserved.';
+      return null;
+    }
+    function getDeviceId() {
+      try {
+        const existing = localStorage.getItem(DEVICE_ID_KEY);
+        if (existing && existing.length >= 16) return existing;
+      } catch {}
+      const id = `${uid()}-${uid()}`;
+      try { localStorage.setItem(DEVICE_ID_KEY, id); } catch {}
+      return id;
+    }
+    async function callChatAuth(payload) {
+      const { data: sessionData } = await sb.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/chat-auth`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `Account request failed (${response.status})`);
+      return result;
+    }
+
+    async function afterAuth(profile) {
+      hideAuth();
+      try { await importGuestHistory(); } catch (err) { setStatus(err?.message || 'Signed in, but guest chats could not be saved.', true); }
+      await boot(profile);
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const errEl = $('login-error');
+      errEl.textContent = '';
+      const username = $('login-username').value.trim();
+      const pass = $('login-password').value;
+      if (!username || !pass) { errEl.textContent = 'Enter your username and password.'; return; }
+      const btn = $('login-submit');
+      btn.disabled = true;
+      try {
+        const { error: loginError } = await sb.auth.signInWithPassword({ email: emailOf(username), password: pass });
+        if (loginError) {
+          errEl.textContent = 'Wrong username or password.';
+          $('login-forgot').hidden = false;
+          return;
+        }
+        const { data, error } = await sb.rpc('chat_get_my_profile');
+        if (error || !data) {
+          await sb.auth.signOut({ scope: 'local' });
+          errEl.textContent = `No Liminal profile exists for "${username}".`;
+          return;
+        }
+        if (data.is_banned) {
+          try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+          errEl.textContent = 'This account is banned.';
+          return;
+        }
+        await afterAuth(data);
+      } catch (err) {
+        errEl.textContent = err?.message || 'Could not reach the server. Try again.';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function handleSignup(event) {
+      event.preventDefault();
+      const errEl = $('signup-error');
+      errEl.textContent = '';
+      const username = $('signup-username').value.trim();
+      const displayName = $('signup-display-name').value.trim();
+      const pass = $('signup-password').value;
+      const confirm = $('signup-confirm').value;
+      const nameErr = validUsername(username);
+      if (nameErr) { errEl.textContent = nameErr; return; }
+      if (!displayName || displayName.length > 40) { errEl.textContent = 'Display names must be 1-40 characters.'; return; }
+      if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+      if (pass !== confirm) { errEl.textContent = 'Passwords do not match.'; return; }
+      const btn = $('signup-submit');
+      btn.disabled = true;
+      try {
+        await callChatAuth({
+          action: 'signup',
+          username,
+          display_name: displayName,
+          password: pass,
+          device_id: getDeviceId(),
+        });
+        const { error: loginError } = await sb.auth.signInWithPassword({ email: emailOf(username), password: pass });
+        if (loginError) throw loginError;
+        const { data, error } = await sb.rpc('chat_get_my_profile');
+        if (error || !data) {
+          errEl.textContent = error?.code === '23505' ? 'That username is already taken.' : 'Could not create the account. Try again.';
+          return;
+        }
+        await afterAuth(data);
+      } catch (err) {
+        errEl.textContent = err?.message || 'Something went wrong. Check your connection and try again.';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function wireAuth() {
+      $('auth-tab-login').addEventListener('click', () => {
+        setAuthTab('login');
+        $('login-username').focus();
+      });
+      $('auth-tab-signup').addEventListener('click', () => {
+        setAuthTab('signup');
+        $('signup-display-name').focus();
+      });
+      $('login-form').addEventListener('submit', handleLogin);
+      $('signup-form').addEventListener('submit', handleSignup);
+      $('auth-dismiss').addEventListener('click', () => {
+        hideAuth();
+        if (isGuest() && !$('app').hidden) return;
+        bootGuest();
+      });
+      document.querySelectorAll('[data-pw-toggle]').forEach((btn) => btn.addEventListener('click', () => {
+        const input = $(btn.dataset.pwToggle);
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.textContent = show ? 'Hide' : 'Show';
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        input.focus();
+      }));
+      let signupUsernameTouched = false;
+      $('signup-username').addEventListener('input', () => { signupUsernameTouched = $('signup-username').value !== ''; });
+      $('signup-display-name').addEventListener('input', () => {
+        if (signupUsernameTouched) return;
+        $('signup-username').value = $('signup-display-name').value.replace(/[^A-Za-z0-9_]/g, '').slice(0, 20);
+      });
+    }
+
+    function wire() {
+      wireAuth();
+      $('form').addEventListener('submit', send);
+      $('new').addEventListener('click', () => openChat(isEmpty(current()) ? currentId : null));
+      $('out').addEventListener('click', async () => {
+        if (isGuest()) { showAuth(); return; }
+        try { await sb.auth.signOut({ scope: 'local' }); } catch {}
+        location.reload();
+      });
+      $('menu').addEventListener('click', () => { $('rail').classList.add('open'); $('scrim').hidden = false; });
+      $('scrim').addEventListener('click', closeRail);
+      document.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+      $('picker-btn').addEventListener('click', (event) => {
+        event.stopPropagation();
+        $('picker').classList.contains('open') ? closePicker() : openPicker();
+      });
+      document.addEventListener('click', (event) => {
+        if (!$('picker').contains(event.target)) closePicker();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closePicker();
+      });
+      $('photo-btn').addEventListener('click', () => {
+        if (!PROVIDER_META[provider]?.vision) {
+          const text = visionError();
+          setStatus(text, true);
+          showNotice('capability', `${PROVIDER_META[provider].label} cannot see photos`, text);
+          renderList();
+          return;
+        }
+        $('photo').click();
+      });
+      $('file-btn').addEventListener('click', () => $('file').click());
+      $('photo').addEventListener('change', () => { addPhoto($('photo').files[0]); $('photo').value = ''; });
+      $('file').addEventListener('change', () => { addFile($('file').files[0]); $('file').value = ''; });
+      const input = $('input');
+      input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('form').requestSubmit(); } });
+      input.addEventListener('paste', (e) => {
+        const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith('image/'));
+        if (!item) return;
+        e.preventDefault();
+        addPhoto(item.getAsFile());
+      });
+      const box = document.querySelector('.box');
+      box.addEventListener('dragover', (e) => { e.preventDefault(); });
+      box.addEventListener('drop', (e) => {
+        e.preventDefault();
+        [...e.dataTransfer.files].forEach((f) => { if (f.type.startsWith('image/')) addPhoto(f); else addFile(f); });
+      });
+      const mq = matchMedia('(max-width: 760px)');
+      const syncMenu = () => { $('menu').hidden = !mq.matches; if (!mq.matches) closeRail(); };
+      mq.addEventListener?.('change', syncMenu);
+      syncMenu();
+      setMode((() => { try { return localStorage.getItem(MODE_KEY) || 'chat'; } catch { return 'chat'; } })());
+      setProvider((() => { try { return localStorage.getItem(PROVIDER_KEY) || 'openai'; } catch { return 'openai'; } })());
+    }
+
+    function waitForSupabase() {
+      if (window.supabase) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          if (window.supabase) return resolve(true);
+          if (Date.now() - started > 12000) return resolve(false);
+          setTimeout(tick, 60);
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick, { once: true });
+        else tick();
+      });
+    }
+
+    waitForSupabase().then(async (ready) => {
+      if (!ready) {
+        $('boot').innerHTML = '<div style="display:grid;gap:14px;justify-items:center"><span>Could not load the app library. Check your connection.</span><button type="button" class="quiet" onclick="location.reload()">Reload</button></div>';
+        return;
+      }
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storage: localStorage },
+      });
+      wire();
+      if (!await restore()) showAuth();
+    });
+  </script>
+</body>
+</html>

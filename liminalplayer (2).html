@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liminal Player</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💤</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Theme Variables */
+    --bg-color: #09003d;
+    --bar-bg: rgba(9,0,61,0.88);
+    --orb-1: rgba(80,0,220,0.45);
+    --orb-2: rgba(0,100,255,0.3);
+    --text-color: #ffffff;
+    --text-muted: rgba(255,255,255,0.45);
+    
+    --glass: rgba(255,255,255,0.07);
+    --glass-border: rgba(255,255,255,0.18);
+    --glass-hover: rgba(255,255,255,0.13);
+    --bar-h: 56px;
+    --glass-blur: 15px; /* Dynamic Blur */
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg-color);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    color: var(--text-color);
+    overflow: hidden;
+    transition: background 0.5s ease;
+  }
+
+  /* Light theme overrides */
+  body.theme-light {
+    --glass: rgba(0,0,0,0.08);
+    --glass-border: rgba(0,0,0,0.18);
+    --glass-hover: rgba(0,0,0,0.13);
+    --text-color: #1a1228;
+    --text-muted: rgba(20,10,40,0.5);
+  }
+  /* All text inherits correctly */
+  body.theme-light,
+  body.theme-light .bar-btn,
+  body.theme-light .pill,
+  body.theme-light .lib-name,
+  body.theme-light .setting-label,
+  body.theme-light .drop-label,
+  body.theme-light .loading-text,
+  body.theme-light .modal-title,
+  body.theme-light #load-error,
+  body.theme-light #theme-select,
+  body.theme-light .code-title { color: var(--text-color) !important; -webkit-text-fill-color: var(--text-color) !important; }
+  body.theme-light .tagline,
+  body.theme-light .bar-logo,
+  body.theme-light .bar-file,
+  body.theme-light .recent-title,
+  body.theme-light .section-title,
+  body.theme-light .setting-header { color: var(--text-muted) !important; opacity: 1 !important; -webkit-text-fill-color: var(--text-muted) !important; }
+  /* Logo gradient stays readable */
+  body.theme-light .logo { background: linear-gradient(135deg, #1a1228 30%, rgba(80,40,160,0.85)); -webkit-background-clip: text; -webkit-text-fill-color: transparent !important; background-clip: text; }
+ /* Editor text color in light themes */
+  body.theme-light #code-editor { color: var(--text-color); }
+  /* Cards and drop zone */
+  body.theme-light .lib-card:hover { border-color: rgba(0,0,0,0.35); }
+  body.theme-light .drop-icon { -webkit-text-fill-color: initial; }
+  body.theme-light .lib-icon { -webkit-text-fill-color: initial; }
+  /* Bottom bar */
+  body.theme-light #bottom-bar { border-top-color: rgba(0,0,0,0.15); }
+  /* Toast */
+  body.theme-light #apply-toast { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.2); color: #1a1228; }
+  /* Hover effects */
+  body.theme-light .bar-btn:hover { border-color: rgba(0,0,0,0.3); }
+  body.theme-light .bar-btn.back { border-color: rgba(0,0,0,0.1); }
+  /* Select option bg */
+  body.theme-light #theme-select option { background: #f0edf8; color: #1a1228; }
+
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 0.5s ease;
+  }
+  body::before {
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, var(--orb-1), transparent 70%);
+    top: -120px; left: -120px;
+  }
+  body::after {
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, var(--orb-2), transparent 70%);
+    bottom: -80px; right: -80px;
+  }
+
+  /* ── MODALS & OVERLAYS ── */
+  .modal {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.6); 
+    backdrop-filter: blur(var(--glass-blur)) !important; 
+    -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    opacity: 0; visibility: hidden; transition: all 0.3s ease;
+  }
+  .modal.open { opacity: 1; visibility: visible; }
+  
+  .modal-content {
+    background: var(--bar-bg); border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 24px; width: min(460px, 90vw);
+    max-height: 85vh; overflow-y: auto;
+    transform: translateY(20px); transition: transform 0.3s ease;
+  }
+  .modal.open .modal-content { transform: translateY(0); }
+  .modal-title { font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;}
+
+  /* Settings Menu Layout */
+  .setting-section { margin-bottom: 20px; }
+  .setting-header { font-size: 0.65rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--glass-border); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 0.75rem; opacity: 0.9; }
+
+  /* Theme select styling */
+  #theme-select option { background: #1a1a3a; color: white; }
+
+  /* ── LANDING & LIBRARY ── */
+  #landing-nav {
+    position: absolute; top: 20px; right: 20px;
+    display: flex; gap: 10px; z-index: 20;
+  }
+
+  #landing {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding-top: 10vh;
+    gap: 28px; z-index: 10;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+    overflow-y: auto; padding-bottom: 40px;
+  }
+  #landing.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .logo {
+    font-size: 2.6rem; font-weight: 900;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    background: linear-gradient(135deg, #fff 30%, rgba(180,150,255,0.9));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .tagline {
+    font-size: 0.72rem; letter-spacing: 0.28em;
+    text-transform: uppercase; opacity: 0.45; margin-top: 5px;
+  }
+
+  #drop-zone {
+    width: min(440px, 90vw); height: 180px; flex-shrink: 0;
+    border-radius: 20px;
+    border: 2px dashed var(--glass-border);
+    background: var(--glass);
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+  #paste-code-btn {
+    width: min(440px, 90vw); height: 40px; flex-shrink: 0;
+    border-radius: 12px;
+    border: 1px dashed var(--glass-border);
+    background: var(--glass);
+    color: inherit;
+    font-family: inherit; font-weight: 700;
+    font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(var(--glass-blur)) !important; 
+    -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+  #paste-code-btn:hover {
+    border-color: rgba(255,255,255,0.55);
+    background: var(--glass-hover);
+    transform: scale(1.01);
+  }
+  body.theme-light #paste-code-btn {
+    color: var(--text-color);
+  }
+  /* Fix inputs in light mode */
+  body.theme-light #paste-code-input,
+  body.theme-light #paste-name-input {
+    background: rgba(255,255,255,0.5) !important;
+    color: var(--text-color) !important;
+  }
+  #drop-zone:hover, #drop-zone.drag-over {
+    border-color: rgba(255,255,255,0.55);
+    background: var(--glass-hover);
+    transform: scale(1.01);
+  }
+  #drop-zone.drag-over { border-style: solid; }
+
+  .drop-icon { font-size: 2.6rem; opacity: 0.7; transition: transform 0.2s; }
+  #drop-zone:hover .drop-icon,
+  #drop-zone.drag-over .drop-icon { transform: translateY(-4px); }
+
+  .drop-label { font-size: 0.85rem; letter-spacing: 0.06em; opacity: 0.8; }
+  #file-input { display: none; }
+
+  .format-pills {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    justify-content: center; max-width: 440px;
+  }
+  .pill {
+    padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    font-size: 0.62rem; letter-spacing: 0.08em;
+    text-transform: uppercase; opacity: 0.65;
+  }
+
+  /* LIBRARY GRID */
+  #library-wrapper { width: min(800px, 90vw); display: none; flex-direction: column; gap: 12px; margin-top: 10px; z-index: 15;}
+  .section-title { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; border-bottom: 1px solid var(--glass-border); padding-bottom: 6px; }
+  
+  #library-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; width: 100%;
+  }
+  .lib-card {
+    background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px;
+    padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all 0.2s; text-align: center; position: relative; 
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  }
+  .lib-card:hover { background: var(--glass-hover); transform: translateY(-4px); border-color: rgba(255,255,255,0.4); }
+  .lib-icon { font-size: 2rem; }
+  .lib-name { font-size: 0.7rem; word-break: break-word; line-height: 1.3; }
+  
+/* Library Card Action Buttons */
+  .lib-action {
+    position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; opacity: 0; transition: opacity 0.2s, transform 0.15s;
+    color: white; z-index: 5; cursor: pointer;
+  }
+  .lib-action:hover { transform: scale(1.15); }
+  .lib-del { top: -6px; right: -6px; background: #ff4444; }
+  .lib-dl { top: -6px; left: -6px; background: #007bff; font-size: 0.65rem; }
+  .lib-rename { bottom: -6px; left: -6px; background: #9c27b0; font-size: 0.65rem; }
+  .lib-star { bottom: -6px; right: -6px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); }
+  
+  /* Always show star if it is favorited */
+  .lib-card.is-fav .lib-star { opacity: 1 !important; border-color: #ffca28; }
+  .lib-card:hover .lib-action { opacity: 1; }
+
+  /* ── GAME VIEW ── */
+  #game-view {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    z-index: 20; opacity: 0; visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+  }
+  #game-view.active { opacity: 1; visibility: visible; }
+
+  /* When autohide on, game-area fills everything — bar floats absolutely over it */
+  body.auto-hide-enabled #game-area {
+    flex: 1 1 100%;
+  }
+
+  #game-area {
+    flex: 1; position: relative;
+    overflow: hidden; background: #000;
+    width: 100%;
+  }
+
+  /* CRT Scanline Filter */
+  .crt-filter::after {
+    content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+    box-shadow: inset 0 0 80px rgba(0,0,0,0.6);
+  }
+
+  #game-frame {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    border: none; background: #000;
+  }
+
+  #loading {
+    position: absolute; inset: 0;
+    background: var(--bg-color);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    z-index: 5;
+    transition: opacity 0.35s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+
+  .spin {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.12);
+    border-top-color: white;
+    animation: spin 0.75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; }
+
+
+
+  /* ── BOTTOM BAR (DYNAMIC POSITIONING) ── */
+  #bottom-bar {
+    height: var(--bar-h); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; background: var(--bar-bg);
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    border-top: 1px solid var(--glass-border); gap: 10px;
+    overflow-x: auto; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease, background 0.5s ease;
+    z-index: 50; will-change: transform;
+    transform: translateZ(0);
+  }
+  #bottom-bar::-webkit-scrollbar { display: none; }
+
+  /* ── SIDEBAR MODE ── */
+  body.sidebar-left #game-view,
+  body.sidebar-right #game-view { flex-direction: row; }
+
+  body.sidebar-left #bottom-bar {
+    width: 56px; height: auto; flex-direction: column;
+    padding: 14px 8px; border-top: none; border-right: 1px solid var(--glass-border);
+    overflow-x: hidden; overflow-y: auto; flex-shrink: 0;
+    justify-content: space-between; order: -1;
+  }
+  body.sidebar-right #bottom-bar {
+    width: 56px; height: auto; flex-direction: column;
+    padding: 14px 8px; border-top: none; border-left: 1px solid var(--glass-border);
+    overflow-x: hidden; overflow-y: auto; flex-shrink: 0;
+    justify-content: space-between;
+  }
+
+  /* In sidebar mode, .bar-info and .bar-btns stack vertically */
+  body.sidebar-left #bottom-bar .bar-info,
+  body.sidebar-right #bottom-bar .bar-info { flex-direction: column; gap: 6px; min-width: 0; align-items: center; }
+  body.sidebar-left #bottom-bar .bar-btns,
+  body.sidebar-right #bottom-bar .bar-btns { flex-direction: column; gap: 6px; align-items: center; }
+  body.sidebar-left #bottom-bar .bar-divider,
+  body.sidebar-right #bottom-bar .bar-divider { width: 20px; height: 1px; margin: 2px 0; }
+
+  /* Hide logo text + filename in sidebar (too narrow) */
+  body.sidebar-left #bottom-bar .bar-logo,
+  body.sidebar-right #bottom-bar .bar-logo,
+  body.sidebar-left #bottom-bar .bar-file,
+  body.sidebar-right #bottom-bar .bar-file,
+  body.sidebar-left #bottom-bar .bar-btn.back span,
+  body.sidebar-right #bottom-bar .bar-btn.back span { display: none; }
+
+  /* back button icon-only in sidebar */
+  body.sidebar-left #bottom-bar .bar-btn.back,
+  body.sidebar-right #bottom-bar .bar-btn.back { margin-left: 0; padding: 8px 10px; }
+  body.sidebar-left #bottom-bar .bar-btn.back svg,
+  body.sidebar-right #bottom-bar .bar-btn.back svg { margin: 0; }
+
+  body.auto-hide-enabled:not(.sidebar-left):not(.sidebar-right) #bottom-bar {
+    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+    width: min(900px, calc(100% - 32px)); height: var(--bar-h);
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, background 0.5s ease, bottom 0.3s ease;
+  }
+  body.auto-hide-enabled.sidebar-left #bottom-bar {
+    position: fixed; top: 14px; left: 14px; bottom: 14px; right: auto;
+    border-radius: 18px;
+    border: 1px solid var(--glass-border); width: 56px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, background 0.5s ease;
+  }
+  body.auto-hide-enabled.sidebar-right #bottom-bar {
+    position: fixed; top: 14px; right: 14px; bottom: 14px; left: auto;
+    border-radius: 18px;
+    border: 1px solid var(--glass-border); width: 56px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, background 0.5s ease;
+  }
+
+  /* Hidden: slide down/off */
+  body.auto-hide-enabled:not(.sidebar-left):not(.sidebar-right) #bottom-bar.bar-hidden {
+    transform: translateX(-50%) translateY(calc(100% + 20px)); opacity: 0; pointer-events: none;
+  }
+  body.auto-hide-enabled.sidebar-left #bottom-bar.bar-hidden {
+    transform: translateX(calc(-100% - 20px)); opacity: 0; pointer-events: none;
+  }
+  body.auto-hide-enabled.sidebar-right #bottom-bar.bar-hidden {
+    transform: translateX(calc(100% + 20px)); opacity: 0; pointer-events: none;
+  }
+
+  /* Peek: just a sliver */
+  body.auto-hide-enabled:not(.sidebar-left):not(.sidebar-right) #bottom-bar.bar-peek {
+    transform: translateX(-50%) translateY(calc(100% + 10px)); opacity: 0.4; pointer-events: none;
+  }
+  body.auto-hide-enabled.sidebar-left #bottom-bar.bar-peek {
+    transform: translateX(calc(-100% + 4px)); opacity: 0.4; pointer-events: none;
+  }
+  body.auto-hide-enabled.sidebar-right #bottom-bar.bar-peek {
+    transform: translateX(calc(100% - 4px)); opacity: 0.4; pointer-events: none;
+  }
+
+  /* Hover zone — full bottom edge strip */
+  #bar-hover-zone {
+    display: none; position: fixed; z-index: 51; background: transparent;
+  }
+  body.auto-hide-enabled:not(.sidebar-left):not(.sidebar-right) #bar-hover-zone {
+    display: block; bottom: 0; left: 0; right: 0; height: 16px;
+  }
+  body.auto-hide-enabled.sidebar-left #bar-hover-zone {
+    display: block; top: 0; left: 0; bottom: 0; width: 16px;
+  }
+  body.auto-hide-enabled.sidebar-right #bar-hover-zone {
+    display: block; top: 0; right: 0; bottom: 0; width: 16px;
+  }
+
+  .bar-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .bar-logo { font-size: 0.85rem; font-weight: 900; letter-spacing: 0.2em; opacity: 0.5; white-space: nowrap; }
+  .bar-file {
+    font-size: 0.7rem; letter-spacing: 0.04em; opacity: 0.45;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;
+  }
+
+  .bar-btns { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+  .bar-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass); color: white;
+    font-family: 'Montserrat', sans-serif; font-weight: 700;
+    font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap;
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    transition: background 0.18s, border-color 0.18s, transform 0.14s;
+  }
+  
+  .bar-btn.icon-only { padding: 8px 10px; justify-content: center; }
+  .bar-btn.icon-only svg { width: 16px; height: 16px; margin: 0; }
+
+  .bar-btn:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.4); transform: translateY(-1px); }
+  .bar-btn:active { transform: translateY(0); }
+  .bar-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  
+  .bar-btn.back { background: transparent; border-color: rgba(255,255,255,0.1); opacity: 0.5; margin-left: 4px;}
+  .bar-btn.back:hover { opacity: 1; background: var(--glass); }
+  
+  .bar-btn.code-btn { border-color: rgba(255,255,255,0.12); opacity: 0.75; }
+  .bar-btn.code-btn:hover { opacity: 1; }
+
+  .bar-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+
+  /* ── CODE EDITOR MODAL ── */
+  #code-modal {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(4,0,25,0.75); 
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  #code-modal.open { opacity: 1; visibility: visible; }
+  #code-panel {
+    width: min(860px, 95vw); height: min(600px, 88vh); border-radius: 18px;
+    border: 1px solid var(--glass-border); background: var(--bar-bg);
+    backdrop-filter: blur(var(--glass-blur)) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6); transform: translateY(10px); transition: transform 0.25s ease, background 0.5s ease;
+  }
+  #code-modal.open #code-panel { transform: translateY(0); }
+  #code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0;
+  }
+  .code-title { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.7; }
+  .code-header-btns { display: flex; gap: 8px; }
+  .code-action {
+    display: flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 8px;
+    border: 1px solid var(--glass-border); background: var(--glass); color: white;
+    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .code-action:hover { background: var(--glass-hover); border-color: rgba(255,255,255,0.35); }
+  .code-action.apply { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35); }
+  .code-action.apply:hover { background: rgba(255,255,255,0.2); }
+  .code-action svg { width: 12px; height: 12px; }
+  #code-editor {
+    flex: 1; min-height: 0; width: 100%; background: transparent; color: rgba(255,255,255,0.88);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.78rem; line-height: 1.65;
+    padding: 16px 20px; border: none; outline: none; resize: none; overflow-y: auto; white-space: pre; tab-size: 2;
+  }
+  #code-editor::selection { background: rgba(120,80,255,0.4); }
+  #code-editor::-webkit-scrollbar { width: 6px; }
+  #code-editor::-webkit-scrollbar-track { background: transparent; }
+  #code-editor::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+  #apply-toast {
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(12px); padding: 8px 20px; border-radius: 999px;
+    font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+    pointer-events: none; z-index: 100; opacity: 0; transition: opacity 0.2s ease;
+  }
+  #apply-toast.show { opacity: 1; }
+
+  /* ── PAUSE OVERLAY ── */
+  #pause-overlay {
+    position: absolute; inset: 0; z-index: 6;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+  #pause-overlay.active {
+    opacity: 1; visibility: visible; pointer-events: all;
+  }
+  #pause-card {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: var(--bar-bg); border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px; padding: 36px 48px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  #pause-icon { font-size: 3rem; line-height: 1; }
+  #pause-label {
+    font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+    opacity: 0.6; font-weight: 900;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="fx-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;will-change:contents;"></canvas>
+
+<div id="landing-nav">
+  <button class="bar-btn icon-only" title="Settings" onclick="openSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+</div>
+
+<div id="landing">
+  <div style="text-align: center;">
+    <div class="logo">LIMINAL PLAYER</div>
+    <div class="tagline">A lightweight emulator and html player</div>
+  </div>
+  
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="drop-icon">💤</div>
+    <div class="drop-label">Drop ROM, HTML, or ZIP here</div>
+  </div>
+  <button id="paste-code-btn" onclick="openPasteModal()">or, paste your own code</button>
+<div id="paste-modal" class="modal" onclick="if(event.target===this) this.classList.remove('open')">
+    <div class="modal-content" style="display:flex; flex-direction:column; gap: 10px;">
+      <div class="modal-title">Paste Your Code</div>
+      <textarea id="paste-code-input" style="width:100%; height: 200px; background: var(--glass); color: inherit; border: 1px solid var(--glass-border); border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical;" placeholder="Paste your HTML code here..."></textarea>
+      <input type="text" id="paste-name-input" style="width:100%; background: var(--glass); color: inherit; border: 1px solid var(--glass-border); border-radius: 8px; padding: 10px; font-family: inherit;" placeholder="Filename (e.g. mygame.html)" value="custom.html">
+      <div style="display:flex; justify-content:flex-end; gap: 10px; margin-top: 10px;">
+        <button class="bar-btn" onclick="document.getElementById('paste-modal').classList.remove('open')">Cancel</button>
+        <button class="bar-btn" onclick="submitPastedCode()">Save to Library</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="format-pills">
+    <span class="pill">.nes</span>
+    <span class="pill">.sfc .smc</span>
+    <span class="pill">.gba</span>
+    <span class="pill">.gb .gbc</span>
+    <span class="pill">.n64 .z64</span>
+    <span class="pill">.nds</span>
+    <span class="pill">.bin .cue .iso</span>
+    <span class="pill">.cso .pbp</span>
+    <span class="pill">.md .gen</span>
+    <span class="pill">.sms</span>
+    <span class="pill">.gg</span>
+    <span class="pill">.html</span>
+    <span class="pill">.zip</span>
+  </div>
+
+  <div id="library-wrapper">
+    <div class="section-title">Your Library</div>
+    <div id="library-grid">
+      </div>
+  </div>
+
+  <input type="file" id="file-input"
+    accept=".nes,.sfc,.smc,.snes,.gba,.gb,.gbc,.n64,.z64,.v64,.nds,.bin,.cue,.iso,.cso,.pbp,.md,.gen,.sms,.gg,.html,.htm,.zip" />
+</div>
+
+<div id="game-view">
+  <div id="bar-hover-zone"></div>
+  <div id="game-area">
+    <div id="loading">
+      <div class="spin"></div>
+      <div class="loading-text">Loading…</div>
+      <div id="load-error" style="display:none; flex-direction:column; align-items:center; gap:14px; text-align:center;">
+        <div style="font-size:2rem;">⚠️</div>
+        <div style="font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase;">Failed to Load</div>
+        <div id="load-error-msg" style="font-size:0.68rem; opacity:0.55; max-width:280px; line-height:1.6; text-transform:none; letter-spacing:0.03em;"></div>
+        <button class="bar-btn" onclick="goBack()" style="margin-top:4px;">Go Back</button>
+      </div>
+    </div>
+
+    <div id="pause-overlay">
+      <div id="pause-card">
+        <div id="pause-icon">⏸</div>
+        <div id="pause-label">PAUSED</div>
+        <button class="bar-btn" onclick="togglePause()" style="margin-top:8px; padding: 10px 28px; font-size:0.75rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Resume
+        </button>
+      </div>
+    </div>
+    <iframe id="game-frame"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals">
+    </iframe>
+  </div>
+
+  <div id="bottom-bar">
+    <div class="bar-info">
+      <span class="bar-logo">LIMINAL PLAYER</span>
+      <button class="bar-btn icon-only code-btn" title="Code Editor" onclick="openCodeEditor()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <span class="bar-file" id="bar-filename">—</span>
+    </div>
+    
+    <div class="bar-btns">
+      <button class="bar-btn icon-only" id="pause-btn" title="Pause / Resume Emulator" onclick="togglePause()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+      </button>
+
+      <div class="bar-divider"></div>
+
+      <button class="bar-btn icon-only" title="Save State to Library" onclick="saveState()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Load State from Library" onclick="loadState()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Export State to PC" onclick="exportCurrentState()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Import State from PC" onclick="document.getElementById('bar-import-state').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </button>
+      <input type="file" id="bar-import-state" accept=".state" style="display: none;" onchange="importState(event)">
+
+      <div class="bar-divider"></div>
+
+      <button class="bar-btn icon-only" title="Settings & Themes" onclick="openSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Popout Window" onclick="popout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Download HTML Game Bundle" onclick="downloadGame()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 18 15 15"></polyline></svg>
+      </button>
+      <button class="bar-btn icon-only" title="Fullscreen" onclick="toggleFullscreen()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+      <button class="bar-btn back" onclick="goBack()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Back</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal" class="modal" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-content" style="text-align: center; width: min(320px, 90vw);">
+    <div class="modal-title" style="color: #ff4444; border-color: rgba(255,68,68,0.3);">Confirm Delete</div>
+    <p style="font-size: 0.75rem; opacity: 0.8; line-height: 1.5;">Are you sure you want to remove <span id="confirm-name" style="font-weight: bold; color: white;"></span> from your library? This will also delete any saved game states.</p>
+    <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center;">
+      <button class="bar-btn" style="background: #ff4444; border-color: #ff4444;" id="confirm-yes">Delete</button>
+      <button class="bar-btn" onclick="document.getElementById('confirm-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="settings-modal" class="modal" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-content">
+    <div class="modal-title">Settings & Options</div>
+    
+    <div class="setting-section">
+      <div class="setting-header">Visuals & Vibe</div>
+      <div class="setting-row">
+        <span class="setting-label">Theme</span>
+        <select id="theme-select" onchange="setTheme(this.value)" style="
+          background: var(--glass); color: white; border: 1px solid var(--glass-border);
+          border-radius: 8px; padding: 6px 10px; font-family: 'Montserrat', sans-serif;
+          font-weight: 700; font-size: 0.68rem; letter-spacing: 0.06em; cursor: pointer;
+          backdrop-filter: blur(8px); outline: none; min-width: 140px;
+        ">
+          <option value="midnight">🌌 Midnight</option>
+          <option value="crimson">🔴 Crimson</option>
+          <option value="matrix">💚 Matrix</option>
+          <option value="monochrome">⬜ Monochrome</option>
+          <option value="ocean">🌊 Ocean</option>
+          <option value="synthwave">🌸 Synthwave</option>
+          <option value="forest">🌲 Forest</option>
+          <option value="sunset">🌅 Sunset</option>
+          <option value="void">🖤 Void</option>
+          <option value="arctic">🧊 Arctic</option>
+          <option value="ember">🔥 Ember</option>
+          <option value="aurora">🌠 Aurora</option>
+          <option value="sakura">🌸 Sakura</option>
+          <option value="toxic">☢️ Toxic</option>
+          <option value="gold">✨ Gold</option>
+          <option value="nebula">🔮 Nebula</option>
+          <option value="chalk">🤍 Chalk</option>
+          <option value="paper">📄 Paper</option>
+          <option value="lavender">💜 Lavender</option>
+          <option value="mint">🍃 Mint</option>
+          <option value="peach">🍑 Peach</option>
+          <option value="slate">🩶 Slate</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Bubbles</span>
+        <input type="checkbox" id="set-bubbles" onchange="userSettings.bubbles=this.checked; saveSettings(); applySettings();">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Particles</span>
+        <input type="checkbox" id="set-particles" onchange="userSettings.particles=this.checked; saveSettings(); applySettings();">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">CRT Tube Filter</span>
+        <input type="checkbox" id="set-crt" onchange="userSettings.crt=this.checked; saveSettings(); applySettings();">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">UI Glass Blur</span>
+        <input type="range" id="set-blur" min="0" max="30"
+          oninput="userSettings.blur=this.value; document.documentElement.style.setProperty('--glass-blur', this.value + 'px');"
+          onchange="saveSettings();">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Auto-hide Bar in Game</span>
+        <input type="checkbox" id="set-idle" onchange="userSettings.idleBar=this.checked; saveSettings(); applySettings();">
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Bar Position</span>
+        <div style="display:flex; gap:6px;">
+          <button class="bar-btn" id="pos-bottom" onclick="setBarPosition('bottom', this)" style="font-size:0.6rem; padding:5px 10px;">Bottom</button>
+          <button class="bar-btn" id="pos-left" onclick="setBarPosition('left', this)" style="font-size:0.6rem; padding:5px 10px;">Left</button>
+          <button class="bar-btn" id="pos-right" onclick="setBarPosition('right', this)" style="font-size:0.6rem; padding:5px 10px;">Right</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <div class="setting-header">Emulation & Controls</div>
+      <div class="setting-row">
+        <span class="setting-label">Show FPS Counter</span>
+        <input type="checkbox" id="set-fps" onchange="userSettings.fps=this.checked; saveSettings(); applySettings();">
+      </div>
+    </div>
+
+    <div class="setting-section">
+      <div class="setting-header">Data Management</div>
+      <div class="setting-row" style="margin-top: 10px; border-bottom: none;">
+        <button class="bar-btn" style="background: rgba(255,0,0,0.15); border-color: rgba(255,0,0,0.5); color: #ff5555; width: 100%; justify-content: center;" onclick="clearLibrary()">🚨 Wipe Entire Library</button>
+      </div>
+    </div>
+
+    <button class="bar-btn" style="margin-top: 10px; width: 100%; justify-content: center;" onclick="document.getElementById('settings-modal').classList.remove('open'); scheduleHide(1000);">Close</button>
+  </div>
+</div>
+
+<div id="code-modal">
+  <div id="code-panel">
+    <div id="code-header">
+      <span class="code-title">📄 Source Code</span>
+  <div class="code-header-btns">
+        <button class="code-action" onclick="document.getElementById('import-code-file').click()" title="Import HTML">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </button>
+        <button class="code-action" onclick="exportCodeEditor()" title="Export HTML">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <button class="code-action apply" onclick="applyCode()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Apply
+        </button>
+        <button class="code-action" onclick="closeCodeEditor()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Close
+        </button>
+        <input type="file" id="import-code-file" accept=".html,.htm,.txt" style="display:none;" onchange="importCodeEditor(event)">
+      </div>
+    </div>
+    <textarea id="code-editor" spellcheck="false"></textarea>
+  </div>
+</div>
+
+<div id="download-modal" class="modal" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-content" style="text-align: center; width: min(340px, 90vw);">
+    <div class="modal-title">Download As</div>
+    <p style="font-size: 0.72rem; opacity: 0.65; line-height: 1.6; margin-bottom: 20px;">Download as a standalone HTML file (ROM bundled inside), or download the original ROM file.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button class="bar-btn" style="justify-content: center; width: 100%;" onclick="doDownloadHtml()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        HTML Bundle (portable)
+      </button>
+      <button class="bar-btn" style="justify-content: center; width: 100%;" onclick="doDownloadRom()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Original ROM File
+      </button>
+      <button class="bar-btn" style="justify-content: center; width: 100%; opacity: 0.5;" onclick="document.getElementById('download-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="apply-toast">Changes applied ✓</div>
+
+<script>
+window.addEventListener("dragover", e => e.preventDefault(), false);
+window.addEventListener("drop", e => e.preventDefault(), false);
+
+const SCRIPT_CLOSE = '</' + 'script>';
+
+let currentHtml = null;
+let currentName = '';
+let currentDbKey = '';
+let currentFile = null;
+let currentRomUrl = null;
+let isRomLoaded = false;
+let loadedExt = '';
+let loadTimeout;
+let itemToDelete = null;
+let isPaused = false;
+let lastBarPop = 0; // throttle for auto-hide bar pop-up on iframe mouse-move
+
+const DEFAULT_SETTINGS = {
+  crt: false, blur: 15, idleBar: false, threads: false, fps: false, barPosition: 'bottom',
+  bubbles: true, particles: false
+};
+// Parse persisted settings defensively: corrupt/legacy localStorage must not
+// throw at top level (that would brick the whole app). Missing keys fall back
+// to defaults via the spread merge.
+let userSettings = (() => {
+  try {
+    const raw = localStorage.getItem('liminal_settings');
+    const parsed = raw ? JSON.parse(raw) : null;
+    return (parsed && typeof parsed === 'object') ? { ...DEFAULT_SETTINGS, ...parsed } : { ...DEFAULT_SETTINGS };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+})();
+
+const coreMap = {
+  nes: 'nes',
+  sfc: 'snes', smc: 'snes', snes: 'snes',
+  gba: 'gba',
+  gb: 'gb', gbc: 'gb',
+  n64: 'n64', z64: 'n64', v64: 'n64',
+  nds: 'nds',
+  bin: 'psx', cue: 'psx', iso: 'psx',
+  md: 'segaMD', gen: 'segaMD',
+  sms: 'segaMS',
+  gg: 'segaGG',
+  // PSP — requires threads forced on
+  cso: 'psp', pbp: 'psp',
+};
+const pspExts = new Set(['cso', 'pbp']);
+const romExts = Object.keys(coreMap);
+
+// ── SETTINGS LOGIC ──
+function saveSettings() {
+  localStorage.setItem('liminal_settings', JSON.stringify(userSettings));
+}
+
+function applySettings() {
+  const gameArea = document.getElementById('game-area');
+  if (userSettings.crt) gameArea.classList.add('crt-filter');
+  else gameArea.classList.remove('crt-filter');
+
+  document.documentElement.style.setProperty('--glass-blur', userSettings.blur + 'px');
+
+  document.getElementById('set-crt').checked = userSettings.crt;
+  document.getElementById('set-blur').value = userSettings.blur;
+  document.getElementById('set-idle').checked = userSettings.idleBar;
+  document.getElementById('set-fps').checked = userSettings.fps;
+  document.getElementById('set-bubbles').checked = userSettings.bubbles ?? false;
+  document.getElementById('set-particles').checked = userSettings.particles ?? false;
+  applyEffects();
+
+  // Bar position
+  const pos = userSettings.barPosition || 'bottom';
+  document.body.classList.remove('sidebar-left', 'sidebar-right');
+  if (pos === 'left') document.body.classList.add('sidebar-left');
+  else if (pos === 'right') document.body.classList.add('sidebar-right');
+  ['bottom','left','right'].forEach(p => {
+    const btn = document.getElementById('pos-' + p);
+    if (btn) btn.style.background = (p === pos) ? 'rgba(255,255,255,0.2)' : '';
+  });
+
+  if (userSettings.idleBar) {
+    document.body.classList.add('auto-hide-enabled');
+    scheduleHide(1500); // hide after 1.5s on settings change
+  } else {
+    document.body.classList.remove('auto-hide-enabled');
+    barShow();
+    clearTimeout(hideTimer);
+    clearTimeout(peekTimer);
+  }
+
+  if (isRomLoaded) {
+    const frame = document.getElementById('game-frame');
+    frame.contentWindow.postMessage({type: 'toggle-fps', show: userSettings.fps}, '*');
+  }
+}
+
+function setBarPosition(pos, btnEl) {
+  userSettings.barPosition = pos;
+  saveSettings();
+  applySettings();
+}
+
+// ── AUTO HIDE BAR — ChromeOS style ──
+let hideTimer, peekTimer;
+const bBar = document.getElementById('bottom-bar');
+const hoverZone = document.getElementById('bar-hover-zone');
+
+function barShow() {
+  clearTimeout(hideTimer);
+  clearTimeout(peekTimer);
+  bBar.classList.remove('bar-hidden', 'bar-peek');
+  bBar.style.pointerEvents = '';
+}
+
+function barHide() {
+  clearTimeout(hideTimer);
+  clearTimeout(peekTimer);
+  // First peek (4px visible), then fully hide after a beat
+  bBar.classList.remove('bar-hidden');
+  bBar.classList.add('bar-peek');
+  peekTimer = setTimeout(() => {
+    bBar.classList.remove('bar-peek');
+    bBar.classList.add('bar-hidden');
+  }, 300);
+}
+
+function scheduleHide(delay = 600) {
+  clearTimeout(hideTimer);
+  if (userSettings.idleBar) {
+    hideTimer = setTimeout(barHide, delay);
+  }
+}
+
+// Hover zone: cursor hits the edge — show bar immediately
+hoverZone.addEventListener('mouseenter', () => {
+  if (!userSettings.idleBar) return;
+  clearTimeout(hideTimer);
+  barShow();
+});
+
+// Bar: while hovering the bar, keep it open
+bBar.addEventListener('mouseenter', () => {
+  if (!userSettings.idleBar) return;
+  clearTimeout(hideTimer);
+  clearTimeout(peekTimer);
+  bBar.classList.remove('bar-hidden', 'bar-peek');
+});
+
+// Bar: cursor leaves — schedule hide with grace period
+bBar.addEventListener('mouseleave', () => {
+  if (!userSettings.idleBar) return;
+  scheduleHide(800);
+});
+
+function clearLibrary() {
+  if (confirm("🚨 DANGER: Are you sure you want to clear your entire library?\n\nThis will permanently delete all ROMs and Save States.")) {
+    const tx = idb.transaction('library', 'readwrite');
+    tx.objectStore('library').clear();
+    tx.oncomplete = () => {
+      renderLibrary();
+      document.getElementById('settings-modal').classList.remove('open');
+      showToast('Library completely wiped.');
+    };
+  }
+}
+
+// ── INDEXEDDB SETUP ──
+let idb;
+const dbReq = indexedDB.open('GlassEmuDB', 2); 
+dbReq.onupgradeneeded = e => {
+  idb = e.target.result;
+  if (!idb.objectStoreNames.contains('library')) {
+    const store = idb.createObjectStore('library', { keyPath: 'name' });
+    store.createIndex('time', 'time', { unique: false });
+  }
+};
+dbReq.onsuccess = e => {
+  idb = e.target.result;
+  renderLibrary();
+};
+// If IndexedDB is unavailable (private mode, blocked storage, quota) the app
+// still works for one-off play — it just can't persist a library. Log rather
+// than throw so the rest of the script keeps running.
+dbReq.onerror = () => console.warn('Liminal Player: IndexedDB unavailable, library disabled.', dbReq.error);
+dbReq.onblocked = () => console.warn('Liminal Player: IndexedDB upgrade blocked by another open tab.');
+
+async function saveToLibrary(file) {
+  if (!idb) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const tx = idb.transaction('library', 'readwrite');
+    tx.objectStore('library').put({
+      name: file.name,
+      data: buffer,
+      time: Date.now()
+    });
+    tx.oncomplete = () => renderLibrary();
+  } catch (e) {
+    console.warn('Could not save to library:', e);
+  }
+}
+function openPasteModal() {
+    // Clear out any previous inputs and open the modal
+    document.getElementById('paste-code-input').value = '';
+    document.getElementById('paste-name-input').value = 'custom.html';
+    document.getElementById('paste-modal').classList.add('open');
+  }
+
+  function submitPastedCode() {
+    const code = document.getElementById('paste-code-input').value;
+    let name = document.getElementById('paste-name-input').value.trim();
+    
+    if (!code) {
+      alert("Please paste some code first.");
+      return;
+    }
+    
+    // Default to 'custom.html' if they left it blank
+    if (!name) name = 'custom.html';
+    
+    // Enforce an .html extension for the file parsing logic
+    if (!name.toLowerCase().endsWith('.html') && !name.toLowerCase().endsWith('.htm')) {
+      name += '.html';
+    }
+    
+    // Create a virtual file from the string and save it to the database
+    const blob = new Blob([code], { type: 'text/html' });
+    const file = new File([blob], name, { type: 'text/html' });
+    
+    saveToLibrary(file);
+    
+    // Close the modal
+    document.getElementById('paste-modal').classList.remove('open');
+  }
+
+function getIconForFile(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (ext === 'zip') return '🗃';
+  if (ext === 'html' || ext === 'htm') return '🖥';
+  if (['bin', 'cue', 'iso'].includes(ext)) return '💿';
+  if (ext === 'nds') return '📱';
+  if (['gb', 'gbc', 'gba'].includes(ext)) return '📟';
+  return '🕹';
+}
+
+function renderLibrary() {
+  if (!idb) return;
+  const tx = idb.transaction('library', 'readonly');
+  const req = tx.objectStore('library').index('time').getAll();
+  req.onsuccess = e => {
+    let games = e.target.result;
+    
+    // Sort logic: Favorites always first, then most recently played
+    games.sort((a,b) => {
+      if (a.favorite && !b.favorite) return -1;
+      if (!a.favorite && b.favorite) return 1;
+      return b.time - a.time;
+    });
+
+    const grid = document.getElementById('library-grid');
+    const wrapper = document.getElementById('library-wrapper');
+    if (games.length === 0) {
+      wrapper.style.display = 'none';
+      return;
+    }
+    wrapper.style.display = 'flex';
+    grid.innerHTML = '';
+    
+    games.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'lib-card';
+      if (g.favorite) card.classList.add('is-fav');
+      
+      const icon = document.createElement('div');
+      icon.className = 'lib-icon';
+      icon.textContent = getIconForFile(g.name);
+      
+      const name = document.createElement('div');
+      name.className = 'lib-name';
+      // Use the custom display name if it exists, otherwise fall back to the filename
+      const displayString = g.displayName || g.name;
+      name.textContent = displayString.length > 25 ? displayString.substring(0, 22) + '...' : displayString;
+      
+      // Delete Action
+      const del = document.createElement('div');
+      del.className = 'lib-action lib-del';
+      del.innerHTML = '×';
+      del.title = 'Delete Game';
+      del.onclick = (evt) => {
+        evt.stopPropagation();
+        document.getElementById('confirm-name').textContent = displayString;
+        document.getElementById('confirm-yes').onclick = () => {
+           deleteFromLibrary(g.name);
+           document.getElementById('confirm-modal').classList.remove('open');
+        };
+        document.getElementById('confirm-modal').classList.add('open');
+      };
+
+      // Download Action
+      const dl = document.createElement('div');
+      dl.className = 'lib-action lib-dl';
+      dl.innerHTML = '↓';
+      dl.title = 'Download / Backup';
+      dl.onclick = (evt) => {
+        evt.stopPropagation();
+        const blob = new Blob([g.data], {type: "application/octet-stream"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = g.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+
+      // Star Action (Favorite)
+      const star = document.createElement('div');
+      star.className = 'lib-action lib-star';
+      star.innerHTML = g.favorite ? '⭐' : '☆';
+      star.style.color = g.favorite ? '#ffca28' : 'white';
+      star.title = g.favorite ? 'Unfavorite' : 'Favorite';
+      star.onclick = (evt) => {
+        evt.stopPropagation();
+        toggleFavorite(g.name, g.favorite);
+      };
+
+      // Rename Action
+      const rename = document.createElement('div');
+      rename.className = 'lib-action lib-rename';
+      rename.innerHTML = '✏️';
+      rename.title = 'Rename Game';
+      rename.onclick = (evt) => {
+        evt.stopPropagation();
+        renameGame(g.name, g.displayName || g.name);
+      };
+
+    card.onclick = () => {
+        const file = new File([g.data], g.name, {type: "application/octet-stream"});
+        // Pass the displayString as a new third parameter!
+        handleFile(file, true, displayString); 
+      };
+
+      card.appendChild(dl);
+      card.appendChild(del);
+      card.appendChild(star);
+      card.appendChild(rename);
+      card.appendChild(icon);
+      card.appendChild(name);
+      grid.appendChild(card);
+    });
+  };
+}
+function toggleFavorite(dbKey, currentStatus) {
+    if (!idb) return;
+    const tx = idb.transaction('library', 'readwrite');
+    const store = tx.objectStore('library');
+    const req = store.get(dbKey);
+    req.onsuccess = () => {
+      let record = req.result;
+      if (record) {
+        record.favorite = !currentStatus;
+        store.put(record);
+        tx.oncomplete = () => renderLibrary();
+      }
+    };
+  }
+
+  function renameGame(dbKey, currentDisplayName) {
+    let newName = prompt("Enter a new display name for this game:", currentDisplayName);
+    if (newName && newName.trim() !== "") {
+      const tx = idb.transaction('library', 'readwrite');
+      const store = tx.objectStore('library');
+      const req = store.get(dbKey);
+      req.onsuccess = () => {
+        let record = req.result;
+        if (record) {
+          record.displayName = newName.trim();
+          store.put(record);
+          tx.oncomplete = () => renderLibrary(); // Re-render the grid instantly
+        }
+      };
+    }
+  }
+
+  function exportCodeEditor() {
+    const code = document.getElementById('code-editor').value;
+    if (!code) return;
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (currentName ? currentName.replace(/\.[^.]+$/, '') : 'custom_code') + '.html';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function importCodeEditor(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('code-editor').value = e.target.result;
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // Reset input so you can re-import the same file if needed
+  }
+
+function promptDelete(name) {
+  itemToDelete = name;
+  document.getElementById('confirm-name').textContent = name;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+document.getElementById('confirm-yes').addEventListener('click', () => {
+  if (itemToDelete) {
+    const tx = idb.transaction('library', 'readwrite');
+    tx.objectStore('library').delete(itemToDelete);
+    tx.oncomplete = () => {
+      renderLibrary();
+      document.getElementById('confirm-modal').classList.remove('open');
+      itemToDelete = null;
+    };
+  }
+});
+
+// ── IFRAME POSTMESSAGE LISTENER ──
+window.addEventListener('message', e => {
+  if (e.data === 'emu-loaded') {
+    hideLoading();
+    clearTimeout(loadTimeout);
+  }
+
+  // Mouse moved inside the game iframe — pop the auto-hide bar back up and
+  // re-arm the idle hide. The iframe throttles these to ~10/s; we additionally
+  // throttle the (DOM-touching) barShow() so a flurry of moves stays cheap.
+  if (e.data && e.data.type === 'mouse-move') {
+     if (!userSettings.idleBar) return;
+     const now = Date.now();
+     if (now - lastBarPop > 120) { lastBarPop = now; barShow(); }
+     scheduleHide(2000);
+  }
+  
+  if (e.data && e.data.type === 'state-saved') {
+     const tx = idb.transaction('library', 'readwrite');
+     const store = tx.objectStore('library');
+     const req = store.get(currentDbKey);
+     req.onsuccess = () => {
+        let record = req.result;
+        if (record) {
+           record.savestate = e.data.state;
+           store.put(record);
+           showToast('State Saved to Library!');
+           renderLibrary(); 
+        }
+     }
+  }
+
+  if (e.data && e.data.type === 'export-state-data') {
+     exportState(e.data.name, e.data.state);
+     showToast('State Exported!');
+  }
+});
+
+function cleanupUrls() {
+  if (currentRomUrl) {
+    URL.revokeObjectURL(currentRomUrl);
+    currentRomUrl = null;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+    fileInput.value = '';
+  });
+
+  applySettings();
+
+  const savedTheme = localStorage.getItem('liminal_theme') || 'midnight';
+  setTheme(savedTheme);
+});
+
+async function handleFile(file, skipLibrarySave = false, customName = null) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  currentDbKey = file.name;
+  
+  // Use the custom name if it exists, otherwise fall back to the raw filename
+  const titleToShow = customName || file.name;
+  
+  if (!skipLibrarySave && (ext === 'zip' || ext === 'html' || ext === 'htm' || romExts.includes(ext))) {
+    saveToLibrary(file);
+  } else if (skipLibrarySave && idb) {
+    // If the game was launched from the library, update its timestamp so it jumps to the top!
+    const tx = idb.transaction('library', 'readwrite');
+    const store = tx.objectStore('library');
+    const req = store.get(file.name);
+    req.onsuccess = () => {
+      let record = req.result;
+      if (record) {
+        record.time = Date.now();
+        store.put(record);
+        tx.oncomplete = () => renderLibrary();
+      }
+    };
+  }
+
+  if (ext === 'zip') {
+    await handleZip(file, titleToShow);
+    return;
+  }
+
+  if (ext === 'html' || ext === 'htm') {
+    showGameView('Loading…');
+    const text = await file.text();
+    isRomLoaded = false;
+    currentFile = null;
+    launch(text, file.name, titleToShow);
+    return;
+  }
+
+  if (romExts.includes(ext)) {
+    showGameView('Reading file…');
+    isRomLoaded = true;
+    currentFile = file;
+    loadedExt = ext;
+    cleanupUrls();
+    currentRomUrl = URL.createObjectURL(file);
+    const html = buildLiveHtml(ext, currentRomUrl, file.name);
+    launch(html, file.name, titleToShow);
+    // PSP beta warning
+    if (pspExts.has(ext)) {
+      setTimeout(() => showToast('PSP is beta — some games may crash or show a white screen'), 1500);
+    }
+    return;
+  }
+
+  // Unsupported format
+  showGameView('');
+  showLoadError(`".${ext}" is not a supported format.\n\nSupported: NES, SNES, GBA, GB/GBC, N64, NDS, PS1 (.bin/.cue/.iso), Sega MD/SMS/GG, PSP (.cso/.pbp), HTML, ZIP`);
+}
+
+async function handleZip(file, titleToShow) {
+  titleToShow = titleToShow || file.name;
+  showGameView('Scanning ZIP…');
+
+  let zip;
+  try { zip = await JSZip.loadAsync(file); }
+  catch(e) { alert('Could not read ZIP: ' + e.message); goBack(); return; }
+
+  const entries = [];
+  zip.forEach((path, entry) => {
+    if (!entry.dir && !path.startsWith('__MACOSX') && !path.includes('.DS_Store'))
+      entries.push({ path, entry });
+  });
+
+  if (!entries.length) { alert('ZIP is empty.'); goBack(); return; }
+
+  // PSX multi-file: look for a .cue + companion .bin files
+  const cueEntry = entries.find(e => e.path.split('.').pop().toLowerCase() === 'cue');
+  if (cueEntry) {
+    setLoadingMsg('Loading multi-disc image…');
+    // Extract all .bin files alongside the .cue
+    const binEntries = entries.filter(e => e.path.split('.').pop().toLowerCase() === 'bin');
+    
+    // Build blob URLs for every bin, then patch the cue text to use them
+    const binUrls = {};
+    await Promise.all(binEntries.map(async be => {
+      const buf = await be.entry.async('arraybuffer');
+      const blob = new Blob([buf], { type: 'application/octet-stream' });
+      binUrls[be.path.split('/').pop()] = URL.createObjectURL(blob);
+    }));
+
+    // Read and patch the .cue text so FILE references point to blob URLs
+    let cueText = await cueEntry.entry.async('string');
+    Object.entries(binUrls).forEach(([binName, blobUrl]) => {
+      cueText = cueText.replace(new RegExp(binName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), blobUrl);
+    });
+    const cueBlob = new Blob([cueText], { type: 'application/octet-stream' });
+    const cueUrl = URL.createObjectURL(cueBlob);
+
+    const innerName = cueEntry.path.split('/').pop();
+    const label = titleToShow + ' › ' + innerName;
+    isRomLoaded = true;
+    currentFile = file;
+    loadedExt = 'cue';
+    cleanupUrls();
+    currentRomUrl = cueUrl;
+    const html = buildLiveHtml('cue', cueUrl, innerName);
+    launch(html, innerName, label);
+    return;
+  }
+
+  const priority = [...romExts.filter(e => e !== 'cue' && e !== 'bin' && e !== 'cso' && e !== 'pbp'), 'cso', 'pbp', 'bin', 'html', 'htm'];
+  let match = null;
+  for (const ext of priority) {
+    match = entries.find(e => e.path.split('.').pop().toLowerCase() === ext);
+    if (match) break;
+  }
+  if (!match) match = entries[0];
+
+  const innerExt  = match.path.split('.').pop().toLowerCase();
+  const innerName = match.path.split('/').pop();
+  const label     = titleToShow + ' › ' + innerName;
+
+  setLoadingMsg('Loading…');
+
+  if (innerExt === 'html' || innerExt === 'htm') {
+    const text = await match.entry.async('string');
+    isRomLoaded = false;
+    currentFile = null;
+    launch(text, innerName, label);
+  } else if (romExts.includes(innerExt)) {
+    isRomLoaded = true;
+    currentFile = file;
+    loadedExt = innerExt;
+    cleanupUrls();
+    // Extract just this ROM to a blob URL for launch
+    const buf = await match.entry.async('arraybuffer');
+    const romBlob = new Blob([buf], { type: 'application/octet-stream' });
+    currentRomUrl = URL.createObjectURL(romBlob);
+    const html = buildLiveHtml(innerExt, currentRomUrl, innerName);
+    launch(html, innerName, label);
+    if (pspExts.has(innerExt)) {
+      setTimeout(() => showToast('PSP is beta — some games may crash or show a white screen'), 1500);
+    }
+  } else {
+    showLoadError(`No playable file found in ZIP.\nFound: .${innerExt}`);
+  }
+}
+
+function launch(htmlContent, name, label) {
+  currentHtml = htmlContent;
+  currentName = name;
+  document.getElementById('bar-filename').textContent = label || name;
+  isPaused = false;
+  const pBtn = document.getElementById('pause-btn');
+  if (pBtn) pBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+  document.getElementById('pause-overlay').classList.remove('active');
+
+  const frame = document.getElementById('game-frame');
+  frame.onload = null;
+  frame.srcdoc = '';
+  
+  requestAnimationFrame(() => {
+    frame.onload = () => { setTimeout(() => hideLoading(), 1000); };
+    frame.onerror = () => showLoadError('The file could not be loaded. It may be corrupted or an unsupported format.');
+    frame.srcdoc = htmlContent;
+    clearTimeout(loadTimeout);
+    loadTimeout = setTimeout(() => {
+      // If still loading after 6s, something went wrong
+      if (!document.getElementById('loading').classList.contains('hidden')) {
+        showLoadError('Timed out. The game may still load — or it may be unsupported.');
+      }
+    }, 6000); 
+  });
+}
+
+function buildLiveHtml(ext, url, name) {
+  const core = coreMap[ext];
+  const safeName = name.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const baseName = name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9.\-]/g, '_');
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>${safeName}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+#game{width:100%;height:100%}
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="liminal-fps" style="display:${userSettings.fps ? 'block' : 'none'}; position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: #00ff88; padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 13px; z-index: 99999; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); pointer-events: none;">FPS: --</div>
+<script>
+  let _fpsCount = 0; let _fpsTime = performance.now();
+  const _fpsEl = document.getElementById('liminal-fps');
+  function _updateFPS() {
+    _fpsCount++;
+    let _now = performance.now();
+    if (_now - _fpsTime >= 1000) {
+      if(_fpsEl.style.display !== 'none') _fpsEl.innerText = 'FPS: ' + _fpsCount;
+      _fpsCount = 0; _fpsTime = _now;
+    }
+    requestAnimationFrame(_updateFPS);
+  }
+  requestAnimationFrame(_updateFPS);
+${SCRIPT_CLOSE}
+
+<script>
+window.EJS_player='#game';
+window.EJS_core='${core}';
+window.EJS_gameUrl='${url}';
+window.EJS_gameName='${baseName}';
+window.EJS_pathtodata='https://cdn.emulatorjs.org/stable/data/';
+window.EJS_startOnLoaded=true;
+window.EJS_color='#ffffff';
+window.EJS_backgroundColor='#000000';
+window.EJS_Buttons={ playPause:false,restart:true,mute:false,settings:true, fullscreen:false,saveState:true,loadState:true, screenRecord:false,gamepad:true,cheat:false, volume:true,screenshot:false,cacheManager:true };
+window.EJS_threads = ${pspExts.has(ext) ? 'true' : 'false'};
+${SCRIPT_CLOSE}
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js">${SCRIPT_CLOSE}
+<script>
+  // Forward mouse movements to the parent so the auto-hide bar can pop back up.
+  // Throttled to ~10/s so a fast-moving cursor doesn't flood postMessage.
+  let _lastMM = 0;
+  window.addEventListener('mousemove', () => {
+    const t = Date.now();
+    if (t - _lastMM < 100) return;
+    _lastMM = t;
+    window.parent.postMessage({ type: 'mouse-move' }, '*');
+  });
+
+  window.addEventListener('message', async (e) => {
+    if (e.data.type === 'save-state') {
+      try {
+        const state = await window.EJS_emulator.gameManager.getState();
+        window.parent.postMessage({ type: 'state-saved', name: e.data.name, state: state }, '*');
+      } catch(err) {}
+    }
+    if (e.data.type === 'export-state') {
+      try {
+        const state = await window.EJS_emulator.gameManager.getState();
+        window.parent.postMessage({ type: 'export-state-data', name: e.data.name, state: state }, '*');
+      } catch(err) {}
+    }
+    if (e.data.type === 'load-state') {
+      try {
+        await window.EJS_emulator.gameManager.loadState(e.data.state);
+      } catch(err) {}
+    }
+    if (e.data.type === 'pause-state') {
+      try { if(window.EJS_emulator.Module) window.EJS_emulator.Module.pauseMainLoop(); } catch(err) {}
+      try { window.EJS_emulator.pause(); } catch(err) {}
+    }
+    if (e.data.type === 'resume-state') {
+      try { if(window.EJS_emulator.Module) window.EJS_emulator.Module.resumeMainLoop(); } catch(err) {}
+      try { window.EJS_emulator.resume(); } catch(err) {}
+    }
+    if (e.data.type === 'toggle-fps') {
+       const fpsBox = document.getElementById('liminal-fps');
+       if(fpsBox) fpsBox.style.display = e.data.show ? 'block' : 'none';
+    }
+  });
+
+  window.parent.postMessage('emu-loaded', '*');
+${SCRIPT_CLOSE}
+</body>
+</html>`;
+}
+
+function buildStandaloneHtml(ext, dataUrl, name) {
+  const core = coreMap[ext];
+  const safeName = name.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const baseName = name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9.\-]/g, '_');
+  
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>${safeName}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+#game{width:100%;height:100%}
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="liminal-fps" style="display:${userSettings.fps ? 'block' : 'none'}; position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: #00ff88; padding: 4px 8px; border-radius: 6px; font-family: monospace; font-size: 13px; z-index: 99999; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); pointer-events: none;">FPS: --</div>
+<script>
+  let _fpsCount = 0; let _fpsTime = performance.now();
+  const _fpsEl = document.getElementById('liminal-fps');
+  function _updateFPS() {
+    _fpsCount++;
+    let _now = performance.now();
+    if (_now - _fpsTime >= 1000) {
+      if(_fpsEl.style.display !== 'none') _fpsEl.innerText = 'FPS: ' + _fpsCount;
+      _fpsCount = 0; _fpsTime = _now;
+    }
+    requestAnimationFrame(_updateFPS);
+  }
+  requestAnimationFrame(_updateFPS);
+${SCRIPT_CLOSE}
+
+<script>
+(function(){
+  var d='${dataUrl}';
+  var b64=d.split(',')[1];
+  var mime=d.split(':')[1].split(';')[0];
+  var bin=atob(b64);
+  var u8=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  var blob=new Blob([u8],{type:mime});
+  var url=URL.createObjectURL(blob);
+  window.EJS_player='#game';
+  window.EJS_core='${core}';
+  window.EJS_gameUrl=url;
+  window.EJS_gameName='${baseName}';
+  window.EJS_pathtodata='https://cdn.emulatorjs.org/stable/data/';
+  window.EJS_startOnLoaded=true;
+  window.EJS_color='#ffffff';
+  window.EJS_backgroundColor='#000000';
+  window.EJS_Buttons={ playPause:false,restart:true,mute:false,settings:true, fullscreen:false,saveState:true,loadState:true, screenRecord:false,gamepad:true,cheat:false, volume:true,screenshot:false,cacheManager:true };
+  window.EJS_threads = ${pspExts.has(ext) ? 'true' : 'false'};
+})();
+${SCRIPT_CLOSE}
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js">${SCRIPT_CLOSE}
+<script>
+  let _lastMM = 0;
+  window.addEventListener('mousemove', () => {
+    const t = Date.now();
+    if (t - _lastMM < 100) return;
+    _lastMM = t;
+    window.parent.postMessage({ type: 'mouse-move' }, '*');
+  });
+${SCRIPT_CLOSE}
+</body>
+</html>`;
+}
+
+function showLoadError(msg) {
+  const loadDiv = document.getElementById('loading');
+  loadDiv.classList.remove('hidden');
+  loadDiv.querySelector('.spin').style.display = 'none';
+  loadDiv.querySelector('.loading-text').style.display = 'none';
+  const errDiv = document.getElementById('load-error');
+  errDiv.style.display = 'flex';
+  document.getElementById('load-error-msg').textContent = msg || '';
+}
+
+function resetLoadingState() {
+  const loadDiv = document.getElementById('loading');
+  loadDiv.querySelector('.spin').style.display = '';
+  loadDiv.querySelector('.loading-text').style.display = '';
+  document.getElementById('load-error').style.display = 'none';
+}
+
+function showGameView(msg) {
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('game-view').classList.add('active');
+  setLoadingMsg(msg || 'Loading…');
+  resetLoadingState();
+  document.getElementById('loading').classList.remove('hidden');
+  if (userSettings.idleBar) {
+    scheduleHide(2000); // give user 2s to see bar before it hides
+  }
+}
+
+function setLoadingMsg(msg) {
+  document.querySelector('.loading-text').textContent = msg;
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+}
+
+function goBack() {
+  document.getElementById('game-view').classList.remove('active');
+  document.getElementById('landing').classList.remove('hidden');
+  const frame = document.getElementById('game-frame');
+  frame.onload = null;
+  frame.srcdoc = '';
+  currentHtml = null;
+  currentName = '';
+  currentFile = null;
+  isRomLoaded = false;
+  cleanupUrls();
+  isPaused = false;
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('pause-btn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+  barShow();
+  clearTimeout(hideTimer);
+  clearTimeout(peekTimer);
+  resetLoadingState();
+  document.getElementById('loading').classList.add('hidden');
+  // Canvas is visible again — restart the FX loop if effects are enabled.
+  if (window.applyEffects) window.applyEffects();
+}
+
+function readAsDataURL(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+function toggleFullscreen() {
+  const area = document.getElementById('game-area');
+  if (!document.fullscreenElement) area.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+
+function popout() {
+  if (!currentHtml) return;
+  const url = URL.createObjectURL(new Blob([currentHtml], {type:'text/html'}));
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 1000); 
+}
+
+function downloadGame() {
+  if (!currentHtml) return;
+  // For ROMs, show the choice popup. For plain HTML files, just download directly.
+  if (isRomLoaded && currentFile) {
+    document.getElementById('download-modal').classList.add('open');
+  } else {
+    doDownloadHtml();
+  }
+}
+
+async function doDownloadHtml() {
+  document.getElementById('download-modal').classList.remove('open');
+  let htmlToDownload = currentHtml;
+  if (isRomLoaded && currentFile) {
+    setLoadingMsg('Bundling HTML…');
+    document.getElementById('loading').classList.remove('hidden');
+    const base64 = await readAsDataURL(currentFile);
+    htmlToDownload = buildStandaloneHtml(loadedExt, base64, currentName);
+    hideLoading();
+  }
+  const blob = new Blob([htmlToDownload], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (currentName.replace(/\.[^.]+$/, '') || 'game') + '.html';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function doDownloadRom() {
+  document.getElementById('download-modal').classList.remove('open');
+  if (!currentFile) return;
+  const url = URL.createObjectURL(currentFile);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentFile.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function saveState() {
+  if (!isRomLoaded) return showToast('Can only save emulator states');
+  const frame = document.getElementById('game-frame');
+  frame.contentWindow.postMessage({ type: 'save-state', name: currentName }, '*');
+}
+
+function loadState() {
+  if (!isRomLoaded) return showToast('Can only load emulator states');
+  const tx = idb.transaction('library', 'readonly');
+  const req = tx.objectStore('library').get(currentDbKey);
+  req.onsuccess = () => {
+    if (req.result && req.result.savestate) {
+      const frame = document.getElementById('game-frame');
+      frame.contentWindow.postMessage({ type: 'load-state', state: req.result.savestate }, '*');
+      showToast('State Loaded!');
+      
+      setTimeout(() => {
+        frame.focus();
+        frame.contentWindow.focus();
+      }, 100);
+    } else {
+      showToast('No saved state found');
+    }
+  }
+}
+
+function togglePause() {
+  const frame = document.getElementById('game-frame');
+  if (!frame) return;
+
+  isPaused = !isPaused;
+  const btn = document.getElementById('pause-btn');
+  const overlay = document.getElementById('pause-overlay');
+
+  if (isPaused) {
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+    overlay.classList.add('active');
+    // EmulatorJS pause (ROM games only)
+    if (isRomLoaded) frame.contentWindow.postMessage({ type: 'pause-state' }, '*');
+  } else {
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+    overlay.classList.remove('active');
+    // EmulatorJS resume (ROM games only)
+    if (isRomLoaded) frame.contentWindow.postMessage({ type: 'resume-state' }, '*');
+    setTimeout(() => { frame.focus(); frame.contentWindow?.focus(); }, 100);
+  }
+}
+
+function exportCurrentState() {
+  if (!isRomLoaded) return showToast('Can only export emulator states');
+  const frame = document.getElementById('game-frame');
+  frame.contentWindow.postMessage({ type: 'export-state', name: currentName }, '*');
+}
+
+function exportState(name, stateData) {
+  const blob = new Blob([stateData], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name.split('.')[0] + '.state';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importState(e) {
+  if (!isRomLoaded || !currentName) {
+    alert("Please load and run a game first before importing a save state.");
+    e.target.value = '';
+    return;
+  }
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const uint8Array = new Uint8Array(evt.target.result);
+    
+    const frame = document.getElementById('game-frame');
+    frame.contentWindow.postMessage({ type: 'load-state', state: uint8Array }, '*');
+    setTimeout(() => {
+      frame.focus();
+      frame.contentWindow.focus();
+    }, 100);
+    
+    const tx = idb.transaction('library', 'readwrite');
+    const store = tx.objectStore('library');
+    const req = store.get(currentDbKey);
+    req.onsuccess = () => {
+      let record = req.result;
+      if (record) {
+        record.savestate = uint8Array;
+        store.put(record);
+        showToast('State Imported & Saved!');
+      }
+    };
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function openSettings() {
+  if (userSettings.idleBar) { clearTimeout(hideTimer); barShow(); }
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+const themes = {
+  midnight:   { bg: '#09003d', bar: 'rgba(9,0,61,0.88)',    orb1: 'rgba(80,0,220,0.45)',   orb2: 'rgba(0,100,255,0.3)' },
+  crimson:    { bg: '#2a0000', bar: 'rgba(42,0,0,0.88)',    orb1: 'rgba(255,50,0,0.3)',    orb2: 'rgba(150,0,50,0.4)' },
+  matrix:     { bg: '#001a0a', bar: 'rgba(0,26,10,0.88)',   orb1: 'rgba(0,255,100,0.2)',   orb2: 'rgba(0,150,50,0.2)' },
+  monochrome: { bg: '#111111', bar: 'rgba(17,17,17,0.88)',  orb1: 'rgba(255,255,255,0.05)',orb2: 'rgba(100,100,100,0.08)' },
+  ocean:      { bg: '#000f1a', bar: 'rgba(0,15,26,0.88)',   orb1: 'rgba(0,150,255,0.3)',   orb2: 'rgba(0,255,150,0.2)' },
+  synthwave:  { bg: '#120024', bar: 'rgba(18,0,36,0.88)',   orb1: 'rgba(255,0,128,0.35)',  orb2: 'rgba(43,0,255,0.4)' },
+  forest:     { bg: '#051a0a', bar: 'rgba(5,26,10,0.88)',   orb1: 'rgba(30,150,50,0.25)',  orb2: 'rgba(100,200,50,0.15)' },
+  sunset:     { bg: '#2a0a18', bar: 'rgba(42,10,24,0.88)',  orb1: 'rgba(255,100,0,0.3)',   orb2: 'rgba(200,0,100,0.3)' },
+  void:       { bg: '#000000', bar: 'rgba(0,0,0,0.95)',     orb1: 'rgba(60,0,120,0.25)',   orb2: 'rgba(0,0,80,0.2)' },
+  arctic:     { bg: '#001428', bar: 'rgba(0,20,40,0.9)',    orb1: 'rgba(100,200,255,0.25)',orb2: 'rgba(180,240,255,0.15)' },
+  ember:      { bg: '#1a0a00', bar: 'rgba(26,10,0,0.9)',    orb1: 'rgba(255,80,0,0.4)',    orb2: 'rgba(255,200,0,0.2)' },
+  aurora:     { bg: '#001a14', bar: 'rgba(0,26,20,0.9)',    orb1: 'rgba(0,255,180,0.25)',  orb2: 'rgba(100,0,255,0.3)' },
+  sakura:     { bg: '#1a0014', bar: 'rgba(26,0,20,0.9)',    orb1: 'rgba(255,100,180,0.3)', orb2: 'rgba(255,180,200,0.15)' },
+  toxic:      { bg: '#0a1400', bar: 'rgba(10,20,0,0.9)',    orb1: 'rgba(120,255,0,0.3)',   orb2: 'rgba(0,200,50,0.2)' },
+  gold:       { bg: '#1a1200', bar: 'rgba(26,18,0,0.9)',    orb1: 'rgba(255,180,0,0.35)',  orb2: 'rgba(200,120,0,0.25)' },
+  nebula:     { bg: '#0d0020', bar: 'rgba(13,0,32,0.9)',    orb1: 'rgba(180,0,255,0.35)',  orb2: 'rgba(255,100,0,0.25)' },
+  chalk:      { bg: '#dcd8f0', bar: 'rgba(200,194,235,0.92)', orb1: 'rgba(120,80,255,0.35)',  orb2: 'rgba(60,140,255,0.28)', light: true },
+  paper:      { bg: '#e8d8b0', bar: 'rgba(210,190,140,0.92)', orb1: 'rgba(180,110,30,0.35)',  orb2: 'rgba(80,160,100,0.28)', light: true },
+  lavender:   { bg: '#c8b8e8', bar: 'rgba(185,165,220,0.92)', orb1: 'rgba(110,40,220,0.4)',   orb2: 'rgba(200,80,255,0.3)',  light: true },
+  mint:       { bg: '#b0dcc8', bar: 'rgba(145,200,175,0.92)', orb1: 'rgba(0,160,100,0.4)',    orb2: 'rgba(0,200,160,0.3)',   light: true },
+  peach:      { bg: '#f0c0a0', bar: 'rgba(220,165,125,0.92)', orb1: 'rgba(220,80,20,0.4)',    orb2: 'rgba(255,60,100,0.3)',  light: true },
+  slate:      { bg: '#b8c8dc', bar: 'rgba(160,180,205,0.92)', orb1: 'rgba(40,80,180,0.4)',    orb2: 'rgba(60,140,220,0.3)',  light: true },
+};
+
+function setTheme(name) {
+  const t = themes[name] || themes.midnight;
+  document.documentElement.style.setProperty('--bg-color', t.bg);
+  document.documentElement.style.setProperty('--bar-bg', t.bar);
+  document.documentElement.style.setProperty('--orb-1', t.orb1);
+  document.documentElement.style.setProperty('--orb-2', t.orb2);
+  if (t.light) document.body.classList.add('theme-light');
+  else document.body.classList.remove('theme-light');
+  const sel = document.getElementById('theme-select');
+  if (sel) sel.value = name;
+  localStorage.setItem('liminal_theme', name);
+}
+
+function openCodeEditor() {
+  if (!currentHtml) return;
+  document.getElementById('code-editor').value = currentHtml;
+  document.getElementById('code-modal').classList.add('open');
+  document.getElementById('code-editor').focus();
+}
+
+function closeCodeEditor() {
+  document.getElementById('code-modal').classList.remove('open');
+}
+
+function applyCode() {
+  const newHtml = document.getElementById('code-editor').value;
+  currentHtml = newHtml;
+  currentName = 'custom.html';
+  currentDbKey = 'custom.html';
+  isRomLoaded = false;
+  currentFile = null;
+
+  document.getElementById('bar-filename').textContent = 'Custom Html';
+  
+  const frame = document.getElementById('game-frame');
+  frame.onload = null;
+  frame.srcdoc = '';
+  requestAnimationFrame(() => {
+    frame.onload = () => { setTimeout(() => hideLoading(), 1000); };
+    frame.onerror = () => hideLoading();
+    frame.srcdoc = newHtml;
+    clearTimeout(loadTimeout);
+    loadTimeout = setTimeout(() => hideLoading(), 6000);
+  });
+  closeCodeEditor();
+  showToast('Changes applied ✓');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('apply-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000); 
+}
+
+// ── BUBBLES & PARTICLES ENGINE ──
+(function() {
+  const canvas = document.getElementById('fx-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, bubbles = [], particles = [], animId;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+  function isLight() { return document.body.classList.contains('theme-light'); }
+
+  // ── Bubble ──
+  function makeBubble() {
+    return {
+      x: randBetween(0, W),
+      y: H + randBetween(10, 60),
+      r: randBetween(5, 22),
+      speedY: randBetween(0.4, 1.2),
+      speedX: randBetween(-0.2, 0.2),
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: randBetween(0.01, 0.03),
+      opacity: randBetween(0.18, 0.45),
+    };
+  }
+
+  // ── Particle ──
+  function makeParticle() {
+    return {
+      x: randBetween(0, W),
+      y: randBetween(0, H),
+      r: randBetween(1.5, 3.5),
+      vx: randBetween(-0.15, 0.15),
+      vy: randBetween(-0.15, 0.15),
+      opacity: randBetween(0.25, 0.55),
+      pulse: Math.random() * Math.PI * 2,
+      pulseSpeed: randBetween(0.008, 0.02),
+    };
+  }
+
+  // Init pools
+  for (let i = 0; i < 18; i++) {
+    const b = makeBubble();
+    b.y = randBetween(0, H);
+    bubbles.push(b);
+  }
+  for (let i = 0; i < 40; i++) particles.push(makeParticle());
+
+  // The loop should only run when something is actually visible: no game
+  // covering the canvas, and at least one effect enabled.
+  function shouldAnimate() {
+    if (document.getElementById('game-view').classList.contains('active')) return false;
+    return (userSettings.bubbles ?? false) || (userSettings.particles ?? false);
+  }
+
+  function tick() {
+    // Stop the rAF loop entirely when there's nothing to draw instead of
+    // re-scheduling a full-screen clearRect every frame (wasted CPU/battery,
+    // especially behind an active game). startFx() resumes it on demand.
+    if (!shouldAnimate()) { ctx.clearRect(0, 0, W, H); animId = null; return; }
+    animId = requestAnimationFrame(tick);
+
+    const showBubbles = userSettings.bubbles ?? false;
+    const showParticles = userSettings.particles ?? false;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Cache per-frame values
+    const light = isLight();
+    const bubbleColor = light ? 'rgba(60,20,140,0.65)' : 'rgba(255,255,255,0.75)';
+    const bubbleShine = light ? 'rgba(100,100,200,0.4)' : 'rgba(255,255,255,0.5)';
+    const particleColor = light ? 'rgba(60,20,160,0.85)' : 'rgba(255,255,255,0.95)';
+
+    if (showBubbles) {
+      ctx.lineWidth = 1.5;
+      for (let b of bubbles) {
+        b.wobble += b.wobbleSpeed;
+        b.x += b.speedX + Math.sin(b.wobble) * 0.3;
+        b.y -= b.speedY;
+        if (b.y < -b.r * 2) Object.assign(b, makeBubble());
+
+        ctx.globalAlpha = b.opacity;
+        ctx.strokeStyle = bubbleColor;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.stroke();
+        // shine
+        ctx.fillStyle = bubbleShine;
+        ctx.beginPath();
+        ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (showParticles) {
+      ctx.fillStyle = particleColor;
+      for (let p of particles) {
+        p.x += p.vx; p.y += p.vy; p.pulse += p.pulseSpeed;
+        if (p.x < 0) p.x = W; else if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; else if (p.y > H) p.y = 0;
+        const pulse = 0.5 + 0.5 * Math.sin(p.pulse);
+        ctx.globalAlpha = p.opacity * pulse;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  // Resume the loop if it stopped itself and there's now something to draw.
+  function startFx() {
+    if (animId == null && shouldAnimate()) animId = requestAnimationFrame(tick);
+  }
+
+  // Called from applySettings() when effects toggle, and from goBack() when a
+  // game closes and the canvas is visible again.
+  window.applyEffects = startFx;
+
+  startFx();
+})();
+
+document.getElementById('code-editor').addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const el = e.target;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    el.value = el.value.substring(0, start) + '  ' + el.value.substring(end);
+    el.selectionStart = el.selectionEnd = start + 2;
+  }
+});
+
+document.getElementById('code-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('code-modal')) closeCodeEditor();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  // Close the topmost open surface: code editor first, then any open .modal.
+  const codeModal = document.getElementById('code-modal');
+  if (codeModal.classList.contains('open')) { closeCodeEditor(); return; }
+  const openModal = document.querySelector('.modal.open');
+  if (openModal) openModal.classList.remove('open');
+});
+</script>
+</body>
+</html>
