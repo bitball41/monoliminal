@@ -6,6 +6,14 @@ import vm from 'node:vm';
 import { drivePermissions } from '../Backend/edge-functions/liminal-drive-admin/permissions.ts';
 
 const source = await readFile(new URL('../Backend/edge-functions/liminal-drive-admin/index.ts', import.meta.url), 'utf8');
+const driveHtml = await readFile(new URL('../Drive/Liminal-Drive.html', import.meta.url), 'utf8');
+const frontend = [...driveHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].at(-1)[1];
+function frontSection(start, end, context) {
+  const from = frontend.indexOf(start), to = frontend.indexOf(end, from);
+  assert(from >= 0 && to > from, 'frontend section exists');
+  vm.runInNewContext(frontend.slice(from, to), context);
+  return context;
+}
 const commandNames = [...source.matchAll(/new (\w+Command)\(/g)].map(m => m[1]);
 function backend(profile, { existing = false } = {}) {
   let handler;
@@ -120,4 +128,79 @@ test('Drive CSS is balanced and desktop cards/avatar styles remain outside media
   for (const selector of ['.libraryArt', '.libraryGrid', '.libraryFooter', '.brand', '.avatar>img']) {
     assert(selectors.has(selector), `${selector} is available at desktop widths`);
   }
+});
+
+test('library indexing preserves bundles and reuses the listing across searches and tabs', () => {
+  const state = { objects: [], trash: [], view: 'games', search: '', filter: 'all', sort: 'name', prefix: '', starred: new Set(), recent: [] };
+  const c = frontSection('function libraryView()', 'function connection(', { state, CURATED: {}, write() {} });
+  state.objects = [
+    { key: 'Games/bundle/index.html', size: 10, lastModified: '2026-10-06' },
+    { key: 'Games/bundle/help.html', size: 20, lastModified: '2026-10-07' },
+    { key: 'Games/bundle/assets/main.js', size: 30 },
+    { key: 'Games/standalone.html', size: 40 },
+    { key: 'Apps/tool.html', size: 50 },
+    { key: 'empty/.liminal-folder', size: 0 },
+  ].map(c.normalize);
+  const index = c.indexListing();
+  assert.deepEqual(Array.from(c.visible(), f => f.key), ['Games/bundle/index.html', 'Games/standalone.html']);
+  assert.equal(index.bytes, 150);
+  const bundle = c.folders().find(f => f.key === 'Games/bundle/');
+  assert.equal(bundle.childCount, 3);
+  assert.equal(bundle.size, 60);
+  assert.equal(bundle.modified, '2026-10-07');
+  state.search = 'standalone';
+  assert.equal(c.visible().length, 1);
+  state.search = ''; state.view = 'apps';
+  assert.equal(c.visible()[0].key, 'Apps/tool.html');
+  state.view = 'starred'; state.starred.add('folder:Games/bundle/');
+  assert.equal(c.visible()[0].key, 'Games/bundle/');
+  assert.equal(c.indexListing(), index, 'navigation/search do not rebuild folder or entrypoint indexes');
+  state.objects = [...state.objects, c.normalize({ key: 'Games/new.html' })];
+  assert.notEqual(c.indexListing(), index, 'a refreshed listing invalidates the index');
+  assert.equal(c.indexListing().games.length, 3);
+});
+
+test('cached public listings load before refresh without caching account permissions', () => {
+  const storage = new Map();
+  const state = { objects: [], trash: [], loading: true, canUpload: false, canManage: false };
+  const api = 'https://drive.test/list';
+  const c = frontSection('const LIST_CACHE_KEY=', 'async function refresh(', {
+    state, API_URL: api, read: key => storage.get(key), write: (key, value) => storage.set(key, value),
+    normalize: x => ({ ...x, id: x.key }), window: { requestIdleCallback: fn => fn() },
+  });
+  const data = { files: [{ key: 'Games/a.html' }], trash: [], canManage: true };
+  c.cacheListing(data);
+  assert.equal(c.restoreListing(), true);
+  assert.equal(state.objects[0].id, 'Games/a.html');
+  assert.equal(state.loading, false);
+  assert.equal(state.canManage, false);
+  assert.equal(state.canUpload, false);
+  const cached = storage.get('ld-listing-v1');
+  assert.equal('canManage' in cached, false);
+  cached.savedAt = Date.now() - 86400001;
+  assert.equal(c.restoreListing(), false, 'expired snapshots are ignored');
+  cached.savedAt = Date.now(); cached.api = 'https://other.test';
+  assert.equal(c.restoreListing(), false, 'snapshots belong to one public API');
+  cached.api = api; cached.files = [null];
+  assert.equal(c.restoreListing(), false, 'broken cache entries do not break startup');
+});
+
+test('unchanged account updates preserve avatar nodes while role changes still render', () => {
+  const elements = new Map();
+  const $ = id => {
+    if (!elements.has(id)) elements.set(id, {
+      writes: 0, classList: { toggle() {} }, setAttribute() {},
+      set innerHTML(value) { this.writes++; this.html = value; },
+    });
+    return elements.get(id);
+  };
+  const state = { view: 'games', auth: { username: 'mod' }, profile: { username: 'mod', displayName: 'Mod', pfp: 'https://avatar.test/a.gif', role: 'mod' }, canUpload: true };
+  const c = frontSection('let accountRenderKey=', 'function applySession(', { state, $, I: { check: '' }, ROLE_LABELS: { mod: 'Mod', admin: 'Admin' }, esc: String });
+  c.updateAccount();
+  const avatar = $('#accountBtn'), firstMarkup = avatar.html;
+  state.view = 'apps'; c.updateAccount(); c.updateAccount();
+  assert.equal(avatar.writes, 1, 'unchanged avatars are not decoded/restarted on UI updates');
+  assert.equal(avatar.html, firstMarkup);
+  state.profile = { ...state.profile, role: 'admin' }; c.updateAccount();
+  assert.match($('#accountRole').html, /Admin/);
 });
