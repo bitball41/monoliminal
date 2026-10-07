@@ -1,0 +1,33 @@
+name: Roll back app
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App to restore'
+        type: choice
+        required: true
+        options: [chat, chat-launcher, player, ai, drive, games, movies]
+      history_path:
+        description: 'Full Storage history object path, e.g. deployments/chat/…-previous.html'
+        type: string
+        required: true
+      dry_run:
+        description: 'Inspect rollback without publishing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    uses: ./.github/workflows/_deploy-storage.yml
+    with:
+      app: ${{ inputs.app }}
+      mode: rollback
+      history_path: ${{ inputs.history_path }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_DEPLOY_KEY: ${{ secrets.SUPABASE_DEPLOY_KEY }}

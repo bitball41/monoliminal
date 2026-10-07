@@ -15,6 +15,6 @@ Open this repo in GitHub or press `.` on GitHub to edit in github.dev. Make the 
 - Preview the changed app and check its main interaction.
 - Keep changes focused on the intended app.
 - Check that no credentials or private user data are added.
-- When automation is enabled, verify the relevant workflow and live artifact after merging.
+- After merging, verify the relevant workflow and live artifact.
 
-Folder creation and renames in the initial scaffold preserve the original blobs. They do not deploy or modify Supabase/R2 content.
+The initial folder scaffold preserved the original app blobs. The deployment Actions now publish only a changed app file or a manually selected app, after credentials are configured. R2 user content is separate.

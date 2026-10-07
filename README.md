@@ -24,18 +24,18 @@ All seven existing app files were moved into these folders without changing thei
 - `scripts/`: reusable deployment and verification scripts.
 - `config/deployments.json`: source-to-destination mapping for each artifact.
 - `docs/`: setup and development notes.
-- `.github/workflows/`: separate deployment templates for each artifact.
+- `.github/workflows/`: separate deployment Actions for each artifact, shared checks, and manual rollback.
 
 ## Working on an app
 
 1. Edit its canonical file.
 2. Open a PR and merge it into `main`.
-3. Once deployment is wired up, only that file's deployment workflow will run.
+3. That file's deployment workflow validates and publishes it once the repository secrets are configured.
 
-Drive is the first deployment to wire up. Its HTML belongs in `Drive/`; its backend functions belong in `Backend/edge-functions/`.
+Start with a manual Drive dry run. Its HTML belongs in `Drive/`; its backend functions belong in `Backend/edge-functions/`.
 
 ## Deployment status
 
-**Scaffold only. No live deployment automation is enabled yet.** Workflow templates use `.yml.example` so they cannot accidentally publish anything. See [deployment setup](docs/deployment.md) for activation steps and the required archive/upload/rename behavior.
+The Actions and archive/upload/rename script are implemented. Add `SUPABASE_URL` and `SUPABASE_DEPLOY_KEY` as repository Actions secrets, then run a manual dry run. See [deployment setup](docs/deployment.md) for the exact steps, rollback, and recovery limits. Live production access has not been verified during implementation.
 
 Supabase remains the app host. Drive's user-uploaded files remain separate from these app HTML artifacts.

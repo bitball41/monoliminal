@@ -1,0 +1,26 @@
+name: Deploy AI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'AI/luna.html'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate and inspect Storage without publishing'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy-storage.yml
+    with:
+      app: ai
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+    secrets:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_DEPLOY_KEY: ${{ secrets.SUPABASE_DEPLOY_KEY }}

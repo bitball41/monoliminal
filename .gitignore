@@ -21,3 +21,6 @@ Thumbs.db
 # Supabase local state
 supabase/.temp/
 supabase/.branches/
+
+# Local deployment reports (uploaded by Actions separately)
+.deployment-report.json

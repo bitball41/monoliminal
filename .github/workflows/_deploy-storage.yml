@@ -1,0 +1,70 @@
+name: Reusable Storage deployment
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+      dry_run:
+        type: boolean
+        default: false
+      mode:
+        type: string
+        default: deploy
+      history_path:
+        type: string
+        default: ''
+    secrets:
+      SUPABASE_URL:
+        required: true
+      SUPABASE_DEPLOY_KEY:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: liminal-storage-${{ inputs.app }}
+      cancel-in-progress: false
+    steps:
+      # Read the current main only after obtaining the per-app deployment lock.
+      # Queued/older push runs cannot republish an older main revision.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Validate deployment files
+        run: node scripts/validate-deployments.mjs
+      - name: Test deployment and recovery
+        run: node --test scripts/deployment.test.mjs
+      - name: Record checked-out source revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Publish or roll back selected app
+        env:
+          DEPLOY_APP: ${{ inputs.app }}
+          DEPLOY_MODE: ${{ inputs.mode }}
+          DEPLOY_HISTORY: ${{ inputs.history_path }}
+          DEPLOY_DRY_RUN: ${{ inputs.dry_run }}
+          DEPLOY_COMMIT: ${{ steps.revision.outputs.sha }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_DEPLOY_KEY: ${{ secrets.SUPABASE_DEPLOY_KEY }}
+        run: node scripts/deploy-storage.mjs
+      - name: Keep transaction report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deployment-${{ inputs.app }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .deployment-report.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 90

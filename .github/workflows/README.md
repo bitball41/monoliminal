@@ -1,5 +1,8 @@
-# Workflow templates
+# GitHub Actions
 
-The seven `deploy-*.yml.example` files are inactive templates. Each watches exactly one canonical app file on `main` and supports manual dispatch. They contain a fail-fast placeholder, not a working deployment.
+- `deploy-*.yml`: seven file-specific push/manual deployment entry points.
+- `_deploy-storage.yml`: shared validation, tests, serialization, deployment and report upload.
+- `rollback.yml`: manual restoration from an app's Storage history.
+- `check-deployments.yml`: source/manifest checks and recovery tests on PRs and machinery changes, without deployment secrets.
 
-Follow [deployment setup](../../docs/deployment.md), replace the placeholder, then rename the relevant template to `.yml`. Activate one artifact at a time, starting with Drive.
+Add the two secrets described in [deployment setup](../../docs/deployment.md). Manual buttons default to dry runs. Pushes changing app HTML publish after validation.
