@@ -89,3 +89,35 @@ test('no token, banned profiles, and missing profiles never reach storage', asyn
     assert.equal(b.writes.length, 0);
   }
 });
+
+// A malformed responsive rule can silently put every later rule behind a
+// viewport condition. JavaScript interaction checks do not detect that.
+test('Drive CSS is balanced and desktop cards/avatar styles remain outside media queries', async () => {
+  const html = await readFile(new URL('../Drive/Liminal-Drive.html', import.meta.url), 'utf8');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)?.[1];
+  assert(css, 'Drive has an embedded stylesheet');
+  const stack = [], selectors = new Set();
+  let quote = '', comment = false, ruleStart = 0;
+  for (let i = 0; i < css.length; i++) {
+    const c = css[i], next = css[i + 1];
+    if (comment) { if (c === '*' && next === '/') { comment = false; i++; } continue; }
+    if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue; }
+    if (c === '/' && next === '*') { comment = true; i++; continue; }
+    if (c === '"' || c === "'") { quote = c; continue; }
+    if ('{(['.includes(c)) {
+      if (c === '{' && stack.length === 0) selectors.add(css.slice(ruleStart, i).trim());
+      stack.push(c);
+      if (c === '{') ruleStart = i + 1;
+    } else if ('})]'.includes(c)) {
+      const expected = { '}': '{', ')': '(', ']': '[' }[c];
+      assert.equal(stack.pop(), expected, `CSS delimiter mismatch near character ${i}`);
+      if (c === '}') ruleStart = i + 1;
+    }
+  }
+  assert.equal(stack.length, 0, 'CSS blocks are closed');
+  assert.equal(quote, '', 'CSS strings are closed');
+  assert.equal(comment, false, 'CSS comments are closed');
+  for (const selector of ['.libraryArt', '.libraryGrid', '.libraryFooter', '.brand', '.avatar>img']) {
+    assert(selectors.has(selector), `${selector} is available at desktop widths`);
+  }
+});
