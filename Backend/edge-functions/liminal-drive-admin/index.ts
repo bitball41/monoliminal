@@ -42,6 +42,7 @@ Deno.serve(async(req:Request)=>{
       if(!actor.canUpload)return json({error:"Uploads require a Liminal moderator role or above"},403);
       const u=new URL(req.url),key=keyOf(u.searchParams.get("key"));if(!key)return json({error:"Invalid file path"},400);
       const uploadId=u.searchParams.get("upload_id");
+      if(uploadId&&!actor.canManage)return json({error:"Multipart uploads require an Admin role. Mod and Manager uploads use create-only signed URLs."},403);
       const partNumber=Number(u.searchParams.get("part_number"));
       if(uploadId&&(uploadId.length>1024||!Number.isInteger(partNumber)||partNumber<1||partNumber>10000))return json({error:"Invalid upload part"},400);
       if(!uploadId&&await exists(key)){
@@ -52,12 +53,16 @@ Deno.serve(async(req:Request)=>{
       if(reader){while(true){const r=await reader.read();if(r.done)break;size+=r.value.length;if(size>MAX_PROXY_BYTES){await reader.cancel();return json({error:"This upload part is too large. Retry the upload."},413);}parts.push(r.value);}}
       const bytes=new Uint8Array(size);let offset=0;for(const part of parts){bytes.set(part,offset);offset+=part.length;}
       if(uploadId){const r=await s3.send(new UploadPartCommand({Bucket:bucket,Key:key,UploadId:uploadId,PartNumber:partNumber,Body:bytes}));return json({ok:true,etag:r.ETag,partNumber,size});}
-      await s3.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:bytes,ContentType:(req.headers.get("content-type")||"application/octet-stream").slice(0,200)}));
+      const overwrite=actor.canManage&&u.searchParams.get("overwrite")==="1";
+      await s3.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:bytes,ContentType:(req.headers.get("content-type")||"application/octet-stream").slice(0,200),...(!overwrite?{IfNoneMatch:"*"}:{})}));
       return json({ok:true,key,publicUrl:publicUrl(key),size});
     }
     let body:any;try{body=await req.json();}catch{return json({error:"JSON body required"},400);}
     const action=String(body.action||"");
     if(action==="status")return json({ok:true,username:actor.username,displayName:actor.display_name,pfp:actor.pfp,ring:actor.ring,role:actor.is_owner?'owner':actor.staff_role|| (actor.is_admin?'admin':'member'),canUpload:actor.canUpload,canManage:actor.canManage,maxProxyBytes:MAX_PROXY_BYTES});
+    // R2 documents atomic conditions for PutObject, but not multipart completion.
+    // Keep all legacy raw multipart paths behind management permission.
+    if(action.startsWith('multipart_')&&!actor.canManage)return json({error:"Multipart uploads require an Admin role. Mod and Manager uploads use create-only signed URLs."},403);
     const uploading=['presign_upload','multipart_create','multipart_complete','multipart_abort','create_folder'].includes(action);
     if(uploading?!actor.canUpload:!actor.canManage)return json({error:uploading?"Uploads require a Liminal moderator role or above":"File management requires a Liminal administrator role"},403);
     if(action==="presign_upload"){
@@ -68,8 +73,10 @@ Deno.serve(async(req:Request)=>{
       }
       const contentType=String(body.content_type||"application/octet-stream").slice(0,200);
       const direct=await ensureCors();
-      const uploadUrl=await getSignedUrl(s3,new PutObjectCommand({Bucket:bucket,Key:key,ContentType:contentType}),{expiresIn:900});
-      return json({ok:true,key,uploadUrl,headers:{"Content-Type":contentType},publicUrl:publicUrl(key),direct,expiresIn:900,maxProxyBytes:MAX_PROXY_BYTES});
+      const overwrite=actor.canManage&&body.overwrite===true;
+      const condition=overwrite?{}:{IfNoneMatch:"*"};
+      const uploadUrl=await getSignedUrl(s3,new PutObjectCommand({Bucket:bucket,Key:key,ContentType:contentType,...condition}),{expiresIn:900,signableHeaders:new Set(["if-none-match"])});
+      return json({ok:true,key,uploadUrl,headers:{"Content-Type":contentType,...(!overwrite?{"If-None-Match":"*"}:{})},publicUrl:publicUrl(key),direct,canMultipart:actor.canManage,expiresIn:900,maxProxyBytes:MAX_PROXY_BYTES});
     }
     if(action==="multipart_create"){
       const key=keyOf(body.key);if(!key)return json({error:"Invalid file path"},400);
@@ -92,7 +99,7 @@ Deno.serve(async(req:Request)=>{
     if(action==="create_folder"){
       const prefix=keyOf(body.prefix,true);if(!prefix)return json({error:"Invalid folder path"},400);
       if((await all(prefix)).length)return json({error:"This folder already exists"},409);
-      await s3.send(new PutObjectCommand({Bucket:bucket,Key:prefix+".liminal-folder",Body:"",ContentType:"text/plain"}));return json({ok:true,prefix});
+      await s3.send(new PutObjectCommand({Bucket:bucket,Key:prefix+".liminal-folder",Body:"",ContentType:"text/plain",IfNoneMatch:"*"}));return json({ok:true,prefix});
     }
     if(action==="rename"||action==="rename_folder"||action==="move"){
       const folder=action==="rename_folder"||body.folder===true;
@@ -129,5 +136,5 @@ Deno.serve(async(req:Request)=>{
       if(folder)await remove((await all(key)).map(o=>o.key));else await s3.send(new DeleteObjectCommand({Bucket:bucket,Key:key}));return json({ok:true});
     }
     return json({error:"Unsupported action"},400);
-  }catch(e:any){console.error("[liminal-drive-admin]",e.name);return json({error:e.message||"Drive action failed"},e?.$metadata?.httpStatusCode===404?404:500);}
+  }catch(e:any){console.error("[liminal-drive-admin]",e.name);if([409,412].includes(e?.$metadata?.httpStatusCode))return json({error:"A file with this name already exists. Refresh Drive before retrying.",exists:true},409);return json({error:e.message||"Drive action failed"},e?.$metadata?.httpStatusCode===404?404:500);}
 });

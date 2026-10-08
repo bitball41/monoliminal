@@ -6,7 +6,9 @@ type Profile = { staff_role?: string; is_owner?: boolean; is_admin?: boolean; is
 
 export function drivePermissions(profile: Profile | null | undefined) {
   if (!profile || profile.is_banned) return { canUpload: false, canManage: false };
-  const legacyAdmin = Boolean(profile.is_owner || profile.is_admin);
+  // The deployed profile schema has a canonical staff_role. Ignore legacy flags
+  // whenever that field is present, including unrecognised roles.
+  const legacyAdmin = !profile.staff_role && Boolean(profile.is_owner || profile.is_admin);
   return {
     canUpload: legacyAdmin || UPLOAD_ROLES.has(profile.staff_role),
     canManage: legacyAdmin || MANAGE_ROLES.has(profile.staff_role),

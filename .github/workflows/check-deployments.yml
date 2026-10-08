@@ -6,6 +6,9 @@ on:
       - '.github/workflows/**'
       - 'scripts/**'
       - 'config/**'
+      - 'Backend/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'Chat/*.html'
       - 'Drive/*.html'
       - 'Player/*.html'
@@ -18,6 +21,9 @@ on:
       - '.github/workflows/**'
       - 'scripts/**'
       - 'config/**'
+      - 'Backend/**'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 
 permissions:
@@ -35,4 +41,5 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/validate-deployments.mjs
-      - run: node --experimental-strip-types --test scripts/deployment.test.mjs scripts/drive.test.mjs
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm test

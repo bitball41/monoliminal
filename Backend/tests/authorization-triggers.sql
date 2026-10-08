@@ -1,0 +1,14 @@
+CREATE TRIGGER chat_message_controls BEFORE INSERT OR UPDATE OF content, type, media_url ON public.messages FOR EACH ROW EXECUTE FUNCTION chat_enforce_message_controls();
+CREATE TRIGGER chat_dm_message_controls BEFORE INSERT OR UPDATE OF content, type, media_url ON public.dm_messages FOR EACH ROW EXECUTE FUNCTION chat_enforce_message_controls();
+CREATE TRIGGER trg_lc_forum_touch AFTER INSERT ON public.messages FOR EACH ROW EXECUTE FUNCTION lc_forum_touch();
+CREATE TRIGGER chat_profile_privilege_guard BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION chat_protect_profile_privileges();
+CREATE TRIGGER trg_lc_ensure_following_thread AFTER INSERT ON public.follows FOR EACH ROW EXECUTE FUNCTION lc_ensure_following_thread();
+CREATE TRIGGER chat_forum_auth_guard BEFORE INSERT OR UPDATE ON public.forum_threads FOR EACH ROW EXECUTE FUNCTION chat_guard_forum_mutation();
+CREATE TRIGGER trg_profiles_sync_staff_flags BEFORE INSERT OR UPDATE OF staff_role, is_admin, is_owner ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.chat_sync_legacy_staff_flags();
+CREATE TRIGGER chat_message_auth_guard BEFORE INSERT OR DELETE OR UPDATE ON public.messages FOR EACH ROW EXECUTE FUNCTION chat_guard_message_mutation();
+CREATE TRIGGER chat_dm_auth_guard BEFORE INSERT OR DELETE OR UPDATE ON public.dm_messages FOR EACH ROW EXECUTE FUNCTION chat_guard_dm_mutation();
+CREATE TRIGGER chat_channel_speak_guard BEFORE INSERT OR UPDATE ON public.channels FOR EACH ROW EXECUTE FUNCTION chat_guard_channel_mutation();
+CREATE TRIGGER chat_stamp_soft_delete BEFORE UPDATE ON public.messages FOR EACH ROW EXECUTE FUNCTION private.chat_stamp_soft_delete();
+CREATE TRIGGER chat_stamp_soft_delete BEFORE UPDATE ON public.dm_messages FOR EACH ROW EXECUTE FUNCTION private.chat_stamp_soft_delete();
+CREATE TRIGGER chat_dm_block_guard BEFORE INSERT OR UPDATE OF participants ON public.dms FOR EACH ROW EXECUTE FUNCTION private.chat_reject_blocked_dm();
+CREATE TRIGGER chat_dm_message_block_guard BEFORE INSERT OR UPDATE OF content, type, media_url, reactions ON public.dm_messages FOR EACH ROW EXECUTE FUNCTION private.chat_reject_blocked_dm();
