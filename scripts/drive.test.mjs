@@ -17,7 +17,7 @@ function frontSection(start, end, context) {
 const commandNames = [...source.matchAll(/new (\w+Command)\(/g)].map(m => m[1]);
 function backend(profile, { existing = false } = {}) {
   let handler;
-  const writes = [];
+  const writes = [], signatures = [];
   const context = {
     Request, Response, URL, TextEncoder, Uint8Array, console, crypto,
     drivePermissions,
@@ -29,7 +29,7 @@ function backend(profile, { existing = false } = {}) {
     keyOf: value => typeof value === 'string' && value && !value.startsWith('.liminal-') ? value : null,
     exists: async () => existing,
     all: async () => [], publicUrl: key => 'https://files.test/' + key,
-    manifest: async () => ({}), getSignedUrl: async () => 'https://upload.test',
+    manifest: async () => ({}), getSignedUrl: async (client,command,options) => {signatures.push({command,options});return 'https://upload.test';},
   };
   for (const name of new Set(commandNames)) context[name] = class { constructor(input) { this.name = name; this.input = input; } };
   vm.runInNewContext(stripTypeScriptTypes(source.replace(/^import .*;$/gm, '')), context);
@@ -37,7 +37,7 @@ function backend(profile, { existing = false } = {}) {
     method, headers: { ...(token ? { authorization: 'Bearer test-jwt' } : {}), 'content-type': method === 'PUT' ? 'text/html' : 'application/json' },
     body: method === 'PUT' ? '<h1>test</h1>' : JSON.stringify({ action, ...body }),
   }));
-  return { invoke, writes };
+  return { invoke, writes, signatures };
 }
 
 test('every Chat staff role has upload rights, with management reserved for admins', () => {
@@ -65,20 +65,50 @@ test('members can retrieve their real profile without acquiring write access', a
   assert.equal(b.writes.length, 0);
 });
 
-test('moderators can upload through proxy, signed URL, and multipart paths', async () => {
+test('moderators can create files through proxy and signed URL paths', async () => {
   const b = backend({ username: 'mod', staff_role: 'mod' });
   assert.equal((await b.invoke(null, {}, { method: 'PUT' })).status, 200);
   assert.equal((await b.invoke('presign_upload', { key: 'Games/test.html' })).status, 200);
-  assert.equal((await b.invoke('multipart_create', { key: 'Games/large.html' })).status, 200);
-  assert.equal((await b.invoke('multipart_complete', { key: 'Games/large.html', upload_id: 'upload-test', parts: [{ partNumber: 1, etag: 'etag' }] })).status, 200);
+  assert.equal((await b.invoke('multipart_create', { key: 'Games/large.html' })).status, 403);
+  assert.equal((await b.invoke('multipart_complete', { key: 'Games/large.html', upload_id: 'upload-test', parts: [{ partNumber: 1, etag: 'etag' }] })).status, 403);
   assert.equal((await b.invoke('create_folder', { prefix: 'Games/new/' })).status, 200);
   assert(b.writes.some(x => x.name === 'PutObjectCommand'));
-  assert(b.writes.some(x => x.name === 'CompleteMultipartUploadCommand'));
+  assert(!b.writes.some(x => x.name === 'CompleteMultipartUploadCommand'));
+  assert(b.writes.filter(x => x.name === 'PutObjectCommand').every(x => x.input.IfNoneMatch === '*'));
+  assert.equal(b.signatures[0].command.input.IfNoneMatch,'*');
+  assert(b.signatures[0].options.signableHeaders.has('if-none-match'));
   const count = b.writes.length;
   for (const action of ['trash', 'delete', 'rename', 'move', 'delete_trash', 'restore']) {
     assert.equal((await b.invoke(action, { key: 'Games/test.html' })).status, 403);
   }
   assert.equal(b.writes.length, count);
+});
+
+test('admins retain multipart uploads while legacy multipart calls cannot bypass management permission', async () => {
+  const b=backend({staff_role:'admin'});
+  assert.equal((await b.invoke('multipart_create',{key:'Games/large.html'})).status,200);
+  assert.equal((await b.invoke('multipart_complete',{key:'Games/large.html',upload_id:'upload-test',parts:[{partNumber:1,etag:'etag'}]})).status,200);
+  assert(b.writes.some(x => x.name === 'CompleteMultipartUploadCommand'));
+  for (const role of ['mod','manager']) {
+    const restricted=backend({staff_role:role},{existing:true});
+    assert.equal((await restricted.invoke('multipart_complete',{key:'Games/existing.html',upload_id:'old-upload',parts:[{partNumber:1,etag:'etag'}]})).status,403);
+    assert.equal(restricted.writes.length,0);
+  }
+});
+
+test('signed URLs require the create-only header until an admin explicitly requests replacement', async () => {
+  for (const role of ['mod','admin']) {
+    const b=backend({staff_role:role});
+    const response=await b.invoke('presign_upload',{key:'Games/new.html'});
+    assert.equal((await response.json()).headers['If-None-Match'],'*');
+    assert.equal(b.signatures[0].command.input.IfNoneMatch,'*');
+  }
+  const admin=backend({staff_role:'admin'},{existing:true});
+  const response=await admin.invoke('presign_upload',{key:'Games/existing.html',overwrite:true});
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).headers['If-None-Match'],undefined);
+  assert.equal(admin.signatures[0].command.input.IfNoneMatch,undefined);
+  assert.deepEqual(drivePermissions({staff_role:'member',is_admin:true,is_owner:true}),{canUpload:false,canManage:false});
 });
 
 test('moderators cannot overwrite shared files, including through signed URLs', async () => {

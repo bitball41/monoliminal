@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --experimental-strip-types --test scripts/*.test.mjs"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.8"}
+}
