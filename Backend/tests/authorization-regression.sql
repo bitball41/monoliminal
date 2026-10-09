@@ -69,6 +69,9 @@ BEGIN
   v_names := v_names || jsonb_build_object('dm_owner',v_uid::text);
 
   v_names := v_names || jsonb_build_object('m_reply',gen_random_uuid()::text);
+  INSERT INTO realtime.messages(topic,extension,event,payload,private) VALUES
+    ('liminal-online','presence','fixture','{}',true),
+    ('liminal-other','presence','fixture','{}',true);
 
   FOR v_case IN SELECT value FROM jsonb_array_elements($cases$[
   {
@@ -554,6 +557,62 @@ BEGIN
     "actor": "member",
     "sql": "truncate public.messages",
     "allowed": false
+  },
+  {
+    "name": "members can receive Chat online presence",
+    "actor": "member",
+    "topic": "liminal-online",
+    "sql": "select id from realtime.messages where topic='liminal-online' and extension='presence'",
+    "allowed": true
+  },
+  {
+    "name": "members can publish Chat online presence",
+    "actor": "member",
+    "topic": "liminal-online",
+    "sql": "insert into realtime.messages(topic,extension,event,payload,private) values('liminal-online','presence','track','{}',true)",
+    "allowed": true
+  },
+  {
+    "name": "banned accounts cannot receive Chat online presence",
+    "actor": "banned",
+    "topic": "liminal-online",
+    "sql": "select id from realtime.messages where topic='liminal-online' and extension='presence'",
+    "allowed": false
+  },
+  {
+    "name": "banned accounts cannot publish Chat online presence",
+    "actor": "banned",
+    "topic": "liminal-online",
+    "sql": "insert into realtime.messages(topic,extension,event,payload,private) values('liminal-online','presence','track','{}',true)",
+    "allowed": false
+  },
+  {
+    "name": "anonymous clients cannot receive Chat online presence",
+    "actor": "anon",
+    "topic": "liminal-online",
+    "sql": "select id from realtime.messages where topic='liminal-online' and extension='presence'",
+    "allowed": false
+  },
+  {
+    "name": "the presence policy does not expose other private topics",
+    "actor": "member",
+    "topic": "liminal-other",
+    "sql": "select id from realtime.messages where topic='liminal-other' and extension='presence'",
+    "allowed": false
+  },
+  {
+    "name": "the presence policy does not open other private topics",
+    "actor": "member",
+    "topic": "liminal-other",
+    "sql": "insert into realtime.messages(topic,extension,event,payload,private) values('liminal-other','presence','track','{}',true)",
+    "allowed": false
+  },
+  {
+    "name": "the presence policy does not allow private broadcasts",
+    "actor": "member",
+    "topic": "liminal-online",
+    "sql": "insert into realtime.messages(topic,extension,event,payload,private) values('liminal-online','broadcast','fake','{}',true)",
+    "allowed": false
   }
 ]$cases$::jsonb) LOOP
     EXECUTE 'RESET ROLE';
@@ -567,6 +626,7 @@ BEGIN
     PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',v_uid,'role',
       CASE WHEN v_case->>'actor' IN ('anon','service_role') THEN v_case->>'actor' ELSE 'authenticated' END,
       'user_metadata',jsonb_build_object('staff_role','owner','is_owner',true))::text,true);
+    PERFORM set_config('realtime.topic',coalesce(v_case->>'topic',''),true);
     v_sql := v_case->>'sql';
     FOR v_key IN SELECT key FROM jsonb_each(v_names) ORDER BY length(key) DESC LOOP
       v_sql := replace(v_sql,'@'||v_key,v_names->>v_key);

@@ -88,7 +88,7 @@ test('database migration rejects tampered and legacy clients while preserving no
     await run('Backend/tests/authorization-triggers.sql');
     const result=await run('Backend/tests/authorization-regression.sql');
     const checks=result.find(r => r.rows?.[0]?.results)?.rows[0].results;
-    assert.equal(checks?.length,80,'All SQL regression checks ran');
+    assert.equal(checks?.length,88,'All SQL regression checks ran');
     for (const check of checks) assert.equal(check.passed,true,JSON.stringify(check));
     assert.equal((await db.query("select count(*)::integer n from public.profiles")).rows[0].n,0,'fixtures rolled back');
     console.log('Database authorization checks:',checks.length);

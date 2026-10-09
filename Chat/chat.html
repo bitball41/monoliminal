@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#09003d">
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src https: data: blob:; connect-src https://*.supabase.co wss://*.supabase.co https://api.microlink.io https://noembed.com https://static.klipy.com stun: turn: turns:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'none'"
+    content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src https: data: blob:; connect-src https://*.supabase.co wss://*.supabase.co https://api.microlink.io https://noembed.com https://static.klipy.com stun: turn: turns:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; worker-src blob:; base-uri 'none'"
   >
   <title>Liminal Chat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -5804,12 +5804,28 @@ void main() {
     const PRESENCE_TTL_MS = 28000;
     const PRESENCE_PULSE_MS = 8000;
     const PRESENCE_HEART_POLL_MS = 10000;
+    const PRESENCE_TICK_MS = 4000;
+    const LIVE_PRESENCE_TOPIC = 'liminal-online';
+    const LIVE_PRESENCE_PULSE_MS = 4 * 60000;
+    const LIVE_PRESENCE_READ_MS = 5 * 60000;
+    const LIVE_PRESENCE_TTL_MS = 12 * 60000;
     let presenceReadRequest = 0;
     let presenceReadApplied = 0;
     let presenceReadGeneration = 0;
     let localPulseAckAt = 0;
-    let presencePulseInFlight = false;
+    let lastPulseAt = 0;
+    let lastPresenceReadAt = 0;
+    let presencePulsePromise = null;
     let presencePulseAgain = false;
+    let presenceChannel = null;
+    let livePresenceSupported = false;
+    let livePresenceUnavailable = false;
+    let livePresenceSynced = false;
+    let livePresenceTracked = false;
+    let livePresence = new Set();
+    const presenceVerifyQueue = new Set();
+    const presenceVerifyTriedAt = new Map();
+    let presenceVerifyTimer = 0;
     let eventsChannelLive = false;
     let presenceLeft = false;
     let presenceStopped = false;
@@ -6071,11 +6087,11 @@ void main() {
       if (raw === 'dnd') return 'dnd';
       return STATUS_META[raw] ? raw : 'online';
     }
-    function pulseIsFresh(pulse) {
+    function pulseIsFresh(pulse, ttl = PRESENCE_TTL_MS) {
       if (!pulse || !pulse.last_seen_at) return false;
       const seen = Date.parse(pulse.last_seen_at);
       const age = Date.now() - seen;
-      return Number.isFinite(age) && age >= -5000 && age < PRESENCE_TTL_MS;
+      return Number.isFinite(age) && age >= -5000 && age < ttl;
     }
     function statusFromPulse(pulse) {
       if (!pulse) return '';
@@ -6084,7 +6100,17 @@ void main() {
     }
     function presenceStatusOf(username) {
       const pulse = presenceHeart.get(username);
-      return pulseIsFresh(pulse) ? statusFromPulse(pulse) : 'offline';
+      if (!livePresenceSynced) return pulseIsFresh(pulse) ? statusFromPulse(pulse) : 'offline';
+      // Presence keys are chosen by the client, so a live entry only counts when the
+      // server-written user_presence row shows that account connected recently.
+      if (!livePresence.has(username) || !pulseIsFresh(pulse, LIVE_PRESENCE_TTL_MS)) return 'offline';
+      if (me && username === me.username) return effectiveMyStatus();
+      return statusFromPulse({ status: profileOf(username).status });
+    }
+    function presenceCustomStatusOf(username) {
+      const profile = profileOf(username);
+      if (livePresenceSynced) return profile.custom_status || '';
+      return presenceHeart.get(username)?.custom_status || profile.custom_status || '';
     }
     function indexMessage(msg) {
       if (!msg || msg.id == null) return;
@@ -6133,6 +6159,8 @@ void main() {
         realtime: {
           heartbeatIntervalMs: 10000,
           timeout: 20000,
+          // Background tabs throttle page timers; a missed heartbeat drops the socket and its presence.
+          worker: typeof Worker === 'function',
         },
       });
     }
@@ -10286,9 +10314,105 @@ void main() {
           }
         });
 
+      setupLivePresence(gen);
+
       clearInterval(presenceHeartbeat);
-      presenceHeartbeat = setInterval(() => { pulsePresence(); }, PRESENCE_PULSE_MS);
-      pulsePresence();
+      presenceHeartbeat = setInterval(presenceTick, PRESENCE_TICK_MS);
+      presenceTick();
+    }
+
+    function setupLivePresence(gen) {
+      if (livePresenceUnavailable || !me) return;
+      const channel = sb.channel(LIVE_PRESENCE_TOPIC, { config: { private: true, presence: { key: me.username } } });
+      presenceChannel = channel;
+      livePresenceTracked = false;
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          if (gen === realtimeGen) applyLivePresence(channel);
+        })
+        .subscribe((status, err) => {
+          if (gen !== realtimeGen || channel !== presenceChannel) return;
+          if (status === 'SUBSCRIBED') {
+            livePresenceSupported = true;
+            trackLivePresence(channel);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            livePresenceTracked = false;
+            if (livePresenceSupported) { scheduleRealtimeRecover(); return; }
+            // Databases without the presence policy reject the join; keep the heartbeat rows instead of retrying.
+            if (status === 'CHANNEL_ERROR' && /unauthori|permission/i.test(String(err?.message || ''))) {
+              livePresenceUnavailable = true;
+              presenceChannel = null;
+              sb.removeChannel(channel).catch(() => {});
+            }
+          }
+        });
+    }
+    let livePresenceTrackPromise = null;
+    function trackLivePresence(channel = presenceChannel) {
+      if (!channel || !me || presenceLeft || presenceStopped) return Promise.resolve();
+      if (livePresenceTrackPromise) return livePresenceTrackPromise;
+      livePresenceTrackPromise = (async () => {
+        // Peers check a join against user_presence, so the server row has to land before the track.
+        await pulsePresence();
+        if (channel !== presenceChannel || presenceLeft || presenceStopped || channel.state !== 'joined') return;
+        try {
+          await channel.track({ online_at: new Date().toISOString() });
+          livePresenceTracked = true;
+        } catch {}
+      })().finally(() => { livePresenceTrackPromise = null; });
+      return livePresenceTrackPromise;
+    }
+    function applyLivePresence(channel) {
+      if (channel !== presenceChannel) return;
+      const state = channel.presenceState() || {};
+      livePresence = new Set(Object.keys(state).filter(name => Array.isArray(state[name]) && state[name].length));
+      livePresenceSynced = true;
+      const unverified = [...livePresence].filter(name => !pulseIsFresh(presenceHeart.get(name), LIVE_PRESENCE_TTL_MS));
+      if (unverified.length) queuePresenceVerify(unverified);
+      refreshPresenceUi();
+    }
+    function queuePresenceVerify(names) {
+      const now = Date.now();
+      names.forEach(name => {
+        if (now - (presenceVerifyTriedAt.get(name) || 0) < 30000) return;
+        presenceVerifyTriedAt.set(name, now);
+        presenceVerifyQueue.add(name);
+      });
+      if (presenceVerifyQueue.size && !presenceVerifyTimer) presenceVerifyTimer = setTimeout(verifyQueuedPresence, 500);
+    }
+    async function verifyQueuedPresence() {
+      presenceVerifyTimer = 0;
+      const names = [...presenceVerifyQueue];
+      presenceVerifyQueue.clear();
+      if (!names.length || !sb || presenceStopped) return;
+      try {
+        const { data, error } = await sb.from('user_presence')
+          .select('username,status,custom_status,last_seen_at').in('username', names);
+        if (error || !Array.isArray(data)) return;
+        data.forEach(row => {
+          const current = presenceHeart.get(row.username);
+          if (!current || !(Date.parse(current.last_seen_at) > Date.parse(row.last_seen_at))) presenceHeart.set(row.username, row);
+        });
+        refreshPresenceUi();
+      } catch {}
+    }
+    function refreshPresenceUi() {
+      scheduleRenderMembers();
+      patchPresenceDots();
+      if (me && $('self-dot')?.dataset.status !== presenceStatusOf(me.username)) renderSelf();
+    }
+    function presencePulseIntervalMs() {
+      return livePresenceSupported ? LIVE_PRESENCE_PULSE_MS : PRESENCE_PULSE_MS;
+    }
+    function presenceTick() {
+      if (!me || presenceLeft || presenceStopped) return;
+      const now = Date.now();
+      if (now - lastPulseAt >= presencePulseIntervalMs()) pulsePresence();
+      if (livePresenceSupported) {
+        if (now - lastPresenceReadAt >= LIVE_PRESENCE_READ_MS) pollPresenceHeart({ hidden: true });
+      } else if (now - lastPresenceReadAt >= PRESENCE_HEART_POLL_MS) {
+        pollPresenceHeart();
+      }
     }
 
     function wirePresenceLifecycle() {
@@ -10312,6 +10436,7 @@ void main() {
         if (!sb || !sb.realtime || !sb.realtime.isConnected()) return false;
         if (!dbChannel || dbChannel.state !== 'joined') return false;
         if (!eventsChannel || eventsChannel.state !== 'joined' || !eventsChannelLive) return false;
+        if (livePresenceSupported && (!presenceChannel || presenceChannel.state !== 'joined')) return false;
         return true;
       } catch { return false; }
     }
@@ -10357,10 +10482,13 @@ void main() {
         await refreshSessionQuiet();
         const oldDb = dbChannel;
         const oldEvents = eventsChannel;
+        const oldPresence = presenceChannel;
         dbChannel = null;
         eventsChannel = null;
+        presenceChannel = null;
         if (oldDb) { try { await sb.removeChannel(oldDb); } catch {} }
         if (oldEvents) { try { await sb.removeChannel(oldEvents); } catch {} }
+        if (oldPresence) { try { await sb.removeChannel(oldPresence); } catch {} }
         if (gen !== realtimeGen || presenceStopped || presenceLeft) return;
         setupRealtime();
         lastListRefreshAt = Date.now();
@@ -10387,8 +10515,14 @@ void main() {
         const refreshLists = Date.now() - lastListRefreshAt > 15000;
         if (!realtimeHealthy()) await recoverRealtime();
         else {
-          await pulsePresence();
-          const jobs = [loadPresenceHeart(), catchUpPoll()];
+          const jobs = [catchUpPoll()];
+          if (!livePresenceSupported) {
+            await pulsePresence();
+            jobs.push(loadPresenceHeart());
+          } else {
+            if (!livePresenceTracked) jobs.push(trackLivePresence());
+            presenceTick();
+          }
           if (refreshLists) {
             lastListRefreshAt = Date.now();
             jobs.push(refreshListsQuiet());
@@ -10409,6 +10543,7 @@ void main() {
       const generation = presenceReadGeneration;
       const request = ++presenceReadRequest;
       const startedAt = Date.now();
+      lastPresenceReadAt = startedAt;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
       try {
@@ -10425,18 +10560,32 @@ void main() {
       finally { clearTimeout(timeout); }
     }
     // user_presence is deliberately not in the realtime publication: every pulse
-    // fanned out to every subscriber and dominated database load. Polling is
-    // one cheap read per client; keep PULSE + POLL well under PRESENCE_TTL_MS.
-    async function pollPresenceHeart() {
-      if (!me || presenceLeft || presenceStopped || document.visibilityState !== 'visible') return;
+    // fanned out to every subscriber and dominated database load. Live joins and
+    // leaves travel over the private presence channel; without it, keep
+    // PULSE + POLL well under PRESENCE_TTL_MS. With it, keep PULSE + READ well
+    // under LIVE_PRESENCE_TTL_MS.
+    async function pollPresenceHeart({ hidden = false } = {}) {
+      if (!me || presenceLeft || presenceStopped || (!hidden && document.visibilityState !== 'visible')) return;
       await loadPresenceHeart();
       scheduleRenderMembers();
       patchPresenceDots();
     }
-    async function pulsePresence() {
-      if (!me || presenceLeft || presenceStopped) return;
-      if (presencePulseInFlight) { presencePulseAgain = true; return; }
-      presencePulseInFlight = true;
+    function pulsePresence() {
+      if (!me || presenceLeft || presenceStopped) return Promise.resolve();
+      if (presencePulsePromise) { presencePulseAgain = true; return presencePulsePromise; }
+      lastPulseAt = Date.now();
+      presencePulsePromise = sendPresencePulse().then((ok) => {
+        if (!ok) lastPulseAt = Date.now() - presencePulseIntervalMs() + 15000;
+      }).finally(() => {
+        presencePulsePromise = null;
+        if (presencePulseAgain) {
+          presencePulseAgain = false;
+          if (!presenceLeft && !presenceStopped) pulsePresence();
+        }
+      });
+      return presencePulsePromise;
+    }
+    async function sendPresencePulse() {
       const username = me.username;
       const status = effectiveMyStatus();
       const customStatus = me.custom_status || '';
@@ -10446,7 +10595,8 @@ void main() {
         const { error } = await sb.rpc('chat_presence_pulse', {
           p_status: status, p_custom_status: customStatus,
         }).abortSignal(controller.signal);
-        if (error || presenceLeft || !me || me.username !== username) return;
+        if (error) return false;
+        if (presenceLeft || !me || me.username !== username) return true;
         const oldStatus = presenceStatusOf(username);
         const oldCustomStatus = presenceHeart.get(username)?.custom_status || '';
         localPulseAckAt = Date.now();
@@ -10459,25 +10609,24 @@ void main() {
           patchPresenceDots();
           if (oldStatus !== presenceStatusOf(username)) renderSelf();
         }
-      } catch {}
-      finally {
-        clearTimeout(timeout);
-        presencePulseInFlight = false;
-        if (presencePulseAgain) {
-          presencePulseAgain = false;
-          if (!presenceLeft && !presenceStopped) pulsePresence();
-        }
-      }
+        return true;
+      } catch { return false; }
+      finally { clearTimeout(timeout); }
     }
     function onPageHidePresence() {
       if (currentView) snapshotComposer(currentView);
       presenceLeft = true;
       presenceReadGeneration++;
+      if (presenceChannel && livePresenceTracked) {
+        livePresenceTracked = false;
+        presenceChannel.untrack().catch(() => {});
+      }
     }
     function onPageShowPresence() {
       if (presenceStopped) return;
       presenceLeft = false;
-      pulsePresence();
+      if (!livePresenceSupported) pulsePresence();
+      else if (!livePresenceTracked) trackLivePresence();
       wakeAndSync();
     }
 
@@ -10836,7 +10985,6 @@ void main() {
       pendingTimers.forEach(clearInterval);
       pendingTimers = [
         setInterval(catchUpPoll, 20000),
-        setInterval(pollPresenceHeart, PRESENCE_HEART_POLL_MS),
         setInterval(refreshPollTimers, 30000),
         setInterval(() => { tickCooldown(); tickTimeout(); }, 1000),
         setInterval(() => {
@@ -12323,9 +12471,8 @@ void main() {
       const visibleOffline = offline.filter(matchesQuery);
 
       const row = (p, isOnline) => {
-        const live = presenceHeart.get(p.username) || {};
         const status = isOnline ? presenceStatusOf(p.username) : 'offline';
-        const statusText = (isOnline ? (live.custom_status || p.custom_status) : '') || (isOnline ? statusMeta(status).label : '');
+        const statusText = (isOnline ? presenceCustomStatusOf(p.username) : '') || (isOnline ? statusMeta(status).label : '');
         const role = staffRoleOf(p);
         const roleLabel = role !== 'member' ? (STAFF_ROLE_META[role]?.label || '') : '';
         const sub = [roleLabel, statusText].filter(Boolean).join(' · ');
@@ -12367,7 +12514,6 @@ void main() {
       const self = me && username === me.username;
       hoverCardUser = username;
       hoverCardAnchor = anchor;
-      const meta = presenceHeart.get(username) || {};
       const status = presenceStatusOf(username);
       const card = $('hover-card');
 
@@ -12383,7 +12529,7 @@ void main() {
       const role = staffRoleOf(p);
       $('hc-role').hidden = role === 'member';
       $('hc-role').textContent = STAFF_ROLE_META[role]?.label || '';
-      const customStatus = meta.custom_status || p.custom_status;
+      const customStatus = presenceCustomStatusOf(username);
       $('hc-status-wrap').hidden = !customStatus;
       $('hc-status').textContent = customStatus || '';
       $('hc-bio-wrap').hidden = !p.bio;
