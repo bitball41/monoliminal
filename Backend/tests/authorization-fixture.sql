@@ -19,6 +19,15 @@ CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid() PRIMARY KEY,bucke
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql AS $$SELECT string_to_array($1,'/')$$;
 GRANT ALL ON storage.objects TO anon,authenticated,service_role;
+CREATE SCHEMA realtime;
+CREATE TABLE realtime.messages(id uuid DEFAULT gen_random_uuid(),topic text NOT NULL,extension text NOT NULL,
+  payload jsonb,event text,private boolean DEFAULT false,inserted_at timestamp DEFAULT now(),updated_at timestamp DEFAULT now());
+ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+CREATE FUNCTION realtime.topic() RETURNS text LANGUAGE sql STABLE AS $$
+  SELECT nullif(current_setting('realtime.topic',true),'')::text
+$$;
+GRANT USAGE ON SCHEMA realtime TO anon,authenticated,service_role;
+GRANT SELECT,INSERT,UPDATE ON realtime.messages TO anon,authenticated,service_role;
 
 CREATE TABLE "private"."chat_admin_audit" (
   "id" int8 GENERATED ALWAYS AS IDENTITY NOT NULL,
