@@ -63,6 +63,11 @@ let revealFallback=0;
 let bootSequence=0;
 let lastRefreshSignal="";
 let refreshSignalReady=false;
+let refreshCheckPromise=null;
+let lastRefreshCheckAt=0;
+let controlChannelLive=false;
+const CONTROL_RECONCILE_MS=5*60000;
+const CONTROL_FALLBACK_POLL_MS=30000;
 let mediaRequest=null;
 function setStage(stage){
   window.LIMINAL_STAGE=stage;
@@ -167,19 +172,30 @@ function requestForceRefresh(value){
   refreshSignalReady=true;
   boot(signal);
 }
-async function checkForceRefresh(initialize=false){
-  if(!window.supabase)return;
-  try{
-    const client=window.liminalControlClient;
-    const {data}=await client.from("app_settings").select("value").eq("key","force_refresh_at").maybeSingle();
-    if(!data)return;
-    if(initialize&&!refreshSignalReady){
-      lastRefreshSignal=String(data.value||"").trim();
-      refreshSignalReady=true;
-      return;
-    }
-    requestForceRefresh(data.value);
-  }catch{}
+function checkForceRefresh(initialize=false){
+  if(!window.supabase||!window.liminalControlClient)return Promise.resolve();
+  if(refreshCheckPromise)return refreshCheckPromise;
+  lastRefreshCheckAt=Date.now();
+  refreshCheckPromise=(async()=>{
+    try{
+      const client=window.liminalControlClient;
+      const {data}=await client.from("app_settings").select("value").eq("key","force_refresh_at").maybeSingle();
+      if(!data)return;
+      if(initialize&&!refreshSignalReady){
+        lastRefreshSignal=String(data.value||"").trim();
+        refreshSignalReady=true;
+        return;
+      }
+      requestForceRefresh(data.value);
+    }catch{}
+  })().finally(()=>{refreshCheckPromise=null;});
+  return refreshCheckPromise;
+}
+function pollForceRefresh(){
+  if(document.visibilityState!=="visible"||navigator.onLine===false)return;
+  const interval=controlChannelLive?CONTROL_RECONCILE_MS:CONTROL_FALLBACK_POLL_MS;
+  if(Date.now()-lastRefreshCheckAt<interval)return;
+  return checkForceRefresh();
 }
 async function watchForceRefresh(){
   if(!window.supabase)return;
@@ -191,8 +207,13 @@ async function watchForceRefresh(){
       const row=payload.new;
       if(row)requestForceRefresh(row.value);
     })
-    .subscribe(status=>{if(status==="SUBSCRIBED")checkForceRefresh();});
-  setInterval(checkForceRefresh,30000);
+    .subscribe(status=>{
+      controlChannelLive=status==="SUBSCRIBED";
+      if(controlChannelLive)checkForceRefresh();
+    });
+  setInterval(pollForceRefresh,CONTROL_FALLBACK_POLL_MS);
+  document.addEventListener("visibilitychange",pollForceRefresh);
+  window.addEventListener("online",()=>checkForceRefresh());
 }
 async function boot(refreshToken=Date.now()){
   const sequence=++bootSequence;

@@ -5838,6 +5838,11 @@ void main() {
     let wakeRunning = false;
     let lastWakeAt = 0;
     let lastListRefreshAt = 0;
+    const LIST_RECONCILE_MS = 5 * 60000;
+    const MESSAGE_RECONCILE_MS = 5 * 60000;
+    const MESSAGE_FALLBACK_POLL_MS = 20000;
+    let lastCatchUpPollAt = 0;
+    let catchUpPollPromise = null;
     let memberListSignature = '';
     const memberListHtml = { online: null, offline: null };
     let memberListClicksBound = false;
@@ -6551,6 +6556,7 @@ void main() {
 
       await Promise.all([loadProfiles(), loadChannels(), loadDms(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadPresenceHeart(), loadStickerCatalog()]);
       await hydrateChannelUnreads();
+      lastListRefreshAt = Date.now();
       hydrateInbox();
 
       $('app-shell').hidden = false;
@@ -10512,7 +10518,7 @@ void main() {
       try {
         await refreshSessionQuiet();
         if (presenceStopped || presenceLeft) return;
-        const refreshLists = Date.now() - lastListRefreshAt > 15000;
+        const refreshLists = Date.now() - lastListRefreshAt >= LIST_RECONCILE_MS;
         if (!realtimeHealthy()) await recoverRealtime();
         else {
           const jobs = [catchUpPoll()];
@@ -10984,7 +10990,7 @@ void main() {
     function startTimers() {
       pendingTimers.forEach(clearInterval);
       pendingTimers = [
-        setInterval(catchUpPoll, 20000),
+        setInterval(() => catchUpPoll({ periodic: true }), MESSAGE_FALLBACK_POLL_MS),
         setInterval(refreshPollTimers, 30000),
         setInterval(() => { tickCooldown(); tickTimeout(); }, 1000),
         setInterval(() => {
@@ -11003,21 +11009,35 @@ void main() {
       });
     }
 
-    async function catchUpPoll() {
-      try {
-        if (currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID) return;
-        if (currentView.type === 'forum') return;
-        const key = viewKey(currentView);
-        const cache = msgCache.get(key) || [];
-        const real = cache.filter(m => !m.pending && !m.failed && !(typeof m.id === 'string' && m.id.startsWith('pending:')));
-        const since = real.length ? real[real.length - 1].created_at : null;
-        let query = currentView.type === 'channel'
-          ? sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', currentView.id)
-          : sb.from('dm_messages').select(DM_MESSAGE_COLUMNS).eq('dm_id', currentView.id);
-        if (since) query = query.gt('created_at', since);
-        const { data } = await query.order('created_at', { ascending: true }).limit(isLiteMode() ? 25 : 50);
-        (data || []).forEach(m => ingestMessage(m, currentView.type === 'dm' ? 'dm' : 'channel'));
-      } catch {}
+    function catchUpPoll({ periodic = false } = {}) {
+      if (!me || !sb || presenceStopped || presenceLeft || !currentView) return Promise.resolve();
+      if (currentView.type === 'forum' || (currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID)) return Promise.resolve();
+      if (periodic) {
+        if (document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
+        // Realtime delivers new messages immediately. HTTP only reconciles missed
+        // events occasionally, or provides a fast fallback while disconnected.
+        const interval = realtimeHealthy() ? MESSAGE_RECONCILE_MS : MESSAGE_FALLBACK_POLL_MS;
+        if (Date.now() - lastCatchUpPollAt < interval) return Promise.resolve();
+      }
+      if (catchUpPollPromise) return catchUpPollPromise;
+      const view = { ...currentView };
+      const key = viewKey(view);
+      lastCatchUpPollAt = Date.now();
+      catchUpPollPromise = (async () => {
+        try {
+          const cache = msgCache.get(key) || [];
+          const real = cache.filter(m => !m.pending && !m.failed && !(typeof m.id === 'string' && m.id.startsWith('pending:')));
+          const since = real.length ? real[real.length - 1].created_at : null;
+          let query = view.type === 'channel'
+            ? sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', view.id)
+            : sb.from('dm_messages').select(DM_MESSAGE_COLUMNS).eq('dm_id', view.id);
+          if (since) query = query.gt('created_at', since);
+          const { data } = await query.order('created_at', { ascending: true }).limit(isLiteMode() ? 25 : 50);
+          if (presenceStopped || presenceLeft) return;
+          (data || []).forEach(m => ingestMessage(m, view.type === 'dm' ? 'dm' : 'channel'));
+        } catch {}
+      })().finally(() => { catchUpPollPromise = null; });
+      return catchUpPollPromise;
     }
 
     function tickCooldown() {
