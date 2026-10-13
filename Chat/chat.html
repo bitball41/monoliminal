@@ -3220,9 +3220,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         <input id="member-search-input" type="search" placeholder="Search members…" aria-label="Search members" autocomplete="off" spellcheck="false">
       </label>
       <div class="members-scroll scroll-thin">
-        <div class="section-label"><span>Online — <span id="online-count">0</span></span></div>
+        <div class="section-label"><span>Online · <span id="online-count">…</span></span></div>
         <div class="member-list" id="online-list"></div>
-        <div class="section-label"><span>Offline — <span id="offline-count">0</span></span></div>
+        <div class="section-label"><span>Offline · <span id="offline-count">…</span></span></div>
         <div class="member-list" id="offline-list"></div>
         <p class="member-search-empty" id="member-search-empty" hidden>No members found.</p>
       </div>
@@ -5833,6 +5833,12 @@ void main() {
     let presenceRetryAttempt = 0;
     let lastPresenceAttemptAt = 0;
     let presenceUnavailable = false;
+    let presenceDegraded = false;
+    let presenceFallbackReady = false;
+    let presenceFallbackTimer = 0;
+    const presenceFallbackRows = new Map();
+    const PRESENCE_FALLBACK_MS = 30000;
+    const PRESENCE_FALLBACK_TTL_MS = 75000;
     let livePresenceSynced = false;
     let livePresenceTracked = false;
     let livePresence = new Set();
@@ -6142,19 +6148,32 @@ void main() {
       if (!profiles.has(username) || profile.is_banned || isHiddenBot(username)) return 'offline';
       // An acknowledged track proves this tab is online even if its sync arrives later.
       const self = me && username === me.username;
-      if (!(self && livePresenceTracked) && !(livePresenceSynced && livePresence.has(username))) return 'offline';
-      if (self) return effectiveMyStatus();
-      return STATUS_META[profile.status] ? profile.status : 'online';
+      if (livePresenceTracked || (livePresenceSynced && livePresence.has(username))) {
+        if (!(self && livePresenceTracked) && !livePresence.has(username)) return 'offline';
+        if (self) return effectiveMyStatus();
+        return STATUS_META[profile.status] ? profile.status : 'online';
+      }
+      // Live presence gave up. Recent user_presence rows keep the roster from going blank.
+      if (presenceDegraded && presenceFallbackReady) {
+        const row = presenceFallbackRows.get(username);
+        if (!row || Date.now() - Date.parse(row.last_seen_at) > PRESENCE_FALLBACK_TTL_MS) return 'offline';
+        if (self) return effectiveMyStatus();
+        return STATUS_META[row.status] ? row.status : 'online';
+      }
+      return 'offline';
     }
     function presenceCustomStatusOf(username) {
       return profileOf(username).custom_status || '';
     }
     function presenceCountReady() {
-      return livePresenceSynced && livePresenceTracked && !presenceLeft && !presenceStopped && navigator.onLine !== false;
+      if (presenceLeft || presenceStopped || navigator.onLine === false) return false;
+      if (livePresenceSynced && livePresenceTracked) return true;
+      return presenceDegraded && presenceFallbackReady;
     }
     function selfPresenceLabel() {
       if (me?.custom_status) return me.custom_status;
       if (presenceLeft || presenceStopped || navigator.onLine === false) return 'Offline';
+      if (livePresenceTracked || (presenceDegraded && presenceFallbackReady)) return statusMeta(effectiveMyStatus()).label;
       if (!livePresenceTracked) return presenceUnavailable ? 'Presence unavailable' : 'Connecting…';
       return statusMeta(effectiveMyStatus()).label;
     }
@@ -10478,7 +10497,7 @@ void main() {
       presenceUnavailable = false;
       // Separate connection keys let a tab leave without removing another tab/device.
       const channel = sb.channel(LIVE_PRESENCE_TOPIC, {
-        config: { private: true, presence: { key: crypto.randomUUID() } },
+        config: { private: true, presence: { key: crypto.randomUUID(), enabled: true } },
       });
       const session = { channel, gen, epoch: 0, synced: false, trackPromise: null };
       presenceSession = session;
@@ -10523,6 +10542,7 @@ void main() {
         livePresenceTracked = true;
         presenceRetryAttempt = 0;
         presenceUnavailable = false;
+        stopPresenceFallback();
         if (session.synced) applyLivePresence(session.channel);
         else refreshPresenceUi();
       })().finally(() => {
@@ -10576,15 +10596,67 @@ void main() {
       }
       try { sb.removeChannel(session.channel).catch(() => {}); } catch {}
     }
+    function stopPresenceFallback() {
+      presenceDegraded = false;
+      presenceFallbackReady = false;
+      presenceFallbackRows.clear();
+      clearTimeout(presenceFallbackTimer);
+      presenceFallbackTimer = 0;
+    }
+    function schedulePresenceFallback() {
+      clearTimeout(presenceFallbackTimer);
+      presenceFallbackTimer = setTimeout(() => {
+        presenceFallbackTimer = 0;
+        syncPresenceFallback();
+      }, PRESENCE_FALLBACK_MS);
+    }
+    async function syncPresenceFallback() {
+      if (!presenceDegraded || !me || !sb || presenceStopped || presenceLeft || livePresenceTracked) return;
+      if (document.visibilityState === 'hidden') {
+        schedulePresenceFallback();
+        return;
+      }
+      try {
+        const nowIso = new Date().toISOString();
+        await sb.from('user_presence').upsert({
+          username: me.username,
+          status: effectiveMyStatus(),
+          custom_status: me.custom_status || '',
+          last_seen_at: nowIso,
+        });
+        const { data, error } = await sb.from('user_presence').select('username,status,custom_status,last_seen_at');
+        if (error || !Array.isArray(data) || !presenceDegraded || livePresenceTracked) return;
+        const cutoff = Date.now() - PRESENCE_FALLBACK_TTL_MS;
+        presenceFallbackRows.clear();
+        data.forEach(row => {
+          if (row && row.username && Date.parse(row.last_seen_at) >= cutoff) presenceFallbackRows.set(row.username, row);
+        });
+        presenceFallbackReady = true;
+        refreshPresenceUi();
+      } catch (err) {
+        console.warn('[liminal] presence fallback failed', err);
+      } finally {
+        if (presenceDegraded && !livePresenceTracked && !presenceStopped && !presenceLeft) schedulePresenceFallback();
+      }
+    }
+    function startPresenceFallback() {
+      if (presenceDegraded || livePresenceTracked || !me || presenceStopped || presenceLeft) return;
+      presenceDegraded = true;
+      presenceFallbackReady = false;
+      syncPresenceFallback();
+    }
     function schedulePresenceReconnect(session) {
       if (!isCurrentPresence(session)) return;
       stopLivePresence();
       presenceUnavailable = true;
       refreshPresenceUi();
-      // A failed presence service must never bring back the costly HTTP fallback
-      // or repeatedly tear down healthy message subscriptions.
+      // Live retries stay bounded so a dead presence tracker cannot take the message socket with it.
+      // Once those retries are spent, a slow user_presence read keeps the roster from sticking on dashes.
       const delay = PRESENCE_RETRY_DELAYS_MS[presenceRetryAttempt++];
-      if (delay === undefined) return;
+      if (delay === undefined) {
+        startPresenceFallback();
+        return;
+      }
       presenceReconnectTimer = setTimeout(() => {
         presenceReconnectTimer = 0;
         setupLivePresence();
@@ -10726,7 +10798,12 @@ void main() {
     function onPageHidePresence() {
       if (currentView) snapshotComposer(currentView);
       presenceLeft = true;
+      const wasDegraded = presenceDegraded;
       stopLivePresence();
+      stopPresenceFallback();
+      if (wasDegraded && me && sb) {
+        sb.from('user_presence').delete().eq('username', me.username).then(() => {}, () => {});
+      }
     }
     function onPageShowPresence() {
       if (presenceStopped || navigator.onLine === false) return;
@@ -12651,14 +12728,14 @@ void main() {
         }));
       }
       const countsReady = presenceCountReady();
-      $('online-count').textContent = countsReady ? visibleOnline.length : '—';
-      $('offline-count').textContent = countsReady ? visibleOffline.length : '—';
+      $('online-count').textContent = countsReady ? visibleOnline.length : '…';
+      $('offline-count').textContent = countsReady ? visibleOffline.length : '…';
       const resultCount = visibleOnline.length + visibleOffline.length;
       $('member-search-empty').hidden = !query || resultCount > 0;
       $('member-count').textContent = query ? `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`
         : countsReady ? `${onlineTotal} online`
         : navigator.onLine === false ? 'Offline' : presenceUnavailable ? 'Presence unavailable' : 'Connecting…';
-      $('member-toggle-count').textContent = countsReady ? onlineTotal : '—';
+      $('member-toggle-count').textContent = countsReady ? onlineTotal : '…';
       memberListSignature = memberPresenceSignature();
     }
 
@@ -12918,7 +12995,13 @@ void main() {
         p_sub_role: next,
       });
       if (error || data !== true) {
-        toast({ type: 'error', text: error?.message || 'Could not update subrole.' });
+        const missing = /schema cache|could not find the function/i.test(error?.message || '');
+        toast({
+          type: 'error',
+          text: missing
+            ? 'Subroles are not on the database yet. Apply the subrole migration, then try again.'
+            : (error?.message || 'Could not update subrole.'),
+        });
         return false;
       }
       const p = profiles.get(username);
