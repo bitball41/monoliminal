@@ -334,14 +334,16 @@ test('rejected tracks and unavailable joins stop after four bounded retries', as
     await p.advance(delays[attempt]);
   }
   assert.equal(p.channels.length, 5, 'initial connection plus four retries');
-  assert.equal(p.timers.size, 0);
+  assert.equal(p.timers.size, 1, 'exhausted live retries hand the roster to the slow fallback');
+  assert.equal([...p.timers.values()][0].ms, 30000);
+  assert.ok(p.rest.some(call => call.table === 'user_presence'));
   p.context.ensureLivePresence();
   assert.equal(p.channels.length, 5, 'repeated focus/wake cannot restart exhausted retries immediately');
   await p.advance(60_000);
-  assert.equal(p.channels.length, 5, 'there is no permanent retry interval');
+  assert.equal(p.channels.length, 5, 'there is no permanent live-presence retry interval');
   p.context.ensureLivePresence();
   assert.equal(p.channels.length, 6, 'a later user wake can retry after the cooldown');
-  assert.deepEqual(p.rest, []);
+  assert.ok(p.rest.every(call => call.table === 'user_presence'));
 });
 
 test('overlapping track calls share one request while the ack is pending', async () => {
@@ -523,5 +525,6 @@ test('idle, waking and status changes produce no presence HTTP traffic or repeat
   assert.deepEqual(p.rest, []);
   assert(p.wakeJobs.includes('messages'), 'actual wakeAndSync still reconciles messages');
   assert.doesNotMatch(section('    function setupRealtime()', '    function setupLivePresence('), /setInterval/);
-  assert.doesNotMatch(chat.slice(chat.indexOf('    const LIVE_PRESENCE_TOPIC =')), /chat_presence_pulse|from\(['"]user_presence['"]\)/);
+  assert.doesNotMatch(chat.slice(chat.indexOf('    const LIVE_PRESENCE_TOPIC =')), /chat_presence_pulse/);
+  assert.equal(p.rest.length, 0, 'a healthy presence socket does not touch user_presence');
 });

@@ -673,6 +673,102 @@ BEGIN
     "actor": "anon",
     "sql": "select public.chat_set_sub_role('fake','fake','@member','writer')",
     "allowed": false
+  },
+  {
+    "name": "member can pick their own subrole",
+    "actor": "member",
+    "sql": "select public.chat_set_own_subrole('artist')",
+    "allowed": true
+  },
+  {
+    "name": "picking a subrole does not change staff rank",
+    "actor": "member",
+    "sql": "select username from public.profiles where username='@member' and sub_role='artist' and staff_role='member' and not is_admin and not is_owner",
+    "allowed": true
+  },
+  {
+    "name": "member cannot pick a missing subrole",
+    "actor": "member",
+    "sql": "select public.chat_set_own_subrole('not_a_real_subrole')",
+    "allowed": false
+  },
+  {
+    "name": "member can clear their own subrole",
+    "actor": "member",
+    "sql": "select public.chat_set_own_subrole('')",
+    "allowed": true
+  },
+  {
+    "name": "member cannot create a subrole",
+    "actor": "member",
+    "sql": "select public.chat_save_subrole('', 'Nope', '#112233')",
+    "allowed": false
+  },
+  {
+    "name": "mod cannot create a subrole",
+    "actor": "mod",
+    "sql": "select public.chat_save_subrole('', 'Nope', '#112233')",
+    "allowed": false
+  },
+  {
+    "name": "co-owner can create a subrole",
+    "actor": "co_owner",
+    "sql": "select public.chat_save_subrole('', 'Lore Keeper', '#88ccff')",
+    "allowed": true
+  },
+  {
+    "name": "created subrole keeps the chosen name and color",
+    "actor": "co_owner",
+    "sql": "select slug from public.chat_subroles where slug='lore_keeper' and label='Lore Keeper' and color='#88ccff'",
+    "allowed": true
+  },
+  {
+    "name": "bad subrole color is rejected",
+    "actor": "co_owner",
+    "sql": "select public.chat_save_subrole('', 'Bad Color', 'red')",
+    "allowed": false
+  },
+  {
+    "name": "co-owner can rename and recolor a subrole",
+    "actor": "co_owner",
+    "sql": "select public.chat_save_subrole('lore_keeper', 'Lore Nerd', '#123456')",
+    "allowed": true
+  },
+  {
+    "name": "recolor sticks without changing the slug",
+    "actor": "co_owner",
+    "sql": "select slug from public.chat_subroles where slug='lore_keeper' and label='Lore Nerd' and color='#123456'",
+    "allowed": true
+  },
+  {
+    "name": "member cannot delete a subrole",
+    "actor": "member",
+    "sql": "select public.chat_delete_subrole('lore_keeper')",
+    "allowed": false
+  },
+  {
+    "name": "member can wear a subrole a co-owner just made",
+    "actor": "member",
+    "sql": "select public.chat_set_own_subrole('lore_keeper')",
+    "allowed": true
+  },
+  {
+    "name": "co-owner delete removes the subrole and clears it off people",
+    "actor": "co_owner",
+    "sql": "select public.chat_delete_subrole('lore_keeper')",
+    "allowed": true
+  },
+  {
+    "name": "deleted subrole is gone and does not stick to the member",
+    "actor": "co_owner",
+    "sql": "select 1 where not exists (select 1 from public.chat_subroles where slug='lore_keeper') and exists (select 1 from public.profiles where username='@member' and sub_role='' and staff_role='member')",
+    "allowed": true
+  },
+  {
+    "name": "member cannot insert a subrole row directly",
+    "actor": "member",
+    "sql": "insert into public.chat_subroles(slug, label, color) values ('hack', 'Hack', '#ffffff')",
+    "allowed": false
   }
 ]$cases$::jsonb) LOOP
     EXECUTE 'RESET ROLE';
