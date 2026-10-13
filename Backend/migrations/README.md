@@ -12,6 +12,6 @@ Healthy channel-message and launcher-control subscriptions use 5-minute HTTP rec
 
 The backend authorization migration secures current and legacy write paths. All permission checks use the verified account and canonical database role. Caller-supplied owner flags, usernames and legacy password fields do not grant access.
 
-`20261013060000_chat_cosmetic_sub_roles.sql` adds `profiles.sub_role`. Apply it before deploying the Chat client that reads the column. Subroles are labels such as developer or artist. They do not change staff rank. Direct profile edits cannot set one. Mods and above assign them with `chat_set_sub_role` until members can pick their own.
+`20261013060000_chat_cosmetic_sub_roles.sql` adds `profiles.sub_role`. `20261013223000_chat_subrole_catalog.sql` adds the editable catalog. Subroles do not change staff rank. Signed-in people pick their own with `chat_set_own_subrole`. Co-owners and owners create, rename, recolor, and delete them with `chat_save_subrole` and `chat_delete_subrole`. Direct profile edits still cannot set one.
 
 Run `npm ci --ignore-scripts` and `npm test` before deployment. The isolated database tests use PGlite and a reduced snapshot of the existing runtime schema; the test fixture is not a production migration. Also run the rollback-only SQL checks in `../tests/authorization-regression.sql` against the linked project when deploying. They create temporary fixture accounts and revert all writes, including settings and audit rows.

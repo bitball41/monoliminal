@@ -914,23 +914,44 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       padding: 0 6px; border-radius: 999px; border: 1px solid transparent;
       font-family: var(--font-ui); font-size: 0.58rem; font-weight: 800;
       letter-spacing: .02em; line-height: 1.65; white-space: nowrap;
+      color: var(--subrole, var(--text));
+      background: color-mix(in srgb, var(--subrole, #888) 18%, transparent);
+      border-color: color-mix(in srgb, var(--subrole, #888) 42%, transparent);
     }
-    .subrole-badge.developer { color: #67e8f9; background: rgba(34, 211, 238, .14); border-color: rgba(34, 211, 238, .38); }
-    .subrole-badge.artist { color: #f9a8d4; background: rgba(244, 114, 182, .14); border-color: rgba(244, 114, 182, .4); }
-    .subrole-badge.musician { color: #c4b5fd; background: rgba(167, 139, 250, .16); border-color: rgba(167, 139, 250, .42); }
-    .subrole-badge.writer { color: #fcd34d; background: rgba(251, 191, 36, .14); border-color: rgba(251, 191, 36, .4); }
-    .subrole-badge.creator { color: #fdba74; background: rgba(251, 146, 60, .14); border-color: rgba(251, 146, 60, .4); }
-    .subrole-badge.translator { color: #7dd3fc; background: rgba(56, 189, 248, .14); border-color: rgba(56, 189, 248, .4); }
-    .subrole-badge.bug_hunter { color: #86efac; background: rgba(74, 222, 128, .14); border-color: rgba(74, 222, 128, .4); }
-    .subrole-badge.event_host { color: #fda4af; background: rgba(251, 113, 133, .14); border-color: rgba(251, 113, 133, .4); }
-    html[data-light="true"] .subrole-badge.developer { color: #0e7490; background: rgba(8, 145, 178, .12); border-color: rgba(8, 145, 178, .35); }
-    html[data-light="true"] .subrole-badge.artist { color: #9d174d; background: rgba(190, 24, 93, .1); border-color: rgba(190, 24, 93, .32); }
-    html[data-light="true"] .subrole-badge.musician { color: #5b21b6; background: rgba(109, 40, 217, .1); border-color: rgba(109, 40, 217, .32); }
-    html[data-light="true"] .subrole-badge.writer { color: #92400e; background: rgba(180, 83, 9, .1); border-color: rgba(180, 83, 9, .32); }
-    html[data-light="true"] .subrole-badge.creator { color: #9a3412; background: rgba(194, 65, 12, .1); border-color: rgba(194, 65, 12, .32); }
-    html[data-light="true"] .subrole-badge.translator { color: #075985; background: rgba(3, 105, 161, .1); border-color: rgba(3, 105, 161, .32); }
-    html[data-light="true"] .subrole-badge.bug_hunter { color: #166534; background: rgba(22, 101, 52, .1); border-color: rgba(22, 101, 52, .32); }
-    html[data-light="true"] .subrole-badge.event_host { color: #9f1239; background: rgba(190, 18, 60, .1); border-color: rgba(190, 18, 60, .32); }
+    html[data-light="true"] .subrole-badge { color: color-mix(in srgb, var(--subrole, #444) 78%, #111); }
+    .subrole-header-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      max-width: 9.5rem; min-height: 32px; padding: 0 10px;
+      border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+      color: var(--text); font-family: var(--font-ui); font-size: 0.72rem; font-weight: 800;
+      cursor: pointer;
+    }
+    .subrole-header-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .subrole-header-btn[data-set="true"] {
+      color: var(--subrole);
+      border-color: color-mix(in srgb, var(--subrole) 55%, transparent);
+      background: color-mix(in srgb, var(--subrole) 16%, var(--surface));
+    }
+    html[data-light="true"] .subrole-header-btn[data-set="true"] { color: color-mix(in srgb, var(--subrole) 78%, #111); }
+    .subrole-picker { display: grid; gap: 6px; }
+    .subrole-option-row { display: flex; align-items: center; gap: 6px; }
+    .subrole-option {
+      display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+      min-height: 42px; padding: 8px 10px; text-align: left;
+      border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+      color: var(--text); font-family: var(--font-ui); font-size: 0.8rem; font-weight: 750; cursor: pointer;
+    }
+    .subrole-option[aria-pressed="true"] {
+      border-color: var(--subrole, var(--accent-line));
+      background: color-mix(in srgb, var(--subrole, var(--accent)) 16%, var(--surface));
+    }
+    .subrole-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--subrole, var(--muted)); flex: 0 0 auto; }
+    .subrole-option-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .subrole-manage { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .subrole-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .subrole-form input[type="text"] { flex: 1; min-width: 140px; }
+    .subrole-form input[type="color"] { width: 42px; height: 36px; padding: 3px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); cursor: pointer; }
+    #subrole-dialog { width: min(480px, calc(100vw - 24px)); }
     .role-check {
       display: inline-flex; align-items: center; justify-content: center;
       width: 1.12em; height: 1.12em; margin-left: 5px; flex: 0 0 auto;
@@ -2765,6 +2786,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
   .channel-topic { display: none; }
   .header-actions { gap: 0; }
   .header-actions .icon-button { width: 36px; height: 38px; }
+  .subrole-header-btn { max-width: 6.2rem; min-height: 32px; padding: 0 8px; font-size: 0.68rem; }
   .member-toggle-btn { min-width: 36px; padding: 0 8px; }
   .timeline-inner { padding: 22px 12px 10px; }
   .composer-zone { padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
@@ -3054,6 +3076,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <p class="channel-topic" id="channel-topic"></p>
         </div>
         <div class="header-actions">
+          <button class="subrole-header-btn" id="subrole-btn" type="button" title="Pick a subrole" aria-haspopup="dialog" aria-controls="subrole-dialog">
+            <span id="subrole-btn-label">Subrole</span>
+          </button>
           <span class="sr-only" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
             <span id="connection-label">Connecting</span>
           </span>
@@ -3475,6 +3500,30 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       <section id="tab-owner" role="tabpanel" aria-labelledby="settings-owner-tab" hidden></section>
     </div>
     <div class="settings-save-bar" id="profile-save-status" role="status" aria-live="polite">Changes save automatically.</div>
+  </dialog>
+
+  <dialog id="subrole-dialog" aria-labelledby="subrole-title">
+    <div class="dialog-header">
+      <h2 id="subrole-title">Subroles</h2>
+      <button class="icon-button" type="button" data-close-dialog="subrole-dialog" aria-label="Close subroles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <p class="field-help">Pick a label so people know what kind of person you are. It does not grant any powers.</p>
+      <div id="subrole-picker" class="subrole-picker"></div>
+      <div class="subrole-manage" id="subrole-manage" hidden>
+        <div class="settings-section-title">Make or edit</div>
+        <p class="field-help">Co-owners and owners can add subroles, rename them, change the color, or delete them.</p>
+        <form id="subrole-form" class="subrole-form">
+          <input id="subrole-edit-slug" type="hidden" value="">
+          <input id="subrole-name" type="text" maxlength="24" placeholder="Name" aria-label="Subrole name" required>
+          <input id="subrole-color" type="color" value="#a78bfa" aria-label="Subrole color">
+          <button class="primary-button" type="submit" id="subrole-save">Add</button>
+          <button class="secondary-button" type="button" id="subrole-form-cancel" hidden>Cancel</button>
+        </form>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="rules-dialog" aria-labelledby="rules-title">
@@ -6077,32 +6126,229 @@ void main() {
     function roleBadgeHtml(profileOrUsername) {
       return roleCheckHtml(profileOrUsername);
     }
-    // Cosmetic only. Never read these for permissions. Staff assigns them until members can pick their own.
-    const SUB_ROLE_META = {
-      developer:  { label: 'Developer',  hint: 'Builds Liminal' },
-      artist:     { label: 'Artist',     hint: 'Draws, paints, and makes the visuals' },
-      musician:   { label: 'Musician',   hint: 'Makes the sounds' },
-      writer:     { label: 'Writer',     hint: 'Lore, copy, and the words' },
-      creator:    { label: 'Creator',    hint: 'Videos, posts, and stuff people watch' },
-      translator: { label: 'Translator', hint: 'Helps people understand each other' },
-      bug_hunter: { label: 'Bug Hunter', hint: 'Finds the stuff that is broken' },
-      event_host: { label: 'Event Host', hint: 'Runs the community stuff' },
+    // Cosmetic only. Never read these for permissions.
+    const SUB_ROLE_FALLBACK = {
+      developer:  { label: 'Developer', color: '#22d3ee' },
+      artist:     { label: 'Artist', color: '#f472b6' },
+      musician:   { label: 'Musician', color: '#a78bfa' },
+      writer:     { label: 'Writer', color: '#fbbf24' },
+      creator:    { label: 'Creator', color: '#fb923c' },
+      translator: { label: 'Translator', color: '#38bdf8' },
+      bug_hunter: { label: 'Bug Hunter', color: '#4ade80' },
+      event_host: { label: 'Event Host', color: '#fb7185' },
     };
+    let subroles = [];
+    const subroleBySlug = new Map();
+    let subrolesLoaded = false;
+    let subroleWatchStarted = false;
+    function safeSubroleColor(value) {
+      return /^#[0-9a-fA-F]{6}$/.test(String(value || '')) ? String(value).toLowerCase() : '';
+    }
     function canAssignSubRoles() { return myStaffRank() >= 2; }
+    function canManageSubroleCatalog() { return myStaffRank() >= 5; }
+    function subRoleMeta(slug) {
+      if (!slug) return null;
+      if (subroleBySlug.has(slug)) return subroleBySlug.get(slug);
+      if (!subrolesLoaded && SUB_ROLE_FALLBACK[slug]) return SUB_ROLE_FALLBACK[slug];
+      return null;
+    }
     function subRoleOf(profileOrUsername) {
       const p = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : (profileOrUsername || {});
       const role = typeof p.sub_role === 'string' ? p.sub_role.trim().toLowerCase() : '';
-      return SUB_ROLE_META[role] ? role : '';
+      return subRoleMeta(role) ? role : '';
     }
     function subRoleLabel(profileOrUsername) {
-      const role = subRoleOf(profileOrUsername);
-      return role ? SUB_ROLE_META[role].label : '';
+      const meta = subRoleMeta(subRoleOf(profileOrUsername));
+      return meta ? meta.label : '';
     }
     function subRoleBadgeHtml(profileOrUsername) {
-      const role = subRoleOf(profileOrUsername);
-      if (!role) return '';
-      const meta = SUB_ROLE_META[role];
-      return `<span class="subrole-badge ${role}" title="${esc(meta.hint)}">${esc(meta.label)}</span>`;
+      const meta = subRoleMeta(subRoleOf(profileOrUsername));
+      if (!meta) return '';
+      return `<span class="subrole-badge" style="--subrole:${meta.color}">${esc(meta.label)}</span>`;
+    }
+    function renderSubroleButton() {
+      const btn = $('subrole-btn');
+      if (!btn) return;
+      const meta = me ? subRoleMeta(subRoleOf(me)) : null;
+      const label = $('subrole-btn-label');
+      if (meta) {
+        btn.dataset.set = 'true';
+        btn.style.setProperty('--subrole', meta.color);
+        if (label) label.textContent = meta.label;
+        btn.title = `Subrole: ${meta.label}`;
+      } else {
+        btn.dataset.set = 'false';
+        btn.style.removeProperty('--subrole');
+        if (label) label.textContent = 'Subrole';
+        btn.title = 'Pick a subrole';
+      }
+    }
+    function applySubroleCatalog(rows) {
+      subroles = [];
+      subroleBySlug.clear();
+      (rows || []).forEach(row => {
+        const slug = String(row.slug || '').trim().toLowerCase();
+        const color = safeSubroleColor(row.color);
+        const label = String(row.label || '').trim().slice(0, 24);
+        if (!slug || !color || !label) return;
+        const item = { slug, label, color, position: Number(row.position) || 0 };
+        subroles.push(item);
+        subroleBySlug.set(slug, item);
+      });
+      subroles.sort((a, b) => a.position - b.position || a.label.localeCompare(b.label));
+      subrolesLoaded = true;
+    }
+    async function loadSubroles() {
+      if (!sb) return false;
+      const { data, error } = await sb.from('chat_subroles').select('slug,label,color,position').order('position');
+      if (error || !Array.isArray(data)) return false;
+      applySubroleCatalog(data);
+      renderSubroleButton();
+      renderMembers();
+      if ($('subrole-dialog')?.open) renderSubroleDialog();
+      watchSubroles();
+      return true;
+    }
+    function watchSubroles() {
+      if (subroleWatchStarted || !sb) return;
+      subroleWatchStarted = true;
+      const channel = sb.channel(`subrole-catalog-${realtimeGen || 0}`);
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'chat_subroles' }, () => loadSubroles());
+      channel.subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          try { sb.removeChannel(channel); } catch {}
+        }
+      });
+    }
+    function renderSubroleDialog() {
+      const picker = $('subrole-picker');
+      if (!picker) return;
+      const mine = me ? subRoleOf(me) : '';
+      const manage = canManageSubroleCatalog();
+      const manageBox = $('subrole-manage');
+      if (manageBox) manageBox.hidden = !manage;
+      const nonePressed = mine ? 'false' : 'true';
+      const rows = [{ slug: '', label: 'No subrole', color: '' }].concat(subroles.length ? subroles : (
+        subrolesLoaded ? [] : Object.entries(SUB_ROLE_FALLBACK).map(([slug, meta]) => ({ slug, ...meta }))
+      ));
+      picker.innerHTML = rows.map(item => {
+        const pressed = (item.slug || '') === mine;
+        const swatch = item.color ? `<span class="subrole-swatch" style="--subrole:${item.color}"></span>` : '<span class="subrole-swatch"></span>';
+        const tools = manage && item.slug
+          ? `<button class="ghost-button" type="button" data-edit-subrole="${esc(item.slug)}">Edit</button><button class="danger-button" type="button" data-delete-subrole="${esc(item.slug)}">Delete</button>`
+          : '';
+        return `<div class="subrole-option-row">
+          <button class="subrole-option" type="button" data-pick-subrole="${esc(item.slug)}" aria-pressed="${pressed ? 'true' : 'false'}" ${item.color ? `style="--subrole:${item.color}"` : ''}>
+            ${swatch}<span class="subrole-option-name">${esc(item.label)}</span>
+          </button>
+          ${tools}
+        </div>`;
+      }).join('') || '<p class="field-help">No subroles yet.</p>';
+      if (!mine && picker.querySelector('[data-pick-subrole=""]')) {
+        picker.querySelector('[data-pick-subrole=""]').setAttribute('aria-pressed', nonePressed);
+      }
+    }
+    function resetSubroleForm() {
+      const slug = $('subrole-edit-slug');
+      const name = $('subrole-name');
+      const color = $('subrole-color');
+      const save = $('subrole-save');
+      const cancel = $('subrole-form-cancel');
+      if (slug) slug.value = '';
+      if (name) name.value = '';
+      if (color) color.value = '#a78bfa';
+      if (save) save.textContent = 'Add';
+      if (cancel) cancel.hidden = true;
+    }
+    function beginSubroleEdit(slug) {
+      const item = subroleBySlug.get(slug);
+      if (!item) return;
+      $('subrole-edit-slug').value = item.slug;
+      $('subrole-name').value = item.label;
+      $('subrole-color').value = item.color;
+      $('subrole-save').textContent = 'Save';
+      $('subrole-form-cancel').hidden = false;
+      $('subrole-name').focus();
+    }
+    async function openSubroleModal() {
+      const dialog = $('subrole-dialog');
+      if (!dialog) return;
+      if (!dialog.open) dialog.showModal();
+      resetSubroleForm();
+      await loadSubroles();
+      renderSubroleDialog();
+    }
+    function rememberOwnSubrole(slug) {
+      const next = slug || '';
+      if (me) me.sub_role = next;
+      const mine = me && profiles.get(me.username);
+      if (mine) mine.sub_role = next;
+      renderSelf();
+      renderMembers();
+      renderDmList();
+      if (me) refreshTimelineForAuthor(me.username);
+      if ($('subrole-dialog')?.open) renderSubroleDialog();
+    }
+    async function setOwnSubrole(slug) {
+      const next = slug || '';
+      if (next === (me ? subRoleOf(me) : '')) {
+        $('subrole-dialog')?.close();
+        return;
+      }
+      const { data, error } = await sb.rpc('chat_set_own_subrole', { p_sub_role: next });
+      if (error || data !== true) {
+        toast({ type: 'error', text: error?.message || 'Could not update your subrole.' });
+        return;
+      }
+      rememberOwnSubrole(next);
+      toast({ type: 'success', text: next ? `You're a ${subRoleLabel(me)} now.` : 'Subrole cleared.' });
+    }
+    async function saveSubroleFromForm(event) {
+      event.preventDefault();
+      if (!canManageSubroleCatalog()) return;
+      const slug = $('subrole-edit-slug').value.trim();
+      const label = $('subrole-name').value.trim();
+      const color = $('subrole-color').value;
+      const save = $('subrole-save');
+      if (save) save.disabled = true;
+      try {
+        const { data, error } = await sb.rpc('chat_save_subrole', { p_slug: slug, p_label: label, p_color: color });
+        if (error || !data) {
+          toast({ type: 'error', text: error?.message || 'Could not save that subrole.' });
+          return;
+        }
+        resetSubroleForm();
+        await loadSubroles();
+        renderMembers();
+        renderSelf();
+        if (msgCache.has(viewKey(currentView))) renderTimeline();
+        toast({ type: 'success', text: slug ? 'Subrole updated.' : 'Subrole added.' });
+      } finally {
+        if (save) save.disabled = false;
+      }
+    }
+    function deleteSubrole(slug) {
+      const item = subroleBySlug.get(slug);
+      if (!item || !canManageSubroleCatalog()) return;
+      confirmAction({
+        title: `Delete ${item.label}?`,
+        text: 'Anyone wearing it loses the label. This does not change staff roles.',
+        danger: true,
+        confirmLabel: 'Delete',
+        onConfirm: async () => {
+          const { data, error } = await sb.rpc('chat_delete_subrole', { p_slug: slug });
+          if (error || data !== true) {
+            toast({ type: 'error', text: error?.message || 'Could not delete that subrole.' });
+            return;
+          }
+          if (me && subRoleOf(me) === slug) rememberOwnSubrole('');
+          await loadSubroles();
+          renderMembers();
+          renderSelf();
+          if (msgCache.has(viewKey(currentView))) renderTimeline();
+          toast({ type: 'success', text: `${item.label} is gone.` });
+        },
+      });
     }
     function dmTopicText(profile) {
       const who = profile || {};
@@ -6611,7 +6857,7 @@ void main() {
       await loadAppSettings();
       if (appSettings.app_enabled === 'false' && !isOwner()) { showMaintenance(); return; }
 
-      await Promise.all([loadProfiles(), loadChannels(), loadDms(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadStickerCatalog()]);
+      await Promise.all([loadProfiles(), loadSubroles(), loadChannels(), loadDms(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadStickerCatalog()]);
       profiles.set(me.username, { ...profiles.get(me.username), ...me });
       await hydrateChannelUnreads();
       lastListRefreshAt = Date.now();
@@ -12681,6 +12927,7 @@ void main() {
       applyRing($('self-avatar'), me);
       $('self-name').innerHTML = `<span class="name-text">${esc(displayNameOf(me))}</span>${subRoleBadgeHtml(me)}`;
       $('self-status-text').textContent = selfPresenceLabel();
+      renderSubroleButton();
     }
 
     function renderMembers() {
@@ -12984,7 +13231,7 @@ void main() {
         toast({ type: 'error', text: 'Only staff can assign subroles right now.' });
         return false;
       }
-      if (next && !SUB_ROLE_META[next]) {
+      if (next && !subRoleMeta(next)) {
         toast({ type: 'error', text: 'That subrole does not exist.' });
         return false;
       }
@@ -13009,7 +13256,7 @@ void main() {
       if (me && me.username === username) me.sub_role = next;
       toast({
         type: 'success',
-        text: next ? `@${username} is now a ${SUB_ROLE_META[next].label}.` : `Cleared @${username}'s subrole.`,
+        text: next ? `@${username} is now a ${subRoleMeta(next)?.label || next}.` : `Cleared @${username}'s subrole.`,
       });
       renderMembers();
       renderDmList();
@@ -13034,9 +13281,10 @@ void main() {
     }
     function subRoleOptionsHtml(selected) {
       const current = selected || '';
+      const options = subroles.length ? subroles : Object.entries(SUB_ROLE_FALLBACK).map(([slug, meta]) => ({ slug, ...meta }));
       return `<option value="" ${current ? '' : 'selected'}>No subrole</option>`
-        + Object.entries(SUB_ROLE_META).map(([value, meta]) =>
-          `<option value="${value}" ${current === value ? 'selected' : ''}>${esc(meta.label)}</option>`).join('');
+        + options.map(item =>
+          `<option value="${esc(item.slug)}" ${current === item.slug ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
     }
     function subRoleRowsHtml() {
       return [...profiles.values()]
@@ -13984,7 +14232,7 @@ void main() {
           <p class="field-help">Co-owners can manage admins and lower roles.</p>
           <div class="admin-list">${roleRows || '<span class="field-help">No member accounts to manage.</span>'}</div>
           <div class="settings-section-title">Subroles</div>
-          <p class="field-help">Cosmetic labels, like Developer or Artist. They do not grant powers. Staff assigns them for now. Picking your own comes later.</p>
+          <p class="field-help">Cosmetic labels. They do not grant powers. People pick their own from the top bar. Co-owners edit the list there too.</p>
           ${subRoleManagerHtml()}
         </div>
         <div class="owner-panel" data-owner-panel-body="danger" hidden>
@@ -14190,7 +14438,7 @@ void main() {
         <div id="admin-pane-tools" ${adminSubTab !== 'tools' ? 'hidden' : ''}>
         ${canAssignSubRoles() ? `
         <div class="settings-section-title">Subroles</div>
-        <p class="field-help">Cosmetic labels, like Developer or Artist. They do not grant powers. Staff assigns them for now. Picking your own comes later.</p>
+        <p class="field-help">Cosmetic labels. They do not grant powers. People pick their own from the top bar. Co-owners edit the list there too.</p>
         ${subRoleManagerHtml()}
         ` : ''}
         ${canManageStaffRoles() && !isOwner() ? `
@@ -15714,6 +15962,17 @@ void main() {
         link.href = url.href;
       });
       $('rules-btn').addEventListener('click', openRulesModal);
+      $('subrole-btn')?.addEventListener('click', openSubroleModal);
+      $('subrole-picker')?.addEventListener('click', (event) => {
+        const pick = event.target.closest('[data-pick-subrole]');
+        if (pick) { setOwnSubrole(pick.dataset.pickSubrole || ''); return; }
+        const edit = event.target.closest('[data-edit-subrole]');
+        if (edit) { beginSubroleEdit(edit.dataset.editSubrole); return; }
+        const remove = event.target.closest('[data-delete-subrole]');
+        if (remove) deleteSubrole(remove.dataset.deleteSubrole);
+      });
+      $('subrole-form')?.addEventListener('submit', saveSubroleFromForm);
+      $('subrole-form-cancel')?.addEventListener('click', resetSubroleForm);
       qsa('[data-pw-toggle]').forEach(btn => btn.addEventListener('click', () => {
         const input = $(btn.dataset.pwToggle);
         const show = input.type === 'password';
