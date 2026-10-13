@@ -134,7 +134,7 @@ function chatPresence() {
     statusMeta: status => ({ label: status }),
     memberListHtml: { online: null, offline: null }, memberListClicksBound: false,
     memberListSignature: '', memberPresenceSignature: () => '',
-    showHoverCard() {}, voice: { peers: new Map() }, renderDmList() {}, refreshTimelineForAuthor() {},
+    refreshSubroleMemberControls() {}, renderSubroleDialog() {}, showHoverCard() {}, voice: { peers: new Map() }, renderDmList() {}, refreshTimelineForAuthor() {},
   });
   vm.runInContext(
     section('    const LIVE_PRESENCE_TOPIC =', '    let memberListSignature =') + '\n' +
