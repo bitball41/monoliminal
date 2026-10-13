@@ -748,7 +748,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .self-card:hover { border-color: var(--line); background: var(--surface-2); }
     .self-copy { min-width: 0; }
-    .self-name { display: block; overflow: hidden; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+    .self-name { display: flex; align-items: center; gap: 6px; overflow: hidden; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 750; white-space: nowrap; }
+    .self-name .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .self-status-text { display: block; overflow: hidden; margin-top: 1px; color: var(--muted); font-size: 0.66rem; text-overflow: ellipsis; white-space: nowrap; }
     .self-dot-btn { position: relative; display: grid; place-items: center; width: 38px; height: 38px; border: none; background: none; border-radius: 50%; padding: 0; }
 
@@ -906,6 +907,28 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong); background: var(--surface);
       color: var(--text-soft); font-family: var(--font-ui); font-size: 0.6rem; font-weight: 700;
     }
+    .subrole-badge {
+      display: inline-flex; align-items: center; flex: 0 0 auto;
+      padding: 0 6px; border-radius: 999px; border: 1px solid transparent;
+      font-family: var(--font-ui); font-size: 0.58rem; font-weight: 800;
+      letter-spacing: .02em; line-height: 1.65; white-space: nowrap;
+    }
+    .subrole-badge.developer { color: #67e8f9; background: rgba(34, 211, 238, .14); border-color: rgba(34, 211, 238, .38); }
+    .subrole-badge.artist { color: #f9a8d4; background: rgba(244, 114, 182, .14); border-color: rgba(244, 114, 182, .4); }
+    .subrole-badge.musician { color: #c4b5fd; background: rgba(167, 139, 250, .16); border-color: rgba(167, 139, 250, .42); }
+    .subrole-badge.writer { color: #fcd34d; background: rgba(251, 191, 36, .14); border-color: rgba(251, 191, 36, .4); }
+    .subrole-badge.creator { color: #fdba74; background: rgba(251, 146, 60, .14); border-color: rgba(251, 146, 60, .4); }
+    .subrole-badge.translator { color: #7dd3fc; background: rgba(56, 189, 248, .14); border-color: rgba(56, 189, 248, .4); }
+    .subrole-badge.bug_hunter { color: #86efac; background: rgba(74, 222, 128, .14); border-color: rgba(74, 222, 128, .4); }
+    .subrole-badge.event_host { color: #fda4af; background: rgba(251, 113, 133, .14); border-color: rgba(251, 113, 133, .4); }
+    html[data-light="true"] .subrole-badge.developer { color: #0e7490; background: rgba(8, 145, 178, .12); border-color: rgba(8, 145, 178, .35); }
+    html[data-light="true"] .subrole-badge.artist { color: #9d174d; background: rgba(190, 24, 93, .1); border-color: rgba(190, 24, 93, .32); }
+    html[data-light="true"] .subrole-badge.musician { color: #5b21b6; background: rgba(109, 40, 217, .1); border-color: rgba(109, 40, 217, .32); }
+    html[data-light="true"] .subrole-badge.writer { color: #92400e; background: rgba(180, 83, 9, .1); border-color: rgba(180, 83, 9, .32); }
+    html[data-light="true"] .subrole-badge.creator { color: #9a3412; background: rgba(194, 65, 12, .1); border-color: rgba(194, 65, 12, .32); }
+    html[data-light="true"] .subrole-badge.translator { color: #075985; background: rgba(3, 105, 161, .1); border-color: rgba(3, 105, 161, .32); }
+    html[data-light="true"] .subrole-badge.bug_hunter { color: #166534; background: rgba(22, 101, 52, .1); border-color: rgba(22, 101, 52, .32); }
+    html[data-light="true"] .subrole-badge.event_host { color: #9f1239; background: rgba(190, 18, 60, .1); border-color: rgba(190, 18, 60, .32); }
     .role-check {
       display: inline-flex; align-items: center; justify-content: center;
       width: 1.12em; height: 1.12em; margin-left: 5px; flex: 0 0 auto;
@@ -1706,6 +1729,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line); border-radius: 11px; background: var(--surface);
       font-size: 0.78rem;
     }
+    .admin-list-item[hidden] { display: none !important; }
     .admin-list-item .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .admin-list-item .sub { color: var(--muted); font-size: 0.66rem; margin-top: 1px; }
     .admin-list-item .ghost-button { flex: 0 0 auto; }
@@ -2444,7 +2468,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .hover-names { padding-top: 48px; }
 .hover-username { align-items: flex-start; flex-wrap: nowrap; gap: 8px; }
 #hc-name { min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
-#hc-chips { flex-shrink: 0; padding-top: 2px; }
+#hc-chips { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; flex-shrink: 0; padding-top: 2px; }
 .hover-bio { line-height: 1.65; }
 .hover-section { margin-top: 14px; padding-top: 12px; }
 .hover-stats { margin-top: 16px; gap: 10px; }
@@ -3001,7 +3025,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
             <span class="avatar avatar-sm" id="self-avatar"><span class="presence-dot" id="self-dot" data-status="online"></span></span>
           </button>
           <button class="self-copy" id="self-profile-btn" type="button" aria-label="Change status" title="Change status" style="border:none;background:none;padding:0;text-align:left;min-width:0;cursor:pointer;">
-            <span class="self-name" id="self-name">…</span>
+            <span class="self-name" id="self-name"><span class="name-text">…</span></span>
             <span class="self-status-text" id="self-status-text">Online</span>
           </button>
           <button class="icon-button" id="self-settings-btn" type="button" aria-label="User settings" title="Settings" style="width:32px;height:32px;">
@@ -5841,6 +5865,7 @@ void main() {
     const LIST_RECONCILE_MS = 5 * 60000;
     const MESSAGE_RECONCILE_MS = 5 * 60000;
     const MESSAGE_FALLBACK_POLL_MS = 20000;
+    const DM_RECONCILE_MS = 20000;
     let lastCatchUpPollAt = 0;
     let catchUpPollPromise = null;
     let memberListSignature = '';
@@ -6059,6 +6084,39 @@ void main() {
     }
     function roleBadgeHtml(profileOrUsername) {
       return roleCheckHtml(profileOrUsername);
+    }
+    // Cosmetic only. Never read these for permissions. Staff assigns them until members can pick their own.
+    const SUB_ROLE_META = {
+      developer:  { label: 'Developer',  hint: 'Builds Liminal' },
+      artist:     { label: 'Artist',     hint: 'Draws, paints, and makes the visuals' },
+      musician:   { label: 'Musician',   hint: 'Makes the sounds' },
+      writer:     { label: 'Writer',     hint: 'Lore, copy, and the words' },
+      creator:    { label: 'Creator',    hint: 'Videos, posts, and stuff people watch' },
+      translator: { label: 'Translator', hint: 'Helps people understand each other' },
+      bug_hunter: { label: 'Bug Hunter', hint: 'Finds the stuff that is broken' },
+      event_host: { label: 'Event Host', hint: 'Runs the community stuff' },
+    };
+    function canAssignSubRoles() { return myStaffRank() >= 2; }
+    function subRoleOf(profileOrUsername) {
+      const p = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : (profileOrUsername || {});
+      const role = typeof p.sub_role === 'string' ? p.sub_role.trim().toLowerCase() : '';
+      return SUB_ROLE_META[role] ? role : '';
+    }
+    function subRoleLabel(profileOrUsername) {
+      const role = subRoleOf(profileOrUsername);
+      return role ? SUB_ROLE_META[role].label : '';
+    }
+    function subRoleBadgeHtml(profileOrUsername) {
+      const role = subRoleOf(profileOrUsername);
+      if (!role) return '';
+      const meta = SUB_ROLE_META[role];
+      return `<span class="subrole-badge ${role}" title="${esc(meta.hint)}">${esc(meta.label)}</span>`;
+    }
+    function dmTopicText(profile) {
+      const who = profile || {};
+      const status = who.custom_status || (who.username ? `@${who.username}` : '');
+      const sub = subRoleLabel(who);
+      return [sub, status].filter(Boolean).join(' · ');
     }
     const isTimedOut = () => !!(me && me.timeout_until && new Date(me.timeout_until) > new Date());
 
@@ -6655,7 +6713,15 @@ void main() {
       if (!registrationsEnabled && !$('signup-form').hidden) $('auth-tab-login').click();
     }
 
-    const PROFILE_COLUMNS = 'username,display_name,ring,pfp,tag,status,custom_status,staff_role,is_admin,is_owner,is_banned,timeout_until,kicked_at,is_test_account,created_at,user_id';
+    const PROFILE_BASE_COLUMNS = 'username,display_name,ring,pfp,tag,status,custom_status,staff_role,is_admin,is_owner,is_banned,timeout_until,kicked_at,is_test_account,created_at,user_id';
+    const PROFILE_COLUMNS = PROFILE_BASE_COLUMNS + ',sub_role';
+    async function updateOwnProfile(patch) {
+      let result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
+      if (result.error) {
+        result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_BASE_COLUMNS).single();
+      }
+      return result;
+    }
     const PROFILE_DETAIL_COLUMNS = 'username,bio,banner';
 
     const profileDetailLoaded = new Set();
@@ -6674,6 +6740,9 @@ void main() {
 
     async function loadProfiles() {
       let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).order('username');
+      if (error || !data) {
+        ({ data, error } = await sb.from('profiles').select(PROFILE_BASE_COLUMNS).order('username'));
+      }
       if (error || !data) {
         console.error('[liminal] profile load failed', error);
         ({ data, error } = await sb.from('profiles')
@@ -7162,7 +7231,7 @@ void main() {
         const other = profileOf(view.other);
         $('channel-icon').textContent = '@';
         $('channel-title').textContent = displayNameOf(other);
-        $('channel-topic').textContent = other.custom_status || `@${view.other}`;
+        $('channel-topic').textContent = dmTopicText(other);
         $('channel-settings-btn').hidden = true;
         $('pins-btn').hidden = true;
         $('search-btn').hidden = false;
@@ -7171,8 +7240,7 @@ void main() {
 
       if (!msgCache.has(key)) {
         renderTimelineSkeleton();
-        const rows = await fetchMessages(view, null);
-        setViewMessages(key, rows);
+        await loadFreshViewMessages(view);
         if (viewKey(currentView) !== key) return;
       }
       renderTimeline();
@@ -7200,6 +7268,7 @@ void main() {
       }
       hideNewBadge();
       sendTypingState(false);
+      if (view.type === 'dm' && viewKey(currentView) === key) catchUpPoll();
     }
 
     async function fetchMessages(view, beforeIso) {
@@ -7624,8 +7693,7 @@ void main() {
           const button = event.currentTarget;
           button.disabled = true;
           renderTimelineSkeleton();
-          const rows = await fetchMessages(currentView, null);
-          setViewMessages(key, rows);
+          await loadFreshViewMessages(currentView);
           if (viewKey(currentView) === key) {
             renderTimeline();
             if (!messageLoadErrors.has(key)) scrollToBottom(true);
@@ -7686,6 +7754,7 @@ void main() {
           <div class="msg-head">
             <button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(author))}</button>
             ${roleBadgeHtml(author)}
+            ${subRoleBadgeHtml(author)}
             ${author.tag && staffRoleOf(author) === 'member' ? `<span class="msg-tag">${esc(author.tag)}</span>` : ''}
             <span class="msg-time">${esc(fmtDay(msg.created_at))} at ${esc(fmtTime(msg.created_at))}</span>
             ${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}
@@ -8608,17 +8677,114 @@ void main() {
       }
     }
 
+    // A realtime insert can land while openView is still fetching history. Remembering
+    // that id before the cache exists makes the finished fetch paint over it, and the
+    // later reconcile treats it as already shown. Hold those rows until the load commits.
+    const loadingViewKeys = new Set();
+    const heldLiveMessages = new Map();
+    function holdLiveMessage(key, message) {
+      if (!key || !message || message.id == null) return;
+      const bucket = heldLiveMessages.get(key) || [];
+      if (!bucket.some(row => row.id === message.id)) bucket.push(message);
+      heldLiveMessages.set(key, bucket);
+    }
+    function takeHeldMessages(key) {
+      const bucket = heldLiveMessages.get(key) || [];
+      heldLiveMessages.delete(key);
+      return bucket;
+    }
+    function mergeHeldMessages(rows, held) {
+      const base = Array.isArray(rows) ? rows.slice() : [];
+      if (!held || !held.length) return base;
+      const seen = new Set(base.map(row => row && row.id));
+      held.forEach(row => {
+        if (!row || row.deleted || row.id == null || seen.has(row.id)) return;
+        seen.add(row.id);
+        base.push(row);
+      });
+      base.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)));
+      return base;
+    }
+    function commitLoadedView(key, rows) {
+      const merged = mergeHeldMessages(rows, takeHeldMessages(key));
+      setViewMessages(key, merged);
+      loadingViewKeys.delete(key);
+      const late = takeHeldMessages(key);
+      if (late.length) setViewMessages(key, mergeHeldMessages(msgCache.get(key), late));
+      (msgCache.get(key) || []).forEach(row => { if (row && row.id != null) rememberId(row.id); });
+      return msgCache.get(key) || [];
+    }
+    async function loadFreshViewMessages(view) {
+      const key = viewKey(view);
+      loadingViewKeys.add(key);
+      let rows = [];
+      try {
+        rows = await fetchMessages(view, null);
+      } finally {
+        const heldIds = new Set((heldLiveMessages.get(key) || []).filter(row => row && !row.deleted).map(row => row.id));
+        commitLoadedView(key, rows);
+        const cache = msgCache.get(key) || [];
+        if (key.startsWith('dm:')) {
+          const dm = dms.find(d => `dm:${d.id}` === key);
+          const last = [...cache].reverse().find(row => row && !row.deleted);
+          if (dm && last && (!dm.lastMsg || String(dm.lastMsg.created_at) <= String(last.created_at))) {
+            dm.lastMsg = last;
+            sortDms();
+            renderDmList();
+          }
+        }
+        // They left before the thread painted, so the live rows still count as unread.
+        if (viewKey(currentView) !== key && heldIds.size) {
+          cache.forEach(row => {
+            if (!heldIds.has(row.id) || !me || row.sender === me.username || row.deleted) return;
+            unreadCounts.set(key, (unreadCounts.get(key) || 0) + 1);
+          });
+          if (key.startsWith('dm:')) renderDmList();
+          else if (key.startsWith('c:')) patchChannelUnread(key.slice(2));
+          updateTabBadge();
+        }
+      }
+      return msgCache.get(key) || [];
+    }
+
     function ingestMessage(m, kind) {
       if (kind === 'dm' && dmBlockedUsers.has(m.sender)) return;
       if (kind === 'dm' && (isHiddenBot(m.sender) || isHiddenBot((dms.find(d => d.id === m.dm_id) || {}).other))) {
         if (!seenIds.has(m.id)) rememberId(m.id);
         return;
       }
-      if (seenIds.has(m.id)) return;
       if (m.deleted) { rememberId(m.id); return; }
+      const key = kind === 'dm' ? `dm:${m.dm_id}` : `c:${m.channel_id}`;
+      if (!msgCache.has(key) && loadingViewKeys.has(key)) {
+        holdLiveMessage(key, m);
+        return;
+      }
+      if (seenIds.has(m.id)) {
+        const cache = msgCache.get(key);
+        const newest = cache && cache.length ? cache[cache.length - 1].created_at : '';
+        // Older rows remembered from a previous page, or trimmed out of the live window, stay put.
+        if (!cache || cache.some(row => row.id === m.id) || (newest && String(m.created_at) < String(newest))) return;
+        cache.push(m);
+        indexMessage(m);
+        if (key === viewKey(currentView) && !historyContexts.has(key)) {
+          appendToTimeline(m);
+          if ((me && m.sender === me.username) || stickyToBottom || isNearBottom()) {
+            scrollToBottom();
+            markViewRead(key);
+          }
+        }
+        if (kind === 'dm') {
+          const dm = dms.find(d => d.id === m.dm_id);
+          if (dm && (!dm.lastMsg || String(dm.lastMsg.created_at) <= String(m.created_at))) {
+            dm.lastMsg = m;
+            sortDms();
+            renderDmList();
+          }
+        }
+        return;
+      }
       rememberId(m.id);
       if (!newestSeenTs || m.created_at > newestSeenTs) newestSeenTs = m.created_at;
-      const key = kind === 'dm' ? `dm:${m.dm_id}` : `c:${m.channel_id}`;
       const mine = me && m.sender === me.username;
 
       if (resolvePendingSend(m, kind)) {
@@ -10690,6 +10856,30 @@ void main() {
       if (qs(`[data-id="${messageId}"]`)) refreshPollMessage(message);
     }
 
+    async function ensureDmLoaded(dmId) {
+      if (!dmId || !me) return false;
+      if (dms.some(d => d.id === dmId)) return true;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: dmRow, error } = await sb.from('dms').select('*').eq('id', dmId).maybeSingle();
+        if (dmRow && (dmRow.participants || []).includes(me.username)) {
+          if (!dms.some(d => d.id === dmId)) {
+            const other = (dmRow.participants || []).find(u => u !== me.username) || me.username;
+            if (isHiddenBot(other) || (dmRow.participants || []).some(isHiddenBot)) return false;
+            dms.push({ ...dmRow, other, lastMsg: null });
+          }
+          return true;
+        }
+        // A brand-new thread can show its message before the DM row is readable. Retry, then fall back to the inbox.
+        if (!error && dmRow === null && attempt === 2) break;
+        if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 400 * (attempt + 1)));
+      }
+      try {
+        await loadDms();
+        renderDmList();
+      } catch {}
+      return dms.some(d => d.id === dmId);
+    }
+
     async function handleDmChange(payload) {
       const type = payload.eventType;
       if (type === 'DELETE' && payload.old && payload.old.id) {
@@ -10697,12 +10887,25 @@ void main() {
         return;
       }
       const m = payload.new;
-      if (type === 'UPDATE' && m) {
+      if (!m) return;
+      if (type === 'UPDATE') {
         if (m.deleted) { forgetMessage(m.id); return; }
+        const key = `dm:${m.dm_id}`;
+        const cache = msgCache.get(key);
+        const present = !!(cache && cache.some(row => row.id === m.id));
+        // A read receipt or other update can arrive when the insert itself was dropped.
+        // Only treat that as a new message when it is newer than the preview we already have.
+        if (!present && m.sender && m.created_at && !seenIds.has(m.id)) {
+          const dm = dms.find(d => d.id === m.dm_id);
+          const knownAt = dm?.lastMsg?.created_at || '';
+          if (!knownAt || String(m.created_at) > String(knownAt)) {
+            if (await ensureDmLoaded(m.dm_id)) ingestMessage(m, 'dm');
+            return;
+          }
+        }
         patchCachedMessage(m);
         if (currentView.type === 'dm' && currentView.id === m.dm_id) renderDmReceipt();
         if (m.dm_id && Array.isArray(m.read_by) && me && m.read_by.includes(me.username)) {
-          const key = `dm:${m.dm_id}`;
           if (unreadCounts.has(key)) {
             unreadCounts.delete(key);
             renderDmList();
@@ -10711,18 +10914,9 @@ void main() {
         }
         return;
       }
-      if (type !== 'INSERT' || !m) return;
+      if (type !== 'INSERT') return;
       if (dmBlockedUsers.has(m.sender)) return;
-      if (!dms.some(d => d.id === m.dm_id)) {
-        let { data: dmRow, error: dmErr } = await sb.from('dms').select('*').eq('id', m.dm_id).maybeSingle();
-        if (dmErr) {
-          ({ data: dmRow } = await sb.from('dms').select('*').eq('id', m.dm_id).maybeSingle());
-        }
-        if (!dmRow || !(dmRow.participants || []).includes(me.username)) return;
-        const other = (dmRow.participants || []).find(u => u !== me.username) || me.username;
-        if (isHiddenBot(other) || (dmRow.participants || []).some(isHiddenBot)) return;
-        dms.push({ ...dmRow, other, lastMsg: null });
-      }
+      if (!(await ensureDmLoaded(m.dm_id))) return;
       ingestMessage(m, 'dm');
     }
 
@@ -10769,7 +10963,7 @@ void main() {
       if (timelineDirty) refreshTimelineForAuthor(p.username);
       if (currentView.type === 'dm' && currentView.other === p.username) {
         $('channel-title').textContent = displayNameOf(merged);
-        $('channel-topic').textContent = merged.custom_status || `@${p.username}`;
+        $('channel-topic').textContent = dmTopicText(merged);
       }
     }
 
@@ -10789,7 +10983,8 @@ void main() {
 
     async function refreshProfile(username) {
       if (!username) return;
-      const { data } = await sb.from('profiles').select(PROFILE_COLUMNS).eq('username', username).maybeSingle();
+      let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).eq('username', username).maybeSingle();
+      if (error) ({ data } = await sb.from('profiles').select(PROFILE_BASE_COLUMNS).eq('username', username).maybeSingle());
       if (data) {
         profiles.set(username, { ...profiles.get(username), ...data });
         if (!me || username !== me.username) profileDetailLoaded.delete(username);
@@ -11016,7 +11211,9 @@ void main() {
         if (document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
         // Realtime delivers new messages immediately. HTTP only reconciles missed
         // events occasionally, or provides a fast fallback while disconnected.
-        const interval = realtimeHealthy() ? MESSAGE_RECONCILE_MS : MESSAGE_FALLBACK_POLL_MS;
+        const interval = realtimeHealthy()
+          ? (currentView.type === 'dm' ? DM_RECONCILE_MS : MESSAGE_RECONCILE_MS)
+          : MESSAGE_FALLBACK_POLL_MS;
         if (Date.now() - lastCatchUpPollAt < interval) return Promise.resolve();
       }
       if (catchUpPollPromise) return catchUpPollPromise;
@@ -11031,7 +11228,7 @@ void main() {
           let query = view.type === 'channel'
             ? sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', view.id)
             : sb.from('dm_messages').select(DM_MESSAGE_COLUMNS).eq('dm_id', view.id);
-          if (since) query = query.gt('created_at', since);
+          if (since) query = query.gte('created_at', since);
           const { data } = await query.order('created_at', { ascending: true }).limit(isLiteMode() ? 25 : 50);
           if (presenceStopped || presenceLeft) return;
           (data || []).forEach(m => ingestMessage(m, view.type === 'dm' ? 'dm' : 'channel'));
@@ -12472,7 +12669,7 @@ void main() {
       $('self-avatar').innerHTML = (me.pfp ? `<img src="${esc(me.pfp)}" alt="">` : esc(initialsOf(displayNameOf(me))))
         + `<span class="presence-dot" id="self-dot" data-status="${esc(effStatus)}"></span>`;
       applyRing($('self-avatar'), me);
-      $('self-name').textContent = displayNameOf(me);
+      $('self-name').innerHTML = `<span class="name-text">${esc(displayNameOf(me))}</span>${subRoleBadgeHtml(me)}`;
       $('self-status-text').textContent = me.custom_status || (effStatus === 'offline' ? 'Offline' : statusMeta(me.status).label);
     }
 
@@ -12502,6 +12699,7 @@ void main() {
             <span class="member-copy">
               <span class="member-name"><span class="name-text">${esc(displayNameOf(p))}</span>
                 ${roleBadgeHtml(p)}
+                ${subRoleBadgeHtml(p)}
               </span>
               ${sub ? `<span class="member-status">${esc(sub)}</span>` : ''}
             </span>
@@ -12544,7 +12742,8 @@ void main() {
       $('hc-name').textContent = displayNameOf(p);
       $('hc-name').style.color = '';
       $('hc-chips').innerHTML = roleBadgeHtml(p)
-        + (p.tag && staffRoleOf(p) === 'member' ? ` <span class="msg-tag">${esc(p.tag)}</span>` : '');
+        + subRoleBadgeHtml(p)
+        + (p.tag && staffRoleOf(p) === 'member' ? `<span class="msg-tag">${esc(p.tag)}</span>` : '');
       $('hc-handle').textContent = `@${username}`;
       const role = staffRoleOf(p);
       $('hc-role').hidden = role === 'member';
@@ -12766,6 +12965,102 @@ void main() {
         },
       });
     }
+    async function setSubRole(username, role) {
+      const next = role || '';
+      if (!canAssignSubRoles()) {
+        toast({ type: 'error', text: 'Only staff can assign subroles right now.' });
+        return false;
+      }
+      if (next && !SUB_ROLE_META[next]) {
+        toast({ type: 'error', text: 'That subrole does not exist.' });
+        return false;
+      }
+      const { data, error } = await sb.rpc('chat_set_sub_role', {
+        p_actor_username: me.username,
+        p_actor_password_hash: '',
+        p_target_username: username,
+        p_sub_role: next,
+      });
+      if (error || data !== true) {
+        toast({ type: 'error', text: error?.message || 'Could not update subrole.' });
+        return false;
+      }
+      const p = profiles.get(username);
+      if (p) p.sub_role = next;
+      if (me && me.username === username) me.sub_role = next;
+      toast({
+        type: 'success',
+        text: next ? `@${username} is now a ${SUB_ROLE_META[next].label}.` : `Cleared @${username}'s subrole.`,
+      });
+      renderMembers();
+      renderDmList();
+      renderSelf();
+      refreshTimelineForAuthor(username);
+      qsa(`[data-subrole-set="${cssAttr(username)}"]`).forEach(select => {
+        if (select.value !== next) select.value = next;
+        const strong = qs('strong', select.closest('.admin-list-item'));
+        const fresh = profileOf(username);
+        if (strong) strong.innerHTML = `${esc(displayNameOf(fresh))}${roleBadgeHtml(fresh)} ${subRoleBadgeHtml(fresh)}`;
+      });
+      if (hoverCardUser === username && !$('hover-card').hidden) {
+        const fresh = profileOf(username);
+        $('hc-chips').innerHTML = roleBadgeHtml(fresh)
+          + subRoleBadgeHtml(fresh)
+          + (fresh.tag && staffRoleOf(fresh) === 'member' ? `<span class="msg-tag">${esc(fresh.tag)}</span>` : '');
+      }
+      if (currentView.type === 'dm' && currentView.other === username) {
+        $('channel-topic').textContent = dmTopicText(profileOf(username));
+      }
+      return true;
+    }
+    function subRoleOptionsHtml(selected) {
+      const current = selected || '';
+      return `<option value="" ${current ? '' : 'selected'}>No subrole</option>`
+        + Object.entries(SUB_ROLE_META).map(([value, meta]) =>
+          `<option value="${value}" ${current === value ? 'selected' : ''}>${esc(meta.label)}</option>`).join('');
+    }
+    function subRoleRowsHtml() {
+      return [...profiles.values()]
+        .filter(p => !p.is_banned && !isHiddenBot(p.username))
+        .sort((a, b) => displayNameOf(a).localeCompare(displayNameOf(b)))
+        .map(p => {
+          const hay = `${p.username} ${displayNameOf(p)}`.toLowerCase();
+          return `<div class="admin-list-item" data-subrole-row="${esc(hay)}">
+            <div class="grow"><strong>${esc(displayNameOf(p))}${roleBadgeHtml(p)} ${subRoleBadgeHtml(p)}</strong><div class="sub">@${esc(p.username)}</div></div>
+            <select class="owner-role-select" data-subrole-set="${esc(p.username)}" aria-label="Set subrole for ${esc(p.username)}">
+              ${subRoleOptionsHtml(subRoleOf(p))}
+            </select>
+          </div>`;
+        }).join('');
+    }
+    function subRoleManagerHtml() {
+      const rows = subRoleRowsHtml();
+      return `
+        <div class="field"><label>Find a member</label><input class="subrole-filter" type="search" placeholder="Username or display name" aria-label="Find a member to assign a subrole"></div>
+        <div class="admin-list subrole-list">${rows || '<span class="field-help">No members yet.</span>'}</div>`;
+    }
+    function bindSubRoleControls(root) {
+      const filter = qs('.subrole-filter', root);
+      const list = qs('.subrole-list', root);
+      if (filter && list) {
+        filter.addEventListener('input', () => {
+          const q = filter.value.trim().toLowerCase().replace(/^@/, '');
+          qsa('[data-subrole-row]', list).forEach(row => {
+            row.hidden = !!q && !(row.dataset.subroleRow || '').includes(q);
+          });
+        });
+      }
+      qsa('[data-subrole-set]', root).forEach(select => select.addEventListener('change', async () => {
+        const previous = subRoleOf(select.dataset.subroleSet);
+        select.disabled = true;
+        try {
+          const ok = await setSubRole(select.dataset.subroleSet, select.value);
+          if (!ok) select.value = previous;
+        } finally {
+          select.disabled = false;
+        }
+      }));
+    }
     async function setStaffRole(username, role) {
       if (!canAssignStaffRole(username, role)) {
         toast({ type: 'error', text: 'You can only change roles below your rank.' });
@@ -12866,7 +13161,7 @@ void main() {
     }
     async function updateMyStatus(patch) {
       if (patch.status === 'invisible') patch.status = 'online';
-      const { data, error } = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
+      const { data, error } = await updateOwnProfile(patch);
       if (error) { toast({ type: 'error', text: 'Could not update status.' }); return; }
       me = { ...me, ...data };
       profiles.set(me.username, { ...profiles.get(me.username), ...data });
@@ -13495,7 +13790,7 @@ void main() {
       };
       $('profile-save-status').textContent = 'Saving changes...';
       profileSaveChain = profileSaveChain.catch(() => {}).then(async () => {
-        const { data, error } = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
+        const { data, error } = await updateOwnProfile(patch);
         if (error) {
           if (revision === profileSaveRevision) $('profile-save-status').textContent = 'Could not save changes.';
           toast({ type: 'error', text: 'Could not save your profile.' });
@@ -13669,6 +13964,9 @@ void main() {
           <div class="settings-section-title">Staff roles</div>
           <p class="field-help">Co-owners can manage admins and lower roles.</p>
           <div class="admin-list">${roleRows || '<span class="field-help">No member accounts to manage.</span>'}</div>
+          <div class="settings-section-title">Subroles</div>
+          <p class="field-help">Cosmetic labels, like Developer or Artist. They do not grant powers. Staff assigns them for now. Picking your own comes later.</p>
+          ${subRoleManagerHtml()}
         </div>
         <div class="owner-panel" data-owner-panel-body="danger" hidden>
           <div class="settings-section-title" style="color:var(--danger);">Purge channel context</div>
@@ -13733,6 +14031,7 @@ void main() {
       if (devDelete) devDelete.addEventListener('click', deleteInChatDevSession);
       $('owner-sticker-recover').addEventListener('click', recoverLostStickers);
       bindStaffRoleControls(el, renderOwnerTab);
+      bindSubRoleControls(el);
     }
 
     let adminSubTab = 'tools';
@@ -13747,6 +14046,7 @@ void main() {
       user_unbanned_in_chat: 'Unbanned a user',
       account_deleted_in_chat: 'Deleted an account',
       staff_role_set_in_chat: 'Changed a staff role',
+      sub_role_set_in_chat: 'Changed a subrole',
       admin_granted_in_chat: 'Granted admin',
       admin_revoked_in_chat: 'Revoked admin',
       admin_granted: 'Granted admin',
@@ -13869,6 +14169,11 @@ void main() {
           <button type="button" data-admin-sub="logs" aria-selected="${adminSubTab === 'logs'}">Logs</button>
         </div>
         <div id="admin-pane-tools" ${adminSubTab !== 'tools' ? 'hidden' : ''}>
+        ${canAssignSubRoles() ? `
+        <div class="settings-section-title">Subroles</div>
+        <p class="field-help">Cosmetic labels, like Developer or Artist. They do not grant powers. Staff assigns them for now. Picking your own comes later.</p>
+        ${subRoleManagerHtml()}
+        ` : ''}
         ${canManageStaffRoles() && !isOwner() ? `
         <div class="settings-section-title">Staff roles</div>
         <div class="admin-list">${staffRoleRowsHtml() || '<span class="field-help">No member accounts to manage.</span>'}</div>
@@ -13975,6 +14280,7 @@ void main() {
 `;
 
       bindStaffRoleControls(el, renderAdminTab);
+      bindSubRoleControls(el);
       const saveBroadcast = $('adm-save-broadcast');
       if (saveBroadcast) saveBroadcast.addEventListener('click', async () => {
         try {

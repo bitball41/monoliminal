@@ -10,4 +10,6 @@ The policies only allow Presence for authenticated, unbanned Chat accounts on `l
 
 The backend authorization migration secures current and legacy write paths. All permission checks use the verified account and canonical database role. Caller-supplied owner flags, usernames and legacy password fields do not grant access.
 
+`20261013060000_chat_cosmetic_sub_roles.sql` adds `profiles.sub_role`. Apply it before deploying the Chat client that reads the column. Subroles are labels such as developer or artist. They do not change staff rank. Direct profile edits cannot set one. Mods and above assign them with `chat_set_sub_role` until members can pick their own.
+
 Run `npm ci --ignore-scripts` and `npm test` before deployment. The isolated database tests use PGlite and a reduced snapshot of the existing runtime schema; the test fixture is not a production migration. Also run the rollback-only SQL checks in `../tests/authorization-regression.sql` against the linked project when deploying. They create temporary fixture accounts and revert all writes, including settings and audit rows.
