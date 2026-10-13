@@ -613,6 +613,66 @@ BEGIN
     "topic": "liminal-online",
     "sql": "insert into realtime.messages(topic,extension,event,payload,private) values('liminal-online','broadcast','fake','{}',true)",
     "allowed": false
+  },
+  {
+    "name": "member cannot grant themselves a subrole",
+    "actor": "member",
+    "sql": "update public.profiles set sub_role='developer' where username='@member'",
+    "allowed": false
+  },
+  {
+    "name": "member cannot call subrole assignment",
+    "actor": "member",
+    "sql": "select public.chat_set_sub_role('fake','fake','@member','developer')",
+    "allowed": false
+  },
+  {
+    "name": "mod can assign a cosmetic subrole",
+    "actor": "mod",
+    "sql": "select public.chat_set_sub_role('fake','fake','@member','artist')",
+    "allowed": true
+  },
+  {
+    "name": "assigned subrole does not change staff rank",
+    "actor": "mod",
+    "sql": "select username from public.profiles where username='@member' and sub_role='artist' and staff_role='member' and not is_admin and not is_owner",
+    "allowed": true
+  },
+  {
+    "name": "mod can clear a subrole",
+    "actor": "mod",
+    "sql": "select public.chat_set_sub_role('fake','fake','@member','')",
+    "allowed": true
+  },
+  {
+    "name": "cleared subrole leaves the member rank alone",
+    "actor": "mod",
+    "sql": "select username from public.profiles where username='@member' and sub_role='' and staff_role='member'",
+    "allowed": true
+  },
+  {
+    "name": "invalid subrole is rejected",
+    "actor": "mod",
+    "sql": "select public.chat_set_sub_role('fake','fake','@member','admin')",
+    "allowed": false
+  },
+  {
+    "name": "mod can label a higher rank",
+    "actor": "mod",
+    "sql": "select public.chat_set_sub_role('fake','fake','@owner','developer')",
+    "allowed": true
+  },
+  {
+    "name": "labeling a higher rank does not change that rank",
+    "actor": "mod",
+    "sql": "select username from public.profiles where username='@owner' and sub_role='developer' and staff_role='owner' and is_owner",
+    "allowed": true
+  },
+  {
+    "name": "anonymous subrole assignment is denied",
+    "actor": "anon",
+    "sql": "select public.chat_set_sub_role('fake','fake','@member','writer')",
+    "allowed": false
   }
 ]$cases$::jsonb) LOOP
     EXECUTE 'RESET ROLE';

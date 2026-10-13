@@ -130,7 +130,7 @@ function chatPresence() {
     signOutLocked: false, stopChatBackground() {}, leaveVoiceRoom() {},
     LS: { del() {} }, location: { reload: () => wakeJobs.push('reload') },
     esc: value => String(value), displayNameOf: account => account.display_name || account.username,
-    avatarHtml: () => '', roleBadgeHtml: () => '', staffRoleOf: () => 'member',
+    avatarHtml: () => '', roleBadgeHtml: () => '', subRoleBadgeHtml: () => '', staffRoleOf: () => 'member',
     statusMeta: status => ({ label: status }),
     memberListHtml: { online: null, offline: null }, memberListClicksBound: false,
     memberListSignature: '', memberPresenceSignature: () => '',

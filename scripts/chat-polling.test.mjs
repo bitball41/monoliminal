@@ -33,13 +33,14 @@ function chatPolling() {
         eq(column, value) { request.filters.push([column, value]); return this; },
         gt(column, value) { request.filters.push([column, value]); return this; },
         order() { return this; },
+        gte(column, value) { request.filters.push([column, value]); return this; },
         limit(value) { request.limit = value; requests.push(request); return context.reply(); },
       };
       return query;
     } },
   });
   vm.runInContext([
-    ...chat.matchAll(/    const MESSAGE_(?:RECONCILE_MS|FALLBACK_POLL_MS) = [^;]+;/g),
+    ...chat.matchAll(/    const (?:MESSAGE_(?:RECONCILE_MS|FALLBACK_POLL_MS)|DM_RECONCILE_MS) = [^;]+;/g),
   ].map(match => match[0]).join('\n') + '\nlet lastCatchUpPollAt=0; let catchUpPollPromise=null;\n' +
     section(chat, '    function catchUpPoll(', '    function tickCooldown()'), context);
   return { context, requests, received, advance: ms => { now += ms; } };
@@ -103,6 +104,51 @@ test('overlapping catch-ups share a request and retain the original message type
   await p.context.catchUpPoll();
   assert.equal(p.requests[1].table, 'dm_messages');
   assert.deepEqual(p.requests[1].filters, [['dm_id', 'another-view']]);
+});
+
+test('an open DM reconciles on the short fallback even while Realtime looks healthy', async () => {
+  const p = chatPolling();
+  p.context.currentView = { type: 'dm', id: 'convo' };
+  p.context.msgCache.set('dm:convo', [{ id: 'already', created_at: '2026-10-13T00:00:00Z', pending: false }]);
+  await p.context.catchUpPoll();
+  p.advance(19_000);
+  await p.context.catchUpPoll({ periodic: true });
+  assert.equal(p.requests.length, 1);
+  p.advance(1_000);
+  await p.context.catchUpPoll({ periodic: true });
+  assert.equal(p.requests.length, 2);
+  assert.equal(p.requests[1].table, 'dm_messages');
+  assert.deepEqual(p.requests[1].filters, [['dm_id', 'convo'], ['created_at', '2026-10-13T00:00:00Z']]);
+});
+
+function liveLoadHelpers() {
+  const msgCache = new Map();
+  const seen = [];
+  const context = vm.createContext({
+    msgCache,
+    rememberId: id => seen.push(id),
+    setViewMessages(key, rows) { msgCache.set(key, rows || []); return rows; },
+    viewKey: view => `${view.type === 'dm' ? 'dm' : 'c'}:${view.id}`,
+    fetchMessages: async () => [{ id: 'old', created_at: '1', deleted: false }],
+  });
+  vm.runInContext(section(chat, '    const loadingViewKeys = new Set();', '    function ingestMessage('), context);
+  return { context, msgCache, seen };
+}
+
+test('a DM message that arrives while history is loading stays in the thread', async () => {
+  const live = liveLoadHelpers();
+  const { context } = live;
+  context.holdLiveMessage('dm:1', { id: 'new', created_at: '2', content: 'hey' });
+  context.holdLiveMessage('dm:1', { id: 'new', created_at: '2', content: 'dup' });
+  context.holdLiveMessage('dm:1', { id: 'gone', created_at: '3', deleted: true });
+  const rows = context.commitLoadedView('dm:1', [{ id: 'old', created_at: '1', deleted: false }]);
+  assert.deepEqual(rows.map(row => row.id), ['old', 'new']);
+  assert.equal(rows.find(row => row.id === 'new').content, 'hey');
+  assert.deepEqual(live.seen, ['old', 'new']);
+
+  context.holdLiveMessage('dm:2', { id: 'same', created_at: '2', content: 'live' });
+  const overlapped = context.commitLoadedView('dm:2', [{ id: 'same', created_at: '2', content: 'fetched' }]);
+  assert.deepEqual(overlapped.map(row => row.content), ['fetched']);
 });
 
 test('a failed message request does not leave polling locked', async () => {

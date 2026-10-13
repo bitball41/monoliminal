@@ -8,8 +8,10 @@ Chat's live online status requires `20261009154000_private_chat_online_presence.
 
 The policies only allow Presence for authenticated, unbanned Chat accounts on `liminal-online`. Keep those restrictions when tuning usage. Chat uses private Realtime Presence alone for online connections, with separate keys per tab and a count deduplicated by known account. It does not read or pulse `user_presence`, and database freshness does not gate online status. Status and custom status changes arrive through the existing profile subscription. Clean departures remove a tab's entry; crash and network-loss departures wait for the server's socket liveness detection. Presence keys and metadata are client supplied, so this cosmetic information must never authorize actions.
 
-Healthy message and launcher-control subscriptions use 5-minute HTTP reconciliation, with shorter fallbacks on disconnect and no periodic message/control reads from hidden tabs.
+Healthy channel-message and launcher-control subscriptions use 5-minute HTTP reconciliation, with shorter fallbacks on disconnect and no periodic message/control reads from hidden tabs. An open DM reconciles about every 20 seconds, because a missed direct-message event otherwise stays hidden until reload.
 
 The backend authorization migration secures current and legacy write paths. All permission checks use the verified account and canonical database role. Caller-supplied owner flags, usernames and legacy password fields do not grant access.
+
+`20261013060000_chat_cosmetic_sub_roles.sql` adds `profiles.sub_role`. Apply it before deploying the Chat client that reads the column. Subroles are labels such as developer or artist. They do not change staff rank. Direct profile edits cannot set one. Mods and above assign them with `chat_set_sub_role` until members can pick their own.
 
 Run `npm ci --ignore-scripts` and `npm test` before deployment. The isolated database tests use PGlite and a reduced snapshot of the existing runtime schema; the test fixture is not a production migration. Also run the rollback-only SQL checks in `../tests/authorization-regression.sql` against the linked project when deploying. They create temporary fixture accounts and revert all writes, including settings and audit rows.
