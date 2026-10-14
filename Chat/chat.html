@@ -2385,7 +2385,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-chat-form { display: flex; gap: 7px; padding: 10px; border-top: 1px solid var(--line); background: var(--surface); }
     .vc-chat-form input { min-width: 0; flex: 1; padding: 9px 10px; border-radius: 10px; }
     .vc-chat-form button { flex: 0 0 auto; padding: 8px 11px; }
-    .vc-dock { display: none !important; margin: 0 8px 8px; padding: 9px; border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-soft); }
+    .vc-dock { margin: 0 8px 8px; padding: 9px; border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-soft); }
     .vc-dock-main { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: none; background: transparent; color: var(--text); text-align: left; }
     .vc-dock-main strong { display: block; font-family: var(--font-ui); font-size: .7rem; }
     .vc-dock-main span { display: block; margin-top: 2px; color: var(--muted); font-size: .6rem; }
@@ -4863,7 +4863,7 @@ void main() {
     function voiceRtcConfig() {
       return voice.rtcConfig || {
         iceServers: [...VOICE_STUN_SERVERS, ...voiceTurnFromSettings()],
-        iceTransportPolicy: 'relay',
+        iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         iceCandidatePoolSize: 2,
       };
@@ -4879,10 +4879,9 @@ void main() {
         ]);
       } catch { fallback = []; }
       const iceServers = [...VOICE_STUN_SERVERS, ...owned, ...(Array.isArray(fallback) ? fallback : [])];
-      const hasTurn = iceServers.some(s => /turn/i.test(String(s.urls || '')));
       voice.rtcConfig = {
         iceServers,
-        iceTransportPolicy: hasTurn ? 'relay' : 'all',
+        iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         iceCandidatePoolSize: 2,
       };
@@ -7203,7 +7202,7 @@ void main() {
       updateAdminUi();
       applyFeatureControls();
 
-      const startChannel = channels.find(c => c.id === 'general' && channelIsVisible(c)) || channels.find(channelIsVisible);
+      const startChannel = channels.find(c => c.id === 'general' && channelIsHome(c)) || channels.find(channelIsHome);
       if (startChannel) await openView({ type: 'channel', id: startChannel.id });
 
       setupRealtime();
@@ -7345,13 +7344,19 @@ void main() {
     async function loadChannels() {
       const { data } = await sb.from('channels').select('*').order('position', { ascending: true });
       channels = (data || []).filter(ch => ch.id !== 'chatgpt');
-      if (!channels.some(ch => ch.id === VOICE_CHANNEL_ID)) {
-        channels.push({
+      let voiceRow = channels.find(ch => ch.id === VOICE_CHANNEL_ID);
+      if (!voiceRow) {
+        voiceRow = {
           id: VOICE_CHANNEL_ID, label: 'Voice Chat', icon: '🎥', position: 4,
           topic: 'One room for the whole Liminal community.', is_system: true,
           kind: 'voice', category: 'Voice', forum_tags: [],
-        });
+        };
+        channels.push(voiceRow);
       }
+      voiceRow.kind = 'voice';
+      voiceRow.is_system = true;
+      if (!voiceRow.icon || voiceRow.icon === '#') voiceRow.icon = '🎥';
+      if (!String(voiceRow.category || '').trim()) voiceRow.category = 'Voice';
       channels.sort((a, b) => Number(a.position || 0) - Number(b.position || 0));
     }
 
@@ -7511,8 +7516,16 @@ void main() {
         </button>`;
     }
 
+    function isVoiceChannel(ch) {
+      return !!ch && (ch.id === VOICE_CHANNEL_ID || ch.kind === 'voice');
+    }
+
     function channelIsVisible(ch) {
-      return !!ch && ch.id !== VOICE_CHANNEL_ID && ch.id !== FOLLOWING_CHANNEL;
+      return !!ch && ch.id !== FOLLOWING_CHANNEL;
+    }
+
+    function channelIsHome(ch) {
+      return channelIsVisible(ch) && !isVoiceChannel(ch);
     }
 
     function renderChannels() {
@@ -7769,8 +7782,8 @@ void main() {
 
     async function openView(view) {
       const hiddenChannelId = isForumThreadView(view) ? view.forumChannelId : (view.type === 'channel' || view.type === 'forum' ? view.id : '');
-      if (hiddenChannelId === VOICE_CHANNEL_ID || hiddenChannelId === FOLLOWING_CHANNEL) {
-        const fallback = channels.find(channelIsVisible);
+      if (hiddenChannelId === FOLLOWING_CHANNEL) {
+        const fallback = channels.find(channelIsHome);
         if (fallback && fallback.id !== hiddenChannelId) return openView({ type: fallback.kind === 'forum' ? 'forum' : 'channel', id: fallback.id });
         return;
       }
@@ -7778,7 +7791,7 @@ void main() {
       beginViewSwitch(view);
       if (view.type === 'channel' && !isForumThreadView(view)) {
         const fch = channelById(view.id);
-        if (fch && fch.kind === 'voice') return openVoiceRoom(view);
+        if (view.id === VOICE_CHANNEL_ID || (fch && fch.kind === 'voice')) return openVoiceRoom(view);
         if (fch && fch.kind === 'forum') return openForumBoard({ type: 'forum', id: view.id });
       }
       const prevView = currentView;
@@ -10172,7 +10185,7 @@ void main() {
       const live = linkedVoiceCount();
       if (title) title.textContent = live ? 'Voice Connected' : 'Linking audio';
       if (live === voice.peers.size) setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
-      else setVoiceStatus(`Linking through a relay… ${live}/${voice.peers.size}. School Wi-Fi often blocks direct calls.`);
+      else setVoiceStatus(`Connecting… ${live}/${voice.peers.size}`);
     }
 
     function hostNeedsMediaPrompt() {
@@ -10515,6 +10528,8 @@ void main() {
       label.append(name, state);
       tile.append(video, placeholder, label);
       tile.addEventListener('click', (event) => {
+        const videoEl = qs('video', tile);
+        if (videoEl) videoEl.play().catch(() => {});
         if (!peer.dc || peer.dc.readyState !== 'open') return;
         const rect = tile.getBoundingClientRect();
         const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
@@ -10580,17 +10595,31 @@ void main() {
       }, 4000);
     }
 
-    function waitForIceGathering(pc, ms = 5000) {
+    function waitForIceGathering(pc, ms = 2500) {
       if (!pc || pc.iceGatheringState === 'complete') return Promise.resolve();
       return new Promise(resolve => {
+        let settled = false;
+        let early = 0;
         const done = () => {
+          if (settled) return;
+          settled = true;
           pc.removeEventListener('icegatheringstatechange', onChange);
+          pc.removeEventListener('icecandidate', onCandidate);
           clearTimeout(timer);
+          clearTimeout(early);
           resolve();
         };
         const onChange = () => { if (pc.iceGatheringState === 'complete') done(); };
+        const onCandidate = (event) => {
+          const candidate = event.candidate;
+          if (!candidate || early) return;
+          const type = candidate.type || '';
+          const line = candidate.candidate || '';
+          if (type === 'host' || type === 'srflx' || / typ (host|srflx)/.test(line)) early = setTimeout(done, 300);
+        };
         const timer = setTimeout(done, ms);
         pc.addEventListener('icegatheringstatechange', onChange);
+        pc.addEventListener('icecandidate', onCandidate);
       });
     }
 
@@ -10692,8 +10721,9 @@ void main() {
       peer.offerSent = true;
       try {
         const offer = await peer.pc.createOffer(iceRestart || ice === 'failed' || ice === 'disconnected' ? { iceRestart: true } : undefined);
+        const gathered = waitForIceGathering(peer.pc);
         await peer.pc.setLocalDescription(offer);
-        await waitForIceGathering(peer.pc);
+        await gathered;
         const local = peer.pc.localDescription;
         await publishVoice('offer', { description: { type: local.type, sdp: local.sdp } }, peerId);
         watchPeerIce(peer);
@@ -10760,8 +10790,11 @@ void main() {
           await peer.pc.setRemoteDescription(message.description);
           await flushVoiceCandidates(peer);
           const answer = await peer.pc.createAnswer();
+          const gathered = waitForIceGathering(peer.pc);
           await peer.pc.setLocalDescription(answer);
-          await publishVoice('answer', { description: { type: answer.type, sdp: answer.sdp } }, remoteId);
+          await gathered;
+          const localAnswer = peer.pc.localDescription;
+          await publishVoice('answer', { description: { type: localAnswer.type, sdp: localAnswer.sdp } }, remoteId);
           watchPeerIce(peer);
         } catch (error) {
           console.error('[liminal] voice answer failed', error);
@@ -11734,7 +11767,7 @@ void main() {
       if (currentView.type === 'forum') {
         const ch = channelById(currentView.id);
         if (!ch || ch.kind !== 'forum') {
-          const fallback = channels.find(channelIsVisible);
+          const fallback = channels.find(channelIsHome);
           if (fallback) openView({ type: 'channel', id: fallback.id });
           return;
         }
@@ -11746,7 +11779,7 @@ void main() {
       }
       if (isForumThreadView(currentView)) { renderChannels(); return; }
       if (currentView.type === 'channel' && !channels.some(c => c.id === currentView.id)) {
-        const fallback = channels.find(channelIsVisible);
+        const fallback = channels.find(channelIsHome);
         if (fallback) openView({ type: 'channel', id: fallback.id });
       } else {
         renderChannels();
@@ -14126,7 +14159,7 @@ void main() {
         clearAttachment(); $('message-input').value = ''; autogrow();
         invalidateSearch(); $('search-dialog').close();
         $('message-list').innerHTML = '';
-        const fallback = channels.find(channelIsVisible);
+        const fallback = channels.find(channelIsHome);
         if (fallback) openView({ type: fallback.kind === 'forum' ? 'forum' : 'channel', id: fallback.id });
         if (groupLeavingId !== id) toast({ type: 'warning', text: 'You no longer have access to this private group.' });
       }
@@ -15287,7 +15320,7 @@ void main() {
         for (const m of data || []) {
           const key = `c:${m.channel_id}`;
           const ch = channelById(m.channel_id);
-          if (!mentionsMe(m.content) || (ch && !channelIsVisible(ch))) continue;
+          if (!mentionsMe(m.content) || (ch && !channelIsHome(ch))) continue;
           const read = !!(lastReadAt[key] && Date.parse(lastReadAt[key]) >= Date.parse(m.created_at));
           addInbox({ kind: 'mention', from: m.sender, text: messagePreview(m), view: key, msgId: m.id, ts: m.created_at, read }, true);
         }
@@ -15453,7 +15486,7 @@ void main() {
 
     async function openForumBoard(view) {
       if (view.id === FOLLOWING_CHANNEL) {
-        const fallback = channels.find(channelIsVisible);
+        const fallback = channels.find(channelIsHome);
         if (fallback) return openView({ type: fallback.kind === 'forum' ? 'forum' : 'channel', id: fallback.id });
         return;
       }
