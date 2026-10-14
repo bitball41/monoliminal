@@ -2295,53 +2295,35 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     /* ============================= GLOBAL VOICE CHAT ============================= */
     .vc-stage {
-      height: 100%; overflow-y: auto; padding: 18px;
-      background: var(--bg-deep);
+      height: 100%; min-height: 0; display: flex; flex-direction: column;
+      padding: 22px 22px 16px; background: var(--bg-deep);
     }
-    .vc-shell { width: min(1180px, 100%); min-height: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
-    .vc-toolbar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      padding: 12px; border: 1px solid var(--line); border-radius: 16px;
-      background: var(--glass-strong); box-shadow: var(--shadow-soft);  
+    .vc-shell {
+      flex: 1; min-height: 0; width: min(920px, 100%); margin: 0 auto;
+      display: flex; flex-direction: column; gap: 16px;
     }
-    .vc-identity { display: flex; align-items: center; gap: 10px; min-width: 180px; margin-right: auto; }
-    .vc-identity-copy { min-width: 0; }
-    .vc-identity-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-ui); font-size: .82rem; }
-    .vc-status { display: block; margin-top: 2px; color: var(--muted); font-family: var(--font-ui); font-size: .66rem; }
-    .vc-controls { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-    .vc-control {
-      min-height: 38px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 11px;
-      background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: .7rem; font-weight: 750;
+    .vc-grid {
+      flex: 1; min-height: 0; overflow: auto;
+      display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 12px;
     }
-    .vc-control:hover:not(:disabled) { border-color: var(--accent-line); background: var(--surface-2); }
-    .vc-control.active { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); background: color-mix(in srgb, var(--ok) 14%, var(--surface)); }
-    .vc-control.danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); background: color-mix(in srgb, var(--danger) 14%, var(--surface)); color: color-mix(in srgb, var(--danger) 72%, white); }
-    .vc-control:disabled { opacity: .46; cursor: not-allowed; }
-    .vc-interactions {
-      display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 7px 10px;
-      border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--text-soft);
-      font-family: var(--font-ui); font-size: .68rem; font-weight: 650;
-    }
-    .vc-interactions input { accent-color: var(--accent-strong); }
-    .vc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 14px; align-content: start; padding-bottom: 72px; }
     .vc-tile {
-      position: relative; min-width: 0; overflow: hidden; aspect-ratio: 16 / 9;
-      border: 1px solid var(--line); border-radius: 17px; background: #05050b; box-shadow: var(--shadow-soft);
+      position: relative; flex: 1 1 260px; width: min(420px, 100%); max-width: 420px; min-width: 0;
+      overflow: hidden; aspect-ratio: 16 / 9;
+      border: 1px solid var(--line); border-radius: 16px; background: #09090f;
     }
-    .vc-tile video { display: block; width: 100%; height: 100%; object-fit: cover; background: #05050b; }
+    .vc-tile video { display: block; width: 100%; height: 100%; object-fit: cover; background: #09090f; }
     .vc-tile video.vc-mirror { transform: scaleX(-1); }
     .vc-tile video.vc-screen-share { transform: none; object-fit: contain; }
     .vc-tile-placeholder {
       position: absolute; inset: 0; display: grid; place-items: center;
-      background: radial-gradient(circle, color-mix(in srgb, var(--accent) 19%, #090914), #05050b 70%);
+      background: color-mix(in srgb, var(--accent) 8%, #09090f);
     }
-    .vc-tile-placeholder .avatar { width: 76px; height: 76px; font-size: 1.2rem; }
+    .vc-tile-placeholder .avatar { width: 72px; height: 72px; font-size: 1.15rem; }
     .vc-tile.has-video .vc-tile-placeholder { display: none; }
     .vc-tile-label {
       position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px;
-      max-width: calc(100% - 20px); padding: 6px 9px; border: 1px solid rgba(255,255,255,.12); border-radius: 9px;
-      background: rgba(5,5,12,.72); color: #fff; font-family: var(--font-ui); font-size: .68rem; font-weight: 750;
-      backdrop-filter: blur(10px); pointer-events: none;
+      max-width: calc(100% - 20px); padding: 5px 8px; border-radius: 999px;
+      background: rgba(8, 8, 14, .78); color: #fff; font-family: var(--font-ui); font-size: .68rem; font-weight: 700;
     }
     .vc-tile-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vc-tile-state { color: rgba(255,255,255,.72); font-size: .76rem; }
@@ -2350,18 +2332,34 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       transform: translate(-50%, -50%); pointer-events: none; animation: vc-ping .8s ease-out forwards;
     }
     @keyframes vc-ping { to { width: 56px; height: 56px; opacity: 0; } }
-    .vc-empty {
-      grid-column: 1 / -1; padding: 54px 20px; border: 1px dashed var(--line); border-radius: 17px;
-      color: var(--muted); text-align: center; font-family: var(--font-ui); font-size: .78rem;
+    .vc-bar {
+      align-self: center; width: max-content; max-width: 100%;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 10px 14px 12px; border: 1px solid var(--line); border-radius: 18px;
+      background: var(--panel-strong);
     }
-    .vc-chat-toggle {
-      position: fixed; left: 20px; bottom: 20px; z-index: 700; min-height: 42px; padding: 10px 16px;
-      border: 1px solid var(--accent-line); border-radius: 999px; background: var(--accent-strong); color: var(--on-accent);
-      box-shadow: var(--shadow); font-family: var(--font-ui); font-size: .72rem; font-weight: 800;
+    .vc-status {
+      max-width: 100%; color: var(--muted); font-family: var(--font-ui); font-size: .7rem; font-weight: 650;
+      text-align: center;
     }
-    .vc-chat-toggle:hover { transform: translateY(-1px); }
+    .vc-controls { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .vc-control {
+      min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px;
+      background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: .72rem; font-weight: 750;
+    }
+    .vc-control:hover:not(:disabled) { border-color: var(--accent-line); background: var(--surface-2); }
+    .vc-control.primary { border-color: transparent; background: var(--accent-strong); color: var(--on-accent); }
+    .vc-control.primary:hover:not(:disabled) { filter: brightness(1.06); }
+    .vc-control.active { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text); }
+    .vc-control.danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); background: color-mix(in srgb, var(--danger) 14%, var(--surface)); color: color-mix(in srgb, var(--danger) 72%, white); }
+    .vc-control:disabled { opacity: .46; cursor: not-allowed; }
+    .vc-clicks {
+      display: inline-flex; align-items: center; gap: 6px; margin-left: 2px;
+      color: var(--muted); font-family: var(--font-ui); font-size: .66rem; font-weight: 650;
+    }
+    .vc-clicks input { accent-color: var(--accent-strong); }
     .vc-chat-popup {
-      position: fixed; left: 20px; bottom: 74px; z-index: 710; display: flex; flex-direction: column;
+      position: fixed; right: 20px; bottom: 24px; left: auto; z-index: 710; display: flex; flex-direction: column;
       width: min(340px, calc(100vw - 24px)); height: min(410px, calc(100vh - 118px)); overflow: hidden;
       border: 1px solid var(--line); border-radius: 16px; background: var(--glass-strong); box-shadow: var(--shadow);
       
@@ -2452,9 +2450,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .category-header .cat-add { width: 32px; height: 32px; }
       .forum-board { padding: 13px 11px 26px; }
       .thread-op { padding: 13px 12px 4px; }
-      .vc-stage { padding: 13px 11px 26px; }
-      .vc-toolbar { align-items: flex-start; }
-      .vc-controls { width: 100%; }
+      .vc-stage { padding: 14px 12px 12px; }
     }
 
     @media (max-width: 680px) {
@@ -2475,14 +2471,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .ft-foot { gap: 11px; }
       .hover-stats { gap: 6px; }
       .thread-op h2 { font-size: 1.14rem; }
-      .vc-stage { padding: 10px 8px 20px; }
-      .vc-toolbar { padding: 9px; border-radius: 13px; }
-      .vc-identity { width: 100%; }
-      .vc-control { flex: 1 1 calc(50% - 7px); }
-      .vc-interactions { width: 100%; }
-      .vc-grid { grid-template-columns: 1fr; gap: 9px; }
-      .vc-chat-toggle { left: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
-      .vc-chat-popup { left: 8px !important; right: 8px; bottom: calc(62px + env(safe-area-inset-bottom)) !important; top: auto !important; width: auto; height: min(58vh, 430px); }
+      .vc-stage { padding: 12px 10px 10px; }
+      .vc-tile { max-width: 100%; }
+      .vc-chat-popup { left: 8px !important; right: 8px; bottom: calc(12px + env(safe-area-inset-bottom)) !important; top: auto !important; width: auto; height: min(58vh, 430px); }
       .vc-chat-header { cursor: default; }
     }
 
@@ -3290,32 +3281,26 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       </div>
 
       <section class="timeline-wrap" aria-label="Message history">
-        <div class="vc-stage scroll-thin" id="vc-stage" hidden aria-label="Global voice chat">
+        <div class="vc-stage" id="vc-stage" hidden aria-label="Global voice chat">
           <div class="vc-shell">
-            <div class="vc-toolbar">
-              <div class="vc-identity">
-                <span class="avatar avatar-sm" id="vc-self-avatar"></span>
-                <div class="vc-identity-copy">
-                  <strong id="vc-self-name">You</strong>
-                  <span class="vc-status" id="vc-status" role="status" aria-live="polite">Ready to join</span>
-                </div>
-              </div>
-              <div class="vc-controls">
-                <button class="vc-control active" id="vc-join-btn" type="button">🎤 Join Voice</button>
-                <button class="vc-control" id="vc-mute-btn" type="button" disabled hidden>🎤 Mute</button>
-                <button class="vc-control" id="vc-video-btn" type="button" disabled hidden>📷 Start Video</button>
-                <button class="vc-control" id="vc-share-btn" type="button" disabled hidden>🖥 Share Screen</button>
-                <button class="vc-control danger" id="vc-leave-btn" type="button" disabled hidden>Leave</button>
-                <label class="vc-interactions"><input id="vc-allow-interactions" type="checkbox" checked> Allow Remote Clicks</label>
-              </div>
-            </div>
             <div class="vc-grid" id="vc-grid">
               <div class="vc-tile" id="vc-local-tile">
                 <video id="vc-local-video" class="vc-mirror" autoplay muted playsinline></video>
                 <div class="vc-tile-placeholder" id="vc-local-placeholder"><span class="avatar" id="vc-local-avatar"></span></div>
                 <div class="vc-tile-label"><span id="vc-local-label">You</span><span class="vc-tile-state" id="vc-local-state"></span></div>
               </div>
-              <div class="vc-empty" id="vc-empty">Join Voice to start talking.</div>
+            </div>
+            <div class="vc-bar">
+              <span class="vc-status" id="vc-status" role="status" aria-live="polite">Ready to join</span>
+              <div class="vc-controls">
+                <button class="vc-control primary" id="vc-join-btn" type="button">Join Voice</button>
+                <button class="vc-control" id="vc-mute-btn" type="button" disabled hidden>Mute</button>
+                <button class="vc-control" id="vc-video-btn" type="button" disabled hidden>Camera</button>
+                <button class="vc-control" id="vc-share-btn" type="button" disabled hidden>Share</button>
+                <button class="vc-control" id="vc-chat-toggle" type="button" hidden>Chat</button>
+                <button class="vc-control danger" id="vc-leave-btn" type="button" disabled hidden>Leave</button>
+                <label class="vc-clicks"><input id="vc-allow-interactions" type="checkbox" checked> Pings</label>
+              </div>
             </div>
           </div>
         </div>
@@ -3425,7 +3410,6 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       </div>
     </aside>
 
-    <button class="vc-chat-toggle" id="vc-chat-toggle" type="button" hidden>💬 Room Chat</button>
     <section class="vc-chat-popup vc-chat-hidden" id="vc-chat-popup" hidden aria-label="Voice room chat">
       <header class="vc-chat-header" id="vc-chat-header">
         <div><strong>Room Chat</strong><span>Saved in Liminal</span></div>
@@ -10258,15 +10242,13 @@ void main() {
     function updateVoiceUi() {
       const joined = voice.connected || voice.joining;
       const account = me ? voiceAccount() : { username: '', displayName: 'You', pfp: '' };
-      $('vc-self-name').textContent = account.displayName;
       $('vc-local-label').textContent = `${account.displayName} (You)`;
-      setVoiceAvatar($('vc-self-avatar'), account);
       setVoiceAvatar($('vc-local-avatar'), account);
       $('vc-dock').hidden = !voice.connected;
       $('vc-chat-toggle').hidden = !voice.connected;
       $('vc-join-btn').hidden = joined;
       $('vc-join-btn').disabled = voice.joining;
-      $('vc-join-btn').textContent = voice.joining ? 'Asking this file…' : '🎤 Join Voice';
+      $('vc-join-btn').textContent = voice.joining ? 'Opening mic…' : 'Join Voice';
       $('vc-mute-btn').hidden = !voice.connected;
       $('vc-video-btn').hidden = !voice.connected;
       $('vc-share-btn').hidden = !voice.connected;
@@ -10279,14 +10261,13 @@ void main() {
       const video = voice.localStream?.getVideoTracks()[0];
       const muted = !!audio && !audio.enabled;
       const cameraOff = !video || !video.enabled;
-      $('vc-mute-btn').textContent = muted ? '🔇 Unmute' : '🎤 Mute';
+      $('vc-mute-btn').textContent = muted ? 'Unmute' : 'Mute';
       $('vc-dock-mute').textContent = muted ? 'Unmute' : 'Mute';
       $('vc-mute-btn').classList.toggle('active', muted);
-      $('vc-video-btn').textContent = cameraOff ? '📷 Start Video' : '📷 Stop Video';
+      $('vc-video-btn').textContent = cameraOff ? 'Camera' : 'Stop video';
       $('vc-video-btn').classList.toggle('active', cameraOff);
       $('vc-local-state').textContent = muted ? '🔇' : '';
       $('vc-local-tile').classList.toggle('has-video', !!video && video.enabled);
-      $('vc-empty').hidden = voice.peers.size > 0;
       if (voice.connected) summarizeVoiceStatus();
     }
 
@@ -10538,7 +10519,7 @@ void main() {
         addVoiceRipple(tile, x, y);
       });
       peer.tile = tile;
-      $('vc-grid').insertBefore(tile, $('vc-empty'));
+      $('vc-grid').append(tile);
       updatePeerTileIdentity(peer);
       return tile;
     }
@@ -10893,7 +10874,7 @@ void main() {
       $('vc-local-video').srcObject = voice.localStream;
       $('vc-local-video').classList.add('vc-mirror');
       $('vc-local-video').classList.remove('vc-screen-share');
-      $('vc-share-btn').textContent = '🖥 Share Screen';
+      $('vc-share-btn').textContent = 'Share';
       $('vc-share-btn').classList.remove('active');
       updateVoiceUi();
     }
@@ -10911,7 +10892,7 @@ void main() {
         $('vc-local-video').classList.remove('vc-mirror');
         $('vc-local-video').classList.add('vc-screen-share');
         $('vc-local-tile').classList.add('has-video');
-        $('vc-share-btn').textContent = '■ Stop Sharing';
+        $('vc-share-btn').textContent = 'Stop sharing';
         $('vc-share-btn').classList.add('active');
       } catch (error) {
         if (error?.name !== 'NotAllowedError') toast({ type: 'error', text: 'Could not share your screen.' });

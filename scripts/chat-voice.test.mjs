@@ -133,4 +133,7 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.match(openView, /view\.id === VOICE_CHANNEL_ID \|\| \(fch && fch\.kind === 'voice'\)\) return openVoiceRoom\(view\)/);
   assert.equal([...chat.matchAll(/iceTransportPolicy: '([^']+)'/g)].map(match => match[1]).join(','), 'all,all');
   assert.doesNotMatch(chat, /\.vc-dock\s*\{[^}]*display:\s*none\s*!important/);
+  assert.doesNotMatch(chat, /id="vc-empty"/);
+  assert.doesNotMatch(chat, /Allow Remote Clicks/);
+  assert.match(chat, /class="vc-bar"/);
 });
