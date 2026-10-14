@@ -2313,7 +2313,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .vc-tile video { display: block; width: 100%; height: 100%; object-fit: cover; background: #09090f; }
     .vc-tile video.vc-mirror { transform: scaleX(-1); }
-    .vc-tile video.vc-screen-share { transform: none; object-fit: contain; }
+    .vc-tile video.vc-screen-share, .vc-tile.vc-screen video { transform: none; object-fit: contain; }
     .vc-tile-placeholder {
       position: absolute; inset: 0; display: grid; place-items: center;
       background: color-mix(in srgb, var(--accent) 8%, #09090f);
@@ -10555,6 +10555,18 @@ void main() {
       };
     }
 
+    function markPeerVideo(peer, mode) {
+      if (!peer) return;
+      peer.videoMode = mode === 'screen' ? 'screen' : (mode === 'off' ? 'off' : 'camera');
+      peer.tile?.classList.toggle('vc-screen', peer.videoMode === 'screen');
+    }
+
+    function voiceVideoMode() {
+      if (voice.screenStream) return 'screen';
+      const camera = voice.localStream?.getVideoTracks()[0];
+      return camera && camera.enabled && camera.readyState === 'live' ? 'camera' : 'off';
+    }
+
     function startVoiceLinkWatch() {
       clearInterval(voice.linkTimer);
       voice.linkTimer = setInterval(() => {
@@ -10636,22 +10648,29 @@ void main() {
       pc.ontrack = ({ streams, track }) => {
         const tile = ensurePeerTile(peer);
         const video = qs('video', tile);
-        const stream = streams[0];
-        if (stream && video.srcObject !== stream) video.srcObject = stream;
+        // A video transceiver negotiated before anyone shares has no stream yet.
+        // The track still arrives, and it has to be attached or the picture never shows.
+        let stream = video.srcObject instanceof MediaStream ? video.srcObject : (streams[0] || new MediaStream());
+        if (!stream.getTracks().some(item => item.id === track.id)) stream.addTrack(track);
+        streams[0]?.getTracks().forEach(item => {
+          if (!stream.getTracks().some(existing => existing.id === item.id)) stream.addTrack(item);
+        });
+        if (video.srcObject !== stream) video.srcObject = stream;
         video.muted = false;
         const play = () => { video.play().catch(() => {}); };
         play();
-        video.addEventListener('pause', play, { once: true });
         const refresh = () => {
-          const hasVideo = !!stream?.getVideoTracks().some(item => item.readyState === 'live' && !item.muted);
-          tile.classList.toggle('has-video', hasVideo);
+          const liveTracks = stream.getVideoTracks().filter(item => item.readyState === 'live');
+          const frames = video.videoWidth > 0 && video.videoHeight > 0;
+          tile.classList.toggle('has-video', liveTracks.length > 0 && (frames || liveTracks.some(item => !item.muted)));
+          tile.classList.toggle('vc-screen', peer.videoMode === 'screen');
         };
-        stream?.getVideoTracks().forEach(item => {
-          item.onmute = refresh;
-          item.onunmute = refresh;
-          item.onended = refresh;
-        });
-        track.onunmute = play;
+        if (track.kind === 'video') {
+          track.onmute = refresh;
+          track.onunmute = () => { play(); refresh(); };
+          track.onended = () => { try { stream.removeTrack(track); } catch {} refresh(); };
+          video.addEventListener('resize', refresh);
+        }
         refresh();
       };
       pc.ondatachannel = ({ channel }) => configureVoiceDataChannel(peer, channel);
@@ -10672,6 +10691,13 @@ void main() {
         refreshIce();
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
           clearTimeout(peer.iceWatch);
+          if (peer.videoPending) {
+            peer.videoPending = false;
+            const videoSender = pc.getTransceivers().find(item => item.receiver?.track?.kind === 'video' || item.sender?.track?.kind === 'video');
+            const current = videoSender?.currentDirection;
+            const sending = current === 'sendrecv' || current === 'sendonly';
+            if (videoSender?.sender?.track && !sending) renegotiateVoicePeer(peer);
+          }
           return;
         }
         if (pc.iceConnectionState === 'failed' && !peer.iceRestarted) {
@@ -10751,7 +10777,13 @@ void main() {
         }
         peerRecord(remoteId, remoteAccount);
         if (message.type === 'announce') publishVoice('announce-ack', {}, remoteId);
+        if (voice.screenStream) publishVoice('video-mode', { mode: 'screen' }, remoteId);
         if (voice.clientId.localeCompare(remoteId) < 0) await offerVoicePeer(remoteId, remoteAccount);
+        return;
+      }
+
+      if (message.type === 'video-mode') {
+        markPeerVideo(voice.peers.get(remoteId) || peerRecord(remoteId, remoteAccount), message.mode);
         return;
       }
 
@@ -10854,14 +10886,70 @@ void main() {
       }
     }
 
-    async function replaceVoiceVideoTrack(track) {
-      const jobs = [];
-      voice.peers.forEach(peer => {
-        const sender = peer.pc?.getSenders().find(item => !item.track || item.track.kind === 'video');
-        if (sender) jobs.push(sender.replaceTrack(track));
-        else if (track && peer.pc && voice.localStream) peer.pc.addTrack(track, voice.localStream);
-      });
-      await Promise.allSettled(jobs);
+    async function tuneVideoSender(sender, screen) {
+      if (!sender) return;
+      try {
+        const params = sender.getParameters();
+        params.degradationPreference = screen ? 'maintain-resolution' : 'balanced';
+        const encoding = params.encodings && params.encodings[0];
+        if (encoding) {
+          encoding.active = true;
+          encoding.maxBitrate = screen ? 1500000 : 400000;
+          encoding.maxFramerate = screen ? 20 : 15;
+        }
+        await sender.setParameters(params);
+      } catch (error) {
+        console.warn('[liminal] video sender parameters', error);
+      }
+    }
+
+    async function renegotiateVoicePeer(peer) {
+      const pc = peer?.pc;
+      if (!pc || pc.connectionState === 'closed' || pc.signalingState === 'closed') return;
+      if (peer.renegotiating) { peer.renegotiateAgain = true; return; }
+      peer.renegotiating = true;
+      try {
+        for (let attempt = 0; attempt < 8 && voice.connected && pc.signalingState !== 'closed'; attempt++) {
+          peer.renegotiateAgain = false;
+          if (pc.signalingState !== 'stable') {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            continue;
+          }
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const local = pc.localDescription;
+          await publishVoice('offer', { description: { type: local.type, sdp: local.sdp } }, peer.id);
+          if (!peer.renegotiateAgain) break;
+        }
+      } catch (error) {
+        console.error('[liminal] video renegotiation failed', error);
+      } finally {
+        peer.renegotiating = false;
+      }
+    }
+
+    async function pushPeerVideo(peer, track, screen) {
+      const pc = peer.pc;
+      if (!pc) return;
+      let transceiver = pc.getTransceivers().find(item => item.receiver?.track?.kind === 'video' || item.sender?.track?.kind === 'video');
+      if (!transceiver) transceiver = pc.addTransceiver(track || 'video', { direction: 'sendrecv' });
+      if (track) transceiver.direction = 'sendrecv';
+      try { if (track) track.contentHint = screen ? 'detail' : 'motion'; } catch {}
+      await transceiver.sender.replaceTrack(track || null);
+      if (track) await tuneVideoSender(transceiver.sender, screen);
+      const current = transceiver.currentDirection;
+      const sending = current === 'sendrecv' || current === 'sendonly';
+      const ice = pc.iceConnectionState;
+      const linked = ice === 'connected' || ice === 'completed';
+      if (!track) { peer.videoPending = false; return; }
+      if (linked && !sending) await renegotiateVoicePeer(peer);
+      else peer.videoPending = !sending;
+    }
+
+    async function replaceVoiceVideoTrack(track, { screen = false } = {}) {
+      try { if (track) track.contentHint = screen ? 'detail' : 'motion'; } catch {}
+      await Promise.allSettled([...voice.peers.values()].map(peer => pushPeerVideo(peer, track, screen)));
+      publishVoice('video-mode', { mode: voiceVideoMode() });
     }
 
     async function stopVoiceShare() {
@@ -10882,16 +10970,32 @@ void main() {
     async function toggleVoiceShare() {
       if (voice.screenStream) { await stopVoiceShare(); return; }
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: { ideal: 15, max: 24 },
+            width: { max: 1920 },
+            height: { max: 1080 },
+          },
+          audio: false,
+        });
         const track = stream.getVideoTracks()[0];
         if (!track) return;
+        try {
+          await track.applyConstraints({
+            frameRate: { ideal: 15, max: 24 },
+            width: { max: 1920 },
+            height: { max: 1080 },
+          });
+        } catch {}
         voice.screenStream = stream;
         track.onended = () => stopVoiceShare();
-        await replaceVoiceVideoTrack(track);
-        $('vc-local-video').srcObject = stream;
-        $('vc-local-video').classList.remove('vc-mirror');
-        $('vc-local-video').classList.add('vc-screen-share');
+        await replaceVoiceVideoTrack(track, { screen: true });
+        const localVideo = $('vc-local-video');
+        localVideo.srcObject = stream;
+        localVideo.classList.remove('vc-mirror');
+        localVideo.classList.add('vc-screen-share');
         $('vc-local-tile').classList.add('has-video');
+        localVideo.play?.().catch(() => {});
         $('vc-share-btn').textContent = 'Stop sharing';
         $('vc-share-btn').classList.add('active');
       } catch (error) {
