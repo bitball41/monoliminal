@@ -5,6 +5,34 @@ import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 const file=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
 
+test('groups can share members with DMs and other groups without participant uniqueness conflicts',async()=>{
+ const db=new PGlite({extensions:{pgcrypto}});
+ try{
+  await db.exec(await file('Backend/tests/authorization-fixture.sql'));
+  for(const name of (await readdir(new URL('../Backend/migrations/',import.meta.url))).filter(name=>name.endsWith('.sql')).sort())await db.exec(await file('Backend/migrations/'+name));
+  const ids={alice:'00000000-0000-4000-8000-000000000001',bob:'00000000-0000-4000-8000-000000000002'};
+  for(const [name,id] of Object.entries(ids)){
+   await db.query('insert into auth.users(id) values($1)',[id]);
+   await db.query('insert into public.profiles(username,user_id,display_name) values($1,$2,$1)',[name,id]);
+  }
+  const actor=async name=>db.exec(`reset role;select set_config('request.jwt.claim.sub','${ids[name]}',false);set role authenticated;`);
+  await actor('alice');
+  await db.query("insert into public.dms(participants) values(array['alice','bob'])");
+  await assert.rejects(db.query("insert into public.dms(participants) values(array['alice','bob'])"),'ordinary DMs still enforce uniqueness');
+  const first=(await db.query("select public.chat_create_group('First',array['bob']) id")).rows[0].id;
+  const second=(await db.query("select public.chat_create_group('Second',array['bob']) id")).rows[0].id;
+  assert.notEqual(first,second,'same creator can own multiple groups');
+  await actor('bob');
+  for(const group of [first,second])await db.query('select public.chat_respond_group_invite($1,true)',[group]);
+  assert.equal((await db.query('select count(*)::int n from public.chat_list_conversations() where is_group')).rows[0].n,2,'same members can join multiple groups alongside their DM');
+  for(const group of [first,second])await db.query("select public.chat_manage_group($1,'leave','','')",[group]);
+  await actor('alice');
+  for(const group of [first,second])await db.query("select public.chat_manage_group($1,'leave','','')",[group]);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::int n from public.dms where is_group')).rows[0].n,2,'multiple empty groups do not collide either');
+ }finally{await db.close();}
+});
+
 test('private groups require acceptance, isolate history and uploads, and revoke all server access on removal', async()=>{
  const db=new PGlite({extensions:{pgcrypto}});
  const ids={alice:'00000000-0000-4000-8000-000000000001',bob:'00000000-0000-4000-8000-000000000002',charlie:'00000000-0000-4000-8000-000000000003',owner:'00000000-0000-4000-8000-000000000004',banned:'00000000-0000-4000-8000-000000000005'};

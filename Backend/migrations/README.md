@@ -17,3 +17,5 @@ The backend authorization migration secures current and legacy write paths. All 
 Run `npm ci --ignore-scripts` and `npm test` before deployment. The isolated database tests use PGlite and a reduced snapshot of the existing runtime schema; the test fixture is not a production migration. Also run the rollback-only SQL checks in `../tests/authorization-regression.sql` against the linked project when deploying. They create temporary fixture accounts and revert all writes, including settings and audit rows.
 
 `20261013234532_private_group_chats.sql` adds invitation-based private groups on top of the existing DM tables, member-only private attachments, a compatibility inbox for old clients, and owner-only feature configuration. Invitations do not grant message access. Group reads and writes remain scoped to accepted participants, without a staff-role exception. Apply this migration before the 2.23 Chat deployment.
+
+`20261014010005_private_group_dm_uniqueness.sql` excludes private groups from the existing participant uniqueness index. Groups can share members with each other and an ordinary DM, while ordinary DMs retain their uniqueness rule and Luna exception.

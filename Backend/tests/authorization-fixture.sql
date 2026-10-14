@@ -143,6 +143,8 @@ CREATE TABLE "public"."dms" (
 );
 ALTER TABLE public.dms ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON public.dms TO anon,authenticated,service_role;
+CREATE UNIQUE INDEX dms_non_luna_participants_unique_idx ON public.dms(participants)
+WHERE NOT ('Luna'=ANY(participants));
 
 CREATE TABLE "public"."follows" (
   "follower" text NOT NULL,
