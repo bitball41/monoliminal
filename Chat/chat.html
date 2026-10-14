@@ -405,8 +405,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       width: 100%; padding: 11px 13px;
       border: 1px solid var(--line-strong); border-radius: 11px;
       color: var(--text); background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+      text-transform: none; letter-spacing: normal;
       transition: border-color 130ms ease;
     }
+    .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: 1; }
     .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); }
     .field textarea { min-height: 84px; resize: vertical; }
     .field-help { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
@@ -975,8 +977,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .subrole-form input[type="color"] { width: 42px; height: 36px; padding: 3px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); cursor: pointer; }
     .subrole-form-preview { display: flex; gap: 8px; align-items: center; width: 100%; color: var(--muted); font-size: .72rem; }
     .subrole-form-actions { display: flex; gap: 8px; width: 100%; }
-    .subrole-manager-actions { margin: 10px 0 14px; }
-    .subrole-member-count { margin-bottom: 8px; }
+    .subrole-manager-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+    .subrole-member-count { margin: 0 0 8px; min-height: 1.15em; }
     #subrole-dialog { width: min(520px, calc(100vw - 24px)); }
     @media (max-width: 380px) { .subrole-picker { grid-template-columns: 1fr; } }
     .role-check {
@@ -1019,9 +1021,14 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .owner-panel[hidden] { display: none !important; }
     .owner-role-select {
-      min-height: 34px; border-radius: 8px; border: 1px solid var(--line);
-      background: var(--surface); color: var(--text); padding: 0 8px; font-size: 0.74rem;
+      width: 100%; min-width: 0; max-width: 100%; min-height: 36px;
+      border-radius: 10px; border: 1px solid var(--line-strong);
+      background: var(--panel-strong); color: var(--text);
+      padding: 0 10px; font-size: 0.74rem; font-weight: 650;
+      color-scheme: dark;
     }
+    html[data-light="true"] .owner-role-select,
+    html[data-light="true"] .console-person select { color-scheme: light; }
     .msg-time { color: var(--muted); font-size: 0.64rem; }
     .msg-edited { color: var(--muted); font-size: 0.6rem; font-style: italic; }
 
@@ -2628,34 +2635,73 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     #settings-dialog .dialog-body > #tab-admin, #settings-dialog .dialog-body > #tab-owner { width: 100%; max-width: none; text-align: left; }
     .console-shell { width: 100%; min-width: 0; }
     .console-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+    .console-heading > div { min-width: 0; flex: 1; }
     .console-eyebrow { color: var(--muted); font: 700 .62rem var(--font-ui); text-transform: uppercase; letter-spacing: .12em; }
     .console-heading h2 { margin: 6px 0 8px; font-size: clamp(1.2rem, 3vw, 1.65rem); letter-spacing: -.04em; }
     .console-heading p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.5; max-width: 500px; }
-    .console-rank { flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--accent-line); border-radius: 99px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .65rem var(--font-ui); }
+    .console-rank { flex: 0 1 auto; max-width: min(220px, 46%); padding: 6px 9px; border: 1px solid var(--accent-line); border-radius: 99px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .65rem var(--font-ui); line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
     .console-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
     .console-stats > div { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--surface); }
     .console-stats strong { display: block; font: 800 1.35rem var(--font-ui); }
     .console-stats span { display: block; margin-top: 3px; color: var(--muted); font-size: .7rem; }
-    .console-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .console-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); min-width: 0; }
     .console-nav button { padding: 9px 12px; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 700 .72rem var(--font-ui); }
     .console-nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
     .console-nav button:hover { color: var(--text); }
     .console-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .console-panel { display: grid; gap: 16px; min-width: 0; }
-    .console-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 0; }
-    .console-card-head { margin-bottom: 18px; }
+    .console-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb, var(--bg-deep) 28%, var(--panel-strong)); min-width: 0; }
+    .console-card-head { margin-bottom: 16px; }
     .console-card h3 { margin: 0 0 5px; font: 750 .9rem var(--font-ui); }
     .console-card-head p { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.5; }
     .console-card .field:last-child { margin-bottom: 0; }
-    .console-card .admin-list { max-height: 340px; }
-    .console-card .admin-list-item { flex-wrap: wrap; align-items: center; }
-    .console-member-list { max-height: 320px; overflow-y: auto; }
-    .console-person { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    #settings-dialog .console-card .field { margin-bottom: 12px; }
+    #settings-dialog .console-card .field:last-child { margin-bottom: 0; }
+    .console-card .admin-list,
+    .console-card .console-list,
+    .console-member-list {
+      max-height: min(300px, 42vh);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      min-width: 0;
+      padding: 2px;
+      margin-inline: -2px;
+      scroll-padding: 6px;
+    }
+    .console-card .admin-list-item { min-width: 0; align-items: center; background: color-mix(in srgb, var(--text) 4.5%, transparent); }
+    .console-card .admin-list-item:hover { border-color: var(--line-strong); background: color-mix(in srgb, var(--text) 8%, transparent); }
+    .console-card .admin-list-item:has(select) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(13rem, 16rem);
+      align-items: center;
+      column-gap: 12px;
+      row-gap: 8px;
+    }
+    .console-person-name {
+      display: flex; align-items: center; gap: 6px;
+      min-width: 0; max-width: 100%;
+      font-size: .8rem; font-weight: 750;
+    }
+    .console-person-name .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .console-person-name .role-check { flex: 0 0 auto; margin-left: 0; }
+    .console-person-name .subrole-badge { flex: 0 1 auto; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
+    .console-card .admin-list-item:has(select) .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .console-member-list { max-height: min(300px, 42vh); }
+    .console-person { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; min-width: 0; }
     .console-person:last-child { border-bottom: none; }
-    .console-person .grow { flex: 1; min-width: 100px; }
-    .console-person strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
-    .console-person small { display: block; margin-top: 3px; color: var(--muted); font-size: .68rem; overflow-wrap: anywhere; }
-    .console-person select { max-width: 160px; min-height: 34px; font-size: .72rem; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--text); padding: 5px 8px; }
+    .console-person:hover { background: color-mix(in srgb, var(--text) 4%, transparent); border-radius: 10px; }
+    .console-person .grow { flex: 1; min-width: 0; }
+    .console-person .grow > strong:not(.console-person-name) {
+      display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: .8rem;
+    }
+    .console-person .console-person-name { display: flex; }
+    .console-person small { display: block; margin-top: 2px; color: var(--muted); font-size: .68rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .console-person select,
+    .console-person > .secondary-button,
+    .console-person > .danger-button,
+    .console-person > .console-protected { flex: 0 0 auto; }
+    .console-person select { width: min(160px, 42%); max-width: 160px; min-height: 34px; font-size: .72rem; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-strong); color: var(--text); padding: 5px 8px; color-scheme: dark; }
     .console-protected { color: var(--muted); font-size: .67rem; }
     .console-empty { margin: 8px 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
     .console-inline-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
@@ -2666,6 +2712,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .console-quick-grid strong { display: block; font-size: .81rem; }
     .console-quick-grid span { display: block; margin-top: 7px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
     .console-feature { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .console-feature > div { min-width: 0; flex: 1; }
+    .console-test-account { display: grid; gap: 8px; }
+    .console-test-account > strong { font-size: .95rem; overflow-wrap: anywhere; }
     .console-feature:last-child { border-bottom: 0; }
     .console-feature strong { font-size: .8rem; }
     .console-feature p { margin: 4px 0 0; color: var(--muted); font-size: .73rem; line-height: 1.4; }
@@ -2674,12 +2723,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .console-credentials { margin: 14px 0; font-size: .73rem; }
     .console-credentials span { display: block; color: var(--muted); margin-bottom: 5px; }
     .console-credentials code { display: block; padding: 9px; border: 1px solid var(--line); border-radius: 9px; overflow-wrap: anywhere; }
-    .console-danger { border-color: color-mix(in srgb,var(--danger) 42%,var(--line)); }
+    .console-danger { border-color: color-mix(in srgb,var(--danger) 42%,var(--line)); background: color-mix(in srgb, var(--danger) 7%, var(--panel-strong)); }
     .console-danger h3 { color: var(--danger); }
     #owner-broadcast-status, #owner-sticker-recover-status { display: block; margin-top: 10px; }
     @media (max-width: 560px) {
       .console-heading { display: block; }
-      .console-rank { display: inline-flex; margin-top: 10px; }
+      .console-rank { display: inline-flex; margin-top: 10px; max-width: 100%; }
       .console-stats { gap: 6px; }
       .console-stats > div { padding: 12px 10px; }
       .console-stats strong { font-size: 1.1rem; }
@@ -2688,7 +2737,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .console-nav button { white-space: nowrap; }
       .console-form-grid, .console-quick-grid { grid-template-columns: 1fr; }
       .group-person .group-actions { flex-basis: 100%; justify-content: flex-end; }
-      .console-person select { max-width: 130px; }
+      .console-card .admin-list-item:has(select) { grid-template-columns: minmax(0, 1fr); }
+      .console-person { flex-wrap: wrap; }
+      .console-person select { width: 100%; max-width: none; }
+      .console-person > .secondary-button,
+      .console-person > .danger-button { margin-left: auto; }
     }
 
   </style>
@@ -2967,6 +3020,10 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 #settings-dialog .settings-save-bar[hidden] { display: none; }
 #settings-dialog .theme-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
 #settings-dialog .toggle-row { min-height: 62px; }
+#settings-dialog[data-settings-tab="admin"],
+#settings-dialog[data-settings-tab="owner"] { width: min(960px, calc(100vw - 28px)); }
+#settings-dialog .dialog-body > #tab-admin,
+#settings-dialog .dialog-body > #tab-owner { width: 100%; max-width: none; margin-inline: 0; text-align: left; }
 @media (max-width: 600px) {
   #settings-dialog { width: calc(100vw - 16px); height: min(94dvh, 800px); max-height: 94dvh; }
   #settings-dialog > .dialog-header { min-height: 54px; padding: 8px 16px; }
@@ -6386,7 +6443,10 @@ void main() {
         if (!select.disabled) select.innerHTML = subRoleOptionsHtml(subRoleOf(fresh));
         const row = select.closest('.admin-list-item');
         const strong = qs('strong', row);
-        if (strong) strong.innerHTML = `${esc(displayNameOf(fresh))}${roleBadgeHtml(fresh)} ${subRoleBadgeHtml(fresh)}`;
+        if (strong) {
+          strong.className = 'console-person-name';
+          strong.innerHTML = `<span class="name-text">${esc(displayNameOf(fresh))}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
+        }
         if (row) row.dataset.subroleRow = `${fresh.username} ${displayNameOf(fresh)} ${subRoleLabel(fresh)}`.toLowerCase();
       });
       qsa('.subrole-filter').forEach(filter => filter.dispatchEvent(new Event('input')));
@@ -13602,7 +13662,10 @@ void main() {
         if (select.value !== next) select.value = next;
         const strong = qs('strong', select.closest('.admin-list-item'));
         const fresh = profileOf(username);
-        if (strong) strong.innerHTML = `${esc(displayNameOf(fresh))}${roleBadgeHtml(fresh)} ${subRoleBadgeHtml(fresh)}`;
+        if (strong) {
+          strong.className = 'console-person-name';
+          strong.innerHTML = `<span class="name-text">${esc(displayNameOf(fresh))}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
+        }
       });
       if (hoverCardUser === username && !$('hover-card').hidden) {
         const fresh = profileOf(username);
@@ -13622,6 +13685,9 @@ void main() {
         + options.map(item =>
           `<option value="${esc(item.slug)}" ${current === item.slug ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
     }
+    function consolePersonNameHtml(profile, withSubrole = false) {
+      return `<strong class="console-person-name"><span class="name-text">${esc(displayNameOf(profile))}</span>${roleBadgeHtml(profile)}${withSubrole ? subRoleBadgeHtml(profile) : ''}</strong>`;
+    }
     function subRoleRowsHtml() {
       return [...profiles.values()]
         .filter(p => !p.is_banned && !isHiddenBot(p.username))
@@ -13629,7 +13695,7 @@ void main() {
         .map(p => {
           const hay = `${p.username} ${displayNameOf(p)} ${subRoleLabel(p)}`.toLowerCase();
           return `<div class="admin-list-item" data-subrole-row="${esc(hay)}">
-            <div class="grow"><strong>${esc(displayNameOf(p))}${roleBadgeHtml(p)} ${subRoleBadgeHtml(p)}</strong><div class="sub">@${esc(p.username)}</div></div>
+            <div class="grow">${consolePersonNameHtml(p, true)}<div class="sub">@${esc(p.username)}</div></div>
             <select class="owner-role-select" data-subrole-set="${esc(p.username)}" aria-label="Set subrole for ${esc(p.username)}">
               ${subRoleOptionsHtml(subRoleOf(p))}
             </select>
@@ -13640,7 +13706,7 @@ void main() {
       const rows = subRoleRowsHtml();
       return `
         <div class="subrole-manager-actions"><button class="secondary-button" type="button" data-open-subroles>${canManageSubroleCatalog() ? 'Manage badge catalog' : 'Choose your badge'}</button></div>
-        <div class="field"><label>Find a member<input class="subrole-filter" type="search" placeholder="Name, username, or subrole" aria-label="Find a member to assign a subrole"></label></div>
+        <div class="field"><label>Find a member</label><input class="subrole-filter" type="search" placeholder="Name, username, or subrole" aria-label="Find a member to assign a subrole" autocomplete="off"></div>
         <div class="field-help subrole-member-count" role="status" aria-live="polite"></div>
         <div class="admin-list subrole-list">${rows || '<span class="field-help">No members yet.</span>'}</div>
         <p class="field-help subrole-member-empty" hidden>No matching members. Try another name or subrole.</p>`;
@@ -13719,7 +13785,7 @@ void main() {
         .map(p => {
           const role = staffRoleOf(p);
           return `<div class="admin-list-item">
-            <div class="grow"><strong>${esc(displayNameOf(p))}${roleBadgeHtml(p)}</strong><div class="sub">@${esc(p.username)} · ${esc(STAFF_ROLE_META[role].label)}</div></div>
+            <div class="grow">${consolePersonNameHtml(p)}<div class="sub">@${esc(p.username)} · ${esc(STAFF_ROLE_META[role].label)}</div></div>
             <select class="owner-role-select" data-staff-set-role="${esc(p.username)}" aria-label="Set role for ${esc(p.username)}">
               ${roleOptions.map(value => `<option value="${value}" ${role === value ? 'selected' : ''}>${STAFF_ROLE_META[value].label}</option>`).join('')}
             </select>
@@ -14778,11 +14844,19 @@ void main() {
         ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
       </div>`;
     }
+    function revealConsoleNav(button) {
+      const nav = button?.closest('.console-nav');
+      if (!nav) return;
+      const left = button.offsetLeft;
+      const right = left + button.offsetWidth;
+      if (left < nav.scrollLeft + 8) nav.scrollLeft = Math.max(0, left - 8);
+      else if (right > nav.scrollLeft + nav.clientWidth - 8) nav.scrollLeft = right - nav.clientWidth + 8;
+    }
     function bindConsoleNavigation(root, scope, onSelect = () => {}) {
       const buttons = qsa('[data-console-panel]', root);
       const select = id => {
         if (scope === 'owner') ownerPanel = id; else staffPanel = id;
-        buttons.forEach(button => { const active = button.dataset.consolePanel === id; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
+        buttons.forEach(button => { const active = button.dataset.consolePanel === id; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; if (active) revealConsoleNav(button); });
         qsa('[data-console-body]', root).forEach(panel => { panel.hidden = panel.dataset.consoleBody !== id; });
         onSelect(id);
       };
@@ -14796,10 +14870,11 @@ void main() {
         });
       });
       qsa('[data-console-jump]', root).forEach(button => button.addEventListener('click', () => { select(button.dataset.consoleJump); buttons.find(item => item.dataset.consolePanel === button.dataset.consoleJump)?.focus(); }));
+      requestAnimationFrame(() => revealConsoleNav(buttons.find(button => button.getAttribute('aria-selected') === 'true')));
     }
     function staffMemberRows() {
       return [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username)).sort((a, b) => displayNameOf(a).localeCompare(displayNameOf(b))).map(p => `<div class="console-person" data-staff-search="${esc(`${p.username} ${displayNameOf(p)} ${STAFF_ROLE_META[staffRoleOf(p)]?.label || ''}`.toLowerCase())}">
-        ${avatarHtml(p, 'avatar-sm', false)}<div class="grow"><strong>${esc(displayNameOf(p))}${roleBadgeHtml(p)}</strong><small>@${esc(p.username)} · ${esc(STAFF_ROLE_META[staffRoleOf(p)]?.label || 'Member')}</small></div>
+        ${avatarHtml(p, 'avatar-sm', false)}<div class="grow">${consolePersonNameHtml(p)}<small>@${esc(p.username)} · ${esc(STAFF_ROLE_META[staffRoleOf(p)]?.label || 'Member')}</small></div>
         ${canModerateUser(p) ? `<select data-staff-action="${esc(p.username)}" aria-label="Moderate ${esc(displayNameOf(p))}"><option value="">Actions…</option><option value="timeout">Timeout 10 minutes</option>${isStaff() ? '<option value="kick">Kick</option>' : ''}${canBanUsers() ? '<option value="ban">Ban</option>' : ''}</select>` : '<span class="console-protected">Protected</span>'}
       </div>`).join('');
     }
