@@ -2605,6 +2605,92 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
   .search-options select, .search-options input { font-size: .69rem; padding: 6px; }
 }
 
+    /* Private groups and administration workspaces */
+    .group-avatar { display: inline-flex; align-items: center; justify-content: center; color: var(--accent-strong); background: var(--accent-soft); }
+    .group-avatar svg { width: 22px; height: 22px; }
+    .group-invites-button { width: 100%; margin: 2px 0 8px; padding: 9px 10px; border: 1px solid var(--accent-line); border-radius: 10px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .72rem var(--font-ui); text-align: left; }
+    .group-section-heading { margin: 20px 0 10px; font-size: .83rem; }
+    .group-candidates { max-height: 240px; overflow-y: auto; margin-top: 8px; }
+    .group-person { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+    .group-person > span:not(.avatar) { flex: 1; min-width: 0; }
+    .group-person strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
+    .group-person small { display: block; color: var(--muted); font-size: .68rem; }
+    .group-person input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    .group-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .group-actions button { font-size: .7rem; min-height: 32px; padding: 6px 10px; }
+    .group-footer { margin-top: 16px; }
+    .group-pending-person { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; color: var(--muted); font-size: .72rem; }
+    .group-invite-card { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--surface); }
+    .group-invite-card > div:first-child { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .group-invite-card strong { display: block; font-size: .85rem; overflow-wrap: anywhere; }
+    .group-invite-card span:not(.avatar) { color: var(--muted); font-size: .72rem; }
+    #settings-dialog[data-settings-tab="admin"], #settings-dialog[data-settings-tab="owner"] { width: min(960px, calc(100vw - 28px)); }
+    #settings-dialog .dialog-body > #tab-admin, #settings-dialog .dialog-body > #tab-owner { width: 100%; max-width: none; text-align: left; }
+    .console-shell { width: 100%; min-width: 0; }
+    .console-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+    .console-eyebrow { color: var(--muted); font: 700 .62rem var(--font-ui); text-transform: uppercase; letter-spacing: .12em; }
+    .console-heading h2 { margin: 6px 0 8px; font-size: clamp(1.2rem, 3vw, 1.65rem); letter-spacing: -.04em; }
+    .console-heading p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.5; max-width: 500px; }
+    .console-rank { flex: 0 0 auto; padding: 6px 9px; border: 1px solid var(--accent-line); border-radius: 99px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .65rem var(--font-ui); }
+    .console-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+    .console-stats > div { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--surface); }
+    .console-stats strong { display: block; font: 800 1.35rem var(--font-ui); }
+    .console-stats span { display: block; margin-top: 3px; color: var(--muted); font-size: .7rem; }
+    .console-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .console-nav button { padding: 9px 12px; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 700 .72rem var(--font-ui); }
+    .console-nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+    .console-nav button:hover { color: var(--text); }
+    .console-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .console-panel { display: grid; gap: 16px; min-width: 0; }
+    .console-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 0; }
+    .console-card-head { margin-bottom: 18px; }
+    .console-card h3 { margin: 0 0 5px; font: 750 .9rem var(--font-ui); }
+    .console-card-head p { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.5; }
+    .console-card .field:last-child { margin-bottom: 0; }
+    .console-card .admin-list { max-height: 340px; }
+    .console-card .admin-list-item { flex-wrap: wrap; align-items: center; }
+    .console-member-list { max-height: 320px; overflow-y: auto; }
+    .console-person { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .console-person:last-child { border-bottom: none; }
+    .console-person .grow { flex: 1; min-width: 100px; }
+    .console-person strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
+    .console-person small { display: block; margin-top: 3px; color: var(--muted); font-size: .68rem; overflow-wrap: anywhere; }
+    .console-person select { max-width: 160px; min-height: 34px; font-size: .72rem; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--text); padding: 5px 8px; }
+    .console-protected { color: var(--muted); font-size: .67rem; }
+    .console-empty { margin: 8px 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+    .console-inline-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .console-inline-form input { flex: 1; min-width: 130px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); padding: 10px; }
+    .console-quick-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+    .console-quick-grid button { text-align: left; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
+    .console-quick-grid button:hover { border-color: var(--accent-line); }
+    .console-quick-grid strong { display: block; font-size: .81rem; }
+    .console-quick-grid span { display: block; margin-top: 7px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
+    .console-feature { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .console-feature:last-child { border-bottom: 0; }
+    .console-feature strong { font-size: .8rem; }
+    .console-feature p { margin: 4px 0 0; color: var(--muted); font-size: .73rem; line-height: 1.4; }
+    .console-feature .switch { flex: 0 0 auto; }
+    .console-form-grid, .console-credentials { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+    .console-credentials { margin: 14px 0; font-size: .73rem; }
+    .console-credentials span { display: block; color: var(--muted); margin-bottom: 5px; }
+    .console-credentials code { display: block; padding: 9px; border: 1px solid var(--line); border-radius: 9px; overflow-wrap: anywhere; }
+    .console-danger { border-color: color-mix(in srgb,var(--danger) 42%,var(--line)); }
+    .console-danger h3 { color: var(--danger); }
+    #owner-broadcast-status, #owner-sticker-recover-status { display: block; margin-top: 10px; }
+    @media (max-width: 560px) {
+      .console-heading { display: block; }
+      .console-rank { display: inline-flex; margin-top: 10px; }
+      .console-stats { gap: 6px; }
+      .console-stats > div { padding: 12px 10px; }
+      .console-stats strong { font-size: 1.1rem; }
+      .console-card { padding: 15px; }
+      .console-nav { flex-wrap: nowrap; overflow-x: auto; }
+      .console-nav button { white-space: nowrap; }
+      .console-form-grid, .console-quick-grid { grid-template-columns: 1fr; }
+      .group-person .group-actions { flex-basis: 100%; justify-content: flex-end; }
+      .console-person select { max-width: 130px; }
+    }
+
   </style>
 <style id="liminal-geometry-redesign">
 /* Liminal Chat — geometry-led interface system */
@@ -3054,8 +3140,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         <nav class="channel-list" id="channel-list" aria-label="Channels"></nav>
 
         <div class="section-label">
-          <span>Direct messages</span>
+          <span>Conversations</span><button class="mini-icon-btn" id="group-new-btn" type="button" aria-label="Create a private group" title="Create a private group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
         </div>
+        <button class="group-invites-button" id="group-invites-btn" type="button" hidden>Group invitations</button>
         <div class="dm-list" id="dm-list"></div>
         <p class="dm-empty" id="dm-empty">Select a member to start a DM.</p>
       </div>
@@ -3106,6 +3193,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <button class="subrole-header-btn" id="subrole-btn" type="button" title="Pick a subrole" aria-haspopup="dialog" aria-controls="subrole-dialog">
             <span id="subrole-btn-label">Subrole</span>
           </button>
+          <button class="secondary-button" id="group-details-btn" type="button" hidden>Group</button>
           <span class="sr-only" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
             <span id="connection-label">Connecting</span>
           </span>
@@ -3513,8 +3601,8 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <summary>How your data works</summary>
         <div class="privacy-copy">
           <p>Your account and messages are stored on the server. Your password is stored as a hash. Themes, drafts, and local settings stay in this browser unless you export or clear them.</p>
-          <p>Deleted messages disappear from chat but remain in the staff log, including their text, media link, sender, time, and who deleted them. Purging a channel also keeps its messages in that log.</p>
-          <p>Members cannot see or search deleted messages. Staff can view them for moderation.</p>
+          <p>Deleted channel and direct messages remain in the moderation archive. Private-group history and deleted content are restricted to group members; shared staff audit records do not contain group message content.</p>
+          <p>Staff can review the moderation archive. A staff rank does not grant access to a private group. People you invite can read its earlier messages after accepting.</p>
           <p>Deleting your account removes your login and profile. Your messages remain in channels and DMs under your username. Signing out ends only this session.</p>
         </div>
         </details>
@@ -3554,6 +3642,24 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         </form>
       </details>
     </div>
+  </dialog>
+
+  <dialog id="group-dialog" aria-labelledby="group-dialog-title" aria-describedby="group-description">
+    <div class="dialog-header"><h2 id="group-dialog-title">Create a private group</h2><button class="icon-button" type="button" data-close-dialog="group-dialog" aria-label="Close group"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="dialog-body">
+      <p class="field-help" id="group-description">Only accepted members can read this group, including earlier messages. People join by accepting an invitation.</p>
+      <form id="group-form">
+        <div class="field" id="group-name-field"><label for="group-name">Group name</label><input id="group-name" maxlength="60" placeholder="Name your group" autocomplete="off"></div>
+        <section id="group-members-section" hidden><h3 class="group-section-heading">Members</h3><div id="group-members"></div><div id="group-pending"></div></section>
+        <section id="group-invite-section"><h3 class="group-section-heading">Invite people</h3><div class="field"><label for="group-search">Find a member</label><input id="group-search" type="search" placeholder="Name or username" autocomplete="off"></div><div class="field-help" id="group-selection-count" role="status"></div><div id="group-candidates" class="group-candidates"></div></section>
+        <div class="field-error" id="group-error" role="alert"></div>
+        <div class="group-actions group-footer"><button id="group-create" class="primary-button" type="submit">Create group & invite</button><button id="group-rename" class="secondary-button" type="button" hidden>Save name</button><button id="group-send-invites" class="primary-button" type="button" hidden>Send invitations</button><button id="group-leave" class="danger-button" type="button" hidden>Leave group</button></div>
+      </form>
+    </div>
+  </dialog>
+  <dialog id="group-invites-dialog" aria-labelledby="group-invites-title">
+    <div class="dialog-header"><h2 id="group-invites-title">Group invitations</h2><button class="icon-button" type="button" data-close-dialog="group-invites-dialog" aria-label="Close invitations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="dialog-body"><p class="field-help">Joining gives you access to this group's message history. You can leave at any time.</p><div id="group-invites-list"></div></div>
   </dialog>
 
   <dialog id="rules-dialog" aria-labelledby="rules-title">
@@ -4633,7 +4739,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.22.0";
+    const APP_VERSION = "2.23.0";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6270,7 +6376,7 @@ void main() {
       renderMembers();
       renderDmList();
       refreshSubroleMemberControls();
-      if (currentView.type === 'dm') $('channel-topic').textContent = dmTopicText(profileOf(currentView.other));
+      if (currentView.type === 'dm') renderConversationHeader();
       if ($('subrole-dialog')?.open) renderSubroleDialog();
     }
     function refreshSubroleMemberControls(username = null) {
@@ -7020,7 +7126,7 @@ void main() {
       await loadAppSettings();
       if (appSettings.app_enabled === 'false' && !isOwner()) { showMaintenance(); return; }
 
-      await Promise.all([loadProfiles(), loadSubroles(), loadChannels(), loadDms(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadStickerCatalog()]);
+      await Promise.all([loadProfiles(), loadSubroles(), loadChannels(), loadDms(), loadGroupInvites(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadStickerCatalog()]);
       profiles.set(me.username, { ...profiles.get(me.username), ...me });
       await hydrateChannelUnreads();
       lastListRefreshAt = Date.now();
@@ -7066,9 +7172,10 @@ void main() {
       const dmsEnabled = appSettings.dms_enabled !== 'false' || isAdmin();
       const readOnlyFeed = inReadOnlyFeedThread();
       const speakOk = canSpeakHere();
-      const dmBlocked = currentView.type === 'dm' && dmBlockedUsers.has(currentView.other);
+      const dmBlocked = currentView.type === 'dm' && dmIsBlocked(currentView.id);
+      const dmUnavailable = currentView.type === 'dm' && !dms.some(dm => dm.id === currentView.id);
       renderDmBlockControls();
-      const canSendHere = !dmBlocked && messagesEnabled
+      const canSendHere = !dmUnavailable && !dmBlocked && messagesEnabled
         && (currentView.type !== 'dm' || dmsEnabled)
         && currentView.type !== 'forum'
         && !(forumThreadLocked && !isAdmin())
@@ -7095,7 +7202,7 @@ void main() {
         $('message-input').disabled = !canSendHere;
         $('message-input').maxLength = maxLength;
         $('message-input').placeholder = canSendHere
-          ? (currentView.type === 'dm' ? `Message @${currentView.other || ''}`
+          ? (currentView.type === 'dm' ? (groupOf() ? `Message ${groupOf().title}` : `Message @${currentView.other || ''}`)
               : followingFeedOwner() === (me && me.username) ? 'Share something with your followers…'
               : isForumThreadView(currentView) ? 'Write a reply…'
               : `Message #${channelById(currentView.id)?.label || currentView.id}`)
@@ -7189,12 +7296,16 @@ void main() {
     }
 
     async function loadDms() {
-      const { data, error } = await sb.rpc('chat_list_dm_inbox');
+      const previousGroups = dms.filter(dm => dm.is_group);
+      let { data, error } = await sb.rpc('chat_list_conversations');
+      if (error && (error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || ''))) ({ data, error } = await sb.rpc('chat_list_dm_inbox'));
       if (error) {
         console.error('[liminal] dm inbox', error);
         const fallback = await sb.from('dms').select('*').contains('participants', [me.username]);
-        dms = (fallback.data || []).map(d => ({ ...d, other: (d.participants || []).find(u => u !== me.username) || me.username, lastMsg: null, myLastReadAt: null }))
+        if (fallback.error) return;
+        dms = (fallback.data || []).map(d => ({ ...d, other: d.is_group ? '' : (d.participants || []).find(u => u !== me.username) || me.username, lastMsg: null, myLastReadAt: null }))
           .filter(d => !isHiddenBot(d.other) && !(d.participants || []).some(isHiddenBot));
+        for (const previous of previousGroups) if (!dms.some(dm => dm.id === previous.id)) discardGroupCache(previous.id);
         sortDms();
         return;
       }
@@ -7203,7 +7314,9 @@ void main() {
         participants: d.participants,
         created_at: d.created_at,
         title: d.title,
-        other: (d.participants || []).find(u => u !== me.username) || me.username,
+        is_group: !!d.is_group,
+        group_owner: d.group_owner,
+        other: d.is_group ? '' : (d.participants || []).find(u => u !== me.username) || me.username,
         myLastReadAt: d.my_last_read_at,
         lastMsg: d.last_id ? {
           id: d.last_id, dm_id: d.id, sender: d.last_sender, content: d.last_content,
@@ -7211,6 +7324,7 @@ void main() {
           read_by: d.last_read_by || [],
         } : null,
       })).filter(d => !isHiddenBot(d.other) && !(d.participants || []).some(isHiddenBot));
+      for (const previous of previousGroups) if (!dms.some(dm => dm.id === previous.id)) discardGroupCache(previous.id);
       dms.forEach(dm => {
         const key = `dm:${dm.id}`;
         const last = dm.lastMsg;
@@ -7446,7 +7560,7 @@ void main() {
     }
 
     function renderDmList() {
-      dms.forEach(dm => { if (dmBlockedUsers.has(dm.other)) unreadCounts.delete(`dm:${dm.id}`); });
+      dms.forEach(dm => { if (!dm.is_group && dmBlockedUsers.has(dm.other)) unreadCounts.delete(`dm:${dm.id}`); });
       const list = $('dm-list');
       $('dm-empty').hidden = dms.length > 0;
       $('dm-empty').textContent = 'Your other conversations will appear here.';
@@ -7454,25 +7568,26 @@ void main() {
         const key = `dm:${dm.id}`;
         const other = profileOf(dm.other);
         const active = currentView.type === 'dm' && currentView.id === dm.id;
-        const unreadN = dmBlockedUsers.has(dm.other) ? 0 : (unreadCounts.get(key) || 0);
+        const unreadN = !dm.is_group && dmBlockedUsers.has(dm.other) ? 0 : (unreadCounts.get(key) || 0);
         let preview = '';
         if (dm.lastMsg) {
           const m = dm.lastMsg;
           preview = m.deleted ? 'Message deleted' : (m.type === 'text' ? m.content : `[${m.type}]`);
           if (m.sender === me.username) preview = `You: ${preview}`;
+          else if (dm.is_group) preview = `${displayNameOf(profileOf(m.sender))}: ${preview}`;
         }
-        if (dmBlockedUsers.has(dm.other)) preview = 'Blocked';
+        if (!dm.is_group && dmBlockedUsers.has(dm.other)) preview = 'Blocked';
         return `
           <button class="dm-button ${active ? 'active' : ''}" type="button" data-dm="${esc(dm.id)}">
-            ${avatarHtml(other, 'avatar-sm', true)}
-            <span class="dm-copy"><span class="dm-name">${esc(displayNameOf(other))}</span><span class="dm-preview">${esc(preview.slice(0, 60))}</span></span>
+            ${dm.is_group ? groupAvatarHtml() : avatarHtml(other, 'avatar-sm', true)}
+            <span class="dm-copy"><span class="dm-name">${esc(conversationTitle(dm))}</span><span class="dm-preview">${esc(preview.slice(0, 60))}</span></span>
             ${unreadN ? '<span class="dm-unread-dot" aria-label="Unread messages"></span>' : ''}
           </button>`;
       }).join('');
       qsa('[data-dm]', list).forEach(btn => {
         btn.addEventListener('click', () => {
           const dm = dms.find(d => d.id === btn.dataset.dm);
-          if (dm) openView({ type: 'dm', id: dm.id, other: dm.other });
+          if (dm) openView(dmView(dm));
         });
       });
       updateSidebarIndicator();
@@ -7645,6 +7760,7 @@ void main() {
         $('pins-btn').hidden = true;
         $('search-btn').hidden = false;
       }
+      renderConversationHeader();
       applyFeatureControls();
 
       if (!msgCache.has(key)) {
@@ -8133,6 +8249,11 @@ void main() {
     }
 
     function buildMessageNode(msg, prev) {
+      const sourceMessage = msg;
+      const privateMedia = groupMediaPath(msg.media_url);
+      const resolvedMedia = privateMedia ? groupMediaCache.get(msg.media_url) : null;
+      const privateMediaPending = privateMedia && !(resolvedMedia?.url && resolvedMedia.expires > Date.now());
+      if (privateMedia) msg = { ...msg, media_url: privateMediaPending ? '' : resolvedMedia.url };
       if (msg.type === 'system') {
         const div = document.createElement('div');
         div.className = 'system-msg';
@@ -8206,7 +8327,7 @@ void main() {
         <div class="msg-actions" role="toolbar" aria-label="Message actions"></div>`;
 
       renderReactions(node, msg);
-      renderMsgActions(node, msg);
+      renderMsgActions(node, sourceMessage);
 
       const avatarEl = qs('.msg-avatar .avatar', node);
       if (avatarEl) avatarEl.addEventListener('click', (e) => showHoverCard(msg.sender, e.currentTarget));
@@ -8230,13 +8351,22 @@ void main() {
       });
       wirePollCard(node, msg);
       const retryBtn = qs('[data-retry-send]', node);
-      if (retryBtn) retryBtn.addEventListener('click', () => retryFailedSend(msg));
+      if (retryBtn) retryBtn.addEventListener('click', () => retryFailedSend(sourceMessage));
       const discardBtn = qs('[data-discard-send]', node);
-      if (discardBtn) discardBtn.addEventListener('click', () => discardFailedSend(msg));
+      if (discardBtn) discardBtn.addEventListener('click', () => discardFailedSend(sourceMessage));
 
       if (!msg.deleted && node._urls && node._urls.length) {
         const first = node._urls.find(u => ytIdOf(u)) || node._urls[0];
         attachLinkPreview(node, first);
+      }
+      if (privateMediaPending && !msg.deleted) {
+        const placeholder = document.createElement('div'); placeholder.className = 'private-media-placeholder'; placeholder.textContent = 'Loading private attachment…'; qs('.msg-body', node).appendChild(placeholder);
+        const load = () => signedGroupMedia(sourceMessage.media_url).then(() => { if (node.isConnected) node.replaceWith(buildMessageNode(sourceMessage, prev)); }).catch(() => {
+          if (!node.isConnected) return;
+          placeholder.innerHTML = '<span>Private attachment unavailable.</span><button class="ghost-button" type="button">Retry</button>';
+          qs('button',placeholder).addEventListener('click',load);
+        });
+        load();
       }
       return node;
     }
@@ -8748,7 +8878,7 @@ void main() {
     /* ============================= 15. SENDING ============================= */
     async function sendMessage({ content = '', type = 'text', media_url = '', batch = false }) {
       if (!me) return false;
-      if (currentView.type === 'dm' && dmBlockedUsers.has(currentView.other)) {
+      if (currentView.type === 'dm' && dmIsBlocked(currentView.id)) {
         toast({ type: 'warning', text: 'Unblock this person to send messages.' });
         return false;
       }
@@ -9247,16 +9377,16 @@ void main() {
         if (!mine && !isCurrent) {
           if (settings.notif.dm_toast) {
             toast({
-              type: 'dm', title: `@${m.sender}`, text: m.type === 'text' ? m.content.slice(0, 90) : `Sent a ${m.type}`,
-              onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView({ type: 'dm', id: d.id, other: d.other }); },
+              type: 'dm', title: dm?.is_group ? `${dm.title} · ${displayNameOf(m.sender)}` : `@${m.sender}`, text: m.type === 'text' ? m.content.slice(0, 90) : `Sent a ${m.type}`,
+              onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView(dmView(d)); },
             });
           }
           addInbox({ kind: 'dm', from: m.sender, text: m.type === 'text' ? m.content.slice(0, 120) : `Sent a ${m.type}`, view: key, msgId: m.id });
           notifyDesktop({
-            title: `@${displayNameOf(m.sender)}`,
+            title: dm?.is_group ? `${dm.title} · ${displayNameOf(m.sender)}` : `@${displayNameOf(m.sender)}`,
             body: m.type === 'text' ? m.content : `Sent a ${m.type}`,
             tag: key,
-            onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView({ type: 'dm', id: d.id, other: d.other }); },
+            onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView(dmView(d)); },
           });
         }
       } else {
@@ -9320,12 +9450,14 @@ void main() {
           return;
         }
         const att = pendingAttachment;
+        const attachmentView = { ...currentView };
         clearAttachment();
         ta.value = ''; autogrow();
         if (att.kind === 'file') {
           toast({ text: 'Uploading file…', duration: 2000 });
           try {
-            const url = await uploadTextFile(att.file);
+            const url = await uploadTextFile(att.file, attachmentView);
+            if (viewKey(currentView) !== viewKey(attachmentView)) throw new Error('Conversation changed during upload. The file was not sent.');
             await sendMessage({ content, type: 'file', media_url: url });
           } catch (err) {
             console.error(err);
@@ -9339,7 +9471,8 @@ void main() {
         for (let i = 0; i < images.length; i++) {
           const image = images[i];
           try {
-            const url = await uploadMedia('liminal-media', image.blob, 'jpg', image.dataUrl);
+            const url = await uploadMedia('liminal-media', image.blob, 'jpg', image.dataUrl, attachmentView);
+            if (viewKey(currentView) !== viewKey(attachmentView)) throw new Error('Conversation changed during upload. The image was not sent.');
             const ok = await sendMessage({ content: i === 0 ? content : '', type: 'image', media_url: url, batch: i > 0 });
             if (ok !== true) break;
             sent++;
@@ -9523,7 +9656,36 @@ void main() {
       }
     }
 
-    async function uploadMedia(bucket, blob, ext, dataUrlFallback) {
+    const GROUP_MEDIA_BUCKET = 'liminal-group-media';
+    const groupMediaCache = new Map();
+    function groupMediaPath(value) { return typeof value === 'string' && value.startsWith('group-media:') ? value.slice(12) : ''; }
+    async function uploadGroupMedia(view, blob, filename) {
+      const dm = groupOf(view);
+      if (!dm || !me.user_id) throw new Error('This private group is unavailable.');
+      if (appSettings.uploads_enabled === 'false') throw new Error('Media uploads are paused.');
+      const safeName = String(filename || 'image.jpg').replace(/[^\w.\-]+/g,'_').slice(-80);
+      const path = `${dm.id}/${me.user_id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}__${safeName}`;
+      const { error } = await sb.storage.from(GROUP_MEDIA_BUCKET).upload(path,blob,{upsert:false,contentType:blob.type || 'application/octet-stream'});
+      if (error) throw error;
+      return `group-media:${path}`;
+    }
+    async function signedGroupMedia(value) {
+      const path = groupMediaPath(value);
+      if (!path || !dms.some(dm => dm.is_group && dm.id === path.split('/')[0])) throw new Error('Private attachment unavailable.');
+      const entry = groupMediaCache.get(value);
+      if (entry?.url && entry.expires > Date.now()) return entry.url;
+      if (entry?.promise) return entry.promise;
+      const promise = sb.storage.from(GROUP_MEDIA_BUCKET).createSignedUrl(path,600).then(({data,error})=>{
+        if (error || !data?.signedUrl) throw error || new Error('Private attachment unavailable.');
+        groupMediaCache.set(value,{url:data.signedUrl,expires:Date.now()+540000});
+        return data.signedUrl;
+      }).catch(error=>{groupMediaCache.delete(value);throw error;});
+      groupMediaCache.set(value,{promise});
+      return promise;
+    }
+
+    async function uploadMedia(bucket, blob, ext, dataUrlFallback, uploadView = null) {
+      if (bucket === 'liminal-media' && groupOf(uploadView)) return uploadGroupMedia(uploadView, blob, `image.${ext}`);
       if (bucket === 'liminal-media' && appSettings.uploads_enabled === 'false') {
         throw new Error('Media uploads are currently disabled.');
       }
@@ -9670,7 +9832,8 @@ void main() {
       $('message-input').focus();
     }
 
-    async function uploadTextFile(file) {
+    async function uploadTextFile(file, uploadView = null) {
+      if (groupOf(uploadView)) return uploadGroupMedia(uploadView, new Blob([await file.text()], {type: 'text/plain'}), file.name);
       if (appSettings.uploads_enabled === 'false') throw new Error('Media uploads are currently disabled.');
       if (!me.user_id) throw new Error('Signed-in upload identity is missing.');
       const safeName = String(file.name || 'file.txt').replace(/[^\w.\-]+/g, '_').slice(-80) || 'file.txt';
@@ -9825,7 +9988,7 @@ void main() {
       if (instant) { run(); return; }
       confirmAction({
         title: 'Delete message?',
-        text: mine
+        text: groupOf() ? 'This hides the message from the group. Staff outside this group cannot read its archived content.' : mine
           ? 'This takes the message out of the chat for everyone. Staff still keep a copy in the deleted-message log.'
           : `Hide @${msg.sender}'s message from the chat? Staff keep the original in the deleted-message log.`,
         danger: true,
@@ -10860,6 +11023,8 @@ void main() {
       dbChannel = sb.channel(`db-changes-${gen}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, handleMessageChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, handleDmChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, () => queueConversationRefresh())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_group_invites' }, () => queueConversationRefresh())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleProfileChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_subroles' }, () => reloadSubroleCatalog())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, handleSettingsChange)
@@ -10874,6 +11039,7 @@ void main() {
             realtimeReadyOnce = true;
             updateConnection('connected');
             reloadSubroleCatalog();
+            queueConversationRefresh();
           } else if (realtimeReadyOnce && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
             updateConnection('error');
             scheduleRealtimeRecover();
@@ -11138,7 +11304,7 @@ void main() {
     }
     async function refreshListsQuiet() {
       try {
-        await Promise.all([loadDms(), loadDmBlocks(), hydrateChannelUnreads()]);
+        await Promise.all([loadDms(), loadGroupInvites(), loadDmBlocks(), hydrateChannelUnreads()]);
         renderDmList();
         renderChannels();
         updateTabBadge();
@@ -11284,7 +11450,7 @@ void main() {
         const { data: dmRow, error } = await sb.from('dms').select('*').eq('id', dmId).maybeSingle();
         if (dmRow && (dmRow.participants || []).includes(me.username)) {
           if (!dms.some(d => d.id === dmId)) {
-            const other = (dmRow.participants || []).find(u => u !== me.username) || me.username;
+            const other = dmRow.is_group ? '' : (dmRow.participants || []).find(u => u !== me.username) || me.username;
             if (isHiddenBot(other) || (dmRow.participants || []).some(isHiddenBot)) return false;
             dms.push({ ...dmRow, other, lastMsg: null });
           }
@@ -11336,8 +11502,8 @@ void main() {
         return;
       }
       if (type !== 'INSERT') return;
-      if (dmBlockedUsers.has(m.sender)) return;
       if (!(await ensureDmLoaded(m.dm_id))) return;
+      if (dmIsBlocked(m.dm_id)) return;
       ingestMessage(m, 'dm');
     }
 
@@ -11552,7 +11718,7 @@ void main() {
     let lastTypingSent = 0;
     function sendTypingState(active) {
       if (!eventsChannel) return;
-      if (active && currentView.type === 'dm' && dmBlockedUsers.has(currentView.other)) return;
+      if (active && currentView.type === 'dm' && dmIsBlocked(currentView.id)) return;
       const now = Date.now();
       if (active && now - lastTypingSent < 2000) return;
       lastTypingSent = active ? now : 0;
@@ -11612,6 +11778,7 @@ void main() {
       pendingTimers = [
         setInterval(() => catchUpPoll({ periodic: true }), MESSAGE_FALLBACK_POLL_MS),
         setInterval(refreshPollTimers, 30000),
+        setInterval(() => { if (me && document.visibilityState === 'visible' && navigator.onLine !== false) refreshConversations(); }, 30000),
         setInterval(() => { tickCooldown(); tickTimeout(); }, 1000),
         setInterval(() => {
           if (memberPresenceSignature() !== memberListSignature) scheduleRenderMembers();
@@ -13631,19 +13798,19 @@ void main() {
     }
     function dmIsBlocked(dmId) {
       const dm = dms.find(d => d.id === dmId);
-      return !!dm && dmBlockedUsers.has(dm.other);
+      return !!dm && !dm.is_group && dmBlockedUsers.has(dm.other);
     }
     function renderDmBlockControls() {
       const button = $('dm-block-btn');
       if (!button) return;
-      const username = currentView.type === 'dm' ? currentView.other : '';
+      const username = currentView.type === 'dm' && !groupOf() ? currentView.other : '';
       button.hidden = !me || !username || username === me.username || isHiddenBot(username);
       button.textContent = dmBlockedUsers.has(username) ? 'Unblock DMs' : 'Block DMs';
       button.disabled = dmBlockBusy.has(username);
       button.setAttribute('aria-label', `${dmBlockedUsers.has(username) ? 'Unblock' : 'Block'} direct messages ${username ? `with @${username}` : ''}`);
     }
     function syncDmBlockUi() {
-      dms.forEach(dm => { if (dmBlockedUsers.has(dm.other)) unreadCounts.delete(`dm:${dm.id}`); });
+      dms.forEach(dm => { if (!dm.is_group && dmBlockedUsers.has(dm.other)) unreadCounts.delete(`dm:${dm.id}`); });
       applyFeatureControls();
       renderDmList();
       updateTabBadge();
@@ -13704,7 +13871,7 @@ void main() {
 
     async function openDmWith(username) {
       if (!username || username === me.username || isHiddenBot(username)) return;
-      let dm = dms.find(d => d.other === username);
+      let dm = dms.find(d => !d.is_group && d.other === username);
       if (!dm) {
         if (dmBlockedUsers.has(username)) { toast({ type: 'warning', text: 'Unblock this person to start a conversation.' }); return; }
         const parts = [me.username, username].sort();
@@ -13724,6 +13891,214 @@ void main() {
         renderDmList();
       }
       await openView({ type: 'dm', id: dm.id, other: username });
+    }
+
+    /* ============================= PRIVATE GROUP CHATS ============================= */
+    const GROUP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/><path d="M16 3a4 4 0 0 1 0 8"/></svg>';
+    let groupInvites = [];
+    let groupSelection = new Set();
+    let groupPending = new Set();
+    let groupDialogId = null;
+    let groupBusy = false;
+    let groupLeavingId = null;
+    let conversationRefresh = null;
+    function groupOf(view = currentView) { return view?.type === 'dm' ? dms.find(dm => dm.id === view.id && dm.is_group) : null; }
+    function conversationTitle(dm) { return dm?.is_group ? dm.title : displayNameOf(profileOf(dm?.other)); }
+    function groupAvatarHtml() { return `<span class="avatar avatar-sm group-avatar">${GROUP_ICON}</span>`; }
+    function dmView(dm) { return { type: 'dm', id: dm.id, other: dm.is_group ? '' : dm.other }; }
+    function renderConversationHeader() {
+      if (currentView.type !== 'dm') { $('group-details-btn').hidden = true; return; }
+      const dm = dms.find(item => item.id === currentView.id);
+      if (!dm) return;
+      $('channel-icon').textContent = dm.is_group ? '▧' : '@';
+      $('channel-title').textContent = conversationTitle(dm);
+      $('channel-topic').textContent = dm.is_group ? `Private group · ${dm.participants.length} ${dm.participants.length === 1 ? 'member' : 'members'}` : dmTopicText(profileOf(dm.other));
+      $('group-details-btn').hidden = !dm.is_group;
+    }
+    async function loadGroupInvites() {
+      const { data, error } = await sb.rpc('chat_list_group_invites');
+      if (error) return;
+      groupInvites = Array.isArray(data) ? data : [];
+      const button = $('group-invites-btn');
+      button.hidden = !groupInvites.length;
+      button.textContent = `${groupInvites.length} group ${groupInvites.length === 1 ? 'invite' : 'invites'}`;
+      if ($('group-invites-dialog').open) renderGroupInvites();
+    }
+    function renderGroupInvites() {
+      $('group-invites-list').innerHTML = groupInvites.map(invite => `<article class="group-invite-card">
+        <div>${groupAvatarHtml()}<div><strong>${esc(invite.title)}</strong><span>Invited by ${esc(displayNameOf(profileOf(invite.invited_by)))} · ${invite.member_count} members</span></div></div>
+        <div class="group-actions"><button class="secondary-button" type="button" data-group-respond="decline" data-group-id="${esc(invite.group_id)}" ${groupBusy ? 'disabled' : ''}>Decline</button><button class="primary-button" type="button" data-group-respond="accept" data-group-id="${esc(invite.group_id)}" ${groupBusy ? 'disabled' : ''}>Join group</button></div>
+      </article>`).join('') || '<p class="picker-note">No pending invitations.</p>';
+    }
+    async function respondToGroupInvite(id, accept) {
+      if (groupBusy) return;
+      groupBusy = true; renderGroupInvites();
+      try {
+        const { data, error } = await sb.rpc('chat_respond_group_invite', { p_group_id: id, p_accept: accept });
+        if (error) throw error;
+        await queueConversationRefresh();
+        if (accept) { const dm = dms.find(item => item.id === data?.id); if (dm) { $('group-invites-dialog').close(); await openView(dmView(dm)); } }
+        toast({ type: 'success', text: accept ? 'Joined the private group.' : 'Invitation declined.' });
+      } catch (error) { toast({ type: 'error', text: error?.message || 'Could not respond to this invitation.' }); }
+      finally { groupBusy = false; renderGroupInvites(); }
+    }
+    function groupCandidates(dm) {
+      const query = $('group-search').value.trim().replace(/^@/, '').toLowerCase();
+      return [...profiles.values()].filter(p => p.username !== me.username && !p.is_banned && !isHiddenBot(p.username)
+        && !dm?.participants.includes(p.username) && !groupPending.has(p.username) && !dmBlockedUsers.has(p.username)
+        && (!query || `${displayNameOf(p)} ${p.username}`.toLowerCase().includes(query)))
+        .sort((a, b) => displayNameOf(a).localeCompare(displayNameOf(b)));
+    }
+    function renderGroupCandidates() {
+      const dm = groupDialogId ? dms.find(item => item.id === groupDialogId) : null;
+      const focused = document.activeElement?.dataset?.groupPerson;
+      const rows = groupCandidates(dm);
+      const max = Math.max(0, 16 - (dm?.participants.length || 1) - groupPending.size);
+      $('group-selection-count').textContent = `${groupSelection.size} of ${max} people selected`;
+      $('group-candidates').innerHTML = rows.map(profile => `<label class="group-person">
+        ${avatarHtml(profile, 'avatar-sm', false)}<span><strong>${esc(displayNameOf(profile))}</strong><small>@${esc(profile.username)}</small></span>
+        <input type="checkbox" data-group-person="${esc(profile.username)}" aria-label="Invite ${esc(displayNameOf(profile))}" ${groupSelection.has(profile.username) ? 'checked' : ''} ${groupBusy || (!groupSelection.has(profile.username) && groupSelection.size >= max) ? 'disabled' : ''}>
+      </label>`).join('') || '<p class="picker-note">No matching people to invite.</p>';
+      if (focused && !groupBusy) qsa('[data-group-person]', $('group-candidates')).find(input => input.dataset.groupPerson === focused)?.focus({preventScroll:true});
+    }
+    async function openGroupDialog(id = null, refreshing = false) {
+      if (groupBusy && !refreshing) return;
+      groupDialogId = id;
+      groupSelection = new Set();
+      groupPending = new Set();
+      $('group-search').value = '';
+      const dm = id ? dms.find(item => item.id === id && item.is_group) : null;
+      if (id && !dm) return;
+      const owner = !dm || dm.group_owner === me.username;
+      $('group-dialog-title').textContent = dm ? dm.title : 'Create a private group';
+      $('group-name').value = dm?.title || '';
+      $('group-name').disabled = groupBusy || !owner;
+      $('group-name-field').hidden = !owner;
+      $('group-invite-section').hidden = !owner;
+      $('group-members-section').hidden = !dm;
+      $('group-create').hidden = !!dm;
+      $('group-rename').hidden = !dm || !owner;
+      $('group-send-invites').hidden = !dm || !owner;
+      $('group-leave').hidden = !dm;
+      $('group-error').textContent = '';
+      if (dm) {
+        $('group-members').innerHTML = dm.participants.map(username => {
+          const p = profileOf(username);
+          return `<div class="group-person">${avatarHtml(p, 'avatar-sm', false)}<span><strong>${esc(displayNameOf(p))}</strong><small>@${esc(username)}${username === dm.group_owner ? ' · Group owner' : ''}</small></span>
+            ${owner && username !== me.username ? `<div class="group-actions"><button class="ghost-button" type="button" data-group-transfer="${esc(username)}" aria-label="Make ${esc(displayNameOf(p))} group owner">Make owner</button><button class="danger-button" type="button" data-group-remove="${esc(username)}" aria-label="Remove ${esc(displayNameOf(p))}">Remove</button></div>` : ''}</div>`;
+        }).join('');
+        $('group-pending').innerHTML = '';
+      }
+      renderGroupCandidates();
+      if (groupBusy) qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = true; });
+      if (!$('group-dialog').open) $('group-dialog').showModal();
+      if (dm && owner) {
+        const { data, error } = await sb.from('chat_group_invites').select('invitee').eq('group_id', id);
+        if (!error && groupDialogId === id) { groupPending = new Set((data || []).map(invite => invite.invitee)); renderGroupCandidates(); $('group-pending').innerHTML = (data || []).map(invite => `<div class="group-pending-person"><span>Pending · @${esc(invite.invitee)}</span><button class="ghost-button" type="button" data-group-cancel="${esc(invite.invitee)}">Cancel invite</button></div>`).join(''); }
+      }
+    }
+    async function createPrivateGroup(event) {
+      event.preventDefault();
+      if (groupBusy) return;
+      if (groupDialogId) { if (!$('group-name').disabled) return managePrivateGroup('rename'); return; }
+      const title = $('group-name').value.trim();
+      if (!title || !groupSelection.size) { $('group-error').textContent = 'Give the group a name and select at least one person.'; return; }
+      groupBusy = true;
+      $('group-create').disabled = true;
+      try {
+        const { data, error } = await sb.rpc('chat_create_group', { p_title: title, p_invitees: [...groupSelection] });
+        if (error || !data) throw error || new Error('Could not create the group.');
+        await queueConversationRefresh();
+        $('group-dialog').close();
+        const dm = dms.find(item => item.id === data); if (dm) await openView(dmView(dm));
+        toast({ type: 'success', text: 'Group created. Invitations sent.' });
+      } catch (error) { $('group-error').textContent = error?.message || 'Could not create the group. Try again.'; }
+      finally { groupBusy = false; $('group-create').disabled = false; renderGroupCandidates(); }
+    }
+    async function managePrivateGroup(action, username = '') {
+      if (!groupDialogId || groupBusy) return;
+      const id = groupDialogId;
+      if (action === 'leave') groupLeavingId = id;
+      const title = $('group-name').value.trim();
+      const selected = [...groupSelection];
+      if (action === 'invite' && !selected.length) { $('group-error').textContent = 'Select someone to invite.'; return; }
+      groupBusy = true;
+      qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = true; });
+      let completed = 0;
+      try {
+        for (const target of action === 'invite' ? selected : [username]) {
+          const { error } = await sb.rpc('chat_manage_group', { p_group_id: id, p_action: action, p_username: target, p_title: title });
+          if (error) throw error;
+          completed++;
+        }
+        await queueConversationRefresh();
+        if (action === 'leave') $('group-dialog').close();
+        else await openGroupDialog(id, true);
+        toast({ type: 'success', text: ({ rename: 'Group renamed.', invite: 'Invitations sent.', remove: 'Member removed.', leave: 'You left the group.', transfer: 'Group ownership transferred.', cancel_invite: 'Invitation canceled.' })[action] });
+      } catch (error) {
+        await queueConversationRefresh();
+        if (completed) await openGroupDialog(id, true);
+        $('group-error').textContent = error?.message || 'Could not update the group.';
+      } finally {
+        groupBusy = false; groupLeavingId = null;
+        qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = false; });
+        const dm = dms.find(item => item.id === id);
+        $('group-name').disabled = !!dm && dm.group_owner !== me.username;
+        renderGroupCandidates();
+      }
+    }
+    function discardGroupCache(id) {
+      const key = `dm:${id}`;
+      (msgCache.get(key) || []).forEach(unindexMessage);
+      msgCache.delete(key); historyContexts.delete(key); hasMoreMap.delete(key); unreadCounts.delete(key);
+      clearComposerDraft(key);
+      groupMediaCache.forEach((_,path) => { if (groupMediaPath(path).startsWith(id + '/')) groupMediaCache.delete(path); });
+      inbox = inbox.filter(item => item.view !== key);
+      saveInbox(); updateInboxBadge();
+      if (currentView.type === 'dm' && currentView.id === id) {
+        cancelReply(); if (editTarget) cancelEdit();
+        clearAttachment(); $('message-input').value = ''; autogrow();
+        invalidateSearch(); $('search-dialog').close();
+        $('message-list').innerHTML = '';
+        const fallback = channels.find(channelIsVisible);
+        if (fallback) openView({ type: fallback.kind === 'forum' ? 'forum' : 'channel', id: fallback.id });
+        if (groupLeavingId !== id) toast({ type: 'warning', text: 'You no longer have access to this private group.' });
+      }
+    }
+    async function refreshConversations() {
+      if (!me || !sb) return;
+      if (conversationRefresh) return conversationRefresh;
+      conversationRefresh = Promise.all([loadDms(), loadGroupInvites()]).then(() => {
+        renderDmList(); renderConversationHeader(); applyFeatureControls();
+        if (groupDialogId && !dms.some(dm => dm.id === groupDialogId) && $('group-dialog').open) $('group-dialog').close();
+      }).catch(error => console.warn('[liminal] conversations could not refresh', error)).finally(() => { conversationRefresh = null; });
+      return conversationRefresh;
+    }
+    async function queueConversationRefresh() {
+      if (conversationRefresh) await conversationRefresh;
+      return refreshConversations();
+    }
+    function wireGroupEvents() {
+      $('group-new-btn').addEventListener('click', () => openGroupDialog());
+      $('group-details-btn').addEventListener('click', () => openGroupDialog(currentView.id));
+      $('group-invites-btn').addEventListener('click', () => { renderGroupInvites(); $('group-invites-dialog').showModal(); });
+      $('group-form').addEventListener('submit', createPrivateGroup);
+      $('group-search').addEventListener('input', renderGroupCandidates);
+      $('group-candidates').addEventListener('change', event => {
+        const checkbox = event.target.closest('[data-group-person]'); if (!checkbox) return;
+        if (checkbox.checked) groupSelection.add(checkbox.dataset.groupPerson); else groupSelection.delete(checkbox.dataset.groupPerson);
+        renderGroupCandidates();
+      });
+      $('group-rename').addEventListener('click', () => managePrivateGroup('rename'));
+      $('group-send-invites').addEventListener('click', () => managePrivateGroup('invite'));
+      $('group-leave').addEventListener('click', () => confirmAction({ title: 'Leave this group?', text: 'You will lose access to its messages. If you own the group, ownership passes to another member.', danger: true, confirmLabel: 'Leave group', onConfirm: () => managePrivateGroup('leave') }));
+      $('group-members').addEventListener('click', event => {
+        const remove = event.target.closest('[data-group-remove]'), transfer = event.target.closest('[data-group-transfer]');
+        if (remove) confirmAction({ title: 'Remove this member?', text: 'They will lose access to this group. A new invitation is needed to rejoin.', danger: true, confirmLabel: 'Remove member', onConfirm: () => managePrivateGroup('remove', remove.dataset.groupRemove) });
+        if (transfer) confirmAction({ title: 'Transfer group ownership?', text: 'This person will manage invitations and membership. Pending invitations will be canceled.', confirmLabel: 'Make owner', onConfirm: () => managePrivateGroup('transfer', transfer.dataset.groupTransfer) });
+      });
+      $('group-pending').addEventListener('click', event => { const button = event.target.closest('[data-group-cancel]'); if (button) managePrivateGroup('cancel_invite', button.dataset.groupCancel); });
+      $('group-invites-list').addEventListener('click', event => { const button = event.target.closest('[data-group-respond]'); if (button) respondToGroupInvite(button.dataset.groupId, button.dataset.groupRespond === 'accept'); });
     }
 
     /* ============================= 31. POPOVER / LIGHTBOX UTILITIES ============================= */
@@ -13875,6 +14250,7 @@ void main() {
       positionTabIndicator(strip);
     }
     function setSettingsTab(tab) {
+      $('settings-dialog').dataset.settingsTab = tab;
       const button = qs(`#settings-tabs [data-tab="${tab}"]:not([hidden])`);
       if (!button) return;
       qsa('#settings-tabs [data-tab]').forEach(b => {
@@ -14388,108 +14764,110 @@ void main() {
         },
       });
     }
+    let ownerPanel = 'overview';
+    let staffPanel = 'members';
+    let staffRenderGeneration = 0;
+    function consoleCard(title, description, content, danger = false) {
+      return `<article class="console-card${danger ? ' console-danger' : ''}"><div class="console-card-head"><h3>${esc(title)}</h3>${description ? `<p>${esc(description)}</p>` : ''}</div>${content}</article>`;
+    }
+    function consoleShell(scope, title, description, stats, panels, selected) {
+      if (!panels.some(panel => panel.id === selected)) selected = panels[0].id;
+      return `<div class="console-shell"><header class="console-heading"><div><span class="console-eyebrow">Liminal / ${scope === 'owner' ? 'Owner' : 'Staff'}</span><h2>${esc(title)}</h2><p>${esc(description)}</p></div><span class="console-rank">${esc(STAFF_ROLE_META[myStaffRole()]?.label || 'Staff')}</span></header>
+        <div class="console-stats">${stats.map(stat => `<div><strong>${esc(stat.value)}</strong><span>${esc(stat.label)}</span></div>`).join('')}</div>
+        <div class="console-nav" role="tablist" aria-label="${scope === 'owner' ? 'Owner' : 'Staff'} sections">${panels.map(panel => `<button id="${scope}-nav-${panel.id}" type="button" role="tab" data-console-panel="${panel.id}" aria-controls="${scope}-panel-${panel.id}" aria-selected="${panel.id === selected}" tabindex="${panel.id === selected ? '0' : '-1'}">${esc(panel.label)}</button>`).join('')}</div>
+        ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
+      </div>`;
+    }
+    function bindConsoleNavigation(root, scope, onSelect = () => {}) {
+      const buttons = qsa('[data-console-panel]', root);
+      const select = id => {
+        if (scope === 'owner') ownerPanel = id; else staffPanel = id;
+        buttons.forEach(button => { const active = button.dataset.consolePanel === id; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
+        qsa('[data-console-body]', root).forEach(panel => { panel.hidden = panel.dataset.consoleBody !== id; });
+        onSelect(id);
+      };
+      buttons.forEach((button, index) => {
+        button.addEventListener('click', () => select(button.dataset.consolePanel));
+        button.addEventListener('keydown', event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowLeft' ? -1 : 1) + buttons.length) % buttons.length;
+          buttons[next].focus(); select(buttons[next].dataset.consolePanel);
+        });
+      });
+      qsa('[data-console-jump]', root).forEach(button => button.addEventListener('click', () => { select(button.dataset.consoleJump); buttons.find(item => item.dataset.consolePanel === button.dataset.consoleJump)?.focus(); }));
+    }
+    function staffMemberRows() {
+      return [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username)).sort((a, b) => displayNameOf(a).localeCompare(displayNameOf(b))).map(p => `<div class="console-person" data-staff-search="${esc(`${p.username} ${displayNameOf(p)} ${STAFF_ROLE_META[staffRoleOf(p)]?.label || ''}`.toLowerCase())}">
+        ${avatarHtml(p, 'avatar-sm', false)}<div class="grow"><strong>${esc(displayNameOf(p))}${roleBadgeHtml(p)}</strong><small>@${esc(p.username)} · ${esc(STAFF_ROLE_META[staffRoleOf(p)]?.label || 'Member')}</small></div>
+        ${canModerateUser(p) ? `<select data-staff-action="${esc(p.username)}" aria-label="Moderate ${esc(displayNameOf(p))}"><option value="">Actions…</option><option value="timeout">Timeout 10 minutes</option>${isStaff() ? '<option value="kick">Kick</option>' : ''}${canBanUsers() ? '<option value="ban">Ban</option>' : ''}</select>` : '<span class="console-protected">Protected</span>'}
+      </div>`).join('');
+    }
+    async function renderAdminTab() {
+      const el = $('tab-admin');
+      if (!isStaff()) { el.innerHTML = ''; return; }
+      const request = ++staffRenderGeneration;
+      el.innerHTML = '<div class="picker-note">Loading staff workspace…</div>';
+      try {
+        const { data, error } = await sb.rpc('chat_get_moderation_state');
+        if (request !== staffRenderGeneration || !isStaff()) return;
+        if (error) throw error;
+        const banned = data?.banned || [], timeouts = data?.timed_out || [];
+        const memberCount = [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username)).length;
+        const moderation = consoleCard('Member directory', 'Find a member and choose an action. Your role limits who you can moderate.', `<div class="field"><label for="staff-member-search">Find a member</label><input id="staff-member-search" type="search" placeholder="Name, username, or staff role"></div><div class="console-member-list">${staffMemberRows()}</div><p id="staff-member-empty" class="field-help" hidden>No matching members.</p>`)
+          + consoleCard('Active timeouts', 'Temporary restrictions currently in effect.', `<div class="console-list">${timeouts.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>Until ${esc(new Date(u.timeout_until).toLocaleString())} · by @${esc(u.timeout_by || '?')}</small></div>${canModerateUser(u.username) ? `<button class="secondary-button" type="button" data-clear-timeout="${esc(u.username)}">Clear timeout</button>` : ''}</div>`).join('') || '<p class="console-empty">No active timeouts.</p>'}</div>`)
+          + (canBanUsers() ? consoleCard('Banned accounts', 'Review a ban or allow an account to return.', `<div class="console-list">${banned.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>${esc(u.ban_reason || 'No reason provided')} · by @${esc(u.banned_by || '?')}</small></div><button class="secondary-button" type="button" data-unban="${esc(u.username)}">Unban</button></div>`).join('') || '<p class="console-empty">No banned accounts.</p>'}</div>`) : '');
+        const panels = [{ id: 'members', label: 'Members', html: moderation },
+          { id: 'badges', label: 'Badges & roles', html: consoleCard('Member badges', 'Cosmetic badges are separate from staff permissions.', subRoleManagerHtml()) + (canManageStaffRoles() && !isOwner() ? consoleCard('Staff hierarchy', 'Manage roles below your own rank.', `<div class="admin-list">${staffRoleRowsHtml()}</div>`) : '') }];
+        if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
+          consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
+          + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
+        panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
+          { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
+        el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', [{value:memberCount,label:'Members'},{value:timeouts.length,label:'Timed out'},{value:banned.length,label:'Banned'}], panels, staffPanel);
+        const loadPanel = id => { if (id === 'activity') loadAdminLogs(); if (id === 'archive') loadDeletedMessages(); };
+        bindConsoleNavigation(el, 'staff', loadPanel); bindStaffRoleControls(el, renderAdminTab); bindSubRoleControls(el);
+        $('staff-member-search').addEventListener('input', event => { const q = event.target.value.trim().replace(/^@/,'').toLowerCase(); let visible = 0; qsa('[data-staff-search]', el).forEach(row => { row.hidden = !!q && !row.dataset.staffSearch.includes(q); if (!row.hidden) visible++; }); $('staff-member-empty').hidden = visible > 0; });
+        qsa('[data-staff-action]', el).forEach(select => select.addEventListener('change', async () => { const action = select.value, username = select.dataset.staffAction; select.value = ''; if (action === 'timeout') { await applyTimeout(username,10); renderAdminTab(); } if (action === 'kick') kickUser(username); if (action === 'ban') banUser(username); }));
+        qsa('[data-clear-timeout]', el).forEach(button => button.addEventListener('click', async () => { button.disabled = true; try { await applyTimeout(button.dataset.clearTimeout, 0); await renderAdminTab(); } finally { button.disabled = false; } }));
+        qsa('[data-unban]', el).forEach(button => button.addEventListener('click', async () => { button.disabled = true; try { const { data,error } = await sb.rpc('chat_unban_user', { p_actor_username:me.username,p_actor_password_hash:'',p_target_username:button.dataset.unban }); if (error || data !== true) throw error || new Error('Unban was rejected'); toast({type:'success',text:'Account unbanned.'}); await renderAdminTab(); } catch(error) { toast({type:'error',text:error?.message || 'Could not unban account.'}); } finally {button.disabled=false;} }));
+        $('staff-channel-add')?.addEventListener('click', () => openChannelDialog());
+        qsa('[data-console-channel]', el).forEach(button => button.addEventListener('click', () => openChannelDialog(button.dataset.consoleChannel)));
+        const saveWords = async next => { if (next.length > 200) throw new Error('You can add up to 200 word filters.'); await setAppSetting('banned_words',JSON.stringify(next)); bannedWords = next; await renderAdminTab(); };
+        $('staff-word-form')?.addEventListener('submit', async event => { event.preventDefault(); const word = $('staff-new-word').value.trim().toLowerCase(); if (!word) return; try { await saveWords([...new Set([...bannedWords,word])]); } catch(error) { toast({type:'error',text:error?.message || 'Could not save word filter.'}); } });
+        qsa('[data-del-word]', el).forEach(button => button.addEventListener('click', async () => { try { await saveWords(bannedWords.filter((_,i) => i !== Number(button.dataset.delWord))); } catch(error) {toast({type:'error',text:error?.message || 'Could not remove word filter.'});} }));
+        $('admin-logs-refresh').addEventListener('click', loadAdminLogs); $('deleted-messages-refresh').addEventListener('click',loadDeletedMessages); loadPanel(staffPanel);
+      } catch(error) { if (request !== staffRenderGeneration) return; el.innerHTML = '<div class="console-empty"><strong>Staff tools could not load.</strong><button class="secondary-button" id="staff-retry" type="button">Try again</button></div>'; $('staff-retry').addEventListener('click', renderAdminTab); }
+    }
     function renderOwnerTab() {
       const el = $('tab-owner');
       if (!isOwner()) { el.innerHTML = ''; return; }
-      const channelOptions = channels
-        .filter(ch => ch.kind === 'chat')
-        .map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('');
-      const roleRows = staffRoleRowsHtml();
-      el.innerHTML = `
-        <div class="settings-section-title">Owner controls</div>
-        
-        <div class="owner-nav" role="tablist" aria-label="Owner sections">
-          <button type="button" data-owner-panel="broadcast" aria-selected="true">Broadcast</button>
-          <button type="button" data-owner-panel="app" aria-selected="false">App</button>
-          <button type="button" data-owner-panel="roles" aria-selected="false">Staff roles</button>
-          <button type="button" data-owner-panel="danger" aria-selected="false">Danger</button>
-          <button type="button" data-owner-panel="dev" aria-selected="false">Developer</button>
-        </div>
-        <div class="owner-panel" data-owner-panel-body="broadcast">
-          <div class="settings-section-title">Broadcast</div>
-          <div class="field"><label for="owner-announcement">Announcement banner</label><input id="owner-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Empty = no banner"></div>
-          <div class="field"><label for="owner-whatsnew">What's new popup</label><textarea id="owner-whatsnew" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div>
-          <button class="secondary-button" type="button" id="owner-save-broadcast">Save broadcast</button>
-        </div>
-        <div class="owner-panel" data-owner-panel-body="app" hidden>
-          <div class="settings-section-title">App switch</div>
-          <div class="toggle-row" style="border:none;padding-top:0;"><div class="toggle-copy"><div class="toggle-title">App enabled</div><div class="toggle-sub">When off, everyone except you sees a maintenance screen.</div></div><button class="switch" id="owner-app-enabled" type="button" role="switch" aria-checked="${appSettings.app_enabled !== 'false'}"></button></div>
-        </div>
-        <div class="owner-panel" data-owner-panel-body="roles" hidden>
-          <div class="settings-section-title">Staff roles</div>
-          <p class="field-help">Co-owners can manage admins and lower roles.</p>
-          <div class="admin-list">${roleRows || '<span class="field-help">No member accounts to manage.</span>'}</div>
-          <div class="settings-section-title">Subroles</div>
-          <p class="field-help">Assign a cosmetic badge to a member below. Members can also choose their own badge. Co-owners and owners manage the catalog.</p>
-          ${subRoleManagerHtml()}
-        </div>
-        <div class="owner-panel" data-owner-panel-body="danger" hidden>
-          <div class="settings-section-title" style="color:var(--danger);">Purge channel context</div>
-          <div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channelOptions}</select><div class="field-help"></div></div>
-          <button class="danger-button" type="button" id="owner-purge-channel-btn">Purge channel</button>
-        </div>
-        <div class="owner-panel" data-owner-panel-body="dev" hidden>
-          <div class="settings-section-title">Developer session</div>
-          ${lastDevSession ? `
-            <div class="admin-list-item" style="flex-direction:column;align-items:flex-start;gap:10px;">
-              <div style="font-size:0.8rem;font-weight:700;">Active: @${esc(lastDevSession.username)}</div>
-              <div class="field-help">Test sign-up without signing out here.</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;"><div><div class="field-help">Username</div><code>${esc(lastDevSession.username)}</code></div><div><div class="field-help">Password</div><code>${esc(lastDevSession.password)}</code></div></div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="secondary-button" type="button" id="owner-dev-copy-un">Copy username</button><button class="secondary-button" type="button" id="owner-dev-copy-pw">Copy password</button><button class="secondary-button" type="button" id="owner-dev-reopen">Open new tab</button><button class="danger-button" type="button" id="owner-dev-delete">Delete session</button></div>
-            </div>` : `
-            <p class="field-help">Create a temporary test account.</p>
-            <div style="display:flex;gap:8px;align-items:center;"><input id="owner-dev-name" type="text" value="Dev Tester" maxlength="40" placeholder="Display name" style="flex:1;min-height:36px;"><button class="secondary-button" type="button" id="owner-dev-create">Enter dev session</button></div>`}
-          <div class="settings-section-title" style="margin-top:18px;">Sticker recovery</div>
-          <p class="field-help">Restore stickers and custom emoji missing from the catalog. Files are not moved or deleted.</p>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><button class="secondary-button" type="button" id="owner-sticker-recover" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover lost stickers</button><span class="field-help" id="owner-sticker-recover-status" aria-live="polite">${esc(stickerRecoveryStatus)}</span></div>
-        </div>
-      `;
-      qsa('[data-owner-panel]', el).forEach(btn => btn.addEventListener('click', () => {
-        const id = btn.dataset.ownerPanel;
-        qsa('[data-owner-panel]', el).forEach(b => b.setAttribute('aria-selected', String(b === btn)));
-        qsa('[data-owner-panel-body]', el).forEach(panel => { panel.hidden = panel.dataset.ownerPanelBody !== id; });
-      }));
-      $('owner-save-broadcast').addEventListener('click', async () => {
-        try {
-          const announcement = $('owner-announcement').value.trim();
-          const whatsNew = $('owner-whatsnew').value.trim();
-          await ownerRpc('chat_owner_set_app_setting', { p_key: 'announcement', p_value: announcement });
-          await ownerRpc('chat_owner_set_app_setting', { p_key: 'whats_new', p_value: whatsNew });
-          appSettings.announcement = announcement; appSettings.whats_new = whatsNew;
-          renderAnnouncement(); toast({ type: 'success', text: 'Broadcast settings saved.' });
-        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save broadcast settings.' }); }
-      });
-      $('owner-app-enabled').addEventListener('click', async () => {
-        const button = $('owner-app-enabled');
-        const enabled = button.getAttribute('aria-checked') !== 'true';
-        try {
-          await ownerRpc('chat_owner_set_app_setting', { p_key: 'app_enabled', p_value: enabled ? 'true' : 'false' });
-          button.setAttribute('aria-checked', String(enabled));
-          appSettings.app_enabled = enabled ? 'true' : 'false';
-          applyFeatureControls();
-        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not update app status.' }); }
-      });
-      $('owner-purge-channel-btn').addEventListener('click', () => purgeChannelContext($('owner-purge-channel').value));
-      const devCreate = $('owner-dev-create');
-      if (devCreate) devCreate.addEventListener('click', createDevSession);
-      const devCopyUn = $('owner-dev-copy-un');
-      if (devCopyUn) devCopyUn.addEventListener('click', () => navigator.clipboard.writeText(lastDevSession?.username || '').catch(() => {}));
-      const devCopyPw = $('owner-dev-copy-pw');
-      if (devCopyPw) devCopyPw.addEventListener('click', () => navigator.clipboard.writeText(lastDevSession?.password || '').catch(() => {}));
-      const devReopen = $('owner-dev-reopen');
-      if (devReopen) devReopen.addEventListener('click', () => {
-        if (!lastDevSession) return;
-        const ok = openDevSessionTab(lastDevSession.username, lastDevSession.password);
-        if (ok) { lastDevSession = { ...lastDevSession, autoOpened: true }; renderOwnerTab(); }
-      });
-      const devDelete = $('owner-dev-delete');
-      if (devDelete) devDelete.addEventListener('click', deleteInChatDevSession);
-      $('owner-sticker-recover').addEventListener('click', recoverLostStickers);
-      bindStaffRoleControls(el, renderOwnerTab);
-      bindSubRoleControls(el);
+      const members = [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username));
+      const features = [['app_enabled','Community online','Turning this off puts members in maintenance mode.'],['registrations_enabled','New accounts','Allow people to create an account.'],['messages_enabled','Message sending','Allow members to send messages across chat.'],['dms_enabled','Private conversations','Allow direct messages and private groups.'],['uploads_enabled','Media uploads','Allow images, stickers, and shared files.'],['gifs_enabled','GIF picker','Allow people to use GIF search.']];
+      const featureRows = features.map(([key,label,description]) => `<div class="console-feature"><div><strong>${esc(label)}</strong><p>${esc(description)}</p></div><button class="switch" type="button" role="switch" data-owner-feature="${key}" aria-label="${esc(label)}" aria-checked="${appSettings[key] !== 'false'}"></button></div>`).join('');
+      const testAccount = lastDevSession ? `<div class="console-test-account"><strong>@${esc(lastDevSession.username)}</strong><div class="field-help">Temporary test account</div><div class="console-credentials"><div><span>Username</span><code>${esc(lastDevSession.username)}</code></div><div><span>Password</span><code>${esc(lastDevSession.password)}</code></div></div><div class="group-actions"><button id="owner-dev-copy-un" class="secondary-button" type="button">Copy username</button><button id="owner-dev-copy-pw" class="secondary-button" type="button">Copy password</button><button id="owner-dev-reopen" class="secondary-button" type="button">Open session</button><button id="owner-dev-delete" class="danger-button" type="button">Delete session</button></div></div>` : '<div class="console-inline-form"><label class="sr-only" for="owner-dev-name">Test account name</label><input id="owner-dev-name" maxlength="40" value="Dev Tester" placeholder="Display name"><button class="secondary-button" id="owner-dev-create" type="button">Create test account</button></div>';
+      const panels = [
+        {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
+        {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
+        {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
+        {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)},
+        {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
+      ];
+      el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:members.length,label:'Members'},{value:channels.filter(ch=>![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).length,label:'Channels'},{value:availableSubroles().length,label:'Badges'}],panels,ownerPanel);
+      bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindSubRoleControls(el);
+      $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
+      $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});
+      qsa('[data-owner-feature]',el).forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.ownerFeature,enabled=button.getAttribute('aria-checked')!=='true';const run=async()=>{button.disabled=true;try{await ownerRpc('chat_owner_configure',{p_key:key,p_value:enabled?'true':'false'});appSettings[key]=enabled?'true':'false';button.setAttribute('aria-checked',String(enabled));applyFeatureControls();toast({type:'success',text:'Community setting updated.'});}catch(error){toast({type:'error',text:error?.message||'Could not update this setting.'});}finally{button.disabled=false;}};if(key==='app_enabled'&&!enabled)confirmAction({title:'Put the community in maintenance mode?',text:'Members will see the maintenance screen until you turn the community back on.',confirmLabel:'Enable maintenance mode',onConfirm:run});else run();}));
+      $('owner-limits-form').addEventListener('submit',async event=>{event.preventDefault();const button=qs('button',event.target);button.disabled=true;try{for(const[key,value]of [['max_message_length',$('owner-max-length').value],['slow_mode_seconds',$('owner-slow-mode').value]]){await ownerRpc('chat_owner_configure',{p_key:key,p_value:value});appSettings[key]=value;}applyFeatureControls();toast({type:'success',text:'Message limits saved.'});}catch(error){toast({type:'error',text:error?.message||'Could not save message limits.'});}finally{button.disabled=false;}});
+      $('owner-purge-channel-btn').addEventListener('click',()=>purgeChannelContext($('owner-purge-channel').value));
+      $('owner-dev-create')?.addEventListener('click',createDevSession);
+      $('owner-dev-copy-un')?.addEventListener('click',()=>navigator.clipboard.writeText(lastDevSession?.username||'').catch(()=>{}));
+      $('owner-dev-copy-pw')?.addEventListener('click',()=>navigator.clipboard.writeText(lastDevSession?.password||'').catch(()=>{}));
+      $('owner-dev-reopen')?.addEventListener('click',()=>{if(lastDevSession)openDevSessionTab(lastDevSession.username,lastDevSession.password);});
+      $('owner-dev-delete')?.addEventListener('click',deleteInChatDevSession);
+      $('owner-sticker-recover').addEventListener('click',recoverLostStickers);
     }
 
-    let adminSubTab = 'tools';
     const ADMIN_ACTION_LABELS = {
       user_timed_out_in_chat: 'Timed out a user',
       timeout_cleared_in_chat: 'Cleared a timeout',
@@ -14609,235 +14987,6 @@ void main() {
         </div>`).join('');
     }
 
-    async function renderAdminTab() {
-      const el = $('tab-admin');
-      el.innerHTML = '<div class="picker-note">Loading admin tools…</div>';
-      const { data: moderationState, error: moderationError } = await sb.rpc('chat_get_moderation_state');
-      if (moderationError) {
-        el.innerHTML = '<div class="picker-note">Could not load moderation tools.</div>';
-        return;
-      }
-      const bannedUsers = moderationState?.banned || [];
-      const timeouts = moderationState?.timed_out || [];
-
-      el.innerHTML = `
-        <div class="dialog-tabs" id="admin-subtabs" role="tablist">
-          <button type="button" data-admin-sub="tools" aria-selected="${adminSubTab === 'tools'}">Tools</button>
-          <button type="button" data-admin-sub="logs" aria-selected="${adminSubTab === 'logs'}">Logs</button>
-        </div>
-        <div id="admin-pane-tools" ${adminSubTab !== 'tools' ? 'hidden' : ''}>
-        ${canAssignSubRoles() ? `
-        <div class="settings-section-title">Subroles</div>
-        <p class="field-help">Assign a cosmetic badge to a member below. Members can also choose their own badge. Co-owners and owners manage the catalog.</p>
-        ${subRoleManagerHtml()}
-        ` : ''}
-        ${canManageStaffRoles() && !isOwner() ? `
-        <div class="settings-section-title">Staff roles</div>
-        <div class="admin-list">${staffRoleRowsHtml() || '<span class="field-help">No member accounts to manage.</span>'}</div>
-        ` : ''}
-        ${false && isOwner() ? `
-        <div class="settings-section-title">Broadcast (owner)</div>
-        <div class="field">
-          <label for="adm-announcement">Announcement banner</label>
-          <input id="adm-announcement" type="text" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Empty = no banner">
-        </div>
-        <div class="field">
-          <label for="adm-whatsnew">What's new popup</label>
-          <textarea id="adm-whatsnew" maxlength="4000" placeholder="Shown once per user when changed.">${esc(appSettings.whats_new || '')}</textarea>
-        </div>
-        <button class="primary-button" type="button" id="adm-save-broadcast" style="min-height:34px;font-size:.74rem;">Save broadcast</button>
-        ` : `
-        <div class="settings-section-title">Broadcasts</div>
-        <p class="field-help">Only owners can publish announcements and updates.</p>
-        `}
-
-        ${false && isOwner() ? `
-        <div class="settings-section-title">App switch (owner)</div>
-        <div class="toggle-row" style="border:none;padding-top:0;">
-          <div class="toggle-copy"><div class="toggle-title">App enabled</div><div class="toggle-sub">When off, everyone except you sees a maintenance screen.</div></div>
-          <button class="switch" id="adm-app-enabled" type="button" role="switch" aria-checked="${appSettings.app_enabled !== 'false'}"></button>
-        </div>` : ''}
-
-        ${canManageChannels() ? `
-        <div class="settings-section-title">Banned words</div>
-        <div class="word-chips" id="adm-word-chips">${bannedWords.map((w, i) => `<span class="word-chip">${esc(w)}<button type="button" data-del-word="${i}" aria-label="Remove">✕</button></span>`).join('') || '<span class="field-help">No custom banned words.</span>'}</div>
-        <div class="add-word-row">
-          <input id="adm-new-word" type="text" maxlength="40" placeholder="Add a banned word…">
-          <button class="secondary-button" type="button" id="adm-add-word" style="min-height:36px;">Add</button>
-        </div>` : `<p class="field-help">Only admins can edit banned words.</p>`}
-
-        ${canBanUsers() ? `
-        <div class="settings-section-title">Banned users (${bannedUsers.length})</div>
-        <div class="admin-list">
-          ${bannedUsers.map(u => `
-            <div class="admin-list-item">
-              <div class="grow"><strong>@${esc(u.username)}</strong><div class="sub">${esc(u.ban_reason || 'No reason')} — by @${esc(u.banned_by || '?')}</div></div>
-              <button class="ghost-button" type="button" data-unban="${esc(u.username)}">Unban</button>
-            </div>`).join('') || '<span class="field-help">Nobody is banned.</span>'}
-        </div>` : `<p class="field-help">Managers, co-owners, and owners can manage bans.</p>`}
-
-        <div class="settings-section-title">Active timeouts (${timeouts.length})</div>
-        <div class="admin-list">
-          ${timeouts.map(u => `
-            <div class="admin-list-item">
-              <div class="grow"><strong>@${esc(u.username)}</strong><div class="sub">until ${esc(new Date(u.timeout_until).toLocaleString())} — by @${esc(u.timeout_by || '?')}</div></div>
-              ${canModerateUser(u.username) ? `<button class="ghost-button" type="button" data-clear-timeout="${esc(u.username)}">Clear</button>` : ''}
-            </div>`).join('') || '<span class="field-help">No active timeouts.</span>'}
-        </div>
-
-        ${false && isOwner() ? `
-        <div class="settings-section-title">Developer session</div>
-        ${lastDevSession ? `
-          <div class="admin-list-item" style="flex-direction:column;align-items:flex-start;gap:10px;">
-            <div style="font-size:0.8rem;font-weight:700;">Active: @${esc(lastDevSession.username)}</div>
-            ${lastDevSession.autoOpened
-              ? `<div class="field-help">Sign in with the filled-in credentials in the new tab.</div>`
-              : `<div class="field-help" style="color:var(--accent-warn,#f59e0b)">Popup blocked — open a tab manually and log in with the credentials below.</div>`
-            }
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;">
-              <div>
-                <div class="field-help" style="margin-bottom:3px;">Username</div>
-                <code style="display:block;background:var(--surface-2);padding:5px 8px;border-radius:6px;font-size:0.76rem;word-break:break-all;">${esc(lastDevSession.username)}</code>
-              </div>
-              <div>
-                <div class="field-help" style="margin-bottom:3px;">Password</div>
-                <code style="display:block;background:var(--surface-2);padding:5px 8px;border-radius:6px;font-size:0.76rem;word-break:break-all;">${esc(lastDevSession.password)}</code>
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button class="secondary-button" type="button" id="adm-dev-copy-un" style="min-height:30px;font-size:0.72rem;">Copy username</button>
-              <button class="secondary-button" type="button" id="adm-dev-copy-pw" style="min-height:30px;font-size:0.72rem;">Copy password</button>
-              <button class="secondary-button" type="button" id="adm-dev-reopen" style="min-height:30px;font-size:0.72rem;">Open new tab</button>
-              <button class="danger-button" type="button" id="adm-dev-delete" style="min-height:30px;font-size:0.72rem;">Delete session</button>
-            </div>
-          </div>
-        ` : `
-          <p class="field-help" style="margin-bottom:8px;">Create a temporary test account without signing out.</p>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="adm-dev-name" type="text" value="Dev Tester" maxlength="40" placeholder="Display name" style="flex:1;min-height:36px;">
-            <button class="secondary-button" type="button" id="adm-dev-create" style="min-height:36px;white-space:nowrap;">Enter dev session</button>
-          </div>
-        `}
-        ` : ''}
-        </div>
-        <div id="admin-pane-logs" ${adminSubTab !== 'logs' ? 'hidden' : ''}>
-          <div class="settings-section-title">Deleted messages</div>
-          <p class="field-help">Deleted messages remain available to staff.</p>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <button class="secondary-button" type="button" id="deleted-messages-refresh" style="min-height:32px;padding:4px 12px;font-size:.72rem;">Refresh</button>
-          </div>
-          <div class="admin-list" id="deleted-message-list"><div class="picker-note">Loading deleted messages…</div></div>
-          <div class="settings-section-title">Moderator logs</div>
-          <p class="field-help">Staff actions, including timeouts, bans, and channel changes.</p>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <button class="secondary-button" type="button" id="admin-logs-refresh" style="min-height:32px;padding:4px 12px;font-size:.72rem;">Refresh</button>
-          </div>
-          <div class="admin-list" id="admin-log-list"><div class="picker-note">Loading logs…</div></div>
-        </div>
-`;
-
-      bindStaffRoleControls(el, renderAdminTab);
-      bindSubRoleControls(el);
-      const saveBroadcast = $('adm-save-broadcast');
-      if (saveBroadcast) saveBroadcast.addEventListener('click', async () => {
-        try {
-          await setAppSetting('announcement', $('adm-announcement').value.trim());
-          await setAppSetting('whats_new', $('adm-whatsnew').value.trim());
-          renderAnnouncement();
-          toast({ type: 'success', text: 'Broadcast settings saved.' });
-        } catch (err) {
-          toast({ type: 'error', text: 'Could not save broadcast settings: ' + (err?.message || 'unknown error') });
-        }
-      });
-      const appSwitch = $('adm-app-enabled');
-      if (appSwitch) appSwitch.addEventListener('click', async () => {
-        const enable = appSwitch.getAttribute('aria-checked') !== 'true';
-        appSwitch.setAttribute('aria-checked', String(enable));
-        try {
-          await setAppSetting('app_enabled', enable ? 'true' : 'false');
-          toast({ type: enable ? 'success' : 'warning', text: enable ? 'App enabled.' : 'App disabled for everyone but you.' });
-        } catch (err) {
-          appSwitch.setAttribute('aria-checked', String(!enable));
-          toast({ type: 'error', text: 'Could not change app status: ' + (err?.message || 'unknown error') });
-        }
-      });
-      qsa('[data-del-word]', el).forEach(b => b.addEventListener('click', async () => {
-        const removed = bannedWords.splice(Number(b.dataset.delWord), 1);
-        try {
-          await setAppSetting('banned_words', JSON.stringify(bannedWords));
-        } catch (err) {
-          if (removed.length) bannedWords.splice(Number(b.dataset.delWord), 0, removed[0]);
-          toast({ type: 'error', text: 'Could not update banned words: ' + (err?.message || 'unknown error') });
-        }
-        renderAdminTab();
-      }));
-      const addWordBtn = $('adm-add-word');
-      if (addWordBtn) addWordBtn.addEventListener('click', async () => {
-        const word = $('adm-new-word').value.trim().toLowerCase();
-        if (!word) return;
-        const added = !bannedWords.includes(word);
-        if (added) bannedWords.push(word);
-        try {
-          await setAppSetting('banned_words', JSON.stringify(bannedWords));
-        } catch (err) {
-          if (added) bannedWords.pop();
-          toast({ type: 'error', text: 'Could not add banned word: ' + (err?.message || 'unknown error') });
-        }
-        renderAdminTab();
-      });
-      qsa('[data-unban]', el).forEach(b => b.addEventListener('click', async () => {
-        const username = b.dataset.unban;
-        const { data, error } = await sb.rpc('chat_unban_user', {
-          p_actor_username: me.username,
-          p_actor_password_hash: '',
-          p_target_username: username,
-        });
-        if (error || data !== true) {
-          toast({ type: 'error', text: `Could not unban @${username}.` });
-          return;
-        }
-        toast({ type: 'success', text: `@${username} unbanned.` });
-        renderAdminTab();
-      }));
-      qsa('[data-clear-timeout]', el).forEach(b => b.addEventListener('click', async () => {
-        const { data, error } = await sb.rpc('chat_staff_timeout_user', {
-          p_actor_username: me.username,
-          p_actor_password_hash: '',
-          p_target_username: b.dataset.clearTimeout,
-          p_minutes: 0,
-        });
-        if (error || data !== true) { toast({ type: 'error', text: error?.message || 'Could not clear timeout.' }); return; }
-        toast({ type: 'success', text: 'Timeout cleared.' });
-        renderAdminTab();
-      }));
-      const devCreate = $('adm-dev-create');
-      if (devCreate) devCreate.addEventListener('click', createDevSession);
-      const devCopyUn = $('adm-dev-copy-un');
-      if (devCopyUn) devCopyUn.addEventListener('click', () => navigator.clipboard.writeText(lastDevSession?.username || '').catch(() => {}));
-      const devCopyPw = $('adm-dev-copy-pw');
-      if (devCopyPw) devCopyPw.addEventListener('click', () => navigator.clipboard.writeText(lastDevSession?.password || '').catch(() => {}));
-      const devReopen = $('adm-dev-reopen');
-      if (devReopen) devReopen.addEventListener('click', () => {
-        if (!lastDevSession) return;
-        const ok = openDevSessionTab(lastDevSession.username, lastDevSession.password);
-        if (ok) { lastDevSession = { ...lastDevSession, autoOpened: true }; renderAdminTab(); }
-      });
-      const devDelete = $('adm-dev-delete');
-      if (devDelete) devDelete.addEventListener('click', deleteInChatDevSession);
-      qsa('[data-admin-sub]', el).forEach(btn => btn.addEventListener('click', () => {
-        adminSubTab = btn.dataset.adminSub;
-        qsa('[data-admin-sub]', el).forEach(b => b.setAttribute('aria-selected', String(b.dataset.adminSub === adminSubTab)));
-        $('admin-pane-tools').hidden = adminSubTab !== 'tools';
-        $('admin-pane-logs').hidden = adminSubTab !== 'logs';
-        if (adminSubTab === 'logs') { loadAdminLogs(); loadDeletedMessages(); }
-      }));
-      const logsRefresh = $('admin-logs-refresh');
-      if (logsRefresh) logsRefresh.addEventListener('click', loadAdminLogs);
-      const deletedRefresh = $('deleted-messages-refresh');
-      if (deletedRefresh) deletedRefresh.addEventListener('click', loadDeletedMessages);
-      if (adminSubTab === 'logs') { loadAdminLogs(); loadDeletedMessages(); }
-      requestAnimationFrame(() => { if ($('admin-subtabs')) positionTabIndicator($('admin-subtabs')); });
-    }
     async function createDevSession() {
       const nameEl = $('owner-dev-name') || $('adm-dev-name');
       const displayName = (nameEl?.value || 'Dev Tester').trim() || 'Dev Tester';
@@ -14996,7 +15145,7 @@ void main() {
     }
     function toolViewLabel(view) {
       if (!view) return '';
-      if (view.type === 'dm') return `Conversation with ${displayNameOf(view.other)}`;
+      if (view.type === 'dm') { const dm = dms.find(item => item.id === view.id); return dm?.is_group ? dm.title : `Conversation with ${displayNameOf(view.other)}`; }
       if (isForumThreadView(view)) return view.thread?.title || 'Forum post';
       return `#${channelById(view.id)?.label || view.id}`;
     }
@@ -15054,7 +15203,7 @@ void main() {
         if (request !== inboxHydrateId || me?.username !== owner) return;
         for (const dm of dms) {
           const m = dm.lastMsg;
-          if (!m || m.deleted || m.sender === owner || dmBlockedUsers.has(dm.other) || (m.read_by || []).includes(owner)) continue;
+          if (!m || m.deleted || m.sender === owner || (!dm.is_group && dmBlockedUsers.has(dm.other)) || (m.read_by || []).includes(owner)) continue;
           const key = `dm:${dm.id}`;
           const readAt = dm.myLastReadAt || lastReadAt[key];
           if (readAt && Date.parse(readAt) >= Date.parse(m.created_at)) continue;
@@ -15090,8 +15239,8 @@ void main() {
         if (item.view?.startsWith('dm:')) {
           let dm = dms.find(d => d.id === item.view.slice(3));
           if (!dm) { await loadDms(); dm = dms.find(d => d.id === item.view.slice(3)); }
-          if (!dm || dmBlockedUsers.has(dm.other)) throw new Error('This conversation is unavailable.');
-          await openView({ type:'dm', id:dm.id, other:dm.other });
+          if (!dm || (!dm.is_group && dmBlockedUsers.has(dm.other))) throw new Error('This conversation is unavailable.');
+          await openView(dmView(dm));
         } else if (item.view?.startsWith('c:' + FORUM_PREFIX)) {
           const id = item.view.slice(('c:' + FORUM_PREFIX).length);
           const { data: thread, error } = await sb.from('forum_threads').select('*').eq('id', id).maybeSingle();
@@ -15948,12 +16097,15 @@ void main() {
       let last = null;
       for (let i = cache.length - 1; i >= 0; i--) { if (cache[i].sender === me.username && !cache[i].deleted) { last = cache[i]; break; } }
       if (!last) return;
-      const seen = (last.read_by || []).includes(currentView.other);
+      const group = groupOf();
+      const readers = group ? group.participants.filter(name => name !== me.username && (last.read_by || []).includes(name)) : [];
+      const seen = group ? readers.length > 0 : (last.read_by || []).includes(currentView.other);
+      const seenText = group ? `Seen by ${readers.length} of ${Math.max(0, group.participants.length - 1)}` : 'Seen';
       const el = document.createElement('div');
       el.className = 'dm-receipt';
       el.dataset.state = seen ? 'seen' : 'sent';
       el.innerHTML = seen
-        ? `<span class="dm-receipt-ticks">✓✓</span><span>Seen${last.created_at ? ' · ' + esc(fmtTime(last.created_at)) : ''}</span>`
+        ? `<span class="dm-receipt-ticks">✓✓</span><span>${esc(seenText)}${last.created_at ? ' · ' + esc(fmtTime(last.created_at)) : ''}</span>`
         : `<span class="dm-receipt-ticks">✓</span><span>Sent</span>`;
       list.appendChild(el);
     }
@@ -16151,6 +16303,7 @@ void main() {
         url.searchParams.set('refresh', String(Date.now()));
         link.href = url.href;
       });
+      wireGroupEvents();
       $('rules-btn').addEventListener('click', openRulesModal);
       $('subrole-btn')?.addEventListener('click', openSubroleModal);
       $('subrole-picker')?.addEventListener('click', (event) => {
