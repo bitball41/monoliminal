@@ -19,3 +19,5 @@ Run `npm ci --ignore-scripts` and `npm test` before deployment. The isolated dat
 `20261013234532_private_group_chats.sql` adds invitation-based private groups on top of the existing DM tables, member-only private attachments, a compatibility inbox for old clients, and owner-only feature configuration. Invitations do not grant message access. Group reads and writes remain scoped to accepted participants, without a staff-role exception. Apply this migration before the 2.23 Chat deployment.
 
 `20261014010005_private_group_dm_uniqueness.sql` excludes private groups from the existing participant uniqueness index. Groups can share members with each other and an ordinary DM, while ordinary DMs retain their uniqueness rule and Luna exception.
+
+`20261014212514_message_content_trgm.sql` adds trigram indexes for message text search. `20261014212942_chat_list_mentions.sql` adds `chat_list_mentions`, which Chat calls while opening the inbox. A browser `ILIKE` on `messages` cannot use that index while row security is on, and that scan was reading the whole table on every sign-in.

@@ -15272,9 +15272,14 @@ void main() {
       $('inbox-list').setAttribute('aria-busy', 'true');
       try {
         if (refresh) await loadDms();
-        const { data, error } = await sb.from('messages').select('id,channel_id,sender,content,type,created_at,deleted')
-          .ilike('content', `%@${owner}%`).neq('sender', owner).eq('deleted', false)
-          .order('created_at', { ascending: false }).limit(50);
+        // The direct ILIKE scan reads every channel message and cannot use an index
+        // under row security. The server function does the same lookup.
+        let { data, error } = await sb.rpc('chat_list_mentions', { p_limit: 50 });
+        if (error && (error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || ''))) {
+          ({ data, error } = await sb.from('messages').select('id,channel_id,sender,content,type,created_at,deleted')
+            .ilike('content', `%@${owner}%`).neq('sender', owner).eq('deleted', false)
+            .order('created_at', { ascending: false }).limit(50));
+        }
         if (request !== inboxHydrateId || me?.username !== owner) return;
         for (const dm of dms) {
           const m = dm.lastMsg;
