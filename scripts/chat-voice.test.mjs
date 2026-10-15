@@ -142,4 +142,44 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.doesNotMatch(chat, /staticauth\.openrelay\.metered\.ca/);
   assert.match(chat, /type: 'rollback'/);
   assert.match(chat, /Tap to hear/);
+  assert.match(chat, /chat_voice_ticket/);
+  assert.match(chat, /School and campus Wi-Fi block direct voice/);
+  assert.match(chat, /id="vc-deafen-btn"/);
+  assert.match(chat, /Ctrl\+Shift\+M/);
+  assert.doesNotMatch(chat, /id="vc-allow-interactions"/);
+  const roomChat = section(chat, '    async function sendVoiceChatMessage() {', '    function setVoiceChatOpen(open) {');
+  assert.match(roomChat, /moderationVerdict\(content\)/);
+  assert.match(roomChat, /isTimedOut\(\)/);
+});
+
+test('voice tickets bind the signed-in account and TURN is owner-only', async () => {
+  const { readFile, readdir } = await import('node:fs/promises');
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
+  const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    await db.exec(await file('Backend/tests/authorization-fixture.sql'));
+    for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(name => name.endsWith('.sql')).sort()) {
+      await db.exec(await file('Backend/migrations/' + name));
+    }
+    const ids = { alice: '00000000-0000-4000-8000-000000000011', owner: '00000000-0000-4000-8000-000000000012' };
+    for (const [name, id] of Object.entries(ids)) {
+      await db.query('insert into auth.users(id) values($1)', [id]);
+      await db.query('insert into public.profiles(username,user_id,display_name,staff_role) values($1,$2,$1,$3)', [name, id, name === 'owner' ? 'owner' : 'member']);
+    }
+    const actor = async name => db.exec(`reset role;select set_config('request.jwt.claim.sub','${ids[name]}',false);set role authenticated;`);
+    await actor('alice');
+    const ticket = (await db.query('select public.chat_voice_ticket() ticket')).rows[0].ticket;
+    assert.equal((await db.query('select public.chat_voice_verify($1) name', [ticket])).rows[0].name, 'alice');
+    assert.equal((await db.query('select public.chat_voice_verify($1) name', [ticket.slice(0, -1) + (ticket.endsWith('a') ? 'b' : 'a')])).rows[0].name, null);
+    await assert.rejects(db.query("select public.chat_owner_configure('turn_servers','')"));
+    await actor('owner');
+    await db.query("select public.chat_owner_configure('turn_servers',$1)", ['[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]']);
+    await assert.rejects(db.query("select public.chat_owner_configure('turn_servers',$1)", ['[{"urls":"https://turn.example.com"}]']));
+    const stored = (await db.query("select value from public.app_settings where key='turn_servers'")).rows[0].value;
+    assert.match(stored, /turns:turn\.example\.com:443/);
+    await db.exec('reset role');
+    assert.doesNotMatch((await db.query("select details::text as details from private.chat_admin_audit where target='turn_servers'")).rows.at(-1).details, /secret/);
+  } finally { await db.close(); }
 });

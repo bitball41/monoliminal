@@ -2387,7 +2387,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-chat-msg.self { align-self: flex-end; border-color: var(--accent-line); border-radius: 11px 11px 4px 11px; background: var(--accent-soft); }
     .vc-chat-sender { display: block; margin-bottom: 3px; color: var(--muted); font-family: var(--font-ui); font-size: .59rem; font-weight: 750; }
     .vc-chat-form { display: flex; gap: 7px; padding: 10px; border-top: 1px solid var(--line); background: var(--surface); }
-    .vc-chat-form input { min-width: 0; flex: 1; padding: 9px 10px; border-radius: 10px; }
+    .vc-chat-form input {
+      min-width: 0; flex: 1; min-height: 36px; padding: 8px 10px;
+      border: 1px solid var(--line-strong); border-radius: 10px;
+      background: var(--panel-strong); color: var(--text); color-scheme: dark;
+    }
     .vc-chat-form button { flex: 0 0 auto; padding: 8px 11px; }
     .vc-dock { margin: 0 8px 8px; padding: 9px; border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-soft); }
     .vc-dock-main { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: none; background: transparent; color: var(--text); text-align: left; }
@@ -2396,6 +2400,27 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-dock-dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 16%, transparent); }
     .vc-dock-actions { display: flex; gap: 6px; margin-top: 8px; }
     .vc-dock-actions button { flex: 1; min-height: 29px; padding: 5px 7px; border-radius: 8px; font-size: .62rem; }
+    .vc-tile.audio-only { aspect-ratio: 1; max-width: 220px; }
+    .vc-tile.vc-speaking { outline: 3px solid var(--ok); outline-offset: 2px; }
+    .vc-grid.vc-has-stage { align-content: stretch; }
+    .vc-grid.vc-has-stage .vc-tile { flex: 1 1 160px; max-width: 200px; aspect-ratio: 1; }
+    .vc-grid.vc-has-stage .vc-tile.vc-stage-main {
+      flex: 1 1 100%; width: 100%; max-width: none; aspect-ratio: 16 / 9; order: -1;
+    }
+    .vc-tile:fullscreen { width: 100%; height: 100%; max-width: none; aspect-ratio: auto; border-radius: 0; background: #000; }
+    .vc-tile:fullscreen video { object-fit: contain; }
+    .vc-network-note {
+      max-width: min(640px, 100%); margin: 0; color: var(--warning);
+      font-size: .72rem; line-height: 1.45; text-align: center;
+    }
+    .vc-devices { width: min(300px, calc(100vw - 24px)); padding: 14px; }
+    .vc-devices select {
+      width: 100%; min-height: 36px; padding: 8px 10px;
+      border: 1px solid var(--line-strong); border-radius: 10px;
+      background: var(--panel-strong); color: var(--text); color-scheme: dark;
+    }
+    html[data-light="true"] .vc-devices select,
+    html[data-light="true"] .vc-chat-form input { color-scheme: light; }
 
     /* ============================= MESSAGE SEARCH ============================= */
     .search-toolbar { display: flex; gap: 8px; padding: 0 4px 6px; }
@@ -3297,15 +3322,17 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
               </div>
             </div>
             <div class="vc-bar">
+              <p class="vc-network-note" id="vc-network-note" hidden></p>
               <span class="vc-status" id="vc-status" role="status" aria-live="polite">Ready to join</span>
               <div class="vc-controls">
                 <button class="vc-control primary" id="vc-join-btn" type="button">Join Voice</button>
                 <button class="vc-control" id="vc-mute-btn" type="button" disabled hidden>Mute</button>
+                <button class="vc-control" id="vc-deafen-btn" type="button" disabled hidden>Deafen</button>
                 <button class="vc-control" id="vc-video-btn" type="button" disabled hidden>Camera</button>
                 <button class="vc-control" id="vc-share-btn" type="button" disabled hidden>Share</button>
+                <button class="vc-control" id="vc-devices-btn" type="button" disabled hidden>Devices</button>
                 <button class="vc-control" id="vc-chat-toggle" type="button" hidden>Chat</button>
                 <button class="vc-control danger" id="vc-leave-btn" type="button" disabled hidden>Leave</button>
-                <label class="vc-clicks"><input id="vc-allow-interactions" type="checkbox" checked> Pings</label>
               </div>
             </div>
           </div>
@@ -3470,6 +3497,13 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
   </div>
 
   <div class="popover quick-react" id="quick-react" hidden></div>
+
+  <div class="popover vc-devices" id="vc-devices" hidden>
+    <div class="field"><label for="vc-mic-select">Microphone</label><select id="vc-mic-select"></select></div>
+    <div class="field"><label for="vc-cam-select">Camera</label><select id="vc-cam-select"></select></div>
+    <div class="field"><label for="vc-speaker-select">Speaker</label><select id="vc-speaker-select"></select></div>
+    <p class="field-help" id="vc-devices-note">Double-click a tile for fullscreen. Mute is Ctrl+Shift+M.</p>
+  </div>
 
   <div class="popover status-pop" id="status-pop" hidden>
     <div id="status-pop-options"></div>
@@ -4816,7 +4850,8 @@ void main() {
       if (!raw) return [];
       try {
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed.filter(s => s && s.urls) : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(server => server && typeof server.urls === 'string' && /^turns?:/i.test(server.urls)).slice(0, 4);
       } catch { return []; }
     }
 
@@ -6079,6 +6114,15 @@ void main() {
       linkTimer: 0,
       signalRetry: 0,
       signalChain: Promise.resolve(),
+      ticket: '',
+      ticketMintedAt: 0,
+      ticketNames: new Map(),
+      sawRelay: false,
+      schoolNoted: false,
+      deafened: false,
+      micBeforeDeafen: true,
+      levelStop: null,
+      speaking: false,
     };
 
     const forumThreadCache = new Map();
@@ -6926,6 +6970,7 @@ void main() {
     }
 
     function showBanned(profile) {
+      try { leaveVoiceRoom({ quiet: true }); } catch {}
       me = profile || me;
       signOutLocked = true;
       $('blocked-logout').hidden = true;
@@ -6964,6 +7009,7 @@ void main() {
     }
 
     function showMaintenance() {
+      try { leaveVoiceRoom({ quiet: true }); } catch {}
       signOutLocked = false;
       $('blocked-logout').hidden = false;
       showBlocked('🚧', 'Down for maintenance', appSettings.maintenance_message || 'Liminal Chat is temporarily disabled while we work on things.\nCheck back soon!');
@@ -10115,7 +10161,190 @@ void main() {
 
     function setVoiceStatus(text) {
       $('vc-status').textContent = text;
-      $('vc-dock-status').textContent = text;
+    }
+
+    function voiceRosterLabel() {
+      const names = ['You'];
+      voice.peers.forEach(peer => names.push(peer.account?.displayName || peer.account?.username || 'Someone'));
+      if (names.length === 1) return 'Just you in Voice Chat';
+      const shown = names.slice(0, 3).join(', ');
+      return names.length > 3 ? `${shown} +${names.length - 3}` : shown;
+    }
+
+    function explainVoiceBlock() {
+      if (!voiceTurnFromSettings().length) {
+        return 'School and campus Wi-Fi block direct voice. Home Wi-Fi allows it. Chat still works because it uses HTTPS. Voice needs a TURN server on port 443, saved in Owner → App controls.';
+      }
+      if (!voice.sawRelay) {
+        return 'This network did not open a relay. UDP TURN is blocked on a lot of school networks. Use a turns: address on port 443.';
+      }
+      return '';
+    }
+
+    function noteVoiceBlock() {
+      const text = explainVoiceBlock();
+      const note = $('vc-network-note');
+      if (!text || !note) return;
+      note.hidden = false;
+      note.textContent = text;
+      if (!voice.schoolNoted) {
+        voice.schoolNoted = true;
+        toast({ type: 'warning', title: 'Voice is blocked on this network', text, duration: 9000 });
+      }
+    }
+
+    function clearVoiceBlockNote() {
+      const note = $('vc-network-note');
+      if (note) { note.hidden = true; note.textContent = ''; }
+    }
+
+    async function mintVoiceTicket() {
+      const { data, error } = await sb.rpc('chat_voice_ticket');
+      if (error) {
+        const missing = error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || '');
+        if (missing) throw new Error('Voice needs the latest database migration before it can connect.');
+        throw error;
+      }
+      if (!data || typeof data !== 'string') throw new Error('Could not start a verified voice session.');
+      voice.ticket = data;
+      voice.ticketMintedAt = Date.now();
+      return data;
+    }
+
+    async function verifiedVoiceUser(ticket) {
+      const key = String(ticket || '');
+      if (!/^[A-Za-z0-9_]{1,40}\.[0-9]{1,12}\.[0-9a-f]{64}$/.test(key)) return null;
+      if (voice.ticketNames.has(key)) return voice.ticketNames.get(key);
+      const { data, error } = await sb.rpc('chat_voice_verify', { p_ticket: key });
+      const username = !error && typeof data === 'string' && data ? data : null;
+      voice.ticketNames.set(key, username);
+      return username;
+    }
+
+    function stopVoiceLevel() {
+      if (voice.levelStop) { try { voice.levelStop(); } catch {} voice.levelStop = null; }
+      voice.speaking = false;
+      $('vc-local-tile')?.classList.remove('vc-speaking');
+    }
+
+    function watchVoiceLevel(stream, onLevel) {
+      const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx = ctx;
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      let source;
+      try { source = ctx.createMediaStreamSource(stream); }
+      catch { return () => {}; }
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.fftSize);
+      let raf = 0;
+      let stopped = false;
+      const tick = () => {
+        if (stopped) return;
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        onLevel(Math.sqrt(sum / data.length));
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => {
+        stopped = true;
+        cancelAnimationFrame(raf);
+        try { source.disconnect(); } catch {}
+      };
+    }
+
+    function watchLocalVoiceLevel() {
+      stopVoiceLevel();
+      const track = voice.localStream?.getAudioTracks()[0];
+      if (!track) return;
+      const stream = new MediaStream([track]);
+      voice.levelStop = watchVoiceLevel(stream, (level) => {
+        const live = track.enabled && !voice.deafened && level > 0.045;
+        if (live === voice.speaking) return;
+        voice.speaking = live;
+        $('vc-local-tile')?.classList.toggle('vc-speaking', live);
+      });
+    }
+
+    function watchRemoteVoiceLevel(peer) {
+      if (peer.levelStop) { try { peer.levelStop(); } catch {} peer.levelStop = null; }
+      const stream = peer.audio?.srcObject;
+      if (!(stream instanceof MediaStream) || !stream.getAudioTracks().length) return;
+      peer.levelStop = watchVoiceLevel(stream, (level) => {
+        const live = !peer.audioMuted && !voice.deafened && level > 0.045;
+        peer.tile?.classList.toggle('vc-speaking', live);
+      });
+    }
+
+    function syncVoiceStage() {
+      const grid = $('vc-grid');
+      if (!grid) return;
+      const tiles = [$('vc-local-tile'), ...[...voice.peers.values()].map(peer => peer.tile)].filter(tile => tile?.isConnected);
+      const stage = tiles.find(tile => tile.classList.contains('vc-screen'))
+        || tiles.find(tile => tile.classList.contains('has-video'))
+        || null;
+      tiles.forEach(tile => {
+        const showing = tile.classList.contains('has-video') || tile.classList.contains('vc-screen');
+        tile.classList.toggle('vc-stage-main', tile === stage);
+        tile.classList.toggle('audio-only', !showing);
+      });
+      grid.classList.toggle('vc-has-stage', !!stage);
+    }
+
+    function savedVoiceDevice(kind) {
+      const id = LS.get(`lc_voice_${kind}`, '');
+      return typeof id === 'string' ? id : '';
+    }
+
+    async function listVoiceDevices() {
+      if (!navigator.mediaDevices?.enumerateDevices) return [];
+      try { return await navigator.mediaDevices.enumerateDevices(); }
+      catch { return []; }
+    }
+
+    function fillDeviceSelect(select, devices, saved, emptyLabel) {
+      if (!select) return;
+      const current = saved || select.value || '';
+      select.replaceChildren();
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.textContent = emptyLabel;
+      select.append(blank);
+      devices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `${emptyLabel} ${index + 1}`;
+        select.append(option);
+      });
+      if ([...select.options].some(option => option.value === current)) select.value = current;
+    }
+
+    async function refreshVoiceDevices() {
+      const devices = await listVoiceDevices();
+      fillDeviceSelect($('vc-mic-select'), devices.filter(device => device.kind === 'audioinput'), savedVoiceDevice('mic'), 'Default microphone');
+      fillDeviceSelect($('vc-cam-select'), devices.filter(device => device.kind === 'videoinput'), savedVoiceDevice('cam'), 'Default camera');
+      const speakers = devices.filter(device => device.kind === 'audiooutput');
+      const speakerSelect = $('vc-speaker-select');
+      fillDeviceSelect(speakerSelect, speakers, savedVoiceDevice('speaker'), 'Default speaker');
+      const canSink = typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+      if (speakerSelect) speakerSelect.disabled = !canSink;
+      const note = $('vc-devices-note');
+      if (note) note.textContent = canSink
+        ? 'Double-click a tile for fullscreen. Mute is Ctrl+Shift+M.'
+        : 'This browser picks the speaker itself. Double-click a tile for fullscreen. Mute is Ctrl+Shift+M.';
+    }
+
+    async function applyVoiceSink() {
+      const sinkId = savedVoiceDevice('speaker');
+      if (!sinkId || !HTMLMediaElement.prototype.setSinkId) return;
+      const nodes = [...voice.peers.values()].map(peer => peer.audio).filter(Boolean);
+      await Promise.all(nodes.map(node => node.setSinkId(sinkId).catch(() => {})));
     }
 
     function linkedVoiceCount() {
@@ -10130,15 +10359,27 @@ void main() {
     function summarizeVoiceStatus() {
       if (!voice.connected) return;
       const title = $('vc-dock-title');
+      const dock = $('vc-dock-status');
+      if (dock) dock.textContent = voiceRosterLabel();
       if (!voice.peers.size) {
-        setVoiceStatus('Mic is live — waiting for others');
+        setVoiceStatus(voice.deafened ? 'Deafened — waiting for others' : 'Mic is live — waiting for others');
         if (title) title.textContent = 'Voice Connected';
         return;
       }
       const live = linkedVoiceCount();
       if (title) title.textContent = live ? 'Voice Connected' : 'Linking audio';
-      if (live === voice.peers.size) setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
-      else setVoiceStatus(`Connecting… ${live}/${voice.peers.size}`);
+      if (live === voice.peers.size) {
+        clearVoiceBlockNote();
+        voice.schoolNoted = false;
+        setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
+      } else setVoiceStatus(`Connecting… ${live}/${voice.peers.size}`);
+      if (live < voice.peers.size && voice.peers.size) {
+        const stuck = [...voice.peers.values()].some(peer => {
+          const ice = peer.pc?.iceConnectionState;
+          return ice === 'failed' || ice === 'disconnected' || (peer.downSince && Date.now() - peer.downSince > 8000);
+        });
+        if (stuck) noteVoiceBlock();
+      }
     }
 
     function hostNeedsMediaPrompt() {
@@ -10219,24 +10460,33 @@ void main() {
       $('vc-join-btn').disabled = voice.joining;
       $('vc-join-btn').textContent = voice.joining ? 'Opening mic…' : 'Join Voice';
       $('vc-mute-btn').hidden = !voice.connected;
+      $('vc-deafen-btn').hidden = !voice.connected;
       $('vc-video-btn').hidden = !voice.connected;
       $('vc-share-btn').hidden = !voice.connected;
+      $('vc-devices-btn').hidden = !voice.connected;
       $('vc-leave-btn').hidden = !joined;
       $('vc-mute-btn').disabled = !voice.connected || !voice.localStream;
+      $('vc-deafen-btn').disabled = !voice.connected;
       $('vc-video-btn').disabled = !voice.connected;
       $('vc-share-btn').disabled = !voice.connected || !navigator.mediaDevices?.getDisplayMedia;
+      $('vc-devices-btn').disabled = !voice.connected;
       $('vc-leave-btn').disabled = !joined;
       const audio = voice.localStream?.getAudioTracks()[0];
       const video = voice.localStream?.getVideoTracks()[0];
-      const muted = !!audio && !audio.enabled;
+      const muted = voice.deafened || (!!audio && !audio.enabled);
       const cameraOff = !video || !video.enabled;
       $('vc-mute-btn').textContent = muted ? 'Unmute' : 'Mute';
       $('vc-dock-mute').textContent = muted ? 'Unmute' : 'Mute';
       $('vc-mute-btn').classList.toggle('active', muted);
+      $('vc-deafen-btn').textContent = voice.deafened ? 'Undeafen' : 'Deafen';
+      $('vc-deafen-btn').classList.toggle('active', voice.deafened);
       $('vc-video-btn').textContent = cameraOff ? 'Camera' : 'Stop video';
       $('vc-video-btn').classList.toggle('active', cameraOff);
-      $('vc-local-state').textContent = muted ? '🔇' : '';
-      $('vc-local-tile').classList.toggle('has-video', !!video && video.enabled);
+      $('vc-local-state').textContent = voice.deafened ? 'Deafened' : (muted ? 'Muted' : '');
+      $('vc-local-tile').classList.toggle('vc-screen', !!voice.screenStream);
+      $('vc-local-tile').classList.toggle('has-video', !!voice.screenStream || (!!video && video.enabled));
+      if (!voice.speaking || muted) $('vc-local-tile').classList.remove('vc-speaking');
+      syncVoiceStage();
       if (voice.connected) summarizeVoiceStatus();
     }
 
@@ -10273,10 +10523,26 @@ void main() {
       }
       try {
         return await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            ...(savedVoiceDevice('mic') ? { deviceId: { exact: savedVoiceDevice('mic') } } : {}),
+          },
           video: false,
         });
       } catch (error) {
+        if (savedVoiceDevice('mic') && (error?.name === 'OverconstrainedError' || error?.name === 'NotFoundError')) {
+          LS.set('lc_voice_mic', '');
+          try {
+            return await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+              video: false,
+            });
+          } catch (retry) {
+            error = retry;
+          }
+        }
         if (error?.name === 'NotAllowedError') {
           const err = new Error(hostNeedsMediaPrompt()
             ? 'Allow the microphone on the Liminal file you opened, then click Join Voice.'
@@ -10295,7 +10561,7 @@ void main() {
       if (!voice.client?.connected) return false;
       const packet = {
         type, from: voice.clientId, target,
-        account: me ? voiceAccount() : null,
+        ticket: voice.ticket,
         sentAt: Date.now(), ...payload,
       };
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -10317,7 +10583,7 @@ void main() {
           if (voice.client?.channel) sb.removeChannel(voice.client.channel);
         } catch {}
         const channel = sb.channel(VOICE_SIGNAL_CHANNEL, {
-          config: { broadcast: { self: false, ack: true } },
+          config: { private: true, broadcast: { self: false, ack: true } },
         });
 
         const client = {
@@ -10386,6 +10652,9 @@ void main() {
       voice.joining = true;
       voice.intentionalClose = false;
       voice.clientId = `liminalvc_${(crypto.randomUUID?.() || `${Date.now()}_${Math.random()}`).replace(/[^a-z0-9]/gi, '')}`;
+      voice.sawRelay = false;
+      voice.schoolNoted = false;
+      clearVoiceBlockNote();
       setVoiceStatus(hostNeedsMediaPrompt()
         ? 'Allow the microphone on this file…'
         : 'Requesting microphone…');
@@ -10408,6 +10677,7 @@ void main() {
         updateVoiceUi();
         setVoiceStatus('Connecting to the room…');
         await iceReady;
+        await mintVoiceTicket();
         await connectVoiceBroker();
         if (joinGen !== voice.joinGen || voice.intentionalClose) {
           try { voice.client?.end(true); } catch {}
@@ -10421,6 +10691,7 @@ void main() {
         await publishVoice('takeover');
         await publishVoice('announce');
         startVoiceLinkWatch();
+        watchLocalVoiceLevel();
         setVoiceStatus('Mic is live — waiting for others');
         updateVoiceUi();
       } catch (error) {
@@ -10488,15 +10759,9 @@ void main() {
       state.className = 'vc-tile-state';
       label.append(name, state);
       tile.append(video, placeholder, label);
-      tile.addEventListener('click', (event) => {
-        const videoEl = qs('video', tile);
-        if (videoEl) videoEl.play().catch(() => {});
-        if (!peer.dc || peer.dc.readyState !== 'open') return;
-        const rect = tile.getBoundingClientRect();
-        const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-        const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-        try { peer.dc.send(JSON.stringify({ type: 'click', x, y })); } catch {}
-        addVoiceRipple(tile, x, y);
+      tile.addEventListener('dblclick', () => {
+        if (document.fullscreenElement === tile) document.exitFullscreen?.();
+        else tile.requestFullscreen?.().catch(() => {});
       });
       peer.tile = tile;
       $('vc-grid').append(tile);
@@ -10525,20 +10790,14 @@ void main() {
 
     function configureVoiceDataChannel(peer, channel) {
       peer.dc = channel;
-      channel.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'click' && $('vc-allow-interactions').checked) {
-            addVoiceRipple($('vc-local-tile'), Number(message.x) || 0, Number(message.y) || 0);
-          }
-        } catch {}
-      };
     }
 
     function markPeerVideo(peer, mode) {
       if (!peer) return;
       peer.videoMode = mode === 'screen' ? 'screen' : (mode === 'off' ? 'off' : 'camera');
       peer.tile?.classList.toggle('vc-screen', peer.videoMode === 'screen');
+      if (mode === 'off') peer.tile?.classList.remove('has-video');
+      syncVoiceStage();
     }
 
     function voiceVideoMode() {
@@ -10552,9 +10811,12 @@ void main() {
       voice.linkTimer = setInterval(() => {
         if (!voice.connected) return;
         if (!voice.peers.size) {
-          publishVoice('announce');
+          if (voice.ticketMintedAt && Date.now() - voice.ticketMintedAt > 30 * 60 * 1000) {
+            mintVoiceTicket().then(() => publishVoice('announce')).catch(() => {});
+          } else publishVoice('announce');
           return;
         }
+        voice.peers.forEach(peer => notePeerHealth(peer));
         if (linkedVoiceCount() === voice.peers.size) return;
         publishVoice('announce');
         voice.peers.forEach(peer => {
@@ -10568,7 +10830,9 @@ void main() {
       }, 4000);
     }
 
-    function waitForIceGathering(pc, ms = 3000) {
+    function waitForIceGathering(pc, ms) {
+      const wantRelay = voiceTurnFromSettings().length > 0;
+      const limit = ms || (wantRelay ? 5000 : 3000);
       if (!pc || pc.iceGatheringState === 'complete') return Promise.resolve();
       return new Promise(resolve => {
         let settled = false;
@@ -10588,12 +10852,25 @@ void main() {
           if (!candidate) { done(); return; }
           const type = candidate.type || '';
           const line = candidate.candidate || '';
-          if (!early && (type === 'srflx' || / typ srflx/.test(line))) early = setTimeout(done, 200);
+          if (type === 'relay' || / typ relay/.test(line)) voice.sawRelay = true;
+          if (!early && !wantRelay && (type === 'srflx' || / typ srflx/.test(line))) early = setTimeout(done, 200);
+          if (wantRelay && (type === 'relay' || / typ relay/.test(line))) early = setTimeout(done, 150);
         };
-        const timer = setTimeout(done, ms);
+        const timer = setTimeout(done, limit);
         pc.addEventListener('icegatheringstatechange', onChange);
         pc.addEventListener('icecandidate', onCandidate);
       });
+    }
+
+    function notePeerHealth(peer) {
+      if (!peer?.pc || !voice.connected) return;
+      const ice = peer.pc.iceConnectionState;
+      if (ice === 'connected' || ice === 'completed') {
+        peer.downSince = 0;
+        return;
+      }
+      if (!peer.downSince) peer.downSince = Date.now();
+      if (Date.now() - peer.downSince > 20000) removeVoicePeer(peer.id);
     }
 
     async function rollbackVoiceOffer(pc) {
@@ -10604,6 +10881,17 @@ void main() {
       } catch {
         return false;
       }
+    }
+
+    function paintPeerState(peer) {
+      const stateEl = peer?.tile ? qs('.vc-tile-state', peer.tile) : null;
+      if (!stateEl) return;
+      const ice = peer.pc?.iceConnectionState;
+      if (ice && ice !== 'connected' && ice !== 'completed') {
+        stateEl.textContent = (ice === 'checking' || ice === 'new') ? 'Connecting…' : ((ice === 'failed' || ice === 'disconnected') ? 'Reconnect' : '');
+        return;
+      }
+      stateEl.textContent = peer.audioMuted ? 'Muted' : '';
     }
 
     function watchPeerIce(peer) {
@@ -10633,14 +10921,17 @@ void main() {
         try { pc.addTransceiver('video', { direction: 'sendrecv' }); } catch {}
       }
       pc.onicecandidate = ({ candidate }) => {
-        if (candidate) publishVoice('candidate', { candidate: candidate.toJSON() }, peerId);
+        if (candidate) {
+          if (candidate.type === 'relay' || / typ relay/.test(candidate.candidate || '')) voice.sawRelay = true;
+          publishVoice('candidate', { candidate: candidate.toJSON() }, peerId);
+        }
       };
       pc.ontrack = ({ streams, track }) => {
         const tile = ensurePeerTile(peer);
         const video = qs('video', tile);
         const play = (el) => {
           if (!el) return;
-          el.muted = false;
+          el.muted = !!voice.deafened;
           el.play().then(() => {
             peer.hearBtn?.remove();
             peer.hearBtn = null;
@@ -10665,7 +10956,12 @@ void main() {
           const heard = peer.audio.srcObject instanceof MediaStream ? peer.audio.srcObject : new MediaStream();
           if (!heard.getTracks().some(item => item.id === track.id)) heard.addTrack(track);
           if (peer.audio.srcObject !== heard) peer.audio.srcObject = heard;
+          if (voice.deafened) peer.audio.muted = true;
           play(peer.audio);
+          watchRemoteVoiceLevel(peer);
+          applyVoiceSink();
+          track.onmute = () => { peer.audioMuted = true; paintPeerState(peer); };
+          track.onunmute = () => { peer.audioMuted = false; paintPeerState(peer); play(peer.audio); };
         } else {
           // The empty video slot arrives with no stream. Keep it off the audio element
           // so a muted picture track cannot swallow the microphone.
@@ -10678,34 +10974,32 @@ void main() {
             const frames = video.videoWidth > 0 && video.videoHeight > 0;
             tile.classList.toggle('has-video', liveTracks.length > 0 && (frames || liveTracks.some(item => !item.muted)));
             tile.classList.toggle('vc-screen', peer.videoMode === 'screen');
+            syncVoiceStage();
           };
           track.onmute = refresh;
-          track.onended = () => { try { picture.removeTrack(track); } catch {} refresh(); };
+          track.onended = () => { try { picture.removeTrack(track); } catch {} refresh(); syncVoiceStage(); };
           video.addEventListener('resize', refresh);
           video.play().catch(() => {});
           refresh();
+          syncVoiceStage();
         }
         track.onunmute = () => {
-          if (track.kind === 'audio') play(peer.audio);
-          else video.play().catch(() => {});
+          if (track.kind === 'audio') {
+            peer.audioMuted = false;
+            paintPeerState(peer);
+            play(peer.audio);
+          } else video.play().catch(() => {});
         };
       };
       pc.ondatachannel = ({ channel }) => configureVoiceDataChannel(peer, channel);
       const refreshIce = () => {
-        const tile = peer.tile;
-        const stateEl = tile ? qs('.vc-tile-state', tile) : null;
-        const ice = pc.iceConnectionState;
-        if (stateEl && ice !== 'connected' && ice !== 'completed') {
-          stateEl.textContent = ice === 'checking' || ice === 'new' ? 'Connecting…' : (ice === 'failed' ? 'Reconnect' : '');
-        } else if (stateEl && !voice.localStream?.getAudioTracks()[0]) {
-          
-        } else if (stateEl && (ice === 'connected' || ice === 'completed')) {
-          if (stateEl.textContent === 'Connecting…' || stateEl.textContent === 'Reconnect') stateEl.textContent = '';
-        }
+        paintPeerState(peer);
         summarizeVoiceStatus();
       };
       pc.oniceconnectionstatechange = () => {
         refreshIce();
+        notePeerHealth(peer);
+        if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') noteVoiceBlock();
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
           clearTimeout(peer.iceWatch);
           peer.iceRestarted = false;
@@ -10792,14 +11086,20 @@ void main() {
       if (message.target && message.target !== voice.clientId) return;
       const remoteId = String(message.from || '');
       if (!remoteId) return;
-      const remoteAccount = message.account || {};
+      const username = await verifiedVoiceUser(message.ticket);
+      if (!username || !voice.connected) return;
+      const remoteAccount = {
+        username,
+        displayName: displayNameOf(username),
+        pfp: profileOf(username).pfp || '',
+      };
 
-      if (message.type === 'takeover' && remoteAccount.username === me.username) {
+      if (message.type === 'takeover' && username === me.username) {
         toast({ type: 'warning', title: 'Voice moved', text: 'Voice Chat was opened from another tab or device.' });
         leaveVoiceRoom({ quiet: true });
         return;
       }
-      if (remoteAccount.username === me.username) return;
+      if (username === me.username) return;
       if (message.type === 'room-full') {
         toast({ type: 'warning', title: 'Voice Chat is full', text: `The global room is limited to ${VOICE_MAX_PARTICIPANTS} people.` });
         leaveVoiceRoom({ quiet: true });
@@ -10814,8 +11114,18 @@ void main() {
         }
         peerRecord(remoteId, remoteAccount);
         if (message.type === 'announce') publishVoice('announce-ack', {}, remoteId);
+        const localTrack = voice.localStream?.getAudioTracks()[0];
+        if (voice.deafened || (localTrack && !localTrack.enabled)) publishVoice('audio-mode', { muted: true }, remoteId);
         if (voice.screenStream) publishVoice('video-mode', { mode: 'screen' }, remoteId);
         if (voice.clientId.localeCompare(remoteId) < 0) await offerVoicePeer(remoteId, remoteAccount);
+        return;
+      }
+
+      if (message.type === 'audio-mode') {
+        const peer = voice.peers.get(remoteId) || peerRecord(remoteId, remoteAccount);
+        peer.audioMuted = !!message.muted;
+        paintPeerState(peer);
+        if (peer.audioMuted) peer.tile?.classList.remove('vc-speaking');
         return;
       }
 
@@ -10878,6 +11188,7 @@ void main() {
     function removeVoicePeer(peerId) {
       const peer = voice.peers.get(peerId);
       if (!peer) return;
+      try { peer.levelStop?.(); } catch {}
       try { peer.dc?.close(); } catch {}
       try { peer.pc?.close(); } catch {}
       peer.tile?.remove();
@@ -10887,14 +11198,40 @@ void main() {
     }
 
     function toggleVoiceMute() {
+      if (voice.deafened) {
+        voice.deafened = false;
+        voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = false; });
+      }
       const track = voice.localStream?.getAudioTracks()[0];
       if (!track) return;
       track.enabled = !track.enabled;
+      voice.micBeforeDeafen = track.enabled;
+      publishVoice('audio-mode', { muted: !track.enabled });
+      if (!track.enabled) $('vc-local-tile')?.classList.remove('vc-speaking');
+      updateVoiceUi();
+    }
+
+    function toggleVoiceDeafen() {
+      voice.deafened = !voice.deafened;
+      voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = voice.deafened; });
+      const track = voice.localStream?.getAudioTracks()[0];
+      if (voice.deafened) {
+        voice.micBeforeDeafen = !track || track.enabled;
+        if (track) track.enabled = false;
+        publishVoice('audio-mode', { muted: true });
+        $('vc-local-tile')?.classList.remove('vc-speaking');
+      } else if (track && voice.micBeforeDeafen) {
+        track.enabled = true;
+        publishVoice('audio-mode', { muted: false });
+      }
       updateVoiceUi();
     }
 
     async function toggleVoiceVideo() {
-      if (voice.screenStream) return;
+      if (voice.screenStream) {
+        toast({ type: 'warning', text: 'Stop sharing before turning the camera on.' });
+        return;
+      }
       const existing = voice.localStream?.getVideoTracks()[0];
       if (existing) {
         existing.enabled = !existing.enabled;
@@ -10904,7 +11241,13 @@ void main() {
       if (!voice.connected || !navigator.mediaDevices?.getUserMedia) return;
       try {
         await askHostForMedia({ audio: false, video: true });
-        const cam = await navigator.mediaDevices.getUserMedia({ audio: false, video: VOICE_CAM_CONSTRAINTS });
+        const cam = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            ...VOICE_CAM_CONSTRAINTS,
+            ...(savedVoiceDevice('cam') ? { deviceId: { exact: savedVoiceDevice('cam') } } : {}),
+          },
+        });
         const track = cam.getVideoTracks()[0];
         if (!track) return;
         if (!voice.localStream) voice.localStream = cam;
@@ -11005,6 +11348,8 @@ void main() {
       $('vc-local-video').classList.remove('vc-screen-share');
       $('vc-share-btn').textContent = 'Share';
       $('vc-share-btn').classList.remove('active');
+      $('vc-local-tile').classList.remove('vc-screen');
+      syncVoiceStage();
       updateVoiceUi();
     }
 
@@ -11036,6 +11381,8 @@ void main() {
         localVideo.classList.remove('vc-mirror');
         localVideo.classList.add('vc-screen-share');
         $('vc-local-tile').classList.add('has-video');
+        $('vc-local-tile').classList.add('vc-screen');
+        syncVoiceStage();
         localVideo.play?.().catch(() => {});
         $('vc-share-btn').textContent = 'Stop sharing';
         $('vc-share-btn').classList.add('active');
@@ -11059,6 +11406,12 @@ void main() {
       }
       try { window.parent.postMessage({ type: 'liminal:voice:media-cancel' }, '*'); } catch {}
       if (voice.connected) publishVoice('leave');
+      stopVoiceLevel();
+      voice.deafened = false;
+      voice.ticket = '';
+      voice.ticketNames.clear();
+      if ($('vc-devices')) $('vc-devices').hidden = true;
+      $('vc-local-tile')?.classList.remove('vc-speaking', 'vc-screen', 'vc-stage-main');
       voice.intentionalClose = true;
       voice.connected = false;
       voice.joining = false;
@@ -11101,6 +11454,22 @@ void main() {
       voice.messageIds = new Set(voice.messages.map(message => message.id));
       voice.historyLoaded = true;
       renderVoiceChat();
+    }
+
+    async function reconcileVoiceChat() {
+      if (!voice.historyLoaded || !me || !sb) return;
+      const last = [...voice.messages].reverse().find(message => message && !message.deleted && message.created_at);
+      let query = sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', VOICE_CHANNEL_ID).eq('deleted', false);
+      if (last?.created_at) query = query.gt('created_at', last.created_at);
+      const { data, error } = await query.order('created_at', { ascending: true }).limit(50);
+      if (error || !Array.isArray(data) || !data.length) return;
+      let added = false;
+      data.forEach(message => {
+        if (!message?.id || voice.messageIds.has(message.id)) return;
+        pushVoiceMessage(message);
+        added = true;
+      });
+      if (added) renderVoiceChat();
     }
 
     const VOICE_MSG_CAP = 200;
@@ -11157,7 +11526,22 @@ void main() {
     async function sendVoiceChatMessage() {
       const input = $('vc-chat-input');
       const content = input.value.trim();
-      if (!content || !voice.connected) return;
+      if (!content || !voice.connected || !me) return;
+      if (isTimedOut()) { toast({ type: 'warning', text: 'You are timed out and cannot send messages right now.' }); return; }
+      if (appSettings.messages_enabled === 'false' && !isAdmin()) { toast({ type: 'warning', text: 'Message sending is currently paused.' }); return; }
+      const maxLength = Math.max(100, Math.min(4000, Number(appSettings.max_message_length) || 2000));
+      if (content.length > maxLength) { toast({ type: 'error', text: `Messages are limited to ${maxLength} characters.` }); return; }
+      const verdict = moderationVerdict(content);
+      if (verdict === 'silent') { input.value = ''; return; }
+      if (verdict === 'blocked') { toast({ type: 'error', text: 'That message contains a blocked word.' }); return; }
+      const slowSeconds = Math.max(0, Math.min(300, Number(appSettings.slow_mode_seconds) || 0));
+      if (!isAdmin() && slowSeconds > 0 && Date.now() - lastSuccessfulSendAt < slowSeconds * 1000) {
+        const remaining = Math.ceil((slowSeconds * 1000 - (Date.now() - lastSuccessfulSendAt)) / 1000);
+        toast({ type: 'warning', text: `Slow mode is active. Try again in ${remaining}s.` });
+        return;
+      }
+      if (!spamGuard()) return;
+      checkSelfHarm(content);
       input.disabled = true;
       const { data, error } = await sb.from('messages').insert({
         channel_id: VOICE_CHANNEL_ID,
@@ -11169,6 +11553,7 @@ void main() {
       input.disabled = false;
       if (error) { toast({ type: 'error', text: 'Could not send the room message.' }); input.focus(); return; }
       input.value = '';
+      lastSuccessfulSendAt = Date.now();
       if (data && !voice.messageIds.has(data.id)) {
         pushVoiceMessage(data);
         renderVoiceChat();
@@ -11193,8 +11578,61 @@ void main() {
     function wireVoiceEvents() {
       $('vc-join-btn').addEventListener('click', () => joinVoiceRoom());
       $('vc-mute-btn').addEventListener('click', toggleVoiceMute);
+      $('vc-deafen-btn').addEventListener('click', toggleVoiceDeafen);
       $('vc-video-btn').addEventListener('click', toggleVoiceVideo);
       $('vc-share-btn').addEventListener('click', toggleVoiceShare);
+      $('vc-devices-btn').addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const pop = $('vc-devices');
+        if (!pop.hidden) { pop.hidden = true; return; }
+        await refreshVoiceDevices();
+        showPopover(pop, $('vc-devices-btn'), 'up');
+      });
+      $('vc-mic-select').addEventListener('change', async () => {
+        LS.set('lc_voice_mic', $('vc-mic-select').value);
+        if (!voice.connected) return;
+        try {
+          const stream = await requestVoiceMedia();
+          const track = stream.getAudioTracks()[0];
+          if (!track) return;
+          const previous = voice.localStream?.getAudioTracks()[0];
+          if (!voice.localStream) voice.localStream = stream;
+          else {
+            if (previous) voice.localStream.removeTrack(previous);
+            voice.localStream.addTrack(track);
+          }
+          stream.getTracks().forEach(item => { if (item !== track) item.stop(); });
+          if (voice.deafened || (previous && !previous.enabled)) track.enabled = false;
+          await Promise.all([...voice.peers.values()].map(async peer => {
+            const sender = peer.pc?.getSenders().find(item => item.track?.kind === 'audio');
+            if (sender) await sender.replaceTrack(track);
+          }));
+          previous?.stop();
+          watchLocalVoiceLevel();
+          publishVoice('audio-mode', { muted: !track.enabled });
+          updateVoiceUi();
+        } catch (error) {
+          toast({ type: 'error', text: error?.message || 'Could not switch microphones.' });
+        }
+      });
+      $('vc-cam-select').addEventListener('change', () => LS.set('lc_voice_cam', $('vc-cam-select').value));
+      $('vc-speaker-select').addEventListener('change', () => {
+        LS.set('lc_voice_speaker', $('vc-speaker-select').value);
+        applyVoiceSink();
+      });
+      $('vc-local-tile').addEventListener('dblclick', () => {
+        const tile = $('vc-local-tile');
+        if (document.fullscreenElement === tile) document.exitFullscreen?.();
+        else tile.requestFullscreen?.().catch(() => {});
+      });
+      document.addEventListener('keydown', (event) => {
+        if (!voice.connected || event.repeat) return;
+        if (event.key.toLowerCase() !== 'm' || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+        event.preventDefault();
+        toggleVoiceMute();
+      });
       $('vc-leave-btn').addEventListener('click', () => leaveVoiceRoom());
       $('vc-dock-open').addEventListener('click', () => openView({ type: 'channel', id: VOICE_CHANNEL_ID }));
       $('vc-dock-mute').addEventListener('click', toggleVoiceMute);
@@ -12019,7 +12457,12 @@ void main() {
 
     function catchUpPoll({ periodic = false } = {}) {
       if (!me || !sb || presenceStopped || presenceLeft || !currentView) return Promise.resolve();
-      if (currentView.type === 'forum' || (currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID)) return Promise.resolve();
+      const onVoice = currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID;
+      const voiceReady = typeof voice !== 'undefined' && voice && voice.historyLoaded;
+      if (voiceReady && !onVoice) reconcileVoiceChat();
+      if (currentView.type === 'forum' || onVoice) {
+        return onVoice && voiceReady ? reconcileVoiceChat() : Promise.resolve();
+      }
       if (periodic) {
         if (document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
         // Realtime delivers new messages immediately. HTTP only reconciles missed
@@ -15086,7 +15529,7 @@ void main() {
         {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
-        {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)},
+        {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
       el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:members.length,label:'Members'},{value:channels.filter(ch=>![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).length,label:'Channels'},{value:availableSubroles().length,label:'Badges'}],panels,ownerPanel);
@@ -15095,6 +15538,26 @@ void main() {
       $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});
       qsa('[data-owner-feature]',el).forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.ownerFeature,enabled=button.getAttribute('aria-checked')!=='true';const run=async()=>{button.disabled=true;try{await ownerRpc('chat_owner_configure',{p_key:key,p_value:enabled?'true':'false'});appSettings[key]=enabled?'true':'false';button.setAttribute('aria-checked',String(enabled));applyFeatureControls();toast({type:'success',text:'Community setting updated.'});}catch(error){toast({type:'error',text:error?.message||'Could not update this setting.'});}finally{button.disabled=false;}};if(key==='app_enabled'&&!enabled)confirmAction({title:'Put the community in maintenance mode?',text:'Members will see the maintenance screen until you turn the community back on.',confirmLabel:'Enable maintenance mode',onConfirm:run});else run();}));
       $('owner-limits-form').addEventListener('submit',async event=>{event.preventDefault();const button=qs('button',event.target);button.disabled=true;try{for(const[key,value]of [['max_message_length',$('owner-max-length').value],['slow_mode_seconds',$('owner-slow-mode').value]]){await ownerRpc('chat_owner_configure',{p_key:key,p_value:value});appSettings[key]=value;}applyFeatureControls();toast({type:'success',text:'Message limits saved.'});}catch(error){toast({type:'error',text:error?.message||'Could not save message limits.'});}finally{button.disabled=false;}});
+      $('owner-turn-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = qs('button', event.target);
+        button.disabled = true;
+        const raw = $('owner-turn').value.trim();
+        try {
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed) || !parsed.length || parsed.some(server => !server || typeof server.urls !== 'string' || !/^turns?:/i.test(server.urls))) {
+              throw new Error('Each entry needs a turn: or turns: URL.');
+            }
+          }
+          await ownerRpc('chat_owner_configure', { p_key: 'turn_servers', p_value: raw });
+          appSettings.turn_servers = raw;
+          voice.rtcConfig = null;
+          toast({ type: 'success', text: raw ? 'Voice relay saved. Rejoin Voice Chat to use it.' : 'Voice relay cleared.' });
+        } catch (error) {
+          toast({ type: 'error', text: error?.message || 'Could not save the voice relay.' });
+        } finally { button.disabled = false; }
+      });
       $('owner-purge-channel-btn').addEventListener('click',()=>purgeChannelContext($('owner-purge-channel').value));
       $('owner-dev-create')?.addEventListener('click',createDevSession);
       $('owner-dev-copy-un')?.addEventListener('click',()=>navigator.clipboard.writeText(lastDevSession?.username||'').catch(()=>{}));

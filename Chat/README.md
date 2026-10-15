@@ -27,3 +27,7 @@ Group operations use `chat_create_group`, `chat_manage_group`, and `chat_respond
 Staff settings has member moderation, badges/roles, channels/word filters, activity, and the deleted-message archive. Owner settings has an overview, broadcasts, roles/badges, app feature and message-limit controls, test accounts, media recovery, and channel cleanup. Configuration uses the owner-only `chat_owner_configure` RPC.
 
 Apply [`20261013234532_private_group_chats.sql`](../Backend/migrations/20261013234532_private_group_chats.sql) before deploying this HTML. `npm test` includes isolated group authorization/storage checks and the existing authorization regression suite. Deployments run the full suite before publishing.
+
+## Voice on school networks
+
+Home calls use STUN and connect directly. School and campus Wi-Fi usually block that UDP path, so the same call never links. Apply [`20261015140000_voice_tickets_and_turn.sql`](../Backend/migrations/20261015140000_voice_tickets_and_turn.sql) before this client. It makes voice signaling a private channel and lets the owner save TURN servers. Use `turns:` on port 443. Signed-in members can read that relay password, so the relay account should only be allowed to relay media. Rejoin Voice Chat after saving it.
