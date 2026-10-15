@@ -4863,6 +4863,11 @@ void main() {
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
     ];
+    // Public TURNS on 443. Direct UDP is tried first; this is the path that still works
+    // when a network drops UDP. The username and password are the public relay login.
+    const VOICE_RELAY_SERVERS = [
+      { urls: 'turns:turn.evan-brass.net:443?transport=tcp', username: 'user', credential: 'password' },
+    ];
     const VOICE_CAM_CONSTRAINTS = {
       width: { ideal: 480, max: 640 },
       height: { ideal: 270, max: 360 },
@@ -4880,22 +4885,34 @@ void main() {
       } catch { return []; }
     }
 
-    function voiceRtcConfig() {
-      return voice.rtcConfig || {
-        iceServers: [...VOICE_STUN_SERVERS, ...voiceTurnFromSettings()],
-        iceTransportPolicy: 'all',
+    function voiceIceServers() {
+      const seen = new Set();
+      const servers = [];
+      for (const server of [...VOICE_STUN_SERVERS, ...VOICE_RELAY_SERVERS, ...voiceTurnFromSettings()]) {
+        const key = Array.isArray(server.urls) ? server.urls.join('|') : String(server.urls || '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        servers.push(server);
+      }
+      return servers;
+    }
+
+    function buildVoiceRtcConfig(relayOnly = false) {
+      return {
+        iceServers: voiceIceServers(),
+        iceTransportPolicy: relayOnly ? 'relay' : 'all',
         bundlePolicy: 'max-bundle',
-        iceCandidatePoolSize: 2,
+        iceCandidatePoolSize: 4,
       };
     }
 
+    function voiceRtcConfig() {
+      return voice.rtcConfig || buildVoiceRtcConfig(!!voice.relayOnly);
+    }
+
     async function prepareVoiceIce() {
-      voice.rtcConfig = {
-        iceServers: [...VOICE_STUN_SERVERS, ...voiceTurnFromSettings()],
-        iceTransportPolicy: 'all',
-        bundlePolicy: 'max-bundle',
-        iceCandidatePoolSize: 2,
-      };
+      voice.relayOnly = false;
+      voice.rtcConfig = buildVoiceRtcConfig(false);
     }
     const RESERVED_NAMES = ['claude', 'system', 'liminal', 'admin', 'luna'];
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
@@ -6143,6 +6160,8 @@ void main() {
       ticketMintedAt: 0,
       ticketNames: new Map(),
       sawRelay: false,
+      relayOnly: false,
+      relaySwitching: false,
       schoolNoted: false,
       deafened: false,
       micBeforeDeafen: true,
@@ -10198,26 +10217,9 @@ void main() {
       return names.length > 3 ? `${shown} +${names.length - 3}` : shown;
     }
 
-    function explainVoiceBlock() {
-      if (!voiceTurnFromSettings().length) {
-        return 'School and campus Wi-Fi block direct voice. Home Wi-Fi allows it. Chat still works because it uses HTTPS. Voice needs a TURN server on port 443, saved in Owner → App controls.';
-      }
-      if (!voice.sawRelay) {
-        return 'This network did not open a relay. UDP TURN is blocked on a lot of school networks. Use a turns: address on port 443.';
-      }
-      return '';
-    }
-
     function noteVoiceBlock() {
-      const text = explainVoiceBlock();
       const note = $('vc-network-note');
-      if (!text || !note) return;
-      note.hidden = false;
-      note.textContent = text;
-      if (!voice.schoolNoted) {
-        voice.schoolNoted = true;
-        toast({ type: 'warning', title: 'Voice is blocked on this network', text, duration: 9000 });
-      }
+      if (note) { note.hidden = true; note.textContent = ''; }
     }
 
     function clearVoiceBlockNote() {
@@ -10970,8 +10972,8 @@ void main() {
     }
 
     function waitForIceGathering(pc, ms) {
-      const wantRelay = voiceTurnFromSettings().length > 0;
-      const limit = ms || (wantRelay ? 5000 : 3000);
+      const wantRelay = !!voice.relayOnly;
+      const limit = ms || (wantRelay ? 8000 : 1200);
       if (!pc || pc.iceGatheringState === 'complete') return Promise.resolve();
       return new Promise(resolve => {
         let settled = false;
@@ -11001,15 +11003,57 @@ void main() {
       });
     }
 
+    function forceVoiceRelay() {
+      if (voice.relayOnly || voice.relaySwitching || !voice.connected) return;
+      voice.relaySwitching = true;
+      voice.relayOnly = true;
+      voice.rtcConfig = buildVoiceRtcConfig(true);
+      voice.sawRelay = false;
+      voice.peers.forEach(peer => {
+        peer.replacing = true;
+        peer.offerSent = false;
+        peer.iceRestarted = false;
+        peer.downSince = 0;
+        peer.pendingCandidates = [];
+        clearTimeout(peer.relayTimer);
+        peer.relayTimer = 0;
+        try { peer.levelStop?.(); } catch {}
+        peer.levelStop = null;
+        const pc = peer.pc;
+        peer.pc = null;
+        peer.dc = null;
+        try { pc?.close(); } catch {}
+      });
+      publishVoice('announce', { relay: true });
+      voice.peers.forEach(peer => {
+        if (voice.clientId.localeCompare(peer.id) < 0) offerVoicePeer(peer.id, peer.account, true);
+      });
+      voice.relaySwitching = false;
+      setVoiceStatus('Linking audio through the relay…');
+    }
+
     function notePeerHealth(peer) {
       if (!peer?.pc || !voice.connected) return;
       const ice = peer.pc.iceConnectionState;
       if (ice === 'connected' || ice === 'completed') {
         peer.downSince = 0;
+        clearTimeout(peer.relayTimer);
+        peer.relayTimer = 0;
         return;
       }
       if (!peer.downSince) peer.downSince = Date.now();
-      if (Date.now() - peer.downSince > 20000) removeVoicePeer(peer.id);
+      const down = Date.now() - peer.downSince;
+      if (!voice.relayOnly && down >= 4000) {
+        forceVoiceRelay();
+        return;
+      }
+      if (!voice.relayOnly && !peer.relayTimer) {
+        peer.relayTimer = setTimeout(() => {
+          peer.relayTimer = 0;
+          notePeerHealth(peer);
+        }, Math.max(250, 4000 - down));
+      }
+      if (down > 25000) removeVoicePeer(peer.id);
     }
 
     async function rollbackVoiceOffer(pc) {
@@ -11058,6 +11102,7 @@ void main() {
       }
       const pc = new RTCPeerConnection(voiceRtcConfig());
       peer.pc = pc;
+      peer.replacing = false;
       peer.iceRestarted = false;
       voice.localStream?.getTracks().forEach(track => pc.addTrack(track, voice.localStream));
       if (!voice.localStream?.getVideoTracks().length) {
@@ -11164,7 +11209,7 @@ void main() {
       };
       pc.onconnectionstatechange = () => {
         refreshIce();
-        if (pc.connectionState === 'closed') removeVoicePeer(peerId);
+        if (pc.connectionState === 'closed' && peer.pc === pc) removeVoicePeer(peerId);
         else if (pc.connectionState === 'failed') {
           peer.offerSent = false;
           peer.iceRestarted = false;
@@ -11260,7 +11305,13 @@ void main() {
         const localTrack = voice.localStream?.getAudioTracks()[0];
         if (voice.deafened || (localTrack && !localTrack.enabled)) publishVoice('audio-mode', { muted: true }, remoteId);
         if (voice.screenStream) publishVoice('video-mode', { mode: 'screen' }, remoteId);
-        if (voice.clientId.localeCompare(remoteId) < 0) await offerVoicePeer(remoteId, remoteAccount);
+        if (voice.clientId.localeCompare(remoteId) < 0) {
+          const existing = voice.peers.get(remoteId);
+          const ice = existing?.pc?.iceConnectionState;
+          const linked = ice === 'connected' || ice === 'completed';
+          if (!linked && message.relay) await offerVoicePeer(remoteId, remoteAccount, !!existing?.pc);
+          else if (!message.relay) await offerVoicePeer(remoteId, remoteAccount);
+        }
         return;
       }
 
@@ -15691,7 +15742,7 @@ void main() {
         {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
-        {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
+        {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Voice already uses a port 443 relay when a direct link does not come up. Add your own TURN servers here if you want a backup.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
       el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:members.length,label:'Members'},{value:channels.filter(ch=>![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).length,label:'Channels'},{value:availableSubroles().length,label:'Badges'}],panels,ownerPanel);
