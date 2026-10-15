@@ -2327,6 +2327,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .vc-tile-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .vc-tile-state { color: rgba(255,255,255,.72); font-size: .76rem; }
+    .vc-hear {
+      position: absolute; left: 50%; top: 50%; z-index: 4; transform: translate(-50%, -50%);
+      min-height: 34px; padding: 0 12px; border: none; border-radius: 999px;
+      background: var(--accent-strong); color: var(--on-accent);
+      font-family: var(--font-ui); font-size: .72rem; font-weight: 750;
+    }
     .vc-ripple {
       position: absolute; z-index: 5; width: 0; height: 0; border: 3px solid #ff2d75; border-radius: 50%;
       transform: translate(-50%, -50%); pointer-events: none; animation: vc-ping .8s ease-out forwards;
@@ -4814,36 +4820,6 @@ void main() {
       } catch { return []; }
     }
 
-    async function hmacTurnCredential(secret, username) {
-      const key = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(secret),
-        { name: 'HMAC', hash: 'SHA-1' },
-        false,
-        ['sign'],
-      );
-      const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(username));
-      const bytes = new Uint8Array(sig);
-      let bin = '';
-      for (const b of bytes) bin += String.fromCharCode(b);
-      return btoa(bin);
-    }
-
-    async function fallbackTurnServers() {
-      const expiry = Math.floor(Date.now() / 1000) + 12 * 3600;
-      const username = `${expiry}:liminal`;
-      const credential = await hmacTurnCredential('openrelayprojectsecret', username);
-      return [{
-        urls: [
-          'turns:staticauth.openrelay.metered.ca:443',
-          'turn:staticauth.openrelay.metered.ca:443?transport=tcp',
-          'turn:staticauth.openrelay.metered.ca:80?transport=tcp',
-        ],
-        username,
-        credential,
-      }];
-    }
-
     function voiceRtcConfig() {
       return voice.rtcConfig || {
         iceServers: [...VOICE_STUN_SERVERS, ...voiceTurnFromSettings()],
@@ -4854,17 +4830,8 @@ void main() {
     }
 
     async function prepareVoiceIce() {
-      const owned = voiceTurnFromSettings();
-      let fallback = [];
-      try {
-        fallback = await Promise.race([
-          fallbackTurnServers().catch(() => []),
-          new Promise(resolve => setTimeout(() => resolve([]), 2000)),
-        ]);
-      } catch { fallback = []; }
-      const iceServers = [...VOICE_STUN_SERVERS, ...owned, ...(Array.isArray(fallback) ? fallback : [])];
       voice.rtcConfig = {
-        iceServers,
+        iceServers: [...VOICE_STUN_SERVERS, ...voiceTurnFromSettings()],
         iceTransportPolicy: 'all',
         bundlePolicy: 'max-bundle',
         iceCandidatePoolSize: 2,
@@ -6110,6 +6077,8 @@ void main() {
       fullNoticeShown: false,
       rtcConfig: null,
       linkTimer: 0,
+      signalRetry: 0,
+      signalChain: Promise.resolve(),
     };
 
     const forumThreadCache = new Map();
@@ -10375,7 +10344,8 @@ void main() {
 
         channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
           if (!payload) return;
-          Promise.resolve(handleVoiceSignal(payload))
+          voice.signalChain = (voice.signalChain || Promise.resolve())
+            .then(() => handleVoiceSignal(payload))
             .catch(error => console.error('[liminal] voice signaling error', error));
         });
 
@@ -10383,23 +10353,31 @@ void main() {
         channel.subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             clearTimeout(timer);
+            clearTimeout(voice.signalRetry);
+            voice.signalRetry = 0;
             client.connected = true;
-            if (!settled) { settled = true; resolve(client); return; }
-            if (voice.connected) {
-              setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
-              publishVoice('announce');
-            }
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            if (!settled) { settled = true; resolve(client); }
+            if (voice.connected) publishVoice('announce');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             clearTimeout(timer);
             client.connected = false;
             if (!settled) { fail(new Error('Could not reach voice signaling.')); return; }
-            if (voice.connected) setVoiceStatus('Reconnecting signaling…');
-          } else if (status === 'CLOSED') {
-            client.connected = false;
-            if (voice.connected) setVoiceStatus('Signaling offline…');
+            if (voice.connected) {
+              setVoiceStatus('Reconnecting…');
+              scheduleVoiceSignalReconnect();
+            }
           }
         });
       });
+    }
+
+    function scheduleVoiceSignalReconnect() {
+      if (voice.signalRetry || !voice.connected) return;
+      voice.signalRetry = setTimeout(() => {
+        voice.signalRetry = 0;
+        if (!voice.connected) return;
+        connectVoiceBroker().catch(() => scheduleVoiceSignalReconnect());
+      }, 1200);
     }
 
     async function joinVoiceRoom() {
@@ -10425,6 +10403,8 @@ void main() {
         $('vc-local-video').srcObject = voice.localStream;
         $('vc-local-video').classList.add('vc-mirror');
         $('vc-local-video').classList.remove('vc-screen-share');
+        const mic = voice.localStream.getAudioTracks()[0];
+        if (mic) mic.onended = () => { if (voice.connected) setVoiceStatus('Microphone stopped. Leave and join again.'); };
         updateVoiceUi();
         setVoiceStatus('Connecting to the room…');
         await iceReady;
@@ -10588,7 +10568,7 @@ void main() {
       }, 4000);
     }
 
-    function waitForIceGathering(pc, ms = 2500) {
+    function waitForIceGathering(pc, ms = 3000) {
       if (!pc || pc.iceGatheringState === 'complete') return Promise.resolve();
       return new Promise(resolve => {
         let settled = false;
@@ -10605,15 +10585,25 @@ void main() {
         const onChange = () => { if (pc.iceGatheringState === 'complete') done(); };
         const onCandidate = (event) => {
           const candidate = event.candidate;
-          if (!candidate || early) return;
+          if (!candidate) { done(); return; }
           const type = candidate.type || '';
           const line = candidate.candidate || '';
-          if (type === 'host' || type === 'srflx' || / typ (host|srflx)/.test(line)) early = setTimeout(done, 300);
+          if (!early && (type === 'srflx' || / typ srflx/.test(line))) early = setTimeout(done, 200);
         };
         const timer = setTimeout(done, ms);
         pc.addEventListener('icegatheringstatechange', onChange);
         pc.addEventListener('icecandidate', onCandidate);
       });
+    }
+
+    async function rollbackVoiceOffer(pc) {
+      if (!pc || pc.signalingState !== 'have-local-offer') return pc?.signalingState === 'stable';
+      try {
+        await pc.setLocalDescription({ type: 'rollback' });
+        return pc.signalingState === 'stable';
+      } catch {
+        return false;
+      }
     }
 
     function watchPeerIce(peer) {
@@ -10648,30 +10638,57 @@ void main() {
       pc.ontrack = ({ streams, track }) => {
         const tile = ensurePeerTile(peer);
         const video = qs('video', tile);
-        // A video transceiver negotiated before anyone shares has no stream yet.
-        // The track still arrives, and it has to be attached or the picture never shows.
-        let stream = video.srcObject instanceof MediaStream ? video.srcObject : (streams[0] || new MediaStream());
-        if (!stream.getTracks().some(item => item.id === track.id)) stream.addTrack(track);
-        streams[0]?.getTracks().forEach(item => {
-          if (!stream.getTracks().some(existing => existing.id === item.id)) stream.addTrack(item);
-        });
-        if (video.srcObject !== stream) video.srcObject = stream;
-        video.muted = false;
-        const play = () => { video.play().catch(() => {}); };
-        play();
-        const refresh = () => {
-          const liveTracks = stream.getVideoTracks().filter(item => item.readyState === 'live');
-          const frames = video.videoWidth > 0 && video.videoHeight > 0;
-          tile.classList.toggle('has-video', liveTracks.length > 0 && (frames || liveTracks.some(item => !item.muted)));
-          tile.classList.toggle('vc-screen', peer.videoMode === 'screen');
+        const play = (el) => {
+          if (!el) return;
+          el.muted = false;
+          el.play().then(() => {
+            peer.hearBtn?.remove();
+            peer.hearBtn = null;
+          }).catch(() => {
+            if (peer.hearBtn?.isConnected) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'vc-hear';
+            btn.textContent = 'Tap to hear';
+            btn.addEventListener('click', (event) => { event.stopPropagation(); play(el); });
+            tile.append(btn);
+            peer.hearBtn = btn;
+          });
         };
-        if (track.kind === 'video') {
+        if (track.kind === 'audio') {
+          if (!peer.audio) {
+            peer.audio = document.createElement('audio');
+            peer.audio.autoplay = true;
+            peer.audio.setAttribute('playsinline', '');
+            tile.append(peer.audio);
+          }
+          const heard = peer.audio.srcObject instanceof MediaStream ? peer.audio.srcObject : new MediaStream();
+          if (!heard.getTracks().some(item => item.id === track.id)) heard.addTrack(track);
+          if (peer.audio.srcObject !== heard) peer.audio.srcObject = heard;
+          play(peer.audio);
+        } else {
+          // The empty video slot arrives with no stream. Keep it off the audio element
+          // so a muted picture track cannot swallow the microphone.
+          const picture = video.srcObject instanceof MediaStream ? video.srcObject : new MediaStream();
+          if (!picture.getTracks().some(item => item.id === track.id)) picture.addTrack(track);
+          if (video.srcObject !== picture) video.srcObject = picture;
+          video.muted = true;
+          const refresh = () => {
+            const liveTracks = picture.getVideoTracks().filter(item => item.readyState === 'live');
+            const frames = video.videoWidth > 0 && video.videoHeight > 0;
+            tile.classList.toggle('has-video', liveTracks.length > 0 && (frames || liveTracks.some(item => !item.muted)));
+            tile.classList.toggle('vc-screen', peer.videoMode === 'screen');
+          };
           track.onmute = refresh;
-          track.onunmute = () => { play(); refresh(); };
-          track.onended = () => { try { stream.removeTrack(track); } catch {} refresh(); };
+          track.onended = () => { try { picture.removeTrack(track); } catch {} refresh(); };
           video.addEventListener('resize', refresh);
+          video.play().catch(() => {});
+          refresh();
         }
-        refresh();
+        track.onunmute = () => {
+          if (track.kind === 'audio') play(peer.audio);
+          else video.play().catch(() => {});
+        };
       };
       pc.ondatachannel = ({ channel }) => configureVoiceDataChannel(peer, channel);
       const refreshIce = () => {
@@ -10691,6 +10708,7 @@ void main() {
         refreshIce();
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
           clearTimeout(peer.iceWatch);
+          peer.iceRestarted = false;
           if (peer.videoPending) {
             peer.videoPending = false;
             const videoSender = pc.getTransceivers().find(item => item.receiver?.track?.kind === 'video' || item.sender?.track?.kind === 'video');
@@ -10710,7 +10728,11 @@ void main() {
       pc.onconnectionstatechange = () => {
         refreshIce();
         if (pc.connectionState === 'closed') removeVoicePeer(peerId);
-        else if (pc.connectionState === 'failed' && peer.iceRestarted) removeVoicePeer(peerId);
+        else if (pc.connectionState === 'failed') {
+          peer.offerSent = false;
+          peer.iceRestarted = false;
+          if (voice.clientId.localeCompare(peerId) < 0) offerVoicePeer(peerId, peer.account, true);
+        }
       };
       if (createDataChannel) configureVoiceDataChannel(peer, pc.createDataChannel('liminal-interactions'));
       watchPeerIce(peer);
@@ -10719,20 +10741,35 @@ void main() {
 
     async function offerVoicePeer(peerId, account, iceRestart = false) {
       const peer = createVoicePeer(peerId, account, true);
-      const ice = peer.pc.iceConnectionState;
-      const linked = ice === 'connected' || ice === 'completed';
-      if (linked) return;
-      if (peer.offering || peer.pc.signalingState !== 'stable') return;
+      const pc = peer.pc;
+      if (!pc) return;
+      const ice = pc.iceConnectionState;
+      if (ice === 'connected' || ice === 'completed') return;
+      if (peer.offering) return;
+      if (pc.signalingState === 'have-local-offer') {
+        const age = Date.now() - (peer.offerSentAt || 0);
+        const local = pc.localDescription;
+        if (local && age < 8000) {
+          await publishVoice('offer', { description: { type: local.type, sdp: local.sdp } }, peerId);
+          return;
+        }
+        peer.pendingCandidates = [];
+        peer.offerSent = false;
+        if (!await rollbackVoiceOffer(pc)) return;
+      } else if (pc.signalingState !== 'stable') return;
       if (peer.offerSent && !iceRestart) return;
       peer.offering = true;
       peer.offerSent = true;
+      peer.offerSentAt = Date.now();
       try {
-        const offer = await peer.pc.createOffer(iceRestart || ice === 'failed' || ice === 'disconnected' ? { iceRestart: true } : undefined);
-        const gathered = waitForIceGathering(peer.pc);
-        await peer.pc.setLocalDescription(offer);
+        const restart = iceRestart || ice === 'failed' || ice === 'disconnected';
+        const offer = await pc.createOffer(restart ? { iceRestart: true } : undefined);
+        const gathered = waitForIceGathering(pc);
+        await pc.setLocalDescription(offer);
         await gathered;
-        const local = peer.pc.localDescription;
-        await publishVoice('offer', { description: { type: local.type, sdp: local.sdp } }, peerId);
+        const local = pc.localDescription;
+        const sent = await publishVoice('offer', { description: { type: local.type, sdp: local.sdp } }, peerId);
+        if (!sent) peer.offerSent = false;
         watchPeerIce(peer);
       } catch (error) {
         peer.offerSent = false;
@@ -10794,12 +10831,12 @@ void main() {
         }
         const peer = createVoicePeer(remoteId, remoteAccount, false);
         try {
-          if (peer.pc.signalingState !== 'stable' && peer.pc.signalingState !== 'have-remote-offer') {
-            try { peer.pc.close(); } catch {}
-            peer.pc = null;
-            peer.offerSent = false;
-            createVoicePeer(remoteId, remoteAccount, false);
-          }
+          const polite = voice.clientId.localeCompare(remoteId) > 0;
+          if (peer.pc.signalingState === 'have-local-offer') {
+            if (!polite) return;
+            peer.pendingCandidates = [];
+            if (!await rollbackVoiceOffer(peer.pc)) return;
+          } else if (peer.pc.signalingState !== 'stable' && peer.pc.signalingState !== 'have-remote-offer') return;
           await peer.pc.setRemoteDescription(message.description);
           await flushVoiceCandidates(peer);
           const answer = await peer.pc.createAnswer();
@@ -10817,9 +10854,13 @@ void main() {
 
       if (message.type === 'answer' && message.description) {
         const peer = voice.peers.get(remoteId);
-        if (!peer?.pc) return;
-        await peer.pc.setRemoteDescription(message.description);
-        await flushVoiceCandidates(peer);
+        if (!peer?.pc || peer.pc.signalingState !== 'have-local-offer') return;
+        try {
+          await peer.pc.setRemoteDescription(message.description);
+          await flushVoiceCandidates(peer);
+        } catch (error) {
+          console.error('[liminal] voice answer failed', error);
+        }
         return;
       }
 
@@ -10842,7 +10883,7 @@ void main() {
       peer.tile?.remove();
       voice.peers.delete(peerId);
       updateVoiceUi();
-      if (voice.connected) setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
+      if (voice.connected) summarizeVoiceStatus();
     }
 
     function toggleVoiceMute() {
@@ -11008,6 +11049,8 @@ void main() {
       voice.joinGen += 1;
       clearInterval(voice.linkTimer);
       voice.linkTimer = 0;
+      clearTimeout(voice.signalRetry);
+      voice.signalRetry = 0;
       voice.peers.forEach(peer => clearTimeout(peer.iceWatch));
       if (hostMediaWaiter) {
         const err = new Error('Cancelled.');
