@@ -131,7 +131,8 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.match(openView, /hiddenChannelId === FOLLOWING_CHANNEL/);
   assert.doesNotMatch(openView, /hiddenChannelId === VOICE_CHANNEL_ID/);
   assert.match(openView, /view\.id === VOICE_CHANNEL_ID \|\| \(fch && fch\.kind === 'voice'\)\) return openVoiceRoom\(view\)/);
-  assert.equal([...chat.matchAll(/iceTransportPolicy: '([^']+)'/g)].map(match => match[1]).join(','), 'all,all');
+  assert.match(chat, /iceTransportPolicy: relayOnly \? 'relay' : 'all'/);
+  assert.match(chat, /turns:turn\.evan-brass\.net:443\?transport=tcp/);
   assert.doesNotMatch(chat, /\.vc-dock\s*\{[^}]*display:\s*none\s*!important/);
   assert.doesNotMatch(chat, /id="vc-empty"/);
   assert.doesNotMatch(chat, /Allow Remote Clicks/);
@@ -143,7 +144,8 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.match(chat, /type: 'rollback'/);
   assert.match(chat, /Tap to hear/);
   assert.match(chat, /chat_voice_ticket/);
-  assert.match(chat, /School and campus Wi-Fi block direct voice/);
+  assert.doesNotMatch(chat, /School and campus Wi-Fi block direct voice/);
+  assert.doesNotMatch(chat, /global\.relay\.metered\.ca/);
   assert.match(chat, /id="vc-deafen-btn"/);
   assert.match(chat, /Ctrl\+Shift\+M/);
   assert.doesNotMatch(chat, /id="vc-allow-interactions"/);
