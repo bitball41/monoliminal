@@ -2,4 +2,6 @@
 
 Canonical source: [liminal-admin-dashboard.html](liminal-admin-dashboard.html).
 
-This is the uploaded Liminal Control dashboard. Its source is stored here unchanged. No automatic deployment target is configured for this app yet.
+Production Storage object: `liminal-admin-dashboard.html` in `liminal-apps`, same origin as chat. Control reads the chat Supabase session from `localStorage` and opens when that account is an administrator or the owner.
+
+Apply happens through the Admin deployment workflow on merge to `main`.

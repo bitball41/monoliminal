@@ -21,7 +21,7 @@ Use GitHub's secret form; never put the key in chat, source files, or HTML. Publ
 
 A push/merged PR changing one canonical HTML file deploys only that artifact. Chat and its launcher have separate workflows. Multiple changed files trigger independent deployments. PR checks never deploy and receive no deployment secrets.
 
-All seven manifest entries are enabled. Set an entry's `enabled` to false to pause its publishing; dry runs remain available. Changes to scripts, config or workflows run checks, but do not automatically republish app HTML.
+All eight manifest entries are enabled. Set an entry's `enabled` to false to pause its publishing; dry runs remain available. Changes to scripts, config or workflows run checks, but do not automatically republish app HTML.
 
 ## Deployment sequence
 
