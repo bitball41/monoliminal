@@ -136,7 +136,10 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.doesNotMatch(chat, /id="vc-empty"/);
   assert.doesNotMatch(chat, /Allow Remote Clicks/);
   assert.match(chat, /class="vc-bar"/);
-  assert.match(chat, /stream\.addTrack\(track\)/);
+  assert.match(chat, /stream\.addTrack\(track\)|picture\.addTrack\(track\)|heard\.addTrack\(track\)/);
   assert.match(chat, /contentHint = screen \? 'detail' : 'motion'/);
   assert.match(chat, /maintain-resolution/);
+  assert.doesNotMatch(chat, /staticauth\.openrelay\.metered\.ca/);
+  assert.match(chat, /type: 'rollback'/);
+  assert.match(chat, /Tap to hear/);
 });
