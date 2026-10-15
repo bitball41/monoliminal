@@ -2307,9 +2307,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 12px;
     }
     .vc-tile {
-      position: relative; flex: 1 1 260px; width: min(420px, 100%); max-width: 420px; min-width: 0;
-      overflow: hidden; aspect-ratio: 16 / 9;
-      border: 1px solid var(--line); border-radius: 16px; background: #09090f;
+      position: relative; flex: 1 1 220px; width: min(280px, 100%); max-width: 280px; min-width: 0;
+      overflow: hidden; aspect-ratio: 1;
+      border: 2px solid transparent; border-radius: 16px;
+      background: color-mix(in srgb, var(--bg-2) 82%, #05050c);
+      transition: border-color 90ms linear, box-shadow 90ms linear, background 90ms linear;
     }
     .vc-tile video { display: block; width: 100%; height: 100%; object-fit: cover; background: #09090f; }
     .vc-tile video.vc-mirror { transform: scaleX(-1); }
@@ -2400,8 +2402,31 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-dock-dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 16%, transparent); }
     .vc-dock-actions { display: flex; gap: 6px; margin-top: 8px; }
     .vc-dock-actions button { flex: 1; min-height: 29px; padding: 5px 7px; border-radius: 8px; font-size: .62rem; }
-    .vc-tile.audio-only { aspect-ratio: 1; max-width: 220px; }
-    .vc-tile.vc-speaking { outline: 3px solid var(--ok); outline-offset: 2px; }
+    .vc-tile.audio-only { aspect-ratio: 1; max-width: 240px; }
+    .vc-tile.vc-speaking {
+      border-color: #3ba55d;
+      box-shadow: inset 0 0 0 1px #3ba55d, 0 0 0 1px #3ba55d, 0 0 22px rgba(59, 165, 93, .55);
+      background: color-mix(in srgb, #3ba55d 16%, #09090f);
+    }
+    .vc-tile.vc-speaking .avatar { box-shadow: 0 0 0 3px #3ba55d, 0 0 16px rgba(59, 165, 93, .65); }
+    .vc-tile.vc-speaking .vc-tile-label::before {
+      content: ""; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%;
+      background: #3ba55d; box-shadow: 0 0 8px #3ba55d;
+    }
+    .vc-tile.vc-self-muted,
+    .vc-tile.vc-server-muted { background: color-mix(in srgb, #09090f 92%, #000); }
+    .vc-tile.vc-server-muted { border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+    .vc-staff-mute {
+      position: absolute; top: 8px; right: 8px; z-index: 6;
+      min-height: 28px; padding: 0 10px; border-radius: 999px;
+      border: 1px solid var(--line-strong); background: rgba(8, 8, 14, .86); color: #fff;
+      font: 750 .66rem var(--font-ui); opacity: 0;
+    }
+    .vc-tile:hover .vc-staff-mute,
+    .vc-tile:focus-within .vc-staff-mute,
+    .vc-staff-mute.active { opacity: 1; }
+    .vc-staff-mute:hover { background: rgba(20, 20, 28, .94); }
+    .vc-staff-mute.active { border-color: color-mix(in srgb, var(--danger) 60%, transparent); color: #ffb4b4; }
     .vc-grid.vc-has-stage { align-content: stretch; }
     .vc-grid.vc-has-stage .vc-tile { flex: 1 1 160px; max-width: 200px; aspect-ratio: 1; }
     .vc-grid.vc-has-stage .vc-tile.vc-stage-main {
@@ -6123,6 +6148,8 @@ void main() {
       micBeforeDeafen: true,
       levelStop: null,
       speaking: false,
+      serverMutes: new Map(),
+      mutePollAt: 0,
     };
 
     const forumThreadCache = new Map();
@@ -10265,10 +10292,10 @@ void main() {
       if (!track) return;
       const stream = new MediaStream([track]);
       voice.levelStop = watchVoiceLevel(stream, (level) => {
-        const live = track.enabled && !voice.deafened && level > 0.045;
-        if (live === voice.speaking) return;
+        const held = me && isServerVoiceMuted(me.username);
+        const live = track.enabled && !voice.deafened && !held && level > 0.035;
+        markSpeaking($('vc-local-tile'), live);
         voice.speaking = live;
-        $('vc-local-tile')?.classList.toggle('vc-speaking', live);
       });
     }
 
@@ -10277,8 +10304,9 @@ void main() {
       const stream = peer.audio?.srcObject;
       if (!(stream instanceof MediaStream) || !stream.getAudioTracks().length) return;
       peer.levelStop = watchVoiceLevel(stream, (level) => {
-        const live = !peer.audioMuted && !voice.deafened && level > 0.045;
-        peer.tile?.classList.toggle('vc-speaking', live);
+        const held = isServerVoiceMuted(peer.account?.username);
+        const live = !peer.audioMuted && !held && level > 0.035;
+        markSpeaking(peer.tile, live);
       });
     }
 
@@ -10449,6 +10477,106 @@ void main() {
       });
     }
 
+    function markSpeaking(el, live) {
+      if (!el) return;
+      const now = Date.now();
+      if (live) {
+        el.dataset.speakUntil = String(now + 280);
+        el.classList.add('vc-speaking');
+        return;
+      }
+      if (Number(el.dataset.speakUntil || 0) > now) return;
+      el.classList.remove('vc-speaking');
+    }
+
+    function isServerVoiceMuted(username) {
+      return !!(username && voice.serverMutes.has(username));
+    }
+
+    function serverMuteBy(username) {
+      return voice.serverMutes.get(username) || 'staff';
+    }
+
+    function peerPlaybackMuted(peer) {
+      return voice.deafened || isServerVoiceMuted(peer?.account?.username);
+    }
+
+    async function loadVoiceServerMutes() {
+      if (!sb || !me) return false;
+      const { data, error } = await sb.from('voice_server_mutes').select('username,muted_by');
+      if (error) return false;
+      voice.serverMutes.clear();
+      (data || []).forEach(row => {
+        if (row?.username) voice.serverMutes.set(row.username, row.muted_by || '');
+      });
+      applyVoiceServerMutes();
+      return true;
+    }
+
+    function applyVoiceServerMutes() {
+      const mine = me && isServerVoiceMuted(me.username);
+      const track = voice.localStream?.getAudioTracks()[0];
+      if (mine && track?.enabled) {
+        track.enabled = false;
+        if (voice.connected) publishVoice('audio-mode', { muted: true });
+      }
+      if (mine) $('vc-local-tile')?.classList.remove('vc-speaking');
+      $('vc-local-tile')?.classList.toggle('vc-server-muted', !!mine);
+      voice.peers.forEach(peer => {
+        const held = isServerVoiceMuted(peer.account?.username);
+        peer.serverMuted = held;
+        if (peer.audio) peer.audio.muted = peerPlaybackMuted(peer);
+        if (held) peer.tile?.classList.remove('vc-speaking');
+        peer.tile?.classList.toggle('vc-server-muted', held);
+        peer.tile?.classList.toggle('vc-self-muted', !held && !!peer.audioMuted);
+        paintPeerState(peer);
+        syncStaffMuteButton(peer);
+      });
+      updateVoiceUi();
+    }
+
+    function syncStaffMuteButton(peer) {
+      const tile = peer?.tile;
+      const username = peer?.account?.username;
+      if (!tile) return;
+      let button = qs('.vc-staff-mute', tile);
+      if (!username || !canModerateUser(username)) {
+        button?.remove();
+        return;
+      }
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'vc-staff-mute';
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          const name = peer.account?.username;
+          if (name) setServerVoiceMute(name, !isServerVoiceMuted(name));
+        });
+        tile.append(button);
+      }
+      const held = isServerVoiceMuted(username);
+      button.textContent = held ? 'Unmute' : 'Mute';
+      button.classList.toggle('active', held);
+      button.title = held ? 'Let them speak in voice' : 'Mute them in voice';
+    }
+
+    async function setServerVoiceMute(username, muted) {
+      if (!canModerateUser(username)) return;
+      const { error } = await sb.rpc('chat_set_voice_mute', { p_username: username, p_muted: !!muted });
+      if (error) {
+        const missing = error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || '');
+        toast({ type: 'error', text: missing ? 'Voice mute needs the latest database migration.' : (error.message || 'Could not change that voice mute.') });
+        return;
+      }
+      if (muted) voice.serverMutes.set(username, me.username);
+      else voice.serverMutes.delete(username);
+      applyVoiceServerMutes();
+      if (voice.connected) publishVoice('staff-mute-refresh', {});
+      toast({ type: 'success', text: muted ? `@${username} is muted in voice.` : `@${username} can speak in voice again.` });
+    }
+
     function updateVoiceUi() {
       const joined = voice.connected || voice.joining;
       const account = me ? voiceAccount() : { username: '', displayName: 'You', pfp: '' };
@@ -10465,7 +10593,8 @@ void main() {
       $('vc-share-btn').hidden = !voice.connected;
       $('vc-devices-btn').hidden = !voice.connected;
       $('vc-leave-btn').hidden = !joined;
-      $('vc-mute-btn').disabled = !voice.connected || !voice.localStream;
+      const serverHeld = !!(me && isServerVoiceMuted(me.username));
+      $('vc-mute-btn').disabled = !voice.connected || !voice.localStream || serverHeld;
       $('vc-deafen-btn').disabled = !voice.connected;
       $('vc-video-btn').disabled = !voice.connected;
       $('vc-share-btn').disabled = !voice.connected || !navigator.mediaDevices?.getDisplayMedia;
@@ -10475,14 +10604,18 @@ void main() {
       const video = voice.localStream?.getVideoTracks()[0];
       const muted = voice.deafened || (!!audio && !audio.enabled);
       const cameraOff = !video || !video.enabled;
-      $('vc-mute-btn').textContent = muted ? 'Unmute' : 'Mute';
-      $('vc-dock-mute').textContent = muted ? 'Unmute' : 'Mute';
-      $('vc-mute-btn').classList.toggle('active', muted);
+      $('vc-mute-btn').textContent = serverHeld ? 'Staff muted' : (muted ? 'Unmute' : 'Mute');
+      $('vc-dock-mute').textContent = serverHeld ? 'Staff muted' : (muted ? 'Unmute' : 'Mute');
+      $('vc-dock-mute').disabled = serverHeld;
+      $('vc-mute-btn').classList.toggle('active', muted || serverHeld);
       $('vc-deafen-btn').textContent = voice.deafened ? 'Undeafen' : 'Deafen';
       $('vc-deafen-btn').classList.toggle('active', voice.deafened);
       $('vc-video-btn').textContent = cameraOff ? 'Camera' : 'Stop video';
       $('vc-video-btn').classList.toggle('active', cameraOff);
-      $('vc-local-state').textContent = voice.deafened ? 'Deafened' : (muted ? 'Muted' : '');
+      $('vc-local-state').textContent = serverHeld
+        ? `Muted by @${serverMuteBy(me.username)}`
+        : (voice.deafened ? 'Deafened' : (muted ? 'Muted' : ''));
+      $('vc-local-tile').classList.toggle('vc-self-muted', !serverHeld && muted);
       $('vc-local-tile').classList.toggle('vc-screen', !!voice.screenStream);
       $('vc-local-tile').classList.toggle('has-video', !!voice.screenStream || (!!video && video.enabled));
       if (!voice.speaking || muted) $('vc-local-tile').classList.remove('vc-speaking');
@@ -10692,7 +10825,8 @@ void main() {
         await publishVoice('announce');
         startVoiceLinkWatch();
         watchLocalVoiceLevel();
-        setVoiceStatus('Mic is live — waiting for others');
+        await watchVoiceMuteTable();
+        setVoiceStatus(isServerVoiceMuted(me.username) ? `Muted by @${serverMuteBy(me.username)}` : 'Mic is live — waiting for others');
         updateVoiceUi();
       } catch (error) {
         if (joinGen !== voice.joinGen) return;
@@ -10777,6 +10911,7 @@ void main() {
       const name = qs('.vc-tile-label > span', peer.tile);
       if (name) name.textContent = label;
       setVoiceAvatar(avatar, { ...account, displayName: label });
+      syncStaffMuteButton(peer);
     }
 
     function addVoiceRipple(tile, x, y) {
@@ -10817,6 +10952,10 @@ void main() {
           return;
         }
         voice.peers.forEach(peer => notePeerHealth(peer));
+        if (!voice.mutePollAt || Date.now() - voice.mutePollAt > 8000) {
+          voice.mutePollAt = Date.now();
+          loadVoiceServerMutes();
+        }
         if (linkedVoiceCount() === voice.peers.size) return;
         publishVoice('announce');
         voice.peers.forEach(peer => {
@@ -10891,6 +11030,10 @@ void main() {
         stateEl.textContent = (ice === 'checking' || ice === 'new') ? 'Connecting…' : ((ice === 'failed' || ice === 'disconnected') ? 'Reconnect' : '');
         return;
       }
+      if (isServerVoiceMuted(peer.account?.username)) {
+        stateEl.textContent = 'Staff muted';
+        return;
+      }
       stateEl.textContent = peer.audioMuted ? 'Muted' : '';
     }
 
@@ -10931,7 +11074,7 @@ void main() {
         const video = qs('video', tile);
         const play = (el) => {
           if (!el) return;
-          el.muted = !!voice.deafened;
+          el.muted = peerPlaybackMuted(peer);
           el.play().then(() => {
             peer.hearBtn?.remove();
             peer.hearBtn = null;
@@ -11121,11 +11264,18 @@ void main() {
         return;
       }
 
+      if (message.type === 'staff-mute-refresh') {
+        loadVoiceServerMutes();
+        return;
+      }
+
       if (message.type === 'audio-mode') {
         const peer = voice.peers.get(remoteId) || peerRecord(remoteId, remoteAccount);
         peer.audioMuted = !!message.muted;
+        if (peer.audio) peer.audio.muted = peerPlaybackMuted(peer) || peer.audioMuted;
+        peer.tile?.classList.toggle('vc-self-muted', peer.audioMuted && !peer.serverMuted);
         paintPeerState(peer);
-        if (peer.audioMuted) peer.tile?.classList.remove('vc-speaking');
+        if (peer.audioMuted || isServerVoiceMuted(peer.account?.username)) peer.tile?.classList.remove('vc-speaking');
         return;
       }
 
@@ -11198,9 +11348,13 @@ void main() {
     }
 
     function toggleVoiceMute() {
+      if (me && isServerVoiceMuted(me.username)) {
+        toast({ type: 'warning', text: `You are muted in voice by @${serverMuteBy(me.username)}.` });
+        return;
+      }
       if (voice.deafened) {
         voice.deafened = false;
-        voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = false; });
+        voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = peerPlaybackMuted(peer); });
       }
       const track = voice.localStream?.getAudioTracks()[0];
       if (!track) return;
@@ -11213,14 +11367,14 @@ void main() {
 
     function toggleVoiceDeafen() {
       voice.deafened = !voice.deafened;
-      voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = voice.deafened; });
+      voice.peers.forEach(peer => { if (peer.audio) peer.audio.muted = peerPlaybackMuted(peer); });
       const track = voice.localStream?.getAudioTracks()[0];
       if (voice.deafened) {
         voice.micBeforeDeafen = !track || track.enabled;
         if (track) track.enabled = false;
         publishVoice('audio-mode', { muted: true });
         $('vc-local-tile')?.classList.remove('vc-speaking');
-      } else if (track && voice.micBeforeDeafen) {
+      } else if (track && voice.micBeforeDeafen && !(me && isServerVoiceMuted(me.username))) {
         track.enabled = true;
         publishVoice('audio-mode', { muted: false });
       }
@@ -11472,6 +11626,14 @@ void main() {
       if (added) renderVoiceChat();
     }
 
+    async function watchVoiceMuteTable() {
+      const ready = await loadVoiceServerMutes();
+      if (!ready || voice.muteChannel || !sb || !me) return;
+      voice.muteChannel = sb.channel(`voice-mutes-${me.username}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_server_mutes' }, () => loadVoiceServerMutes())
+        .subscribe();
+    }
+
     const VOICE_MSG_CAP = 200;
     function pushVoiceMessage(message) {
       voice.messageIds.add(message.id);
@@ -11602,7 +11764,7 @@ void main() {
             voice.localStream.addTrack(track);
           }
           stream.getTracks().forEach(item => { if (item !== track) item.stop(); });
-          if (voice.deafened || (previous && !previous.enabled)) track.enabled = false;
+          if (voice.deafened || isServerVoiceMuted(me.username) || (previous && !previous.enabled)) track.enabled = false;
           await Promise.all([...voice.peers.values()].map(async peer => {
             const sender = peer.pc?.getSenders().find(item => item.track?.kind === 'audio');
             if (sender) await sender.replaceTrack(track);
@@ -15602,6 +15764,8 @@ void main() {
       message_deleted: 'Deleted a message',
       message_pinned: 'Pinned a message',
       message_unpinned: 'Unpinned a message',
+      voice_muted: 'Muted someone in voice',
+      voice_unmuted: 'Unmuted someone in voice',
       in_app_setting_updated: 'Changed an in-app setting',
       setting_updated: 'Changed a setting',
       owner_setting_updated: 'Changed an owner setting',

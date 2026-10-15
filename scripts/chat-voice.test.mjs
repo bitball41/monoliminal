@@ -150,6 +150,8 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   const roomChat = section(chat, '    async function sendVoiceChatMessage() {', '    function setVoiceChatOpen(open) {');
   assert.match(roomChat, /moderationVerdict\(content\)/);
   assert.match(roomChat, /isTimedOut\(\)/);
+  assert.match(chat, /chat_set_voice_mute/);
+  assert.match(chat, /box-shadow: inset 0 0 0 1px #3ba55d/);
 });
 
 test('voice tickets bind the signed-in account and TURN is owner-only', async () => {
@@ -181,5 +183,40 @@ test('voice tickets bind the signed-in account and TURN is owner-only', async ()
     assert.match(stored, /turns:turn\.example\.com:443/);
     await db.exec('reset role');
     assert.doesNotMatch((await db.query("select details::text as details from private.chat_admin_audit where target='turn_servers'")).rows.at(-1).details, /secret/);
+  } finally { await db.close(); }
+});
+
+test('staff can voice-mute only accounts below their rank', async () => {
+  const { readFile, readdir } = await import('node:fs/promises');
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
+  const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    await db.exec(await file('Backend/tests/authorization-fixture.sql'));
+    for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(name => name.endsWith('.sql')).sort()) {
+      await db.exec(await file('Backend/migrations/' + name));
+    }
+    const ids = {
+      member: '00000000-0000-4000-8000-000000000021',
+      mod: '00000000-0000-4000-8000-000000000022',
+      owner: '00000000-0000-4000-8000-000000000023',
+    };
+    for (const [name, id] of Object.entries(ids)) {
+      await db.query('insert into auth.users(id) values($1)', [id]);
+      await db.query('insert into public.profiles(username,user_id,display_name,staff_role) values($1,$2,$1,$3)', [name, id, name]);
+    }
+    const actor = async name => db.exec(`reset role;select set_config('request.jwt.claim.sub','${ids[name]}',false);set role authenticated;`);
+    await actor('member');
+    await assert.rejects(db.query("select public.chat_set_voice_mute('mod', true)"));
+    await actor('mod');
+    await assert.rejects(db.query("select public.chat_set_voice_mute('owner', true)"));
+    await db.query("select public.chat_set_voice_mute('member', true)");
+    assert.equal((await db.query("select muted_by from public.voice_server_mutes where username='member'")).rows[0].muted_by, 'mod');
+    await actor('member');
+    assert.equal((await db.query("select count(*)::int n from public.voice_server_mutes")).rows[0].n, 1);
+    await actor('mod');
+    await db.query("select public.chat_set_voice_mute('member', false)");
+    assert.equal((await db.query("select count(*)::int n from public.voice_server_mutes")).rows[0].n, 0);
   } finally { await db.close(); }
 });
