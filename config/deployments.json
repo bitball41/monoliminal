@@ -63,6 +63,15 @@
       "objectPath": "movies.htm",
       "historyPrefix": "deployments/movies/",
       "enabled": true
+    },
+    {
+      "app": "admin",
+      "source": "Admin/liminal-admin-dashboard.html",
+      "target": "supabase-storage",
+      "bucket": "liminal-apps",
+      "objectPath": "liminal-admin-dashboard.html",
+      "historyPrefix": "deployments/admin/",
+      "enabled": true
     }
   ]
 }
