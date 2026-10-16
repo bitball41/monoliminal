@@ -31,3 +31,7 @@ Apply [`20261013234532_private_group_chats.sql`](../Backend/migrations/202610132
 ## Voice on school networks
 
 Home calls use STUN and connect directly. School and campus Wi-Fi usually block that UDP path, so the same call never links. Apply [`20261015140000_voice_tickets_and_turn.sql`](../Backend/migrations/20261015140000_voice_tickets_and_turn.sql) before this client. It makes voice signaling a private channel and lets the owner save TURN servers. Use `turns:` on port 443. Signed-in members can read that relay password, so the relay account should only be allowed to relay media. Rejoin Voice Chat after saving it. Mods and above can mute someone below their rank. That mute is stored in `voice_server_mutes`, the muted mic is forced off, and everyone else stops playing it.
+
+## Recent-feature review and polish
+
+See [the ten-area review](../docs/chat-polish-review.md) for scope, fixes, validation, and the database update. The standalone HTML remains the canonical client; shared analytics stays generated from `scripts/chat-analytics-ui.mjs`.

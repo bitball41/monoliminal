@@ -49,6 +49,22 @@ test('private call signaling rejects outsiders, pending invites, blocks, bans, a
     await db.query('select public.chat_respond_group_invite($1,true)',[group]);
     const groupRoom = await room(group);
     await actor('alice');
+    await db.query("select public.chat_manage_group($1,'remove','bob','')",[group]);
+    await db.query("select public.chat_manage_group($1,'invite','bob','')",[group]);
+    await actor('bob');
+    await db.query('select public.chat_respond_group_invite($1,true)',[group]);
+    const rejoinedRoom = await room(group);
+    assert.notEqual(rejoinedRoom.topic,groupRoom.topic,'the same membership never restores an old signaling topic');
+    assert.equal(await allowed(groupRoom.topic),false,'an old authorized socket cannot regain access after re-invitation');
+    await assert.rejects(db.query('select * from private.chat_voice_room_epochs'),'clients cannot read or change room epochs');
+    await db.query('select public.chat_manage_group($1,$2,$3,$4)',[group,'leave','','']);
+    await actor('alice');
+    await db.query("select public.chat_manage_group($1,'invite','bob','')",[group]);
+    await actor('bob');
+    await db.query('select public.chat_respond_group_invite($1,true)',[group]);
+    assert.notEqual((await room(group)).topic,rejoinedRoom.topic,'every subsequent removal/rejoin rotates again');
+
+    await actor('alice');
     await db.query("select public.chat_manage_group($1,'invite','owner','')",[group]);
     await actor('owner');
     await db.query('select public.chat_respond_group_invite($1,true)',[group]);
@@ -92,7 +108,8 @@ test('starting a call checks access before leaving global voice, invites through
   const voice = { connected: true, roomId: null, joining: false };
   const context = vm.createContext({
     voice, me: { username: 'alice' },
-    $: () => ({ close() {} }),
+    $: () => ({ close() {}, open: false, setAttribute() {} }),
+    isHiddenBot: () => false, dmBlockedUsers: new Set(),
     sb: {
       rpc: async (name,{p_dm_id}) => p_dm_id==='blocked' ? {error:{message:'Blocked'}} : {data:{topic:'private:'+p_dm_id,members:['alice','bob']}},
       from: table => ({ insert: async row => { operations.push({table,row}); return {}; } }),
@@ -104,16 +121,16 @@ test('starting a call checks access before leaving global voice, invites through
     async joinVoiceRoom() { operations.push('join'); voice.connected=true; },
   });
   vm.runInContext(chat.slice(start,end),context);
-  await context.startPrivateCall({id:'blocked'});
+  await context.startPrivateCall({id:'blocked',participants:['alice','bob']});
   assert.equal(voice.connected,true,'failed membership does not end current call');
   assert.equal(operations.includes('leave'),false);
-  await context.startPrivateCall({id:'dm-a'});
+  await context.startPrivateCall({id:'dm-a',participants:['alice','bob']});
   assert.equal(voice.roomId,'dm-a');
   assert.equal(voice.roomTopic,'private:dm-a');
   assert.equal(operations.filter(item=>item==='leave').length,1);
   const invite = operations.find(item=>item.table);
   assert.equal(invite.table,'dm_messages');
   assert.equal(invite.row.dm_id,'dm-a');
-  await context.startPrivateCall({id:'dm-a'});
+  await context.startPrivateCall({id:'dm-a',participants:['alice','bob']});
   assert.equal(operations.filter(item=>item.table).length,1,'returning to active call does not send another invitation');
 });

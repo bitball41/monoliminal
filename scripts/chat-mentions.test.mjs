@@ -36,6 +36,8 @@ test('mention inbox uses the indexed lookup and the same visibility rules', asyn
     const thread = (await db.query("insert into public.forum_threads(channel_id,title,author,body) values('following','Secret','cara','hidden') returning id")).rows[0].id;
     await db.query('insert into public.messages(channel_id,sender,content) values($1,$2,$3)', [`forum:${thread}`, 'cara', 'psst @alice']);
 
+    await actor('bob');
+    await db.query("insert into public.messages(channel_id,sender,content,created_at) select 'general','bob','hello @alice2 and @alice_extra',now()+interval '1 second' from generate_series(1,60)");
     await actor('alice');
     const aliceRows = (await db.query('select sender, content from public.chat_list_mentions(50) order by content')).rows;
     assert.deepEqual(aliceRows.map(row => row.content), ['hey @alice']);

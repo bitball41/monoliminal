@@ -2792,11 +2792,123 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
 
 
+
+    /* Recent Chat surfaces share one quiet, theme-aware interaction language. */
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog, .console-shell, .vc-stage) {
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --muted: color-mix(in srgb, var(--text) 66%, var(--panel-strong));
+      font-family: var(--font-ui); -webkit-font-smoothing: antialiased;
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) {
+      width: min(520px, calc(100vw - 32px)); border-radius: 20px;
+      background: var(--panel-strong); box-shadow: 0 24px 72px #0003;
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header {
+      padding: 22px 24px 16px; align-items: center; border-bottom: 1px solid var(--line);
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header h2 {
+      font: 650 1.15rem/1.3 var(--font-ui); letter-spacing: -.025em; overflow-wrap: anywhere;
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-body { padding: 18px 24px 24px; }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .field-help { font-size: .8rem; line-height: 1.6; }
+    :is(#private-call-dialog, #group-dialog, #subrole-dialog) .field > label { text-transform: none; letter-spacing: 0; font-weight: 550; font-size: .8rem; }
+    :is(#private-call-dialog, #group-dialog, #subrole-dialog) .field > input { min-height: 42px; border-radius: 10px; font-size: .85rem; }
+    :is(.console-shell, #group-dialog, #private-call-dialog, #subrole-dialog) button { transition: background 140ms ease, border-color 140ms ease; }
+    :is(.console-shell, #group-dialog, #subrole-dialog) :is(.primary-button, .secondary-button, .danger-button) { min-height: 38px; border-radius: 10px; font-weight: 600; }
+    .private-call-list { display: grid; gap: 4px; max-height: min(380px, 48dvh); overflow-y: auto; overscroll-behavior: contain; }
+    .private-call-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--text); text-align: left; }
+    .private-call-row:hover:not(:disabled) { background: var(--surface-2); border-color: var(--line); }
+    .private-call-row:disabled { opacity: .5; cursor: default; }
+    .private-call-row .avatar { flex: 0 0 auto; }
+    .private-call-copy { display: grid; gap: 4px; flex: 1; min-width: 0; }
+    .private-call-copy strong { font-size: .9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .private-call-copy small { color: var(--muted); font-size: .74rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .private-call-action { display: flex; gap: 8px; font-size: .75rem; color: var(--accent-strong); }
+    #private-call-status { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+    .group-candidates { max-height: min(280px, 34dvh); overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .group-person { padding: 12px 10px; gap: 12px; border-bottom: 0; border-radius: 10px; }
+    label.group-person { cursor: pointer; }
+    label.group-person:hover { background: var(--surface); }
+    label.group-person:has(input:focus-visible) { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+    .group-person.is-selected { background: var(--accent-soft); }
+    .group-person strong { font-weight: 600; font-size: .85rem; }
+    .group-person small { margin-top: 3px; font-size: .73rem; }
+    .group-person input[type="checkbox"] { flex: 0 0 20px; width: 20px; height: 20px; }
+    .group-selected { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .group-selected:empty { display: none; }
+    .group-selection-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 10px; border: 1px solid var(--accent-line); border-radius: 8px; color: var(--accent-strong); background: var(--accent-soft); font: 500 .75rem var(--font-ui); overflow-wrap: anywhere; }
+    .group-selection-chip span { font-size: 1rem; }
+    .group-footer { position: sticky; bottom: -24px; margin: 18px -24px -24px; padding: 16px 24px; border-top: 1px solid var(--line); background: var(--panel-strong); }
+    #group-leave { margin-left: auto; }
+    #group-dialog .danger-button { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line)); box-shadow: none; }
+    .group-invite-card { padding: 16px; box-shadow: none; }
+    .group-invite-card .group-actions { justify-content: flex-end; }
+    #group-pending:not(:empty) { margin-top: 12px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
+    .subrole-preview { padding: 18px; border-radius: 12px; background: var(--surface); }
+    .subrole-preview-caption { font-size: .73rem; line-height: 1.5; }
+    .subrole-option { min-height: 46px; border-radius: 10px; }
+    .subrole-option[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); }
+    .subrole-option-name { font-size: .84rem; font-weight: 550; }
+    .subrole-tools button { width: 36px; height: 36px; padding: 8px; border-radius: 9px; }
+    .console-heading { margin-bottom: 24px; }
+    .console-heading h2 { font-weight: 650; letter-spacing: -.035em; }
+    .console-heading p { font-size: .85rem; line-height: 1.6; }
+    .console-stats strong { font-weight: 650; font-variant-numeric: tabular-nums; }
+    .console-nav { padding: 4px; gap: 3px; background: var(--surface); border-color: transparent; }
+    .console-nav button { min-height: 38px; font-size: .78rem; font-weight: 550; }
+    .console-nav button[aria-selected="true"] { background: var(--panel-strong); color: var(--text); box-shadow: 0 1px 4px #0001; }
+    .console-card { padding: 22px; border-radius: 16px; background: var(--panel-strong); }
+    .console-card h3 { font-weight: 650; font-size: .95rem; }
+    .console-card-head p { font-size: .8rem; line-height: 1.6; }
+    .console-person { padding: 12px 4px; }
+    .console-person small { font-size: .74rem; line-height: 1.5; }
+    .console-quick-grid button { border-radius: 12px; padding: 18px; }
+    .console-quick-grid button:focus-visible { outline-offset: 2px; }
+    .console-card .field > label { text-transform: none; letter-spacing: 0; font-weight: 550; font-size: .8rem; }
+    .console-card .field > :is(input, textarea, select) { font-size: .85rem; line-height: 1.5; }
+    .vc-heading { flex: 0 0 auto; text-align: center; padding: 10px 16px 0; }
+    .vc-heading h2 { margin: 7px 0 8px; font: 600 clamp(1.35rem, 2.4vw, 1.9rem)/1.2 var(--font-ui); letter-spacing: -.035em; overflow-wrap: anywhere; }
+    .vc-heading p { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
+    .vc-stage { padding: 20px; }
+    .vc-grid { align-content: safe center; padding: 8px 3px; }
+    .vc-tile { background: var(--surface); border-radius: 18px; }
+    .vc-tile-placeholder { background: color-mix(in srgb, var(--accent) 7%, var(--panel-strong)); }
+    .vc-bar { gap: 12px; padding: 14px 16px; border-radius: 18px; box-shadow: 0 6px 20px #0001; }
+    .vc-status { font-size: .77rem; font-weight: 500; line-height: 1.5; }
+    .vc-control { min-height: 40px; font-size: .78rem; font-weight: 550; border-radius: 11px; padding: 0 14px; }
+    .vc-control.danger { color: var(--danger); }
+    .vc-tile.vc-speaking { box-shadow: inset 0 0 0 1px #3ba55d, 0 0 0 1px #3ba55d; }
+    .vc-tile.vc-speaking .avatar { box-shadow: 0 0 0 3px color-mix(in srgb, #3ba55d 65%, transparent); }
+    .vc-staff-mute { min-height: 34px; border-radius: 9px; }
+    .inbox-item:hover { border-color: var(--line-strong); }
+    .inbox-item:focus-visible { outline-offset: -2px; }
+    .inbox-location { line-height: 1.5; overflow-wrap: anywhere; }
+    @media (hover: none) { .vc-staff-mute { opacity: 1; } }
+    @media (max-width: 600px) {
+      :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); }
+      .console-card { padding: 16px; }
+      .console-card-head p { font-size: .78rem; }
+      .vc-stage { padding: 12px; }
+      .vc-heading { padding-top: 0; }
+      .vc-heading p { font-size: .74rem; }
+      .vc-tile, .vc-tile.audio-only { flex-basis: calc(50% - 12px); max-width: 220px; }
+      .vc-bar { width: 100%; padding: 12px; }
+      .vc-controls { gap: 6px; }
+      .vc-control { min-height: 42px; padding: 0 12px; }
+      #group-members .group-person { display: grid; grid-template-columns: 36px minmax(0, 1fr); }
+      #group-members .group-person .group-actions { grid-column: 2; flex-basis: auto; justify-content: flex-start; }
+      .group-person .group-actions button { min-height: 38px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      :is(.console-shell, #group-dialog, #private-call-dialog, #subrole-dialog, .vc-stage) * { transition: none !important; animation: none !important; }
+    }
+
+
 /* CHAT_ANALYTICS_CSS_START */
-.analytics-view { color: var(--text, #f5f3ff); margin: 18px 0; }
+.analytics-view { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color: var(--text, #f5f3ff); margin: 18px 0; }
 .analytics-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 .analytics-kpi, .analytics-card { border:1px solid var(--line, #ffffff20); border-radius:14px; padding:16px; background:var(--surface, #ffffff06); min-width:0; }
-.analytics-kpi strong { display:block; font-size:26px; line-height:1.3; font-variant-numeric:tabular-nums; }
+.analytics-kpi strong { display:block; font-size:30px; font-weight:600; letter-spacing:-.035em; line-height:1.4; font-variant-numeric:tabular-nums; }
 .analytics-kpi span, .analytics-note, .analytics-kpi small { color:var(--muted, #b8b3d3); font-size:12px; line-height:1.6; }
 .analytics-kpi small { display:block; }
 .analytics-card { margin-top:12px; }
@@ -2804,7 +2916,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .analytics-toolbar { display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
 .analytics-toolbar button, .analytics-toolbar select { font:inherit; font-size:12px; color:inherit; background:var(--surface, #ffffff08); border:1px solid var(--line, #ffffff20); border-radius:8px; padding:8px 12px; cursor:pointer; }
 .analytics-chart svg { display:block; width:100%; height:auto; max-height:200px; }
-.analytics-chart rect:focus, .analytics-chart rect:hover { fill:#a78bfa; outline:none; }
+.analytics-chart rect:focus, .analytics-chart rect:hover { fill:var(--accent-strong,#a78bfa); stroke:var(--text,#fff); stroke-width:1; outline:none; }
+.analytics-inspector { display:block; min-height:24px; margin:6px 0 0; font-size:12px; color:var(--text-soft,#d7d3e8); font-variant-numeric:tabular-nums; }
+.analytics-view [aria-busy="true"] { opacity:.65; }
+.analytics-table caption { text-align:left; padding:8px; color:var(--muted,#b8b3d3); font-size:12px; }
 .analytics-chart text { fill:var(--muted, #b8b3d3); font-size:11px; }
 .analytics-chart .analytics-missing { fill:#77738a; opacity:.5; }
 .analytics-scroll { overflow-x:auto; }
@@ -3368,6 +3483,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       <section class="timeline-wrap" aria-label="Message history">
         <div class="vc-stage" id="vc-stage" hidden aria-label="Global voice chat">
           <div class="vc-shell">
+            <header class="vc-heading"><span class="console-eyebrow" id="vc-room-kind">Community voice</span><h2 id="vc-room-title">A place to talk.</h2><p id="vc-room-description">Join with your microphone. Camera and screen sharing are optional.</p></header>
             <div class="vc-grid" id="vc-grid">
               <div class="vc-tile" id="vc-local-tile">
                 <video id="vc-local-video" class="vc-mirror" autoplay muted playsinline></video>
@@ -3384,7 +3500,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
                 <button class="vc-control" id="vc-deafen-btn" type="button" disabled hidden>Deafen</button>
                 <button class="vc-control" id="vc-video-btn" type="button" disabled hidden>Camera</button>
                 <button class="vc-control" id="vc-share-btn" type="button" disabled hidden>Share</button>
-                <button class="vc-control" id="vc-devices-btn" type="button" disabled hidden>Devices</button>
+                <button class="vc-control" id="vc-devices-btn" type="button" aria-haspopup="true" aria-controls="vc-devices" aria-expanded="false" disabled hidden>Devices</button>
                 <button class="vc-control" id="vc-chat-toggle" type="button" hidden>Chat</button>
                 <button class="vc-control danger" id="vc-leave-btn" type="button" disabled hidden>Leave</button>
               </div>
@@ -3762,7 +3878,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     <div class="dialog-body">
       <p class="field-help" id="subrole-description">Choose a badge to show beside your name. Your choice saves automatically.</p>
       <div class="subrole-preview" id="subrole-preview"></div>
-      <div class="field subrole-search"><label for="subrole-search">Find a subrole</label><input id="subrole-search" type="search" placeholder="Search badges…" autocomplete="off"></div>
+      <div class="field subrole-search"><label for="subrole-search">Find a subrole</label><input id="subrole-search" type="search" autofocus placeholder="Search badges…" autocomplete="off"></div>
       <div id="subrole-picker" class="subrole-picker"></div>
       <div class="subrole-status" id="subrole-status" role="status" aria-live="polite"><span id="subrole-status-text"></span><button class="ghost-button" id="subrole-retry" type="button" hidden>Retry</button></div>
       <details class="subrole-manage" id="subrole-manage" hidden>
@@ -3779,9 +3895,14 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     </div>
   </dialog>
 
-  <dialog id="private-call-dialog" aria-labelledby="private-call-title">
+  <dialog id="private-call-dialog" aria-labelledby="private-call-title" aria-describedby="private-call-description">
     <div class="dialog-header"><h2 id="private-call-title">Private call</h2><button class="icon-button" type="button" data-close-dialog="private-call-dialog" aria-label="Close">×</button></div>
-    <div class="dialog-body"><p class="field-help">Choose a private conversation. Only its members can join; their microphones stay off until they join.</p><div id="private-call-list" class="group-candidates"></div></div>
+    <div class="dialog-body">
+      <p class="field-help" id="private-call-description">Call a friend or a private group. Only conversation members can join.</p>
+      <div class="field"><label for="private-call-search">Find a conversation</label><input id="private-call-search" type="search" autofocus placeholder="Name or group" autocomplete="off"></div>
+      <div id="private-call-list" class="private-call-list" aria-label="Conversations"></div>
+      <p id="private-call-status" class="field-help" role="status" aria-live="polite">Your microphone turns on when you join.</p>
+    </div>
   </dialog>
 
   <dialog id="group-dialog" aria-labelledby="group-dialog-title" aria-describedby="group-description">
@@ -3789,10 +3910,10 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     <div class="dialog-body">
       <p class="field-help" id="group-description">Only accepted members can read this group, including earlier messages. People join by accepting an invitation.</p>
       <form id="group-form">
-        <div class="field" id="group-name-field"><label for="group-name">Group name</label><input id="group-name" maxlength="60" placeholder="Name your group" autocomplete="off"></div>
+        <div class="field" id="group-name-field"><label for="group-name">Group name</label><input id="group-name" autofocus required maxlength="60" placeholder="Name your group" autocomplete="off"></div>
         <section id="group-members-section" hidden><h3 class="group-section-heading">Members</h3><div id="group-members"></div><div id="group-pending"></div></section>
-        <section id="group-invite-section"><h3 class="group-section-heading">Invite people</h3><div class="field"><label for="group-search">Find a member</label><input id="group-search" type="search" placeholder="Name or username" autocomplete="off"></div><div class="field-help" id="group-selection-count" role="status"></div><div id="group-candidates" class="group-candidates"></div></section>
-        <div class="field-error" id="group-error" role="alert"></div>
+        <section id="group-invite-section"><h3 class="group-section-heading">Invite people</h3><div class="field"><label for="group-search">Find a member</label><input id="group-search" type="search" placeholder="Name or username" autocomplete="off"></div><div class="field-help" id="group-selection-count" role="status" aria-live="polite"></div><div id="group-selected" class="group-selected" aria-label="Selected people"></div><div id="group-candidates" class="group-candidates"></div></section>
+        <div class="field-error" id="group-error" role="alert"></div><button class="ghost-button" id="group-retry" type="button" hidden>Reload invitations</button>
         <div class="group-actions group-footer"><button id="group-create" class="primary-button" type="submit">Create group & invite</button><button id="group-rename" class="secondary-button" type="button" hidden>Save name</button><button id="group-send-invites" class="primary-button" type="button" hidden>Send invitations</button><button id="group-leave" class="danger-button" type="button" hidden>Leave group</button></div>
       </form>
     </div>
@@ -6192,6 +6313,9 @@ void main() {
       speaking: false,
       serverMutes: new Map(),
       mutePollAt: 0,
+      muteBusy: new Set(),
+      sharePending: false,
+      cameraPending: false,
     };
 
     const forumThreadCache = new Map();
@@ -6571,6 +6695,7 @@ void main() {
       $('subrole-preview').innerHTML = `<span class="subrole-preview-name">${esc(me ? displayNameOf(me) : 'Your name')}</span>${me ? roleBadgeHtml(me) + subRoleBadgeHtml(me) : ''}
         <span class="subrole-preview-caption">${mine ? 'Your current badge' : 'No badge selected'} · Subroles are cosmetic.</span>`;
       const query = $('subrole-search').value.trim().toLowerCase();
+      $('subrole-picker').setAttribute('aria-label', 'Choose a cosmetic badge');
       const rows = [{ slug: '', label: 'No subrole', color: '' }, ...availableSubroles()]
         .filter(item => !query || item.label.toLowerCase().includes(query));
       // Preserve keyboard focus when a save or realtime update rebuilds the choices.
@@ -10284,10 +10409,10 @@ void main() {
 
     function explainVoiceBlock() {
       if (!voiceTurnFromSettings().length) {
-        return 'School and campus Wi-Fi block direct voice. Home Wi-Fi allows it. Chat still works because it uses HTTPS. Voice needs a TURN server on port 443, saved in Owner → App controls.';
+        return isOwner() ? 'Audio could not connect. A relay may help on restricted networks. Add a voice relay in Owner → App controls, then rejoin.' : 'Audio could not connect. Try rejoining or another network. The owner can configure a voice relay if needed.';
       }
       if (!voice.sawRelay) {
-        return 'This network did not open a relay. UDP TURN is blocked on a lot of school networks. Use a turns: address on port 443.';
+        return 'The voice relay could not connect. Try rejoining or another network. If this continues, ask the owner to check the relay.';
       }
       return '';
     }
@@ -10300,7 +10425,7 @@ void main() {
       note.textContent = text;
       if (!voice.schoolNoted) {
         voice.schoolNoted = true;
-        toast({ type: 'warning', title: 'Voice is blocked on this network', text, duration: 9000 });
+        toast({ type: 'warning', title: 'Audio could not connect', text, duration: 9000 });
       }
     }
 
@@ -10325,10 +10450,13 @@ void main() {
     async function verifiedVoiceUser(ticket) {
       const key = String(ticket || '');
       if (!/^[A-Za-z0-9_]{1,40}\.[0-9]{1,12}\.[0-9a-f]{64}$/.test(key)) return null;
-      if (voice.ticketNames.has(key)) return voice.ticketNames.get(key);
+      const cached = voice.ticketNames.get(key);
+      if (cached && Date.now() - cached.checkedAt < 60000) return cached.username;
       const { data, error } = await sb.rpc('chat_voice_verify', { p_ticket: key });
       const username = !error && typeof data === 'string' && data ? data : null;
-      voice.ticketNames.set(key, username);
+      // A transient request failure must not poison this ticket for the whole call.
+      if (username) voice.ticketNames.set(key, { username, checkedAt: Date.now() });
+      else voice.ticketNames.delete(key);
       return username;
     }
 
@@ -10474,7 +10602,7 @@ void main() {
       const dock = $('vc-dock-status');
       if (dock) dock.textContent = voiceRosterLabel();
       if (!voice.peers.size) {
-        setVoiceStatus(voice.deafened ? 'Deafened — waiting for others' : 'Mic is live — waiting for others');
+        setVoiceStatus(voice.deafened ? 'Deafened · waiting for others' : isServerVoiceMuted(me.username) ? 'Muted by staff · waiting for others' : voice.localStream?.getAudioTracks()[0]?.enabled ? 'Microphone on · waiting for others' : 'Microphone off · waiting for others');
         if (title) title.textContent = voice.roomId ? 'Private call' : 'Voice Connected';
         return;
       }
@@ -10643,22 +10771,30 @@ void main() {
       const held = isServerVoiceMuted(username);
       button.textContent = held ? 'Unmute' : 'Mute';
       button.classList.toggle('active', held);
+      button.disabled = voice.muteBusy.has(username);
+      button.setAttribute('aria-pressed', String(held));
+      button.setAttribute('aria-label', `${held ? 'Allow' : 'Mute'} ${displayNameOf(username)}${held ? ' to speak' : ' in voice'}`);
       button.title = held ? 'Let them speak in voice' : 'Mute them in voice';
     }
 
     async function setServerVoiceMute(username, muted) {
-      if (!canModerateUser(username)) return;
-      const { error } = await sb.rpc('chat_set_voice_mute', { p_username: username, p_muted: !!muted });
-      if (error) {
-        const missing = error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || '');
-        toast({ type: 'error', text: missing ? 'Voice mute needs the latest database migration.' : (error.message || 'Could not change that voice mute.') });
-        return;
-      }
-      if (muted) voice.serverMutes.set(username, me.username);
-      else voice.serverMutes.delete(username);
-      applyVoiceServerMutes();
-      if (voice.connected) publishVoice('staff-mute-refresh', {});
-      toast({ type: 'success', text: muted ? `@${username} is muted in voice.` : `@${username} can speak in voice again.` });
+      if (!canModerateUser(username) || voice.muteBusy.has(username)) return;
+      voice.muteBusy.add(username);
+      voice.peers.forEach(syncStaffMuteButton);
+      try {
+        const { error } = await sb.rpc('chat_set_voice_mute', { p_username: username, p_muted: !!muted });
+        if (error) {
+          const missing = error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || '');
+          toast({ type: 'error', text: missing ? 'Voice mute needs the latest database migration.' : (error.message || 'Could not change that voice mute.') });
+          return;
+        }
+        if (muted) voice.serverMutes.set(username, me.username);
+        else voice.serverMutes.delete(username);
+        applyVoiceServerMutes();
+        if (voice.connected) publishVoice('staff-mute-refresh', {});
+        toast({ type: 'success', text: muted ? `@${username} is muted in voice.` : `@${username} can speak in voice again.` });
+      } catch { toast({ type: 'error', text: 'Could not change the voice mute. Try again.' }); }
+      finally { voice.muteBusy.delete(username); voice.peers.forEach(syncStaffMuteButton); }
     }
 
     function updateVoiceUi() {
@@ -10680,8 +10816,10 @@ void main() {
       const serverHeld = !!(me && isServerVoiceMuted(me.username));
       $('vc-mute-btn').disabled = !voice.connected || !voice.localStream || serverHeld;
       $('vc-deafen-btn').disabled = !voice.connected;
-      $('vc-video-btn').disabled = !voice.connected;
-      $('vc-share-btn').disabled = !voice.connected || !navigator.mediaDevices?.getDisplayMedia;
+      $('vc-video-btn').disabled = !voice.connected || voice.cameraPending;
+      $('vc-video-btn').setAttribute('aria-busy', String(!!voice.cameraPending));
+      $('vc-share-btn').disabled = !voice.connected || voice.sharePending || !navigator.mediaDevices?.getDisplayMedia;
+      $('vc-share-btn').setAttribute('aria-busy', String(!!voice.sharePending));
       $('vc-devices-btn').disabled = !voice.connected;
       $('vc-leave-btn').disabled = !joined;
       const audio = voice.localStream?.getAudioTracks()[0];
@@ -10695,7 +10833,13 @@ void main() {
       $('vc-deafen-btn').textContent = voice.deafened ? 'Undeafen' : 'Deafen';
       $('vc-deafen-btn').classList.toggle('active', voice.deafened);
       $('vc-video-btn').textContent = cameraOff ? 'Camera' : 'Stop video';
-      $('vc-video-btn').classList.toggle('active', cameraOff);
+      $('vc-video-btn').classList.toggle('active', !cameraOff);
+      for (const [id, pressed] of [['vc-mute-btn', muted || serverHeld], ['vc-dock-mute', muted || serverHeld], ['vc-deafen-btn', voice.deafened], ['vc-video-btn', !cameraOff], ['vc-share-btn', !!voice.screenStream]]) $(id).setAttribute('aria-pressed', String(pressed));
+      $('vc-share-btn').textContent = voice.sharePending ? 'Choosing screen…' : voice.screenStream ? 'Stop sharing' : 'Share screen';
+      const privateDm = voice.roomId && dms.find(dm => dm.id === voice.roomId);
+      $('vc-room-kind').textContent = voice.roomId ? 'Private voice' : 'Community voice';
+      $('vc-room-title').textContent = privateDm ? conversationTitle(privateDm) : 'A place to talk.';
+      $('vc-room-description').textContent = voice.roomId ? 'Only conversation members can join. Camera and screen sharing are optional.' : 'Join with your microphone. Camera and screen sharing are optional.';
       $('vc-local-state').textContent = serverHeld
         ? `Muted by @${serverMuteBy(me.username)}`
         : (voice.deafened ? 'Deafened' : (muted ? 'Muted' : ''));
@@ -10710,7 +10854,7 @@ void main() {
     async function privateVoiceAccess(id) {
       const { data, error } = await sb.rpc('chat_private_voice_room', { p_dm_id: id });
       if (error) throw new Error(/PGRST202|42883/.test(error.code || '')
-        ? 'Private calls need the private_voice_calls SQL update.' : (error.message || 'This private call is unavailable.'));
+        ? 'Private calls are not ready yet. Ask the owner to finish setting up voice.' : (error.message || 'This private call is unavailable.'));
       if (!data?.topic || !Array.isArray(data.members)) throw new Error('This private call is unavailable.');
       return data;
     }
@@ -10750,10 +10894,16 @@ void main() {
 
     async function startPrivateCall(dm) {
       if (voice.joining || voice.openingPrivate) return;
+      const actor = me?.username;
+      const issue = privateCallIssue(dm);
+      if (!actor || issue) { if (issue) toast({ type: 'warning', text: issue }); return; }
       voice.openingPrivate = true;
+      $('private-call-btn').setAttribute('aria-busy', 'true');
+      if ($('private-call-dialog').open) { renderPrivateCallPicker(); $('private-call-status').textContent = 'Opening call…'; }
       try {
         const room = await privateVoiceAccess(dm.id);
-        if (voice.roomId !== dm.id) leaveVoiceRoom({ quiet: true });
+        if (me?.username !== actor) return;
+        if (voice.roomId !== dm.id || (voice.connected && voice.roomTopic !== room.topic)) leaveVoiceRoom({ quiet: true });
         voice.roomId = dm.id;
         voice.roomTopic = room.topic;
         voice.roomMembers = room.members;
@@ -10769,23 +10919,46 @@ void main() {
           if (error) toast({ type: 'warning', text: 'Call is open, but the call invitation could not be sent. Ask them to use the phone button.' });
         }
       } catch (error) { toast({ type: 'error', text: error.message || 'Could not start a private call.' }); }
-      finally { voice.openingPrivate = false; }
+      finally {
+        voice.openingPrivate = false;
+        $('private-call-btn').setAttribute('aria-busy', 'false');
+        if ($('private-call-dialog').open) { renderPrivateCallPicker(); $('private-call-status').textContent = 'Your microphone turns on when you join.'; }
+      }
     }
 
+    function privateCallIssue(dm) {
+      if (!dm?.participants || dm.participants.length < 2) return 'Waiting for someone to join this group';
+      if (dm.participants.some(name => isHiddenBot(name))) return 'Voice calls are unavailable for this conversation';
+      if (dm.participants.some(name => dmBlockedUsers.has(name))) return 'A blocked member is in this conversation';
+      return '';
+    }
+    function renderPrivateCallPicker() {
+      const list = $('private-call-list');
+      const query = $('private-call-search').value.trim().replace(/^@/, '').toLowerCase();
+      const rows = dms.filter(item => (item.is_group || !isHiddenBot(item.other))
+        && (!query || `${conversationTitle(item)} ${item.other || ''}`.toLowerCase().includes(query)));
+      list.setAttribute('aria-busy', String(voice.openingPrivate));
+      list.innerHTML = rows.map(item => {
+        const issue = privateCallIssue(item);
+        const active = voice.connected && voice.roomId === item.id;
+        const detail = issue || (active ? 'Return to your call' : item.is_group ? `${item.participants.length} members · Private group` : `@${item.other}`);
+        return `<button class="private-call-row" type="button" data-call-conversation="${esc(item.id)}" ${issue || voice.openingPrivate ? 'disabled' : ''}>
+          ${item.is_group ? groupAvatarHtml() : avatarHtml(profileOf(item.other), 'avatar-sm', false)}
+          <span class="private-call-copy"><strong>${esc(conversationTitle(item))}</strong><small>${esc(detail)}</small></span>
+          <span class="private-call-action" aria-hidden="true">${active ? 'Return' : 'Call'} <span>↗</span></span>
+        </button>`;
+      }).join('') || `<div class="tool-empty"><strong>${query ? 'No matching conversations' : 'No conversations yet'}</strong><span>${query ? 'Try a different name or group.' : 'Start a direct message or create a private group to make a call.'}</span></div>`;
+      qsa('[data-call-conversation]', list).forEach(button => button.addEventListener('click', () => {
+        const dm = dms.find(item => item.id === button.dataset.callConversation);
+        if (dm) startPrivateCall(dm);
+      }));
+    }
     function openPrivateCallPicker() {
       const dm = currentView.type === 'dm' && dms.find(item => item.id === currentView.id);
       if (dm) { startPrivateCall(dm); return; }
-      const list = $('private-call-list');
-      list.replaceChildren();
-      dms.filter(item => item.is_group || !isHiddenBot(item.other)).forEach(item => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'secondary-button';
-        button.textContent = conversationTitle(item);
-        button.addEventListener('click', () => startPrivateCall(item));
-        list.append(button);
-      });
-      if (!list.childElementCount) list.textContent = 'Open a DM or create a private group first.';
+      $('private-call-search').value = '';
+      $('private-call-status').textContent = 'Your microphone turns on when you join.';
+      renderPrivateCallPicker();
       if (!$('private-call-dialog').open) $('private-call-dialog').showModal();
     }
 
@@ -10974,14 +11147,12 @@ void main() {
           voice.roomMembers = room.members;
         }
         const iceReady = prepareVoiceIce();
-        voice.localStream = await requestVoiceMedia();
+        const requestedStream = await requestVoiceMedia();
         if (joinGen !== voice.joinGen || voice.intentionalClose) {
-          voice.localStream?.getTracks().forEach(track => track.stop());
-          voice.localStream = null;
-          voice.joining = false;
-          updateVoiceUi();
+          requestedStream?.getTracks().forEach(track => track.stop());
           return;
         }
+        voice.localStream = requestedStream;
         $('vc-local-video').srcObject = voice.localStream;
         $('vc-local-video').classList.add('vc-mirror');
         $('vc-local-video').classList.remove('vc-screen-share');
@@ -10990,7 +11161,9 @@ void main() {
         updateVoiceUi();
         setVoiceStatus('Connecting to the room…');
         await iceReady;
+        if (joinGen !== voice.joinGen || voice.intentionalClose) return;
         await mintVoiceTicket();
+        if (joinGen !== voice.joinGen || voice.intentionalClose) return;
         await connectVoiceBroker();
         if (joinGen !== voice.joinGen || voice.intentionalClose) {
           try { voice.client?.end(true); } catch {}
@@ -11524,7 +11697,9 @@ void main() {
       if (!peer) return;
       try { peer.levelStop?.(); } catch {}
       try { peer.dc?.close(); } catch {}
+      if (peer.pc) peer.pc.onconnectionstatechange = null;
       try { peer.pc?.close(); } catch {}
+      if (peer.audio) { peer.audio.pause(); peer.audio.srcObject = null; }
       peer.tile?.remove();
       voice.peers.delete(peerId);
       updateVoiceUi();
@@ -11574,11 +11749,16 @@ void main() {
       if (existing) {
         existing.enabled = !existing.enabled;
         updateVoiceUi();
+        await replaceVoiceVideoTrack(existing.enabled ? existing : null);
         return;
       }
-      if (!voice.connected || !navigator.mediaDevices?.getUserMedia) return;
+      if (!voice.connected || voice.cameraPending || !navigator.mediaDevices?.getUserMedia) return;
+      const generation = voice.joinGen;
+      voice.cameraPending = true;
+      updateVoiceUi();
       try {
         await askHostForMedia({ audio: false, video: true });
+        if (generation !== voice.joinGen || !voice.connected) return;
         const cam = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
@@ -11587,11 +11767,12 @@ void main() {
           },
         });
         const track = cam.getVideoTracks()[0];
-        if (!track) return;
+        if (!track || generation !== voice.joinGen || !voice.connected) { cam.getTracks().forEach(item => item.stop()); return; }
         if (!voice.localStream) voice.localStream = cam;
         else voice.localStream.addTrack(track);
         cam.getTracks().forEach(item => { if (item !== track) item.stop(); });
         await replaceVoiceVideoTrack(track);
+        if (generation !== voice.joinGen || !voice.connected) return;
         $('vc-local-video').srcObject = voice.localStream;
         $('vc-local-video').classList.add('vc-mirror');
         $('vc-local-video').classList.remove('vc-screen-share');
@@ -11605,7 +11786,7 @@ void main() {
               : 'Camera permission was denied. You can stay in the call with mic only.')
             : (error?.message || 'Could not start the camera.'),
         });
-      }
+      } finally { voice.cameraPending = false; updateVoiceUi(); }
     }
 
     async function tuneVideoSender(sender, screen) {
@@ -11670,7 +11851,9 @@ void main() {
 
     async function replaceVoiceVideoTrack(track, { screen = false } = {}) {
       try { if (track) track.contentHint = screen ? 'detail' : 'motion'; } catch {}
+      const generation = voice.joinGen;
       await Promise.allSettled([...voice.peers.values()].map(peer => pushPeerVideo(peer, track, screen)));
+      if (generation !== voice.joinGen || !voice.connected) return;
       publishVoice('video-mode', { mode: voiceVideoMode() });
     }
 
@@ -11679,8 +11862,10 @@ void main() {
       const screen = voice.screenStream;
       voice.screenStream = null;
       screen.getTracks().forEach(track => { track.onended = null; track.stop(); });
+      const generation = voice.joinGen;
       const camera = voice.localStream?.getVideoTracks()[0] || null;
-      await replaceVoiceVideoTrack(camera);
+      await replaceVoiceVideoTrack(camera?.enabled ? camera : null);
+      if (generation !== voice.joinGen || !voice.connected) return;
       $('vc-local-video').srcObject = voice.localStream;
       $('vc-local-video').classList.add('vc-mirror');
       $('vc-local-video').classList.remove('vc-screen-share');
@@ -11693,6 +11878,10 @@ void main() {
 
     async function toggleVoiceShare() {
       if (voice.screenStream) { await stopVoiceShare(); return; }
+      if (!voice.connected || voice.sharePending) return;
+      const generation = voice.joinGen;
+      voice.sharePending = true;
+      updateVoiceUi();
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: {
@@ -11703,7 +11892,10 @@ void main() {
           audio: false,
         });
         const track = stream.getVideoTracks()[0];
-        if (!track) return;
+        if (!track || generation !== voice.joinGen || !voice.connected) {
+          stream.getTracks().forEach(item => item.stop());
+          return;
+        }
         try {
           await track.applyConstraints({
             frameRate: { ideal: 15, max: 24 },
@@ -11711,9 +11903,11 @@ void main() {
             height: { max: 1080 },
           });
         } catch {}
+        if (generation !== voice.joinGen || !voice.connected) { stream.getTracks().forEach(item => item.stop()); return; }
         voice.screenStream = stream;
         track.onended = () => stopVoiceShare();
         await replaceVoiceVideoTrack(track, { screen: true });
+        if (generation !== voice.joinGen || !voice.connected) return;
         const localVideo = $('vc-local-video');
         localVideo.srcObject = stream;
         localVideo.classList.remove('vc-mirror');
@@ -11725,8 +11919,8 @@ void main() {
         $('vc-share-btn').textContent = 'Stop sharing';
         $('vc-share-btn').classList.add('active');
       } catch (error) {
-        if (error?.name !== 'NotAllowedError') toast({ type: 'error', text: 'Could not share your screen.' });
-      }
+        if (error?.name !== 'NotAllowedError' && generation === voice.joinGen) toast({ type: 'error', text: 'Could not share your screen.' });
+      } finally { voice.sharePending = false; updateVoiceUi(); }
     }
 
     function leaveVoiceRoom({ quiet = false } = {}) {
@@ -11753,12 +11947,7 @@ void main() {
       voice.intentionalClose = true;
       voice.connected = false;
       voice.joining = false;
-      voice.peers.forEach(peer => {
-        try { peer.dc?.close(); } catch {}
-        try { peer.pc?.close(); } catch {}
-        peer.tile?.remove();
-      });
-      voice.peers.clear();
+      [...voice.peers.keys()].forEach(removeVoicePeer);
       try { voice.client?.end(false); } catch {}
       voice.client = null;
       if (voice.screenStream) {
@@ -11933,9 +12122,12 @@ void main() {
       $('vc-devices-btn').addEventListener('click', async (event) => {
         event.stopPropagation();
         const pop = $('vc-devices');
-        if (!pop.hidden) { pop.hidden = true; return; }
+        if (!pop.hidden) { hidePopovers(); return; }
+        const generation = voice.joinGen;
         await refreshVoiceDevices();
+        if (!voice.connected || generation !== voice.joinGen) return;
         showPopover(pop, $('vc-devices-btn'), 'up');
+        $('vc-devices-btn').setAttribute('aria-expanded', 'true');
       });
       $('vc-mic-select').addEventListener('change', async () => {
         LS.set('lc_voice_mic', $('vc-mic-select').value);
@@ -14923,6 +15115,8 @@ void main() {
     let groupSelection = new Set();
     let groupPending = new Set();
     let groupDialogId = null;
+    let groupDialogGeneration = 0;
+    let groupPendingReady = true;
     let groupBusy = false;
     let groupLeavingId = null;
     let conversationRefresh = null;
@@ -14973,20 +15167,42 @@ void main() {
         && (!query || `${displayNameOf(p)} ${p.username}`.toLowerCase().includes(query)))
         .sort((a, b) => displayNameOf(a).localeCompare(displayNameOf(b)));
     }
+    function syncGroupControls() {
+      const dm = groupDialogId ? dms.find(item => item.id === groupDialogId) : null;
+      const owner = !dm || dm.group_owner === me?.username;
+      $('group-name').disabled = groupBusy || !owner;
+      $('group-search').disabled = groupBusy || !owner || !groupPendingReady;
+      const title = $('group-name').value.trim();
+      $('group-create').disabled = groupBusy || !title || !groupSelection.size;
+      $('group-create').textContent = groupBusy && !dm ? 'Creating…' : 'Create group & invite';
+      $('group-rename').disabled = groupBusy || !owner || !title || title === dm?.title;
+      $('group-send-invites').disabled = groupBusy || !owner || !groupPendingReady || !groupSelection.size;
+      $('group-send-invites').textContent = groupSelection.size ? `Invite ${groupSelection.size} ${groupSelection.size === 1 ? 'person' : 'people'}` : 'Send invitations';
+      $('group-leave').disabled = groupBusy;
+      $('group-dialog').setAttribute('aria-busy', String(groupBusy));
+      qsa('[data-group-remove], [data-group-transfer], [data-group-cancel]', $('group-dialog')).forEach(control => { control.disabled = groupBusy || !owner; });
+    }
     function renderGroupCandidates() {
       const dm = groupDialogId ? dms.find(item => item.id === groupDialogId) : null;
       const focused = document.activeElement?.dataset?.groupPerson;
       const rows = groupCandidates(dm);
       const max = Math.max(0, 16 - (dm?.participants.length || 1) - groupPending.size);
-      $('group-selection-count').textContent = `${groupSelection.size} of ${max} people selected`;
-      $('group-candidates').innerHTML = rows.map(profile => `<label class="group-person">
+      // A refreshed invitation list can invalidate selections made on an older list.
+      for (const name of groupSelection) if (dm?.participants.includes(name) || groupPending.has(name) || dmBlockedUsers.has(name)) groupSelection.delete(name);
+      $('group-selection-count').textContent = !groupPendingReady ? 'Loading available places…' : `${groupSelection.size} selected · ${Math.max(0, max - groupSelection.size)} ${max - groupSelection.size === 1 ? 'place' : 'places'} left`;
+      $('group-selected').innerHTML = [...groupSelection].map(name => `<button type="button" class="group-selection-chip" data-group-unselect="${esc(name)}" aria-label="Remove ${esc(displayNameOf(name))} from selection" ${groupBusy ? 'disabled' : ''}>${esc(displayNameOf(name))}<span aria-hidden="true">×</span></button>`).join('');
+      $('group-candidates').setAttribute('aria-busy', String(!groupPendingReady));
+      $('group-candidates').innerHTML = rows.map(profile => `<label class="group-person${groupSelection.has(profile.username) ? ' is-selected' : ''}">
         ${avatarHtml(profile, 'avatar-sm', false)}<span><strong>${esc(displayNameOf(profile))}</strong><small>@${esc(profile.username)}</small></span>
-        <input type="checkbox" data-group-person="${esc(profile.username)}" aria-label="Invite ${esc(displayNameOf(profile))}" ${groupSelection.has(profile.username) ? 'checked' : ''} ${groupBusy || (!groupSelection.has(profile.username) && groupSelection.size >= max) ? 'disabled' : ''}>
-      </label>`).join('') || '<p class="picker-note">No matching people to invite.</p>';
+        <input type="checkbox" data-group-person="${esc(profile.username)}" aria-label="Invite ${esc(displayNameOf(profile))}" ${groupSelection.has(profile.username) ? 'checked' : ''} ${groupBusy || !groupPendingReady || (!groupSelection.has(profile.username) && groupSelection.size >= max) ? 'disabled' : ''}>
+      </label>`).join('') || `<p class="picker-note">${!max ? 'All 16 places are filled or reserved by invitations.' : 'No matching people. Try another name.'}</p>`;
       if (focused && !groupBusy) qsa('[data-group-person]', $('group-candidates')).find(input => input.dataset.groupPerson === focused)?.focus({preventScroll:true});
+      syncGroupControls();
     }
     async function openGroupDialog(id = null, refreshing = false) {
       if (groupBusy && !refreshing) return;
+      if (refreshing && (!$('group-dialog').open || groupDialogId !== id)) return;
+      const generation = ++groupDialogGeneration;
       groupDialogId = id;
       groupSelection = new Set();
       groupPending = new Set();
@@ -14994,6 +15210,9 @@ void main() {
       const dm = id ? dms.find(item => item.id === id && item.is_group) : null;
       if (id && !dm) return;
       const owner = !dm || dm.group_owner === me.username;
+      groupPendingReady = !dm || !owner;
+      $('group-retry').hidden = true;
+      $('group-description').textContent = dm ? 'Only accepted members can read the group and its earlier messages. Up to 16 people, including pending invitations.' : 'Invite up to 15 people. They can read the group and its earlier messages after accepting.';
       $('group-dialog-title').textContent = dm ? dm.title : 'Create a private group';
       $('group-name').value = dm?.title || '';
       $('group-name').disabled = groupBusy || !owner;
@@ -15014,11 +15233,22 @@ void main() {
         $('group-pending').innerHTML = '';
       }
       renderGroupCandidates();
-      if (groupBusy) qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = true; });
       if (!$('group-dialog').open) $('group-dialog').showModal();
       if (dm && owner) {
-        const { data, error } = await sb.from('chat_group_invites').select('invitee').eq('group_id', id);
-        if (!error && groupDialogId === id) { groupPending = new Set((data || []).map(invite => invite.invitee)); renderGroupCandidates(); $('group-pending').innerHTML = (data || []).map(invite => `<div class="group-pending-person"><span>Pending · @${esc(invite.invitee)}</span><button class="ghost-button" type="button" data-group-cancel="${esc(invite.invitee)}">Cancel invite</button></div>`).join(''); }
+        try {
+          const { data, error } = await sb.from('chat_group_invites').select('invitee').eq('group_id', id);
+          if (generation !== groupDialogGeneration || groupDialogId !== id || !$('group-dialog').open) return;
+          if (error) throw error;
+          groupPending = new Set((data || []).map(invite => invite.invitee));
+          groupPendingReady = true;
+          $('group-pending').innerHTML = (data || []).map(invite => `<div class="group-pending-person"><span>Invited · @${esc(invite.invitee)}</span><button class="ghost-button" type="button" data-group-cancel="${esc(invite.invitee)}" aria-label="Cancel invitation for ${esc(invite.invitee)}">Cancel invite</button></div>`).join('');
+          renderGroupCandidates();
+        } catch {
+          if (generation !== groupDialogGeneration || groupDialogId !== id || !$('group-dialog').open) return;
+          $('group-error').textContent = 'Invitations could not load. Reload them before inviting more people.';
+          $('group-selection-count').textContent = 'Available places could not be checked';
+          $('group-retry').hidden = false;
+        }
       }
     }
     async function createPrivateGroup(event) {
@@ -15027,17 +15257,17 @@ void main() {
       if (groupDialogId) { if (!$('group-name').disabled) return managePrivateGroup('rename'); return; }
       const title = $('group-name').value.trim();
       if (!title || !groupSelection.size) { $('group-error').textContent = 'Give the group a name and select at least one person.'; return; }
+      const generation = groupDialogGeneration;
       groupBusy = true;
-      $('group-create').disabled = true;
+      renderGroupCandidates();
       try {
         const { data, error } = await sb.rpc('chat_create_group', { p_title: title, p_invitees: [...groupSelection] });
         if (error || !data) throw error || new Error('Could not create the group.');
         await queueConversationRefresh();
-        $('group-dialog').close();
-        const dm = dms.find(item => item.id === data); if (dm) await openView(dmView(dm));
+        if (generation === groupDialogGeneration && $('group-dialog').open) { $('group-dialog').close(); const dm = dms.find(item => item.id === data); if (dm) await openView(dmView(dm)); }
         toast({ type: 'success', text: 'Group created. Invitations sent.' });
       } catch (error) { $('group-error').textContent = error?.message || 'Could not create the group. Try again.'; }
-      finally { groupBusy = false; $('group-create').disabled = false; renderGroupCandidates(); }
+      finally { groupBusy = false; renderGroupCandidates(); }
     }
     async function managePrivateGroup(action, username = '') {
       if (!groupDialogId || groupBusy) return;
@@ -15045,9 +15275,10 @@ void main() {
       if (action === 'leave') groupLeavingId = id;
       const title = $('group-name').value.trim();
       const selected = [...groupSelection];
+      if (action === 'invite' && !groupPendingReady) return;
       if (action === 'invite' && !selected.length) { $('group-error').textContent = 'Select someone to invite.'; return; }
       groupBusy = true;
-      qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = true; });
+      renderGroupCandidates();
       let completed = 0;
       try {
         for (const target of action === 'invite' ? selected : [username]) {
@@ -15065,13 +15296,13 @@ void main() {
         $('group-error').textContent = error?.message || 'Could not update the group.';
       } finally {
         groupBusy = false; groupLeavingId = null;
-        qsa('button, input', $('group-dialog')).forEach(control => { control.disabled = false; });
         const dm = dms.find(item => item.id === id);
         $('group-name').disabled = !!dm && dm.group_owner !== me.username;
         renderGroupCandidates();
       }
     }
     function discardGroupCache(id) {
+      if (voice.roomId === id) leaveVoiceRoom({ quiet: true });
       const key = `dm:${id}`;
       (msgCache.get(key) || []).forEach(unindexMessage);
       msgCache.delete(key); historyContexts.delete(key); hasMoreMap.delete(key); unreadCounts.delete(key);
@@ -15108,6 +15339,13 @@ void main() {
       $('group-invites-btn').addEventListener('click', () => { renderGroupInvites(); $('group-invites-dialog').showModal(); });
       $('group-form').addEventListener('submit', createPrivateGroup);
       $('group-search').addEventListener('input', renderGroupCandidates);
+      $('group-name').addEventListener('input', syncGroupControls);
+      $('group-retry').addEventListener('click', () => openGroupDialog(groupDialogId));
+      $('group-dialog').addEventListener('close', () => { groupDialogGeneration++; });
+      $('group-selected').addEventListener('click', event => {
+        const button = event.target.closest('[data-group-unselect]');
+        if (button && !groupBusy) { groupSelection.delete(button.dataset.groupUnselect); renderGroupCandidates(); $('group-search').focus(); }
+      });
       $('group-candidates').addEventListener('change', event => {
         const checkbox = event.target.closest('[data-group-person]'); if (!checkbox) return;
         if (checkbox.checked) groupSelection.add(checkbox.dataset.groupPerson); else groupSelection.delete(checkbox.dataset.groupPerson);
@@ -15179,6 +15417,7 @@ void main() {
       if (openPopover && !openPopover.contains(e.target) && !inMenu) hidePopovers();
     }
     function hidePopovers() {
+      $('vc-devices-btn').setAttribute('aria-expanded', 'false');
       closeProfileMenu();
       qsa('.popover').forEach(p => { p.hidden = true; });
       openPopover = null;
@@ -15803,14 +16042,14 @@ void main() {
         + daily.map((row, i) => {
           const missing = row[key] == null, height = missing ? 3 : Math.max(1, Number(row[key]) / max * 125);
           const title = row.day + ': ' + (missing ? 'not tracked' : analyticsNumber(row[key]) + ' ' + labels[key].toLowerCase());
-          return '<rect tabindex="0" x="' + (i * 23 + 22) + '" y="' + (150 - height) + '" width="17" height="' + height + '" rx="3" fill="#8b72eb" class="' + (missing ? 'analytics-missing' : '') + '" aria-label="' + esc(title) + '"><title>' + esc(title) + '</title></rect>';
+          return '<rect data-analytics-bar tabindex="0" x="' + (i * 23 + 22) + '" y="' + (150 - height) + '" width="17" height="' + height + '" rx="3" fill="#8b72eb" class="' + (missing ? 'analytics-missing' : '') + '" aria-label="' + esc(title) + '"><title>' + esc(title) + '</title></rect>';
         }).join('') + '<text x="22" y="175">' + esc(daily[0]?.day || '') + '</text><text x="716" y="175" text-anchor="end">' + esc(daily.at(-1)?.day || '') + '</text></svg>';
     }
     function analyticsMarkup(summary) {
       if (!summary || !Array.isArray(summary.daily)) return '<p class="analytics-note" role="status">Analytics unavailable. Refresh to retry.</p>';
       const age = Date.parse(summary.generated_at) - Date.parse(summary.activity_since);
       const current = Number(summary.messages_24h || 0), previous = Number(summary.messages_previous_24h || 0);
-      const change = previous ? ((current - previous) / previous * 100).toFixed(1) + '% vs prior 24h' : 'Prior 24h: ' + analyticsNumber(previous);
+      const change = previous ? (current > previous ? '+' : '') + ((current - previous) / previous * 100).toFixed(1) + '% vs prior 24h' : 'Prior 24h: ' + analyticsNumber(previous);
       const cards = [
         ['Active today',summary.dau,'Distinct signed-in accounts'],
         ['Active · 7 days',summary.wau,age < 7*86400000 ? 'Collecting first 7 days' : '7 calendar days, including today'],
@@ -15824,19 +16063,30 @@ void main() {
       const updated = new Date(summary.generated_at).toLocaleString([], {timeZone:'America/Chicago'});
       return '<div class="analytics-view"><div class="analytics-kpis">' + cards.map(([label,value,note]) => '<div class="analytics-kpi"><span>' + esc(label) + '</span><strong>' + analyticsNumber(value) + '</strong><small>' + esc(note) + '</small></div>').join('')
         + '</div><p class="analytics-note">Foreground in last 5m: ' + analyticsNumber(summary.foreground_5m) + ' accounts · Public senders in 7d: ' + analyticsNumber(summary.active_senders_7d) + ' · Signups in 7d: ' + analyticsNumber(summary.signups_7d) + '<br>Tracked public messages: ' + analyticsNumber(summary.messages_total) + ' · Currently visible: ' + analyticsNumber(summary.visible_messages) + ' · Private messages in 24h: ' + analyticsNumber(summary.dm_messages_24h) + '</p>'
-        + '<section class="analytics-card"><div class="analytics-toolbar"><h3>Last 30 calendar days</h3><label>Show <select data-analytics-series aria-label="Chart metric"><option value="messages">Public messages</option><option value="accounts">Active accounts</option><option value="browsers">Browser IDs</option><option value="dms">Private messages</option></select></label></div><div class="analytics-chart">' + analyticsChart(summary) + '</div>'
-        + '<details><summary>Daily values</summary><div class="analytics-scroll"><table class="analytics-table"><thead><tr><th scope="col">Chicago date</th><th scope="col">Accounts</th><th scope="col">Browsers</th><th scope="col">Public messages</th><th scope="col">Private messages</th><th scope="col">Signups</th></tr></thead><tbody>'
+        + '<section class="analytics-card"><div class="analytics-toolbar"><h3>Last 30 calendar days</h3><label>Show <select data-analytics-series aria-label="Chart metric"><option value="messages">Public messages</option><option value="accounts">Active accounts</option><option value="browsers">Browser IDs</option><option value="dms">Private messages</option></select></label></div><div class="analytics-chart">' + analyticsChart(summary) + '</div><output class="analytics-inspector" aria-live="polite">Hover or focus a bar for its exact count.</output>'
+        + '<details><summary>Daily values</summary><div class="analytics-scroll"><table class="analytics-table"><caption>Daily activity · America/Chicago</caption><thead><tr><th scope="col">Chicago date</th><th scope="col">Accounts</th><th scope="col">Browsers</th><th scope="col">Public messages</th><th scope="col">Private messages</th><th scope="col">Signups</th></tr></thead><tbody>'
         + [...summary.daily].reverse().map(row => '<tr><th scope="row">' + esc(row.day) + '</th>' + ['accounts','browsers','messages','dms','signups'].map(key => '<td>' + analyticsNumber(row[key]) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div></details></section>'
         + '<section class="analytics-card"><h3>Busiest public channels · rolling 7 days</h3><div class="analytics-scroll"><table class="analytics-table"><thead><tr><th scope="col">Channel</th><th scope="col">Messages</th><th scope="col">Senders</th></tr></thead><tbody>'
-        + (summary.top_channels || []).map(row => '<tr><th scope="row">' + esc(row.label) + '</th><td>' + analyticsNumber(row.messages) + '</td><td>' + analyticsNumber(row.senders) + '</td></tr>').join('') + '</tbody></table></div></section>'
+        + ((summary.top_channels || []).length ? summary.top_channels.map(row => '<tr><th scope="row">' + esc(row.label) + '</th><td>' + analyticsNumber(row.messages) + '</td><td>' + analyticsNumber(row.senders) + '</td></tr>').join('') : '<tr><td colspan="3">No public messages in the last 7 days.</td></tr>') + '</tbody></table></div></section>'
         + '<details class="analytics-card"><summary>Definitions & coverage</summary><p class="analytics-note">Active = chat was visible with interaction in the last 5 minutes. Refreshes and extra tabs do not add accounts. Browser IDs identify browser storage, not people or physical devices; clearing storage creates another ID. Bots and test accounts are excluded from engagement. Private conversations contribute counts only.</p>'
         + '<p class="analytics-note">Activity collection began ' + esc(since) + ' CT; its first day and today are partial. Older activity is unknown (—). Returning counts use only collected activity. The 7/30-day totals are observed counts until enough history accumulates. Calendar dates use America/Chicago, including daylight saving time; 24h and channel rankings use rolling windows.</p>'
         + '<p class="analytics-note">Message and signup history before ' + esc(durable) + ' CT comes from surviving database rows. Earlier hard-deleted records are unavailable. Future message deletions preserve sent totals; visible messages are counted separately. Historical exclusions use account classification when recorded. Updated ' + esc(updated) + ' CT.</p></details></div>';
     }
     function bindAnalyticsChart(root, summary) {
+      const showValue = event => {
+        const bar = event.target.closest?.('[data-analytics-bar]');
+        const inspector = root.querySelector('.analytics-inspector');
+        if (bar && inspector) inspector.textContent = bar.getAttribute('aria-label');
+      };
+      root.querySelector('.analytics-chart')?.addEventListener('pointerover', showValue);
+      root.querySelector('.analytics-chart')?.addEventListener('focusin', showValue);
       root.querySelector('[data-analytics-series]')?.addEventListener('change', event => {
         const key = event.target.value;
-        if (['messages','accounts','browsers','dms'].includes(key)) root.querySelector('.analytics-chart').innerHTML = analyticsChart(summary,key);
+        if (['messages','accounts','browsers','dms'].includes(key)) {
+          root.querySelector('.analytics-chart').innerHTML = analyticsChart(summary,key);
+          const inspector = root.querySelector('.analytics-inspector');
+          if (inspector) inspector.textContent = 'Hover or focus a bar for its exact count.';
+        }
       });
     }
     /* CHAT_ANALYTICS_UI_END */
@@ -15851,7 +16101,7 @@ void main() {
       return `<div class="console-shell"><header class="console-heading"><div><span class="console-eyebrow">Liminal / ${scope === 'owner' ? 'Owner' : 'Staff'}</span><h2>${esc(title)}</h2><p>${esc(description)}</p></div><span class="console-rank">${esc(STAFF_ROLE_META[myStaffRole()]?.label || 'Staff')}</span></header>
         <div class="console-stats">${stats.map(stat => `<div><strong ${stat.key ? `data-console-metric="${esc(stat.key)}"` : ''}>${esc(stat.value)}</strong><span>${esc(stat.label)}</span></div>`).join('')}</div>
         <div class="console-nav" role="tablist" aria-label="${scope === 'owner' ? 'Owner' : 'Staff'} sections">${panels.map(panel => `<button id="${scope}-nav-${panel.id}" type="button" role="tab" data-console-panel="${panel.id}" aria-controls="${scope}-panel-${panel.id}" aria-selected="${panel.id === selected}" tabindex="${panel.id === selected ? '0' : '-1'}">${esc(panel.label)}</button>`).join('')}</div>
-        ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
+        ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" tabindex="0" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
       </div>`;
     }
     function revealConsoleNav(button) {
@@ -15902,10 +16152,13 @@ void main() {
         if (!content || !isStaff()) return;
         button.disabled = true;
         status.textContent = 'Updating…';
+        content.setAttribute('aria-busy', 'true');
         try {
           const { data, error } = await sb.rpc('chat_get_analytics');
           if (error) throw error;
+          if (!data || !Array.isArray(data.daily)) throw new Error('Invalid analytics response');
           if (!content.isConnected || !isStaff()) return;
+          content.dataset.loaded = 'true';
           content.innerHTML = analyticsMarkup(data);
           bindAnalyticsChart(content,data);
           root.querySelectorAll('[data-console-metric]').forEach(node => {
@@ -15914,10 +16167,12 @@ void main() {
           status.textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
         } catch (error) {
           if (!content.isConnected) return;
-          content.innerHTML = '<p class="analytics-note" role="status">Analytics unavailable: ' + esc(error?.message || 'Connection failed') + '. Refresh to retry.</p>';
-          root.querySelectorAll('[data-console-metric]').forEach(node => { node.textContent = '—'; });
-          status.textContent = 'Could not update';
-        } finally { button.disabled = false; }
+          if (content.dataset.loaded !== 'true') {
+            content.innerHTML = '<div class="console-empty" role="status"><strong>Analytics couldn’t load.</strong><p>Check your connection and refresh to try again.</p></div>';
+            root.querySelectorAll('[data-console-metric]').forEach(node => { node.textContent = '—'; });
+          }
+          status.textContent = content.dataset.loaded === 'true' ? 'Showing previous results · refresh to retry' : 'Could not update';
+        } finally { button.disabled = false; content.setAttribute('aria-busy', 'false'); }
       })().finally(() => consoleAnalyticsRequests.delete(content));
       consoleAnalyticsRequests.set(content,job);
       return job;
@@ -16331,8 +16586,12 @@ void main() {
       inbox.unshift({ id: uuid(), ts: new Date().toISOString(), ...entry, read });
       if (!deferSave) saveInbox();
     }
+    function inboxItemVisible(item) {
+      if (item.kind !== 'dm' || !dmBlockedUsers.has(item.from)) return true;
+      return !!dms.find(dm => dm.is_group && `dm:${dm.id}` === item.view);
+    }
     function updateInboxBadge() {
-      const n = inbox.filter(i => !i.read && !(i.kind === 'dm' && dmBlockedUsers.has(i.from))).length;
+      const n = inbox.filter(i => !i.read && inboxItemVisible(i)).length;
       $('inbox-count').hidden = n === 0;
       $('inbox-count').textContent = n > 99 ? '99+' : n;
       $('inbox-btn').setAttribute('aria-label', n ? `Inbox, ${n} unread` : 'Inbox');
@@ -16365,7 +16624,7 @@ void main() {
         for (const m of data || []) {
           const key = `c:${m.channel_id}`;
           const ch = channelById(m.channel_id);
-          if (!mentionsMe(m.content) || (ch && !channelIsHome(ch))) continue;
+          if (!mentionsMe(m.content) || (!m.channel_id.startsWith(FORUM_PREFIX) && (!ch || !channelIsHome(ch)))) continue;
           const read = !!(lastReadAt[key] && Date.parse(lastReadAt[key]) >= Date.parse(m.created_at));
           addInbox({ kind: 'mention', from: m.sender, text: messagePreview(m), view: key, msgId: m.id, ts: m.created_at, read }, true);
         }
@@ -16381,7 +16640,7 @@ void main() {
     function openInbox() { renderInbox(); if (!$('inbox-dialog').open) $('inbox-dialog').showModal(); hydrateInbox(true); }
     function inboxLocation(item) {
       if (!item.view) return 'Liminal';
-      if (item.view.startsWith('dm:')) return 'Direct message';
+      if (item.view.startsWith('dm:')) { const dm = dms.find(dm => `dm:${dm.id}` === item.view); return dm?.is_group ? `Private group · ${conversationTitle(dm)}` : 'Direct message'; }
       const id = item.view.slice(2);
       if (id.startsWith(FORUM_PREFIX)) return 'Forum post';
       return `#${channelById(id)?.label || id}`;
@@ -16413,11 +16672,11 @@ void main() {
       finally { button.disabled = false; }
     }
     function renderInbox() {
-      const unread = inbox.filter(i => !i.read && !(i.kind === 'dm' && dmBlockedUsers.has(i.from))).length;
+      const unread = inbox.filter(i => !i.read && inboxItemVisible(i)).length;
       $('inbox-summary').textContent = unread ? `${unread} unread · mentions and direct messages` : 'You’re caught up';
       $('inbox-markall').disabled = !unread;
       qsa('[data-inbox-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.inboxTab === inboxTab)));
-      const items = inbox.filter(i => !(i.kind === 'dm' && dmBlockedUsers.has(i.from)) && (inboxTab === 'all' || (inboxTab === 'unread' ? !i.read : i.kind === inboxTab)));
+      const items = inbox.filter(i => inboxItemVisible(i) && (inboxTab === 'all' || (inboxTab === 'unread' ? !i.read : i.kind === inboxTab)));
       const list = $('inbox-list');
       if (!items.length) { list.innerHTML = toolEmpty('dm', inboxTab === 'unread' ? 'All caught up' : 'No messages here yet', inboxTab === 'dm' ? 'Your direct message notifications appear here.' : inboxTab === 'mention' ? 'Messages that mention you appear here.' : 'Mentions and direct messages will appear here.'); return; }
       list.innerHTML = items.map(i => `<button class="inbox-item ${i.read ? '' : 'unread'}" type="button" data-inbox-id="${esc(i.id)}"><span class="inbox-icon">${toolIcon(i.kind)}</span><span class="inbox-text"><strong>${esc(i.from === 'system' ? 'Liminal' : displayNameOf(i.from))}</strong> ${i.from === 'system' ? '' : i.kind === 'mention' ? 'mentioned you' : i.kind === 'dm' ? 'sent a message' : ''}<span class="inbox-snippet">${esc(i.text || '')}</span><span class="inbox-location">${esc(inboxLocation(i))}</span></span><span class="inbox-end"><time class="inbox-time" datetime="${esc(i.ts)}">${esc(relTime(i.ts))}</time>${i.read ? '' : '<span class="inbox-unread-dot" aria-label="Unread"></span>'}</span></button>`).join('');
@@ -17458,6 +17717,7 @@ void main() {
       });
       wireGroupEvents();
       $('rules-btn').addEventListener('click', openRulesModal);
+      $('private-call-search').addEventListener('input', renderPrivateCallPicker);
       $('subrole-btn')?.addEventListener('click', openSubroleModal);
       $('subrole-picker')?.addEventListener('click', (event) => {
         const pick = event.target.closest('[data-pick-subrole]');
