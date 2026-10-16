@@ -143,8 +143,7 @@ test('opening voice is no longer bounced away, and calls are not relay-only', ()
   assert.match(chat, /type: 'rollback'/);
   assert.match(chat, /Tap to hear/);
   assert.match(chat, /chat_voice_ticket/);
-  assert.match(chat, /Audio could not connect/);
-  assert.doesNotMatch(chat, /School and campus Wi-Fi block direct voice/);
+  assert.match(chat, /School and campus Wi-Fi block direct voice/);
   assert.match(chat, /id="vc-deafen-btn"/);
   assert.match(chat, /Ctrl\+Shift\+M/);
   assert.doesNotMatch(chat, /id="vc-allow-interactions"/);

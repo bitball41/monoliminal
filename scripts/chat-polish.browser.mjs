@@ -32,7 +32,7 @@ await page.evaluate(()=>{
     if(name==='chat_list_subroles')return {data:availableSubroles()};
     if(name==='chat_get_admin_logs'||name==='chat_list_deleted_messages')return {data:[]};
     return {data:true};
-  },from:table=>({select(){return this},eq(){return this},then(resolve,reject){return (table==='chat_group_invites' && window.groupFetch ? window.groupFetch : Promise.resolve({data:[]})).then(resolve,reject)}})};
+  },from:table=>{const query=new Proxy({}, {get(_,key){if(key==='then')return (resolve,reject)=>(table==='chat_group_invites' && window.groupFetch ? window.groupFetch : Promise.resolve({data:[]})).then(resolve,reject);return ()=>query;}});return query;}};
   applyTheme('midnight');
   $('startup-screen').hidden=true;$('auth-screen').hidden=true;$('app-shell').hidden=false;
   renderChannels();renderDmList();renderSelf();
@@ -45,8 +45,54 @@ await page.evaluate(()=>{
   $('message-list').innerHTML='<div class="tool-empty"><strong>Welcome back.</strong><span>Catch up with your community.</span></div>';
 });
 await fs.mkdir(screenshots,{recursive:true});
+// Cache empty histories so openView exercises real rendering without production reads.
+await page.evaluate(()=>{
+  for(const key of ['c:general','dm:dm-1','dm:dm-2','dm:group-1']){msgCache.set(key,[]);hasMoreMap.set(key,false);}
+  profiles.get('alice').display_name='Alexandra Long Display Name';
+  profiles.get('owner').sub_role='sample_badge';me.sub_role='sample_badge';
+  applySubroleCatalog([...subroles,{slug:'sample_badge',label:'Good Boy',color:'#00ff40',position:99}]);
+  renderSubroleButton();
+});
+
 const capture=async name=>{await page.screenshot({path:path.join(screenshots,name+'.png')});};
 const fit=async selector=>page.locator(selector).evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,rect:el.getBoundingClientRect().toJSON()}));
+// Every header state uses the same action geometry, including Block DMs.
+for(const [theme,width,height] of [['midnight',1440,1000],['midnight',1024,768],['midnight',768,1024],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]){
+  await page.setViewportSize({width,height});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await page.evaluate(theme=>applyTheme(theme),theme);
+  for(const mode of ['channel','dm','blocked','group','voice','forum']){
+    await page.evaluate(async mode=>{
+      dmBlockedUsers.clear();
+      if(mode==='channel')await openView({type:'channel',id:'general'});
+      if(mode==='dm'||mode==='blocked'){
+        if(mode==='blocked')dmBlockedUsers.add('alice');
+        await openView(dmView(dms.find(dm=>dm.id==='dm-1')));
+      }
+      if(mode==='group')await openView(dmView(dms.find(dm=>dm.id==='group-1')));
+      if(mode==='voice')openVoiceRoom({type:'channel',id:'voice-chat'});
+      if(mode==='forum')await openView({type:'forum',id:'bugs'});
+    },mode);
+    const header=await page.locator('.channel-header').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right}));
+    assert(await page.locator('#channel-title').evaluate(el=>el.clientWidth>=Math.min(40,el.scrollWidth)),`${mode} title stays readable at ${width}`);
+    assert(header.left>=-1&&header.right<=width+1,`${mode} header stays inside ${width}px viewport: ${header.right}`);
+    assert(header.scroll<=header.width+1,`${mode} toolbar fits ${theme} ${width}: ${header.scroll}>${header.width}`);
+    const controls=await page.locator('.header-actions > button:visible').evaluateAll(buttons=>buttons.map(button=>{const s=getComputedStyle(button);return {id:button.id,height:button.getBoundingClientRect().height,radius:s.borderRadius,shadow:s.boxShadow,icons:button.querySelectorAll('svg').length,right:button.getBoundingClientRect().right};}));
+    for(const control of controls){assert(control.right<=width+1,`${control.id} is visible at ${width}`);assert.equal(control.height,36,`${mode}/${width} ${control.id} has standard height`);assert.equal(control.radius,width<=600?'8px':'9px');assert.equal(control.shadow,'none');assert.equal(control.icons,1,`${control.id} keeps its icon`);}
+    assert.equal(await page.locator('#dm-block-btn').isVisible(),['dm','blocked'].includes(mode));
+    assert.equal(await page.locator('#group-details-btn').isVisible(),mode==='group');
+    if(mode==='dm'||mode==='blocked'){
+      const label=mode==='blocked'?'Unblock DMs':'Block DMs';
+      assert.equal(await page.locator('#dm-block-label').textContent(),label);
+      assert.equal(await page.locator('#dm-block-btn').getAttribute('title'),label);
+      assert.equal(await page.locator('#dm-block-btn').getAttribute('aria-pressed'),String(mode==='blocked'));
+    }
+    if(width===1440||width===390)await capture(`header-${theme}-${width}-${mode}`);
+  }
+}
+await page.setViewportSize({width:1440,height:1000});
+await page.evaluate(async()=>{applyTheme('midnight');await openView({type:'channel',id:'general'});});
+
 // Call chooser searches correctly and explains why a one-member group cannot call.
 await page.evaluate(()=>openPrivateCallPicker());
 assert.equal(await page.locator('[data-call-conversation]').count(),4);
@@ -78,7 +124,7 @@ await page.evaluate(()=>{
 assert.equal(await page.locator('#group-send-invites').isDisabled(),true);
 assert.equal(await page.locator('[data-group-person]:not(:disabled)').count(),0);
 await page.evaluate(()=>{window.resolveGroupFetch({data:Array.from({length:13},(_,i)=>({invitee:'pending-'+i}))});window.groupFetch=null;});
-await page.waitForFunction(()=>document.getElementById('group-selection-count').textContent.includes('0 places left'));
+await page.waitForFunction(()=>document.getElementById('group-selection-count').textContent === '0 of 0 people selected');
 assert.equal(await page.locator('[data-group-person]:not(:disabled)').count(),0);
 await page.evaluate(()=>$('group-dialog').close());
 await page.evaluate(()=>openSettings('admin'));
@@ -101,11 +147,12 @@ await page.locator('#owner-nav-roles').click();
 await capture('owner-desktop');
 await page.evaluate(()=>{$('settings-dialog').close();renderSubroleDialog();$('subrole-dialog').showModal();});
 await capture('subroles-desktop');
-await page.evaluate(()=>{$('subrole-dialog').close();currentView={type:'channel',id:'voice-chat'};setMainMode('voice');updateVoiceUi();});
+await page.evaluate(()=>{$('subrole-dialog').close();openVoiceRoom({type:'channel',id:'voice-chat'});});
 await capture('voice-desktop');
 // Responsive layouts: no dialog overflows at narrow phone and Chromebook widths.
 for(const [width,height] of [[390,844],[768,1024],[1366,768]]){
   await page.setViewportSize({width,height});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   for(const surface of ['calls','groups','staff','owner','subroles']){
     await page.evaluate(async surface=>{
       qsa('dialog[open]').forEach(d=>d.close());
@@ -131,11 +178,11 @@ await page.evaluate(()=>{qsa('dialog[open]').forEach(d=>d.close());applyTheme('m
 await capture('calls-light');
 await page.evaluate(()=>{$('private-call-dialog').close();openSettings('owner');});
 await capture('owner-light');
-await page.evaluate(()=>{$('settings-dialog').close();currentView={type:'channel',id:'voice-chat'};setMainMode('voice');updateVoiceUi();});
+await page.evaluate(()=>{$('settings-dialog').close();openVoiceRoom({type:'channel',id:'voice-chat'});});
 await capture('voice-light');
 await page.setViewportSize({width:390,height:844});
 assert(await page.locator('#vc-stage').evaluate(el=>el.scrollWidth<=el.clientWidth),'mobile voice stage fits');
 await capture('voice-mobile');
 assert.deepEqual(errors,[]);
-console.log('Browser checks passed: call search/availability, group selections and pending capacity, Staff/Owner navigation, analytics keyboard details and stale-data recovery, plus 15 responsive dialog checks.');
+console.log('Browser checks passed: call search/availability, group selections and pending capacity, Staff/Owner navigation, analytics keyboard details and stale-data recovery, 42 header view/theme/width checks, plus 15 responsive dialog checks.');
 await browser.close();

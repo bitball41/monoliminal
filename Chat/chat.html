@@ -2791,124 +2791,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .console-person > .danger-button { margin-left: auto; }
     }
 
-
-
-    /* Recent Chat surfaces share one quiet, theme-aware interaction language. */
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog, .console-shell, .vc-stage) {
-      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --muted: color-mix(in srgb, var(--text) 66%, var(--panel-strong));
-      font-family: var(--font-ui); -webkit-font-smoothing: antialiased;
-    }
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) {
-      width: min(520px, calc(100vw - 32px)); border-radius: 20px;
-      background: var(--panel-strong); box-shadow: 0 24px 72px #0003;
-    }
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header {
-      padding: 22px 24px 16px; align-items: center; border-bottom: 1px solid var(--line);
-    }
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header h2 {
-      font: 650 1.15rem/1.3 var(--font-ui); letter-spacing: -.025em; overflow-wrap: anywhere;
-    }
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-body { padding: 18px 24px 24px; }
-    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .field-help { font-size: .8rem; line-height: 1.6; }
-    :is(#private-call-dialog, #group-dialog, #subrole-dialog) .field > label { text-transform: none; letter-spacing: 0; font-weight: 550; font-size: .8rem; }
-    :is(#private-call-dialog, #group-dialog, #subrole-dialog) .field > input { min-height: 42px; border-radius: 10px; font-size: .85rem; }
-    :is(.console-shell, #group-dialog, #private-call-dialog, #subrole-dialog) button { transition: background 140ms ease, border-color 140ms ease; }
-    :is(.console-shell, #group-dialog, #subrole-dialog) :is(.primary-button, .secondary-button, .danger-button) { min-height: 38px; border-radius: 10px; font-weight: 600; }
-    .private-call-list { display: grid; gap: 4px; max-height: min(380px, 48dvh); overflow-y: auto; overscroll-behavior: contain; }
-    .private-call-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--text); text-align: left; }
-    .private-call-row:hover:not(:disabled) { background: var(--surface-2); border-color: var(--line); }
-    .private-call-row:disabled { opacity: .5; cursor: default; }
-    .private-call-row .avatar { flex: 0 0 auto; }
-    .private-call-copy { display: grid; gap: 4px; flex: 1; min-width: 0; }
-    .private-call-copy strong { font-size: .9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .private-call-copy small { color: var(--muted); font-size: .74rem; line-height: 1.4; overflow-wrap: anywhere; }
-    .private-call-action { display: flex; gap: 8px; font-size: .75rem; color: var(--accent-strong); }
-    #private-call-status { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
-    .group-candidates { max-height: min(280px, 34dvh); overscroll-behavior: contain; scrollbar-gutter: stable; }
-    .group-person { padding: 12px 10px; gap: 12px; border-bottom: 0; border-radius: 10px; }
-    label.group-person { cursor: pointer; }
-    label.group-person:hover { background: var(--surface); }
-    label.group-person:has(input:focus-visible) { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
-    .group-person.is-selected { background: var(--accent-soft); }
-    .group-person strong { font-weight: 600; font-size: .85rem; }
-    .group-person small { margin-top: 3px; font-size: .73rem; }
-    .group-person input[type="checkbox"] { flex: 0 0 20px; width: 20px; height: 20px; }
-    .group-selected { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-    .group-selected:empty { display: none; }
-    .group-selection-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 10px; border: 1px solid var(--accent-line); border-radius: 8px; color: var(--accent-strong); background: var(--accent-soft); font: 500 .75rem var(--font-ui); overflow-wrap: anywhere; }
-    .group-selection-chip span { font-size: 1rem; }
-    .group-footer { position: sticky; bottom: -24px; margin: 18px -24px -24px; padding: 16px 24px; border-top: 1px solid var(--line); background: var(--panel-strong); }
-    #group-leave { margin-left: auto; }
-    #group-dialog .danger-button { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line)); box-shadow: none; }
-    .group-invite-card { padding: 16px; box-shadow: none; }
-    .group-invite-card .group-actions { justify-content: flex-end; }
-    #group-pending:not(:empty) { margin-top: 12px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
-    .subrole-preview { padding: 18px; border-radius: 12px; background: var(--surface); }
-    .subrole-preview-caption { font-size: .73rem; line-height: 1.5; }
-    .subrole-option { min-height: 46px; border-radius: 10px; }
-    .subrole-option[aria-pressed="true"] { border-color: var(--accent-line); background: var(--accent-soft); }
-    .subrole-option-name { font-size: .84rem; font-weight: 550; }
-    .subrole-tools button { width: 36px; height: 36px; padding: 8px; border-radius: 9px; }
-    .console-heading { margin-bottom: 24px; }
-    .console-heading h2 { font-weight: 650; letter-spacing: -.035em; }
-    .console-heading p { font-size: .85rem; line-height: 1.6; }
-    .console-stats strong { font-weight: 650; font-variant-numeric: tabular-nums; }
-    .console-nav { padding: 4px; gap: 3px; background: var(--surface); border-color: transparent; }
-    .console-nav button { min-height: 38px; font-size: .78rem; font-weight: 550; }
-    .console-nav button[aria-selected="true"] { background: var(--panel-strong); color: var(--text); box-shadow: 0 1px 4px #0001; }
-    .console-card { padding: 22px; border-radius: 16px; background: var(--panel-strong); }
-    .console-card h3 { font-weight: 650; font-size: .95rem; }
-    .console-card-head p { font-size: .8rem; line-height: 1.6; }
-    .console-person { padding: 12px 4px; }
-    .console-person small { font-size: .74rem; line-height: 1.5; }
-    .console-quick-grid button { border-radius: 12px; padding: 18px; }
-    .console-quick-grid button:focus-visible { outline-offset: 2px; }
-    .console-card .field > label { text-transform: none; letter-spacing: 0; font-weight: 550; font-size: .8rem; }
-    .console-card .field > :is(input, textarea, select) { font-size: .85rem; line-height: 1.5; }
-    .vc-heading { flex: 0 0 auto; text-align: center; padding: 10px 16px 0; }
-    .vc-heading h2 { margin: 7px 0 8px; font: 600 clamp(1.35rem, 2.4vw, 1.9rem)/1.2 var(--font-ui); letter-spacing: -.035em; overflow-wrap: anywhere; }
-    .vc-heading p { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
-    .vc-stage { padding: 20px; }
-    .vc-grid { align-content: safe center; padding: 8px 3px; }
-    .vc-tile { background: var(--surface); border-radius: 18px; }
-    .vc-tile-placeholder { background: color-mix(in srgb, var(--accent) 7%, var(--panel-strong)); }
-    .vc-bar { gap: 12px; padding: 14px 16px; border-radius: 18px; box-shadow: 0 6px 20px #0001; }
-    .vc-status { font-size: .77rem; font-weight: 500; line-height: 1.5; }
-    .vc-control { min-height: 40px; font-size: .78rem; font-weight: 550; border-radius: 11px; padding: 0 14px; }
-    .vc-control.danger { color: var(--danger); }
-    .vc-tile.vc-speaking { box-shadow: inset 0 0 0 1px #3ba55d, 0 0 0 1px #3ba55d; }
-    .vc-tile.vc-speaking .avatar { box-shadow: 0 0 0 3px color-mix(in srgb, #3ba55d 65%, transparent); }
-    .vc-staff-mute { min-height: 34px; border-radius: 9px; }
-    .inbox-item:hover { border-color: var(--line-strong); }
-    .inbox-item:focus-visible { outline-offset: -2px; }
-    .inbox-location { line-height: 1.5; overflow-wrap: anywhere; }
-    @media (hover: none) { .vc-staff-mute { opacity: 1; } }
-    @media (max-width: 600px) {
-      :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); }
-      .console-card { padding: 16px; }
-      .console-card-head p { font-size: .78rem; }
-      .vc-stage { padding: 12px; }
-      .vc-heading { padding-top: 0; }
-      .vc-heading p { font-size: .74rem; }
-      .vc-tile, .vc-tile.audio-only { flex-basis: calc(50% - 12px); max-width: 220px; }
-      .vc-bar { width: 100%; padding: 12px; }
-      .vc-controls { gap: 6px; }
-      .vc-control { min-height: 42px; padding: 0 12px; }
-      #group-members .group-person { display: grid; grid-template-columns: 36px minmax(0, 1fr); }
-      #group-members .group-person .group-actions { grid-column: 2; flex-basis: auto; justify-content: flex-start; }
-      .group-person .group-actions button { min-height: 38px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      :is(.console-shell, #group-dialog, #private-call-dialog, #subrole-dialog, .vc-stage) * { transition: none !important; animation: none !important; }
-    }
-
-
 /* CHAT_ANALYTICS_CSS_START */
-.analytics-view { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color: var(--text, #f5f3ff); margin: 18px 0; }
+.analytics-view { font-family:var(--font-ui); color: var(--text, #f5f3ff); margin: 18px 0; }
 .analytics-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 .analytics-kpi, .analytics-card { border:1px solid var(--line, #ffffff20); border-radius:14px; padding:16px; background:var(--surface, #ffffff06); min-width:0; }
-.analytics-kpi strong { display:block; font-size:30px; font-weight:600; letter-spacing:-.035em; line-height:1.4; font-variant-numeric:tabular-nums; }
+.analytics-kpi strong { display:block; font-size:26px; font-weight:750; letter-spacing:-.025em; line-height:1.4; font-variant-numeric:tabular-nums; }
 .analytics-kpi span, .analytics-note, .analytics-kpi small { color:var(--muted, #b8b3d3); font-size:12px; line-height:1.6; }
 .analytics-kpi small { display:block; }
 .analytics-card { margin-top:12px; }
@@ -3270,6 +3157,152 @@ html[data-light="true"] #settings-dialog::backdrop { background: var(--scrim-col
 html[data-light="true"] .chip.owner { color: #815200; }
 html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line); }
 </style>
+<style id="chat-feature-controls">
+/* Shared controls for the recent Chat features. Existing copy is retained. */
+    .main-panel { grid-template-columns: minmax(0, 1fr); container-type: inline-size; }
+    .channel-header { min-width: 0; column-gap: 12px; }
+    .channel-header .channel-title { min-width: 0; }
+    .channel-header .header-actions { gap: 4px; flex: 0 0 auto; }
+    .channel-header .header-action {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      flex: 0 0 auto; width: 36px; height: 36px; min-width: 36px; min-height: 36px;
+      margin: 0; padding: 0; border: 1px solid transparent; border-radius: 9px;
+      background: transparent; color: var(--text-soft); box-shadow: none;
+      font: 650 .72rem/1 var(--font-ui); cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .channel-header .header-action > svg { flex: 0 0 18px; width: 18px; height: 18px; stroke-width: 1.8; }
+    .channel-header .header-action:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+    .channel-header .header-action:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 1px; }
+    .channel-header .header-action:active:not(:disabled) { background: var(--surface-3, var(--surface-2)); }
+    .channel-header .header-action[aria-pressed="true"],
+    .channel-header .header-action[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+    .channel-header #dm-block-btn[aria-pressed="true"] { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+    .channel-header .header-action:disabled { cursor: default; opacity: .45; }
+    .channel-header #subrole-btn { width: auto; max-width: 142px; padding: 0 9px; }
+    .channel-header #subrole-btn[data-set="true"] > svg { color: var(--subrole-text-dark, var(--accent-strong)); }
+    html[data-light="true"] .channel-header #subrole-btn[data-set="true"] > svg { color: var(--subrole-text-light, var(--accent-strong)); }
+    .channel-header #member-toggle { width: auto; min-width: 46px; padding: 0 7px; gap: 5px; font-variant-numeric: tabular-nums; }
+    .channel-header #channel-settings-btn { width: 28px; min-width: 28px; height: 28px; min-height: 28px; }
+    .channel-header .inbox-count { top: 0; right: 0; box-shadow: 0 0 0 2px var(--bg); }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) {
+      width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 32px);
+      border: 1px solid var(--line-strong); border-radius: 16px; background: var(--panel-strong);
+      box-shadow: 0 20px 64px #0003;
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header {
+      padding: 18px 20px; gap: 16px; align-items: center; border-bottom: 1px solid var(--line);
+    }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header h2 { font: 750 1rem/1.35 var(--font-ui); letter-spacing: -.02em; overflow-wrap: anywhere; }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-header .icon-button { width: 32px; height: 32px; min-width: 32px; border-radius: 9px; }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .dialog-body { padding: 18px 20px 20px; }
+    :is(#private-call-dialog, #group-dialog, #group-invites-dialog, #subrole-dialog) .field-help { line-height: 1.6; }
+    :is(#private-call-dialog, #group-dialog, #subrole-dialog, .console-shell) .field > :is(input, select, textarea) { min-height: 40px; border-radius: 9px; }
+    :is(#group-dialog, #group-invites-dialog, #subrole-dialog, .console-shell) :is(.primary-button, .secondary-button, .danger-button) { min-height: 36px; border-radius: 9px; box-shadow: none; }
+    .private-call-list { display: grid; gap: 4px; max-height: min(360px, 46dvh); overflow-y: auto; overscroll-behavior: contain; }
+    .private-call-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 10px; border: 1px solid transparent; border-radius: 10px; color: var(--text); background: transparent; text-align: left; font-family: var(--font-ui); }
+    .private-call-row:hover:not(:disabled), .private-call-row:focus-visible { background: var(--surface-2); border-color: var(--line); }
+    .private-call-row:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+    .private-call-row:disabled { opacity: .45; cursor: default; }
+    .private-call-copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+    .private-call-copy strong { font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .private-call-copy small { font-size: .7rem; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
+    .private-call-action { flex: 0 0 18px; width: 18px; height: 18px; color: var(--text-soft); }
+    .private-call-action svg { width: 18px; height: 18px; }
+    #private-call-status:empty { display: none; }
+    #private-call-status:not(:empty) { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+    .group-candidates { max-height: min(260px, 33dvh); overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .group-person { gap: 12px; padding: 10px 8px; border-radius: 9px; border-bottom: 0; min-width: 0; }
+    .group-person > span:not(.avatar) { min-width: 0; }
+    .group-person strong { line-height: 1.4; }
+    .group-person small { margin-top: 3px; line-height: 1.45; }
+    .group-person input[type="checkbox"] { flex: 0 0 18px; }
+    label.group-person { cursor: pointer; }
+    label.group-person:hover { background: var(--surface-2); }
+    label.group-person:focus-within { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+    .group-person.is-selected { background: var(--accent-soft); }
+    .group-selected { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .group-selected:empty { display: none; }
+    .group-selection-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; max-width: 100%; padding: 5px 9px; border: 1px solid var(--accent-line); border-radius: 8px; background: var(--accent-soft); color: var(--text-soft); font: 650 .68rem var(--font-ui); overflow-wrap: anywhere; }
+    .group-selection-chip span { font-size: .9rem; }
+    .group-footer { position: sticky; bottom: -20px; margin: 16px -20px -20px; padding: 14px 20px; gap: 8px; border-top: 1px solid var(--line); background: var(--panel-strong); }
+    #group-leave { margin-left: auto; }
+    #group-dialog .danger-button { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line)); }
+    #group-pending:not(:empty) { margin: 12px 8px 0; padding-top: 10px; border-top: 1px solid var(--line); }
+    .group-invite-card { padding: 14px; border-radius: 12px; }
+    .group-invite-card .group-actions { justify-content: flex-end; }
+    .subrole-preview { padding: 14px; border-radius: 10px; background: var(--surface); }
+    .subrole-option { min-height: 42px; border-radius: 9px; }
+    .subrole-option[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); }
+    .subrole-tools button { width: 32px; height: 32px; border-radius: 8px; padding: 7px; }
+    .console-heading { margin-bottom: 20px; }
+    .console-heading h2 { font-size: 1.35rem; letter-spacing: -.03em; }
+    .console-stats > div { border-radius: 12px; box-shadow: none; }
+    .console-stats strong { font-variant-numeric: tabular-nums; }
+    .console-nav { padding: 4px; gap: 3px; border-radius: 11px; background: var(--surface); border-color: var(--line); }
+    .console-nav button { min-height: 36px; padding: 8px 12px; border-radius: 8px; }
+    .console-nav button[aria-selected="true"] { background: var(--panel-strong); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+    .console-card { padding: 18px; border-radius: 12px; background: var(--panel-strong); }
+    .console-card-head { margin-bottom: 14px; }
+    .console-person { padding: 10px 4px; }
+    .console-quick-grid button { padding: 14px; border-radius: 10px; }
+    .vc-stage { padding: 24px; }
+    .vc-shell { width: min(920px, 100%); flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+    .vc-grid { flex: 0 1 auto; min-height: 64px; padding: 4px; gap: 12px; align-content: safe center; overflow-y: auto; }
+    .vc-tile, .vc-tile.audio-only { flex: 0 1 224px; width: 224px; max-width: 224px; border-radius: 14px; }
+    .vc-tile-placeholder { background: color-mix(in srgb, var(--accent) 6%, var(--panel-strong)); }
+    .vc-bar { flex: 0 0 auto; align-self: center; max-width: 100%; gap: 10px; padding: 14px; border-radius: 14px; box-shadow: none; }
+    .vc-status { max-width: 440px; line-height: 1.5; font-weight: 500; }
+    .vc-controls { gap: 6px; }
+    .vc-control { min-height: 38px; padding: 0 12px; border-radius: 9px; font-size: .72rem; font-weight: 700; }
+    .vc-control.danger { color: var(--danger); }
+    .vc-tile.vc-speaking { box-shadow: inset 0 0 0 1px #3ba55d, 0 0 0 1px #3ba55d; }
+    .vc-tile.vc-speaking .avatar { box-shadow: 0 0 0 3px color-mix(in srgb, #3ba55d 65%, transparent); }
+    .vc-staff-mute { min-height: 30px; border-radius: 8px; }
+    .vc-shell:has(.vc-has-stage) .vc-grid { flex: 1 1 auto; }
+    .vc-grid.vc-has-stage .vc-tile.vc-stage-main { flex-basis: 100%; width: 100%; max-width: none; }
+    @media (hover: none) { .vc-staff-mute { opacity: 1; } }
+    @container (max-width: 700px) {
+      .channel-header #subrole-btn { width: 36px; padding: 0; }
+      .channel-header #subrole-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
+    @media (max-width: 780px) {
+      .channel-header { padding-inline: 12px; gap: 6px; }
+      .channel-header #subrole-btn { width: 36px; padding: 0; }
+      .channel-header #subrole-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      .console-card { padding: 16px; }
+    }
+    @media (max-width: 600px) {
+      .channel-header { padding-inline: 8px; }
+      .channel-header .header-actions { gap: 2px; }
+      .channel-header .header-action { width: 32px; height: 36px; min-width: 32px; min-height: 36px; border-radius: 8px; }
+      .channel-header #subrole-btn { width: 32px; }
+      .channel-header #member-toggle { min-width: 40px; padding-inline: 4px; gap: 4px; }
+      .channel-header .channel-title-row { gap: 5px; }
+      .channel-header .channel-title { font-size: .85rem; }
+      .channel-header .header-hash { font-size: 1.1rem; }
+      #group-members .group-person { display: grid; grid-template-columns: 34px minmax(0, 1fr); }
+      #group-members .group-person .group-actions { grid-column: 2; flex-basis: auto; justify-content: flex-start; }
+      .group-person .group-actions button { min-height: 36px; }
+      .vc-stage { padding: 16px 12px; }
+      .vc-shell { gap: 18px; }
+      .vc-tile, .vc-tile.audio-only { flex-basis: min(224px, calc(50% - 6px)); }
+      .vc-grid:has(> .vc-tile:only-child) .vc-tile { flex-basis: 224px; }
+      .vc-bar { width: 100%; padding: 12px; }
+      .vc-control { min-height: 40px; }
+    }
+    @media (max-width: 600px) {
+      :root { --header-height: 88px; }
+      .channel-header { display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: 36px 36px; gap: 4px 6px; padding: 4px 8px; }
+      .channel-header #open-channels { grid-column: 1; grid-row: 1; }
+      .channel-header .channel-heading { grid-column: 2; grid-row: 1; }
+      .channel-header .header-actions { grid-column: 1 / -1; grid-row: 2; justify-self: end; max-width: 100%; }
+      .channel-header .channel-title { font-size: .9rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .header-action, .private-call-row, .vc-control { transition: none; }
+    }
+</style>
 </head>
 <body>
   <a class="skip-link" href="#message-input">Skip to message composer</a>
@@ -3421,45 +3454,51 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     <main class="main-panel" id="main-content">
       <div class="chat-background-stage" id="chat-background-stage" aria-hidden="true"></div>
       <header class="channel-header">
-        <button class="icon-button mobile-only" id="open-channels" type="button" aria-label="Open channels">
+        <button class="icon-button mobile-only header-action" id="open-channels" type="button" aria-label="Open channels">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
         </button>
         <div class="channel-heading">
           <div class="channel-title-row">
             <span class="header-hash" id="channel-icon" aria-hidden="true">#</span>
             <h1 class="channel-title" id="channel-title">general</h1>
-            <button class="icon-button desktop-only" id="channel-settings-btn" type="button" aria-label="Edit channel" title="Edit channel" hidden style="width:28px;height:28px;">
+            <button class="icon-button desktop-only header-action" id="channel-settings-btn" type="button" aria-label="Edit channel" title="Edit channel" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
             </button>
           </div>
           <p class="channel-topic" id="channel-topic"></p>
         </div>
         <div class="header-actions">
-          <button class="subrole-header-btn" id="subrole-btn" type="button" title="Pick a subrole" aria-haspopup="dialog" aria-controls="subrole-dialog">
-            <span id="subrole-btn-label">Subrole</span>
+          <button class="subrole-header-btn header-action" id="subrole-btn" type="button" title="Pick a subrole" aria-haspopup="dialog" aria-controls="subrole-dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13 12 21 3 12V3h9l9 9a1 1 0 0 1-1 1Z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span id="subrole-btn-label">Subrole</span>
           </button>
-          <button class="icon-button" id="private-call-btn" type="button" aria-label="Start or join a private call" title="Private call">
+          <button class="icon-button header-action" id="private-call-btn" type="button" aria-label="Start or join a private call" title="Private call">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L8.7 10.6a16 16 0 0 0 4.7 4.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z"/></svg>
           </button>
-          <button class="secondary-button" id="group-details-btn" type="button" hidden>Group</button>
+          <button class="icon-button header-action" id="group-details-btn" type="button" hidden title="Group" aria-haspopup="dialog" aria-controls="group-dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>
+            <span class="sr-only">Group</span>
+          </button>
           <span class="sr-only" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
             <span id="connection-label">Connecting</span>
           </span>
-          <button class="icon-button" id="rules-btn" type="button" aria-label="Server rules" title="Rules">
+          <button class="icon-button header-action" id="rules-btn" type="button" aria-label="Server rules" title="Rules">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l3 3v15H6z"></path><path d="M15 3v4h4M9 11h6M9 15h6"></path></svg>
           </button>
-          <button class="secondary-button" id="dm-block-btn" type="button" hidden style="padding:6px 10px;font-size:.7rem;white-space:nowrap;">Block DMs</button>
-          <button class="icon-button" id="search-btn" type="button" aria-label="Search messages" title="Search messages">
+          <button class="icon-button header-action" id="dm-block-btn" type="button" hidden title="Block DMs" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 11-3.3M17 14l5 5M22 14l-5 5"/></svg>
+            <span class="sr-only" id="dm-block-label">Block DMs</span>
+          </button>
+          <button class="icon-button header-action" id="search-btn" type="button" aria-label="Search messages" title="Search messages">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
           </button>
-          <button class="icon-button pin-btn" id="pins-btn" type="button" aria-label="Pinned messages" title="Pinned messages">
+          <button class="icon-button pin-btn header-action" id="pins-btn" type="button" aria-label="Pinned messages" title="Pinned messages">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 17v5"></path><path d="M9 10.76V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.76l1.79 2.15A1 1 0 0 1 16 14.6V16a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-1.4a1 1 0 0 1 .21-.69Z"></path></svg>
           </button>
-          <button class="icon-button inbox-btn" id="inbox-btn" type="button" aria-label="Notifications inbox">
+          <button class="icon-button inbox-btn header-action" id="inbox-btn" type="button" aria-label="Notifications inbox" title="Notifications inbox">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             <span class="inbox-count" id="inbox-count" hidden>0</span>
           </button>
-          <button class="member-toggle-btn" id="member-toggle" type="button" aria-label="Toggle member list" aria-controls="member-panel" aria-expanded="true">
+          <button class="member-toggle-btn header-action" id="member-toggle" type="button" title="Toggle member list" aria-label="Toggle member list" aria-controls="member-panel" aria-expanded="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             <span class="toggle-count-label" id="member-toggle-count">0</span>
           </button>
@@ -3483,7 +3522,6 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       <section class="timeline-wrap" aria-label="Message history">
         <div class="vc-stage" id="vc-stage" hidden aria-label="Global voice chat">
           <div class="vc-shell">
-            <header class="vc-heading"><span class="console-eyebrow" id="vc-room-kind">Community voice</span><h2 id="vc-room-title">A place to talk.</h2><p id="vc-room-description">Join with your microphone. Camera and screen sharing are optional.</p></header>
             <div class="vc-grid" id="vc-grid">
               <div class="vc-tile" id="vc-local-tile">
                 <video id="vc-local-video" class="vc-mirror" autoplay muted playsinline></video>
@@ -3898,10 +3936,10 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
   <dialog id="private-call-dialog" aria-labelledby="private-call-title" aria-describedby="private-call-description">
     <div class="dialog-header"><h2 id="private-call-title">Private call</h2><button class="icon-button" type="button" data-close-dialog="private-call-dialog" aria-label="Close">×</button></div>
     <div class="dialog-body">
-      <p class="field-help" id="private-call-description">Call a friend or a private group. Only conversation members can join.</p>
+      <p class="field-help" id="private-call-description">Choose a private conversation. Only its members can join; their microphones stay off until they join.</p>
       <div class="field"><label for="private-call-search">Find a conversation</label><input id="private-call-search" type="search" autofocus placeholder="Name or group" autocomplete="off"></div>
       <div id="private-call-list" class="private-call-list" aria-label="Conversations"></div>
-      <p id="private-call-status" class="field-help" role="status" aria-live="polite">Your microphone turns on when you join.</p>
+      <p id="private-call-status" class="field-help" role="status" aria-live="polite"></p>
     </div>
   </dialog>
 
@@ -8005,6 +8043,7 @@ void main() {
     }
 
     function setMainMode(mode) {
+      renderConversationHeader();
       const composer = qs('.composer-zone');
       $('vc-stage').hidden = mode !== 'voice';
       $('forum-board').hidden = mode !== 'forum-board';
@@ -10409,10 +10448,10 @@ void main() {
 
     function explainVoiceBlock() {
       if (!voiceTurnFromSettings().length) {
-        return isOwner() ? 'Audio could not connect. A relay may help on restricted networks. Add a voice relay in Owner → App controls, then rejoin.' : 'Audio could not connect. Try rejoining or another network. The owner can configure a voice relay if needed.';
+        return 'School and campus Wi-Fi block direct voice. Home Wi-Fi allows it. Chat still works because it uses HTTPS. Voice needs a TURN server on port 443, saved in Owner → App controls.';
       }
       if (!voice.sawRelay) {
-        return 'The voice relay could not connect. Try rejoining or another network. If this continues, ask the owner to check the relay.';
+        return 'This network did not open a relay. UDP TURN is blocked on a lot of school networks. Use a turns: address on port 443.';
       }
       return '';
     }
@@ -10425,7 +10464,7 @@ void main() {
       note.textContent = text;
       if (!voice.schoolNoted) {
         voice.schoolNoted = true;
-        toast({ type: 'warning', title: 'Audio could not connect', text, duration: 9000 });
+        toast({ type: 'warning', title: 'Voice is blocked on this network', text, duration: 9000 });
       }
     }
 
@@ -10835,11 +10874,7 @@ void main() {
       $('vc-video-btn').textContent = cameraOff ? 'Camera' : 'Stop video';
       $('vc-video-btn').classList.toggle('active', !cameraOff);
       for (const [id, pressed] of [['vc-mute-btn', muted || serverHeld], ['vc-dock-mute', muted || serverHeld], ['vc-deafen-btn', voice.deafened], ['vc-video-btn', !cameraOff], ['vc-share-btn', !!voice.screenStream]]) $(id).setAttribute('aria-pressed', String(pressed));
-      $('vc-share-btn').textContent = voice.sharePending ? 'Choosing screen…' : voice.screenStream ? 'Stop sharing' : 'Share screen';
-      const privateDm = voice.roomId && dms.find(dm => dm.id === voice.roomId);
-      $('vc-room-kind').textContent = voice.roomId ? 'Private voice' : 'Community voice';
-      $('vc-room-title').textContent = privateDm ? conversationTitle(privateDm) : 'A place to talk.';
-      $('vc-room-description').textContent = voice.roomId ? 'Only conversation members can join. Camera and screen sharing are optional.' : 'Join with your microphone. Camera and screen sharing are optional.';
+      $('vc-share-btn').textContent = voice.screenStream ? 'Stop sharing' : 'Share';
       $('vc-local-state').textContent = serverHeld
         ? `Muted by @${serverMuteBy(me.username)}`
         : (voice.deafened ? 'Deafened' : (muted ? 'Muted' : ''));
@@ -10854,7 +10889,7 @@ void main() {
     async function privateVoiceAccess(id) {
       const { data, error } = await sb.rpc('chat_private_voice_room', { p_dm_id: id });
       if (error) throw new Error(/PGRST202|42883/.test(error.code || '')
-        ? 'Private calls are not ready yet. Ask the owner to finish setting up voice.' : (error.message || 'This private call is unavailable.'));
+        ? 'Private calls need the private_voice_calls SQL update.' : (error.message || 'This private call is unavailable.'));
       if (!data?.topic || !Array.isArray(data.members)) throw new Error('This private call is unavailable.');
       return data;
     }
@@ -10922,7 +10957,7 @@ void main() {
       finally {
         voice.openingPrivate = false;
         $('private-call-btn').setAttribute('aria-busy', 'false');
-        if ($('private-call-dialog').open) { renderPrivateCallPicker(); $('private-call-status').textContent = 'Your microphone turns on when you join.'; }
+        if ($('private-call-dialog').open) { renderPrivateCallPicker(); $('private-call-status').textContent = ''; }
       }
     }
 
@@ -10945,7 +10980,7 @@ void main() {
         return `<button class="private-call-row" type="button" data-call-conversation="${esc(item.id)}" ${issue || voice.openingPrivate ? 'disabled' : ''}>
           ${item.is_group ? groupAvatarHtml() : avatarHtml(profileOf(item.other), 'avatar-sm', false)}
           <span class="private-call-copy"><strong>${esc(conversationTitle(item))}</strong><small>${esc(detail)}</small></span>
-          <span class="private-call-action" aria-hidden="true">${active ? 'Return' : 'Call'} <span>↗</span></span>
+          <span class="private-call-action" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L8.7 10.6a16 16 0 0 0 4.7 4.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z"/></svg></span>
         </button>`;
       }).join('') || `<div class="tool-empty"><strong>${query ? 'No matching conversations' : 'No conversations yet'}</strong><span>${query ? 'Try a different name or group.' : 'Start a direct message or create a private group to make a call.'}</span></div>`;
       qsa('[data-call-conversation]', list).forEach(button => button.addEventListener('click', () => {
@@ -10957,7 +10992,7 @@ void main() {
       const dm = currentView.type === 'dm' && dms.find(item => item.id === currentView.id);
       if (dm) { startPrivateCall(dm); return; }
       $('private-call-search').value = '';
-      $('private-call-status').textContent = 'Your microphone turns on when you join.';
+      $('private-call-status').textContent = '';
       renderPrivateCallPicker();
       if (!$('private-call-dialog').open) $('private-call-dialog').showModal();
     }
@@ -15021,7 +15056,10 @@ void main() {
       if (!button) return;
       const username = currentView.type === 'dm' && !groupOf() ? currentView.other : '';
       button.hidden = !me || !username || username === me.username || isHiddenBot(username);
-      button.textContent = dmBlockedUsers.has(username) ? 'Unblock DMs' : 'Block DMs';
+      const label = dmBlockedUsers.has(username) ? 'Unblock DMs' : 'Block DMs';
+      $('dm-block-label').textContent = label;
+      button.title = label;
+      button.setAttribute('aria-pressed', String(dmBlockedUsers.has(username)));
       button.disabled = dmBlockBusy.has(username);
       button.setAttribute('aria-label', `${dmBlockedUsers.has(username) ? 'Unblock' : 'Block'} direct messages ${username ? `with @${username}` : ''}`);
     }
@@ -15125,6 +15163,7 @@ void main() {
     function groupAvatarHtml() { return `<span class="avatar avatar-sm group-avatar">${GROUP_ICON}</span>`; }
     function dmView(dm) { return { type: 'dm', id: dm.id, other: dm.is_group ? '' : dm.other }; }
     function renderConversationHeader() {
+      renderDmBlockControls();
       if (currentView.type !== 'dm') { $('group-details-btn').hidden = true; return; }
       const dm = dms.find(item => item.id === currentView.id);
       if (!dm) return;
@@ -15174,10 +15213,10 @@ void main() {
       $('group-search').disabled = groupBusy || !owner || !groupPendingReady;
       const title = $('group-name').value.trim();
       $('group-create').disabled = groupBusy || !title || !groupSelection.size;
-      $('group-create').textContent = groupBusy && !dm ? 'Creating…' : 'Create group & invite';
+      $('group-create').textContent = 'Create group & invite';
       $('group-rename').disabled = groupBusy || !owner || !title || title === dm?.title;
       $('group-send-invites').disabled = groupBusy || !owner || !groupPendingReady || !groupSelection.size;
-      $('group-send-invites').textContent = groupSelection.size ? `Invite ${groupSelection.size} ${groupSelection.size === 1 ? 'person' : 'people'}` : 'Send invitations';
+      $('group-send-invites').textContent = 'Send invitations';
       $('group-leave').disabled = groupBusy;
       $('group-dialog').setAttribute('aria-busy', String(groupBusy));
       qsa('[data-group-remove], [data-group-transfer], [data-group-cancel]', $('group-dialog')).forEach(control => { control.disabled = groupBusy || !owner; });
@@ -15189,7 +15228,7 @@ void main() {
       const max = Math.max(0, 16 - (dm?.participants.length || 1) - groupPending.size);
       // A refreshed invitation list can invalidate selections made on an older list.
       for (const name of groupSelection) if (dm?.participants.includes(name) || groupPending.has(name) || dmBlockedUsers.has(name)) groupSelection.delete(name);
-      $('group-selection-count').textContent = !groupPendingReady ? 'Loading available places…' : `${groupSelection.size} selected · ${Math.max(0, max - groupSelection.size)} ${max - groupSelection.size === 1 ? 'place' : 'places'} left`;
+      $('group-selection-count').textContent = !groupPendingReady ? 'Loading available places…' : `${groupSelection.size} of ${max} people selected`;
       $('group-selected').innerHTML = [...groupSelection].map(name => `<button type="button" class="group-selection-chip" data-group-unselect="${esc(name)}" aria-label="Remove ${esc(displayNameOf(name))} from selection" ${groupBusy ? 'disabled' : ''}>${esc(displayNameOf(name))}<span aria-hidden="true">×</span></button>`).join('');
       $('group-candidates').setAttribute('aria-busy', String(!groupPendingReady));
       $('group-candidates').innerHTML = rows.map(profile => `<label class="group-person${groupSelection.has(profile.username) ? ' is-selected' : ''}">
@@ -15212,7 +15251,6 @@ void main() {
       const owner = !dm || dm.group_owner === me.username;
       groupPendingReady = !dm || !owner;
       $('group-retry').hidden = true;
-      $('group-description').textContent = dm ? 'Only accepted members can read the group and its earlier messages. Up to 16 people, including pending invitations.' : 'Invite up to 15 people. They can read the group and its earlier messages after accepting.';
       $('group-dialog-title').textContent = dm ? dm.title : 'Create a private group';
       $('group-name').value = dm?.title || '';
       $('group-name').disabled = groupBusy || !owner;
@@ -15241,7 +15279,7 @@ void main() {
           if (error) throw error;
           groupPending = new Set((data || []).map(invite => invite.invitee));
           groupPendingReady = true;
-          $('group-pending').innerHTML = (data || []).map(invite => `<div class="group-pending-person"><span>Invited · @${esc(invite.invitee)}</span><button class="ghost-button" type="button" data-group-cancel="${esc(invite.invitee)}" aria-label="Cancel invitation for ${esc(invite.invitee)}">Cancel invite</button></div>`).join('');
+          $('group-pending').innerHTML = (data || []).map(invite => `<div class="group-pending-person"><span>Pending · @${esc(invite.invitee)}</span><button class="ghost-button" type="button" data-group-cancel="${esc(invite.invitee)}" aria-label="Cancel invitation for ${esc(invite.invitee)}">Cancel invite</button></div>`).join('');
           renderGroupCandidates();
         } catch {
           if (generation !== groupDialogGeneration || groupDialogId !== id || !$('group-dialog').open) return;
