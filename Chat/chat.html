@@ -3323,6 +3323,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <button class="subrole-header-btn" id="subrole-btn" type="button" title="Pick a subrole" aria-haspopup="dialog" aria-controls="subrole-dialog">
             <span id="subrole-btn-label">Subrole</span>
           </button>
+          <button class="icon-button" id="private-call-btn" type="button" aria-label="Start or join a private call" title="Private call">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L8.7 10.6a16 16 0 0 0 4.7 4.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z"/></svg>
+          </button>
           <button class="secondary-button" id="group-details-btn" type="button" hidden>Group</button>
           <span class="sr-only" id="connection-pill" data-state="connecting" role="status" aria-live="polite">
             <span id="connection-label">Connecting</span>
@@ -3774,6 +3777,11 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         </form>
       </details>
     </div>
+  </dialog>
+
+  <dialog id="private-call-dialog" aria-labelledby="private-call-title">
+    <div class="dialog-header"><h2 id="private-call-title">Private call</h2><button class="icon-button" type="button" data-close-dialog="private-call-dialog" aria-label="Close">×</button></div>
+    <div class="dialog-body"><p class="field-help">Choose a private conversation. Only its members can join; their microphones stay off until they join.</p><div id="private-call-list" class="group-candidates"></div></div>
   </dialog>
 
   <dialog id="group-dialog" aria-labelledby="group-dialog-title" aria-describedby="group-description">
@@ -6149,6 +6157,11 @@ void main() {
     let signOutLocked = false;
 
     const voice = {
+      roomId: null,
+      roomTopic: '',
+      roomMembers: [],
+      accessChecking: false,
+      openingPrivate: false,
       client: null,
       clientId: '',
       connected: false,
@@ -7889,6 +7902,7 @@ void main() {
         if (view.id === VOICE_CHANNEL_ID || (fch && fch.kind === 'voice')) return openVoiceRoom(view);
         if (fch && fch.kind === 'forum') return openForumBoard({ type: 'forum', id: view.id });
       }
+      if (view.type === 'dm' && view.privateCall) return openPrivateVoiceStage(view);
       const prevView = currentView;
       clearHistoryContexts();
       messageJumpRequest++;
@@ -10262,6 +10276,7 @@ void main() {
     function voiceRosterLabel() {
       const names = ['You'];
       voice.peers.forEach(peer => names.push(peer.account?.displayName || peer.account?.username || 'Someone'));
+      if (voice.roomId) return `Private call · ${names.join(', ')}`;
       if (names.length === 1) return 'Just you in Voice Chat';
       const shown = names.slice(0, 3).join(', ');
       return names.length > 3 ? `${shown} +${names.length - 3}` : shown;
@@ -10460,15 +10475,15 @@ void main() {
       if (dock) dock.textContent = voiceRosterLabel();
       if (!voice.peers.size) {
         setVoiceStatus(voice.deafened ? 'Deafened — waiting for others' : 'Mic is live — waiting for others');
-        if (title) title.textContent = 'Voice Connected';
+        if (title) title.textContent = voice.roomId ? 'Private call' : 'Voice Connected';
         return;
       }
       const live = linkedVoiceCount();
-      if (title) title.textContent = live ? 'Voice Connected' : 'Linking audio';
+      if (title) title.textContent = live ? (voice.roomId ? 'Private call' : 'Voice Connected') : 'Linking audio';
       if (live === voice.peers.size) {
         clearVoiceBlockNote();
         voice.schoolNoted = false;
-        setVoiceStatus(`${voice.peers.size + 1} in Voice Chat`);
+        setVoiceStatus(`${voice.peers.size + 1} in ${voice.roomId ? 'private call' : 'Voice Chat'}`);
       } else setVoiceStatus(`Connecting… ${live}/${voice.peers.size}`);
       if (live < voice.peers.size && voice.peers.size) {
         const stuck = [...voice.peers.values()].some(peer => {
@@ -10652,7 +10667,7 @@ void main() {
       $('vc-local-label').textContent = `${account.displayName} (You)`;
       setVoiceAvatar($('vc-local-avatar'), account);
       $('vc-dock').hidden = !voice.connected;
-      $('vc-chat-toggle').hidden = !voice.connected;
+      $('vc-chat-toggle').hidden = !voice.connected || !!voice.roomId;
       $('vc-join-btn').hidden = joined;
       $('vc-join-btn').disabled = voice.joining;
       $('vc-join-btn').textContent = voice.joining ? 'Opening mic…' : 'Join Voice';
@@ -10692,7 +10707,92 @@ void main() {
       if (voice.connected) summarizeVoiceStatus();
     }
 
+    async function privateVoiceAccess(id) {
+      const { data, error } = await sb.rpc('chat_private_voice_room', { p_dm_id: id });
+      if (error) throw new Error(/PGRST202|42883/.test(error.code || '')
+        ? 'Private calls need the private_voice_calls SQL update.' : (error.message || 'This private call is unavailable.'));
+      if (!data?.topic || !Array.isArray(data.members)) throw new Error('This private call is unavailable.');
+      return data;
+    }
+
+    async function checkPrivateVoiceAccess() {
+      if (!voice.roomId || voice.accessChecking) return;
+      const id = voice.roomId, gen = voice.joinGen;
+      voice.accessChecking = true;
+      try {
+        const room = await privateVoiceAccess(id);
+        if (gen !== voice.joinGen || id !== voice.roomId) return;
+        if (room.topic !== voice.roomTopic) throw new Error('Call membership changed. Join again to reconnect securely.');
+        voice.roomMembers = room.members;
+      } catch (error) {
+        if (gen !== voice.joinGen || id !== voice.roomId) return;
+        leaveVoiceRoom({ quiet: true });
+        toast({ type: 'warning', text: error.message || 'Private call access ended.' });
+      } finally { voice.accessChecking = false; }
+    }
+
+    function openPrivateVoiceStage(view) {
+      currentView = view;
+      closeDrawers();
+      setMainMode('voice');
+      renderConversationHeader();
+      $('vc-stage').setAttribute('aria-label', 'Private voice call');
+      $('channel-topic').textContent = 'Private call · only members of this conversation can join';
+      $('channel-settings-btn').hidden = true;
+      $('pins-btn').hidden = true;
+      $('search-btn').hidden = true;
+      renderChannels();
+      renderDmList();
+      updateVoiceUi();
+    }
+
+    async function startPrivateCall(dm) {
+      if (voice.joining || voice.openingPrivate) return;
+      voice.openingPrivate = true;
+      try {
+        const room = await privateVoiceAccess(dm.id);
+        if (voice.roomId !== dm.id) leaveVoiceRoom({ quiet: true });
+        voice.roomId = dm.id;
+        voice.roomTopic = room.topic;
+        voice.roomMembers = room.members;
+        $('private-call-dialog').close();
+        await openView({ ...dmView(dm), privateCall: true });
+        const alreadyJoined = voice.connected;
+        await joinVoiceRoom();
+        if (!alreadyJoined && voice.connected && voice.roomId === dm.id) {
+          const { error } = await sb.from('dm_messages').insert({
+            dm_id: dm.id, sender: me.username, type: 'text',
+            content: '📞 Private voice call — tap the phone button in this conversation to join.',
+          });
+          if (error) toast({ type: 'warning', text: 'Call is open, but the call invitation could not be sent. Ask them to use the phone button.' });
+        }
+      } catch (error) { toast({ type: 'error', text: error.message || 'Could not start a private call.' }); }
+      finally { voice.openingPrivate = false; }
+    }
+
+    function openPrivateCallPicker() {
+      const dm = currentView.type === 'dm' && dms.find(item => item.id === currentView.id);
+      if (dm) { startPrivateCall(dm); return; }
+      const list = $('private-call-list');
+      list.replaceChildren();
+      dms.filter(item => item.is_group || !isHiddenBot(item.other)).forEach(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'secondary-button';
+        button.textContent = conversationTitle(item);
+        button.addEventListener('click', () => startPrivateCall(item));
+        list.append(button);
+      });
+      if (!list.childElementCount) list.textContent = 'Open a DM or create a private group first.';
+      if (!$('private-call-dialog').open) $('private-call-dialog').showModal();
+    }
+
     function openVoiceRoom(view) {
+      if (voice.roomId) leaveVoiceRoom({ quiet: true });
+      voice.roomId = null;
+      voice.roomTopic = '';
+      voice.roomMembers = [];
+      $('vc-stage').setAttribute('aria-label', 'Global voice chat');
       const switched = viewKey(currentView) !== viewKey(view);
       beginViewSwitch(view);
       currentView = view;
@@ -10761,14 +10861,16 @@ void main() {
 
     async function publishVoice(type, payload = {}, target = null) {
       if (!voice.client?.connected) return false;
+      const client = voice.client, generation = voice.joinGen;
       const packet = {
-        type, from: voice.clientId, target,
+        type, from: voice.clientId, target, room: voice.roomTopic || VOICE_SIGNAL_CHANNEL,
         ticket: voice.ticket,
         sentAt: Date.now(), ...payload,
       };
       for (let attempt = 0; attempt < 3; attempt++) {
+        if (voice.client !== client || voice.joinGen !== generation) return false;
         try {
-          const result = await voice.client.send(packet);
+          const result = await client.send(packet);
           if (result === 'ok') return true;
         } catch {}
         await new Promise(resolve => setTimeout(resolve, 180 * (attempt + 1)));
@@ -10784,7 +10886,7 @@ void main() {
         try {
           if (voice.client?.channel) sb.removeChannel(voice.client.channel);
         } catch {}
-        const channel = sb.channel(VOICE_SIGNAL_CHANNEL, {
+        const channel = sb.channel(voice.roomId ? voice.roomTopic : VOICE_SIGNAL_CHANNEL, {
           config: { private: true, broadcast: { self: false, ack: true } },
         });
 
@@ -10810,10 +10912,11 @@ void main() {
           reject(error instanceof Error ? error : new Error('Could not connect to the voice room.'));
         };
 
+        const brokerGen = voice.joinGen;
         channel.on('broadcast', { event: 'signal' }, ({ payload }) => {
-          if (!payload) return;
+          if (!payload || voice.client !== client || brokerGen !== voice.joinGen) return;
           voice.signalChain = (voice.signalChain || Promise.resolve())
-            .then(() => handleVoiceSignal(payload))
+            .then(() => { if (voice.client === client && brokerGen === voice.joinGen) return handleVoiceSignal(payload); })
             .catch(error => console.error('[liminal] voice signaling error', error));
         });
 
@@ -10862,6 +10965,12 @@ void main() {
         : 'Requesting microphone…');
       updateVoiceUi();
       try {
+        if (voice.roomId) {
+          const room = await privateVoiceAccess(voice.roomId);
+          if (joinGen !== voice.joinGen) return;
+          voice.roomTopic = room.topic;
+          voice.roomMembers = room.members;
+        }
         const iceReady = prepareVoiceIce();
         voice.localStream = await requestVoiceMedia();
         if (joinGen !== voice.joinGen || voice.intentionalClose) {
@@ -11014,6 +11123,7 @@ void main() {
       clearInterval(voice.linkTimer);
       voice.linkTimer = setInterval(() => {
         if (!voice.connected) return;
+        if (voice.roomId) checkPrivateVoiceAccess();
         if (!voice.peers.size) {
           if (voice.ticketMintedAt && Date.now() - voice.ticketMintedAt > 30 * 60 * 1000) {
             mintVoiceTicket().then(() => publishVoice('announce')).catch(() => {});
@@ -11296,10 +11406,13 @@ void main() {
     async function handleVoiceSignal(message) {
       if (!message || message.from === voice.clientId || !voice.connected) return;
       if (message.target && message.target !== voice.clientId) return;
+      if (message.room && message.room !== (voice.roomTopic || VOICE_SIGNAL_CHANNEL)) return;
       const remoteId = String(message.from || '');
       if (!remoteId) return;
+      const signalGen = voice.joinGen;
       const username = await verifiedVoiceUser(message.ticket);
-      if (!username || !voice.connected) return;
+      if (!username || !voice.connected || signalGen !== voice.joinGen) return;
+      if (voice.roomId && !voice.roomMembers.includes(username)) return;
       const remoteAccount = {
         username,
         displayName: displayNameOf(username),
@@ -11313,7 +11426,7 @@ void main() {
       }
       if (username === me.username) return;
       if (message.type === 'room-full') {
-        toast({ type: 'warning', title: 'Voice Chat is full', text: `The global room is limited to ${VOICE_MAX_PARTICIPANTS} people.` });
+        toast({ type: 'warning', title: 'Voice Chat is full', text: `This call is limited to ${VOICE_MAX_PARTICIPANTS} people.` });
         leaveVoiceRoom({ quiet: true });
         return;
       }
@@ -11755,6 +11868,7 @@ void main() {
     }
 
     async function sendVoiceChatMessage() {
+      if (voice.roomId) return;
       const input = $('vc-chat-input');
       const content = input.value.trim();
       if (!content || !voice.connected || !me) return;
@@ -11793,6 +11907,7 @@ void main() {
     }
 
     function setVoiceChatOpen(open) {
+      if (voice.roomId) return;
       if (!voice.connected) return;
       voice.chatOpen = open;
       const popup = $('vc-chat-popup');
@@ -11807,6 +11922,7 @@ void main() {
     }
 
     function wireVoiceEvents() {
+      $('private-call-btn').addEventListener('click', openPrivateCallPicker);
       $('vc-join-btn').addEventListener('click', () => joinVoiceRoom());
       $('vc-mute-btn').addEventListener('click', toggleVoiceMute);
       $('vc-deafen-btn').addEventListener('click', toggleVoiceDeafen);
@@ -11865,7 +11981,11 @@ void main() {
         toggleVoiceMute();
       });
       $('vc-leave-btn').addEventListener('click', () => leaveVoiceRoom());
-      $('vc-dock-open').addEventListener('click', () => openView({ type: 'channel', id: VOICE_CHANNEL_ID }));
+      $('vc-dock-open').addEventListener('click', () => {
+        const dm = voice.roomId && dms.find(item => item.id === voice.roomId);
+        if (voice.roomId && !dm) { leaveVoiceRoom(); return; }
+        openView(dm ? { ...dmView(dm), privateCall: true } : { type: 'channel', id: VOICE_CHANNEL_ID });
+      });
       $('vc-dock-mute').addEventListener('click', toggleVoiceMute);
       $('vc-dock-leave').addEventListener('click', () => leaveVoiceRoom());
       $('vc-chat-toggle').addEventListener('click', () => setVoiceChatOpen(!voice.chatOpen));
