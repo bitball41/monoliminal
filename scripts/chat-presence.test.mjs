@@ -132,7 +132,8 @@ function chatPresence() {
     esc: value => String(value), displayNameOf: account => account.display_name || account.username,
     avatarHtml: () => '', roleBadgeHtml: () => '', subRoleBadgeHtml: () => '', staffRoleOf: () => 'member',
     statusMeta: status => ({ label: status }),
-    memberListHtml: { online: null, offline: null }, memberListClicksBound: false,
+    memberListClicksBound: false,
+    reconcileSidebarRows(groups) { groups.forEach(({list,rows}) => { list.innerHTML = rows.map(row => row.html).join(''); }); },
     memberListSignature: '', memberPresenceSignature: () => '',
     refreshSubroleMemberControls() {}, renderSubroleDialog() {}, showHoverCard() {}, voice: { peers: new Map() }, renderDmList() {}, refreshTimelineForAuthor() {},
   });

@@ -5060,7 +5060,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.23.0";
+    const APP_VERSION = "2.23.1";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -5328,7 +5328,7 @@ void main() {
 
     function avatarHtml(profile, sizeClass, withDot) {
       const p = profile || {};
-      const img = p.pfp ? `<img src="${esc(p.pfp)}" alt="">` : esc(initialsOf(p.display_name || p.username));
+      const img = p.pfp ? `<img src="${esc(p.pfp)}" alt="" loading="lazy" decoding="async">` : esc(initialsOf(p.display_name || p.username));
       const dot = withDot ? `<span class="presence-dot" data-status="${esc(presenceStatusOf(p.username))}"></span>` : '';
       const ring = ringMarkup(p);
       return `<span class="avatar ${sizeClass}${ring.cls}"${ring.style}>${img}${dot}</span>`;
@@ -5993,7 +5993,6 @@ void main() {
           raf = requestAnimationFrame(paint);
           if (now - last < 1000 / preset.fps) return;
           last = now;
-          resize();
           if (!width || !height) return;
           gl.clearColor(0, 0, 0, 0);
           gl.clear(gl.COLOR_BUFFER_BIT);
@@ -6134,7 +6133,7 @@ void main() {
       const pointerSurface = $('main-content');
       let palette = backgroundPalette();
       const mouse = { x: -9999, y: -9999, px: -9999, py: -9999, speed: 0 };
-      let dots = [], w = 0, h = 0, raf = 0, last = 0, engagement = 0, destroyed = false;
+      let dots = [], w = 0, h = 0, raf = 0, last = 0, engagement = 0, destroyed = false, gradient = null;
       function resize() {
         const rect = stage.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
@@ -6142,6 +6141,7 @@ void main() {
         const dpr = Math.min(devicePixelRatio || 1, 1.5);
         canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        gradient = null;
         const step = 19.5;
         const cols = Math.ceil(w / step), rows = Math.ceil(h / step);
         dots = [];
@@ -6154,8 +6154,9 @@ void main() {
         const rect = stage.getBoundingClientRect();
         mouse.x = event.clientX - rect.left;
         mouse.y = event.clientY - rect.top;
+        sync();
       }
-      function leave() { mouse.x = mouse.y = mouse.px = mouse.py = -9999; mouse.speed = 0; }
+      function leave() { mouse.x = mouse.y = mouse.px = mouse.py = -9999; mouse.speed = 0; sync(); }
       function drawable() {
         return !destroyed && !document.hidden && !stage.hidden && !$('app-shell').hidden &&
           !timeline.hidden && stage.isConnected && chatBackgroundChoice === 'dotField' &&
@@ -6164,19 +6165,21 @@ void main() {
       function paint(now) {
         raf = 0;
         if (!drawable()) return;
-        raf = requestAnimationFrame(paint);
-        if (now - last < 1000 / 30) return;
+        if (now - last < 1000 / 30) { raf = requestAnimationFrame(paint); return; }
         last = now;
         const distance = Math.hypot(mouse.x - mouse.px, mouse.y - mouse.py);
         mouse.speed += (Math.min(distance, 30) - mouse.speed) * 0.35;
         mouse.px = mouse.x; mouse.py = mouse.y;
         engagement += (Math.min(mouse.speed / 5, 1) - engagement) * 0.06;
         ctx.clearRect(0, 0, w, h);
-        const gradient = ctx.createLinearGradient(0, 0, w, h);
-        gradient.addColorStop(0, backgroundCSSColor(palette.primary, palette.light ? .62 : .7));
-        gradient.addColorStop(1, backgroundCSSColor(palette.secondary, palette.light ? .48 : .5));
+        if (!gradient) {
+          gradient = ctx.createLinearGradient(0, 0, w, h);
+          gradient.addColorStop(0, backgroundCSSColor(palette.primary, palette.light ? .62 : .7));
+          gradient.addColorStop(1, backgroundCSSColor(palette.secondary, palette.light ? .48 : .5));
+        }
         ctx.fillStyle = gradient;
         ctx.beginPath();
+        let unsettled = false;
         for (const dot of dots) {
           const dx = mouse.x - dot.x, dy = mouse.y - dot.y;
           const dist = Math.hypot(dx, dy);
@@ -6188,10 +6191,14 @@ void main() {
           }
           dot.sx += (x - dot.sx) * 0.15;
           dot.sy += (y - dot.sy) * 0.15;
+          if (Math.abs(x - dot.sx) + Math.abs(y - dot.sy) > 0.05) unsettled = true;
           ctx.moveTo(dot.sx + 1, dot.sy);
           ctx.arc(dot.sx, dot.sy, 1, 0, Math.PI * 2);
         }
         ctx.fill();
+        // A stationary field has nothing left to animate. Pointer, theme,
+        // size and visibility events restart it when another frame is needed.
+        if (unsettled || mouse.speed > 0.01 || engagement > 0.01) raf = requestAnimationFrame(paint);
       }
       function sync() {
         if (drawable()) { if (!raf) raf = requestAnimationFrame(paint); }
@@ -6206,7 +6213,7 @@ void main() {
       document.addEventListener('visibilitychange', sync);
       stage.addEventListener('background-visibility', sync);
       resize(); sync();
-      return { updateTheme() { palette = backgroundPalette(); }, destroy() {
+      return { updateTheme() { palette = backgroundPalette(); gradient = null; sync(); }, destroy() {
         destroyed = true;
         if (raf) cancelAnimationFrame(raf);
         ro.disconnect(); mo.disconnect();
@@ -6324,6 +6331,7 @@ void main() {
     let wakeRunning = false;
     let lastWakeAt = 0;
     let lastListRefreshAt = 0;
+    let lastConversationRefreshAt = 0;
     const LIST_RECONCILE_MS = 5 * 60000;
     const MESSAGE_RECONCILE_MS = 5 * 60000;
     const MESSAGE_FALLBACK_POLL_MS = 20000;
@@ -6331,8 +6339,8 @@ void main() {
     let lastCatchUpPollAt = 0;
     let catchUpPollPromise = null;
     let memberListSignature = '';
-    const memberListHtml = { online: null, offline: null };
     let memberListClicksBound = false;
+    let dmListClicksBound = false;
     let newestSeenTs = null;
     let pendingTimers = [];
     let signOutLocked = false;
@@ -7660,12 +7668,12 @@ void main() {
       if (error) {
         console.error('[liminal] dm inbox', error);
         const fallback = await sb.from('dms').select('*').contains('participants', [me.username]);
-        if (fallback.error) return;
+        if (fallback.error) return false;
         dms = (fallback.data || []).map(d => ({ ...d, other: d.is_group ? '' : (d.participants || []).find(u => u !== me.username) || me.username, lastMsg: null, myLastReadAt: null }))
           .filter(d => !isHiddenBot(d.other) && !(d.participants || []).some(isHiddenBot));
         for (const previous of previousGroups) if (!dms.some(dm => dm.id === previous.id)) discardGroupCache(previous.id);
         sortDms();
-        return;
+        return true;
       }
       dms = (data || []).map(d => ({
         id: d.id,
@@ -7695,6 +7703,7 @@ void main() {
         else unreadCounts.delete(key);
       });
       sortDms();
+      return true;
     }
 
     async function hydrateChannelUnreads() {
@@ -7925,12 +7934,52 @@ void main() {
       });
     }
 
+    // Keep row identity (including decoded GIFs, ring animations and focus) when
+    // only a label, presence dot, unread count or list position changes.
+    function reconcileSidebarRows(groups, keyName) {
+      const remaining = new Map();
+      groups.forEach(({ list }) => {
+        Array.from(list.children).forEach(node => remaining.set(node.dataset[keyName], node));
+      });
+      let template;
+      groups.forEach(({ list, rows }) => {
+        let cursor = list.firstElementChild;
+        rows.forEach(({ key, html }) => {
+          let node = remaining.get(key);
+          if (!node || node._rowHtml !== html) {
+            template ||= document.createElement('template');
+            template.innerHTML = html.trim();
+            const fresh = template.content.firstElementChild;
+            if (node) {
+              const avatar = qs('.avatar', node), nextAvatar = qs('.avatar', fresh);
+              if (avatar && nextAvatar) {
+                const dot = qs('.presence-dot', avatar), nextDot = qs('.presence-dot', nextAvatar);
+                if (dot && nextDot && dot.dataset.status !== nextDot.dataset.status) dot.dataset.status = nextDot.dataset.status;
+                if (avatar.isEqualNode(nextAvatar)) nextAvatar.replaceWith(avatar);
+                else {
+                  const image = qs('img', avatar), nextImage = qs('img', nextAvatar);
+                  if (image && nextImage && image.isEqualNode(nextImage)) nextImage.replaceWith(image);
+                }
+              }
+              node.className = fresh.className;
+              node.replaceChildren(...fresh.childNodes);
+            } else node = fresh;
+            node._rowHtml = html;
+          }
+          remaining.delete(key);
+          if (node === cursor) cursor = cursor.nextElementSibling;
+          else list.insertBefore(node, cursor);
+        });
+      });
+      remaining.forEach(node => node.remove());
+    }
+
     function renderDmList() {
       dms.forEach(dm => { if (!dm.is_group && dmBlockedUsers.has(dm.other)) unreadCounts.delete(`dm:${dm.id}`); });
       const list = $('dm-list');
       $('dm-empty').hidden = dms.length > 0;
       $('dm-empty').textContent = 'Your other conversations will appear here.';
-      list.innerHTML = dms.map(dm => {
+      const rows = dms.map(dm => {
         const key = `dm:${dm.id}`;
         const other = profileOf(dm.other);
         const active = currentView.type === 'dm' && currentView.id === dm.id;
@@ -7943,19 +7992,22 @@ void main() {
           else if (dm.is_group) preview = `${displayNameOf(profileOf(m.sender))}: ${preview}`;
         }
         if (!dm.is_group && dmBlockedUsers.has(dm.other)) preview = 'Blocked';
-        return `
+        return { key: dm.id, html: `
           <button class="dm-button ${active ? 'active' : ''}" type="button" data-dm="${esc(dm.id)}">
             ${dm.is_group ? groupAvatarHtml() : avatarHtml(other, 'avatar-sm', true)}
             <span class="dm-copy"><span class="dm-name">${esc(conversationTitle(dm))}</span><span class="dm-preview">${esc(preview.slice(0, 60))}</span></span>
             ${unreadN ? '<span class="dm-unread-dot" aria-label="Unread messages"></span>' : ''}
-          </button>`;
-      }).join('');
-      qsa('[data-dm]', list).forEach(btn => {
-        btn.addEventListener('click', () => {
-          const dm = dms.find(d => d.id === btn.dataset.dm);
+          </button>` };
+      });
+      reconcileSidebarRows([{ list, rows }], 'dm');
+      if (!dmListClicksBound) {
+        dmListClicksBound = true;
+        list.addEventListener('click', event => {
+          const button = event.target.closest('[data-dm]');
+          const dm = button && dms.find(d => d.id === button.dataset.dm);
           if (dm) openView(dmView(dm));
         });
-      });
+      }
       updateSidebarIndicator();
     }
 
@@ -9193,20 +9245,51 @@ void main() {
     }
 
     // Long-lived tabs otherwise keep every live message (and GIF) mounted forever.
-    // Trimmed history stays reachable through "load older". The slack keeps the
-    // full re-render to once per LIVE_MESSAGE_SLACK messages instead of every one.
+    // Trimmed history stays reachable through "load older". The slack batches
+    // removals without rebuilding the messages that remain on screen.
     const LIVE_MESSAGE_CAP = 200;
     const LIVE_MESSAGE_SLACK = 50;
     function trimLiveCache(key) {
       const cache = msgCache.get(key);
       const cap = isLiteMode() ? Math.round(LIVE_MESSAGE_CAP / 2) : LIVE_MESSAGE_CAP;
       if (!cache || cache.length <= cap + LIVE_MESSAGE_SLACK) return false;
+      const history = historyContexts.get(key)?.rows || [];
+      const historyById = new Map(history.map(message => [message.id, message]));
+      const unsent = [];
       cache.splice(0, cache.length - cap).forEach(dropped => {
+        if (dropped.pending || dropped.failed) { unsent.push(dropped); return; }
+        unindexMessage(dropped);
+        const retained = historyById.get(dropped.id);
+        if (retained) { indexMessage(retained); return; }
         pollCache.delete(dropped.id);
         pollBusy.delete(dropped.id);
       });
+      cache.unshift(...unsent);
       hasMoreMap.set(key, true);
       return true;
+    }
+
+    function trimTimelineToCache() {
+      const rows = msgCache.get(viewKey(currentView)) || [];
+      const retained = new Set(rows.map(message => String(message.id)));
+      const list = $('message-list');
+      Array.from(list.children).forEach(node => {
+        if (node.dataset.id && !retained.has(node.dataset.id)) node.remove();
+      });
+      qsa('.date-sep', list).forEach(node => {
+        const next = node.nextElementSibling;
+        if (!next || next.classList.contains('date-sep') || next.classList.contains('dm-receipt')) node.remove();
+      });
+      const byId = new Map(rows.map((message, index) => [String(message.id), { message, index }]));
+      qsa('.msg[data-id]', list).forEach(node => {
+        const item = byId.get(node.dataset.id);
+        if (!item) return;
+        const previous = item.index > 0 ? rows[item.index - 1] : null;
+        if (node.classList.contains('grouped') !== shouldGroup(item.message, previous)) {
+          node.replaceWith(buildMessageNode(item.message, previous));
+        }
+      });
+      $('load-older').hidden = !hasMoreMap.get(viewKey(currentView));
     }
 
     function appendToTimeline(msg) {
@@ -9754,11 +9837,9 @@ void main() {
       } else if (isCurrent) {
         const wasNear = stickyToBottom || isNearBottom();
         if ((mine || wasNear) && trimLiveCache(key)) {
-          renderTimeline();
-          pinToBottom(true);
-        } else {
-          appendToTimeline(m);
+          trimTimelineToCache();
         }
+        appendToTimeline(m);
         if (mine || wasNear) { scrollToBottom(); markViewRead(key); }
         else bumpNewBadge();
       } else if (!mine) {
@@ -10350,9 +10431,19 @@ void main() {
       patchCachedMessage(data);
     }
 
+    function messageRenderChanged(before, after) {
+      if (!before) return true;
+      return Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).some(key =>
+        key !== 'read_by' && before[key] !== after[key]
+        && JSON.stringify(before[key]) !== JSON.stringify(after[key]));
+    }
+
     function patchCachedMessage(m) {
       const key = m.channel_id ? `c:${m.channel_id}` : `dm:${m.dm_id}`;
       const cache = msgCache.get(key);
+      const context = historyContexts.get(key);
+      const previous = (context?.rows || cache || []).find(row => row.id === m.id);
+      const renderChanged = messageRenderChanged(previous, m);
       if (cache) {
         const idx = cache.findIndex(x => x.id === m.id);
         if (idx >= 0) {
@@ -10361,9 +10452,11 @@ void main() {
           indexMessage(m);
         }
       }
-      const context = historyContexts.get(key);
       if (context) { const idx = context.rows.findIndex(x => x.id === m.id); if (idx >= 0) { context.rows[idx] = m; indexMessage(m); } }
-      if (key === viewKey(currentView)) { updateMessageNode(m); renderDmReceipt(); }
+      if (key === viewKey(currentView)) {
+        if (renderChanged) updateMessageNode(m);
+        renderDmReceipt();
+      }
       if ($('pins-dialog').open && pinsState?.view && viewKey(pinsState.view) === key) {
         const idx = pinsState.rows.findIndex(row => row.id === m.id);
         if (!m.pinned || m.deleted) pinsState.rows = pinsState.rows.filter(row => row.id !== m.id);
@@ -12688,6 +12781,7 @@ void main() {
     }
 
     function patchPresenceDots() {
+      if (document.visibilityState === 'hidden') return;
       qsa('.presence-dot[data-status]').forEach(dot => {
         const host = dot.closest('[data-member], [data-sender], #self-avatar, #hc-avatar');
         let username = null;
@@ -12704,10 +12798,10 @@ void main() {
 
     let memberRenderFrame = 0;
     function scheduleRenderMembers() {
-      if (memberRenderFrame) return;
+      if (memberRenderFrame || document.visibilityState === 'hidden') return;
       memberRenderFrame = requestAnimationFrame(() => {
         memberRenderFrame = 0;
-        renderMembers();
+        if (document.visibilityState !== 'hidden') renderMembers();
       });
     }
 
@@ -12875,17 +12969,8 @@ void main() {
       let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).eq('username', username).maybeSingle();
       if (error) ({ data } = await sb.from('profiles').select(PROFILE_BASE_COLUMNS).eq('username', username).maybeSingle());
       if (data) {
-        profiles.set(username, { ...profiles.get(username), ...data });
         if (!me || username !== me.username) profileDetailLoaded.delete(username);
-        if (me && username === me.username) updateVoiceUi();
-        voice.peers.forEach(peer => {
-          if (peer.account?.username !== username) return;
-          peer.account = { ...peer.account, displayName: displayNameOf(data), pfp: data.pfp || '' };
-          updatePeerTileIdentity(peer);
-        });
-        renderMembers();
-        renderDmList();
-        refreshTimelineForAuthor(username);
+        handleProfileChange({ new: data });
       }
     }
 
@@ -13077,10 +13162,10 @@ void main() {
         setInterval(recordChatActivity, 60000),
         setInterval(() => catchUpPoll({ periodic: true }), MESSAGE_FALLBACK_POLL_MS),
         setInterval(refreshPollTimers, 30000),
-        setInterval(() => { if (me && document.visibilityState === 'visible' && navigator.onLine !== false) refreshConversations(); }, 30000),
+        setInterval(() => refreshConversations({ periodic: true }), 30000),
         setInterval(() => { tickCooldown(); tickTimeout(); }, 1000),
         setInterval(() => {
-          if (memberPresenceSignature() !== memberListSignature) scheduleRenderMembers();
+          if (document.visibilityState === 'visible' && memberPresenceSignature() !== memberListSignature) scheduleRenderMembers();
           patchPresenceDots();
           if (me && $('self-dot')?.dataset.status !== presenceStatusOf(me.username)) renderSelf();
           if (!wakeRunning && !realtimeRecovering && me && Date.now() - new Date(bootedAt).getTime() > 12000 && !realtimeHealthy()) scheduleRealtimeRecover();
@@ -13089,6 +13174,7 @@ void main() {
     }
 
     function refreshPollTimers() {
+      if (document.visibilityState === 'hidden') return;
       const messages = msgCache.get(viewKey(currentView)) || [];
       messages.filter(message => message.type === 'poll').forEach(message => {
         if (qs(`[data-id="${message.id}"]`)) refreshPollMessage(message);
@@ -14562,10 +14648,16 @@ void main() {
     function renderSelf() {
       if (!me) return;
       const effStatus = presenceStatusOf(me.username);
-      $('self-avatar').innerHTML = (me.pfp ? `<img src="${esc(me.pfp)}" alt="">` : esc(initialsOf(displayNameOf(me))))
-        + `<span class="presence-dot" id="self-dot" data-status="${esc(effStatus)}"></span>`;
-      applyRing($('self-avatar'), me);
-      $('self-name').innerHTML = `<span class="name-text">${esc(displayNameOf(me))}</span>${subRoleBadgeHtml(me)}`;
+      const avatar = $('self-avatar');
+      const identity = me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)));
+      if (avatar._identityHtml !== identity) {
+        avatar.innerHTML = identity + `<span class="presence-dot" id="self-dot" data-status="${esc(effStatus)}"></span>`;
+        avatar._identityHtml = identity;
+      } else if ($('self-dot').dataset.status !== effStatus) $('self-dot').dataset.status = effStatus;
+      applyRing(avatar, me);
+      const name = $('self-name');
+      const nameHtml = `<span class="name-text">${esc(displayNameOf(me))}</span>${subRoleBadgeHtml(me)}`;
+      if (name._nameHtml !== nameHtml) { name.innerHTML = nameHtml; name._nameHtml = nameHtml; }
       $('self-status-text').textContent = selfPresenceLabel();
       renderSubroleButton();
     }
@@ -14602,11 +14694,10 @@ void main() {
             </span>
           </button>`;
       };
-      const onlineHtml = visibleOnline.map(p => row(p, true)).join('');
-      const offlineHtml = visibleOffline.map(p => row(p, false)).join('');
-      // Rebuilding unchanged rows re-decodes every GIF avatar and restarts ring animations.
-      if (onlineHtml !== memberListHtml.online) { $('online-list').innerHTML = onlineHtml; memberListHtml.online = onlineHtml; }
-      if (offlineHtml !== memberListHtml.offline) { $('offline-list').innerHTML = offlineHtml; memberListHtml.offline = offlineHtml; }
+      reconcileSidebarRows([
+        { list: $('online-list'), rows: visibleOnline.map(p => ({ key: p.username, html: row(p, true) })) },
+        { list: $('offline-list'), rows: visibleOffline.map(p => ({ key: p.username, html: row(p, false) })) },
+      ], 'member');
       if (!memberListClicksBound) {
         memberListClicksBound = true;
         ['online-list', 'offline-list'].forEach(id => $(id).addEventListener('click', (e) => {
@@ -15233,12 +15324,13 @@ void main() {
     }
     async function loadGroupInvites() {
       const { data, error } = await sb.rpc('chat_list_group_invites');
-      if (error) return;
+      if (error) return false;
       groupInvites = Array.isArray(data) ? data : [];
       const button = $('group-invites-btn');
       button.hidden = !groupInvites.length;
       button.textContent = `${groupInvites.length} group ${groupInvites.length === 1 ? 'invite' : 'invites'}`;
       if ($('group-invites-dialog').open) renderGroupInvites();
+      return true;
     }
     function renderGroupInvites() {
       $('group-invites-list').innerHTML = groupInvites.map(invite => `<article class="group-invite-card">
@@ -15417,10 +15509,16 @@ void main() {
         if (groupLeavingId !== id) toast({ type: 'warning', text: 'You no longer have access to this private group.' });
       }
     }
-    async function refreshConversations() {
+    async function refreshConversations({ periodic = false } = {}) {
       if (!me || !sb) return;
+      // An open DM keeps the short access/membership check even if a revoked
+      // row is no longer visible to this client's Realtime subscription.
+      const interval = currentView.type === 'dm' ? DM_RECONCILE_MS : LIST_RECONCILE_MS;
+      if (periodic && (presenceStopped || presenceLeft || document.visibilityState !== 'visible'
+        || navigator.onLine === false || (realtimeHealthy() && Date.now() - lastConversationRefreshAt < interval))) return;
       if (conversationRefresh) return conversationRefresh;
-      conversationRefresh = Promise.all([loadDms(), loadGroupInvites()]).then(() => {
+      conversationRefresh = Promise.all([loadDms(), loadGroupInvites()]).then(results => {
+        if (results.every(result => result !== false)) lastConversationRefreshAt = Date.now();
         renderDmList(); renderConversationHeader(); applyFeatureControls();
         if (groupDialogId && !dms.some(dm => dm.id === groupDialogId) && $('group-dialog').open) $('group-dialog').close();
       }).catch(error => console.warn('[liminal] conversations could not refresh', error)).finally(() => { conversationRefresh = null; });
@@ -17601,23 +17699,24 @@ void main() {
     function renderDmReceipt() {
       const list = $('message-list');
       const old = qs('.dm-receipt', list);
-      if (old) old.remove();
-      if (currentView.type !== 'dm' || !me || historyContexts.has(viewKey(currentView))) return;
+      if (currentView.type !== 'dm' || !me || historyContexts.has(viewKey(currentView))) { old?.remove(); return; }
       const cache = msgCache.get(viewKey(currentView)) || [];
       let last = null;
       for (let i = cache.length - 1; i >= 0; i--) { if (cache[i].sender === me.username && !cache[i].deleted) { last = cache[i]; break; } }
-      if (!last || isPrivateCallMessage(last)) return;
+      if (!last || isPrivateCallMessage(last)) { old?.remove(); return; }
       const group = groupOf();
       const readers = group ? group.participants.filter(name => name !== me.username && (last.read_by || []).includes(name)) : [];
       const seen = group ? readers.length > 0 : (last.read_by || []).includes(currentView.other);
       const seenText = group ? `Seen by ${readers.length} of ${Math.max(0, group.participants.length - 1)}` : 'Seen';
-      const el = document.createElement('div');
+      const el = old || document.createElement('div');
       el.className = 'dm-receipt';
-      el.dataset.state = seen ? 'seen' : 'sent';
-      el.innerHTML = seen
+      const state = seen ? 'seen' : 'sent';
+      if (el.dataset.state !== state) el.dataset.state = state;
+      const html = seen
         ? `<span class="dm-receipt-ticks">✓✓</span><span>${esc(seenText)}${last.created_at ? ' · ' + esc(fmtTime(last.created_at)) : ''}</span>`
         : `<span class="dm-receipt-ticks">✓</span><span>Sent</span>`;
-      list.appendChild(el);
+      if (el._receiptHtml !== html) { el.innerHTML = html; el._receiptHtml = html; }
+      if (list.lastElementChild !== el) list.appendChild(el);
     }
 
     /* ============================= 37f. MESSAGE SEARCH ============================= */
