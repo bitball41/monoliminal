@@ -10732,8 +10732,10 @@ void main() {
     }
 
     function openPrivateVoiceStage(view) {
+      const switched = viewKey(currentView) !== viewKey(view);
       currentView = view;
       closeDrawers();
+      finishViewSwitch(view, switched);
       setMainMode('voice');
       renderConversationHeader();
       $('vc-stage').setAttribute('aria-label', 'Private voice call');
