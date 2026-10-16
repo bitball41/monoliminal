@@ -6702,7 +6702,7 @@ void main() {
       if (hoverCardUser && (!username || username === hoverCardUser) && !$('hover-card').hidden) {
         const fresh = profileOf(hoverCardUser);
         $('hc-chips').innerHTML = roleBadgeHtml(fresh) + subRoleBadgeHtml(fresh)
-          + (fresh.tag && staffRoleOf(fresh) === 'member' ? `<span class="msg-tag">${esc(fresh.tag)}</span>` : '');
+          + (fresh.tag ? `<span class="msg-tag">${esc(fresh.tag)}</span>` : '');
       }
     }
     function setSubroleStatus(text, error = false, retry = false) {
@@ -8675,7 +8675,7 @@ void main() {
             <button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(author))}</button>
             ${roleBadgeHtml(author)}
             ${subRoleBadgeHtml(author)}
-            ${author.tag && staffRoleOf(author) === 'member' ? `<span class="msg-tag">${esc(author.tag)}</span>` : ''}
+            ${author.tag ? `<span class="msg-tag">${esc(author.tag)}</span>` : ''}
             <span class="msg-time">${esc(fmtDay(msg.created_at))} at ${esc(fmtTime(msg.created_at))}</span>
             ${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}
           </div>`;
@@ -14643,7 +14643,7 @@ void main() {
       $('hc-name').style.color = '';
       $('hc-chips').innerHTML = roleBadgeHtml(p)
         + subRoleBadgeHtml(p)
-        + (p.tag && staffRoleOf(p) === 'member' ? `<span class="msg-tag">${esc(p.tag)}</span>` : '');
+        + (p.tag ? `<span class="msg-tag">${esc(p.tag)}</span>` : '');
       $('hc-handle').textContent = `@${username}`;
       const role = staffRoleOf(p);
       $('hc-role').hidden = role === 'member';
@@ -14915,7 +14915,7 @@ void main() {
         const fresh = profileOf(username);
         $('hc-chips').innerHTML = roleBadgeHtml(fresh)
           + subRoleBadgeHtml(fresh)
-          + (fresh.tag && staffRoleOf(fresh) === 'member' ? `<span class="msg-tag">${esc(fresh.tag)}</span>` : '');
+          + (fresh.tag ? `<span class="msg-tag">${esc(fresh.tag)}</span>` : '');
       }
       if (currentView.type === 'dm' && currentView.other === username) {
         $('channel-topic').textContent = dmTopicText(profileOf(username));
