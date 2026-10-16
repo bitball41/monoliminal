@@ -93,6 +93,52 @@ for(const [theme,width,height] of [['midnight',1440,1000],['midnight',1024,768],
 await page.setViewportSize({width:1440,height:1000});
 await page.evaluate(async()=>{applyTheme('midnight');await openView({type:'channel',id:'general'});});
 
+// Saved call invitations render as events, never group with nearby text, and join directly.
+await page.evaluate(() => {
+  const created_at = '2026-10-16T12:00:00Z';
+  const base = {dm_id:'dm-1',sender:'owner',type:'text',created_at,reactions:{}};
+  msgCache.set('dm:dm-1',[
+    {...base,id:'before-call',content:'Are you free to talk?'},
+    {...base,id:'call-invite',content:PRIVATE_CALL_INVITE},
+    {...base,id:'after-call',content:'I can walk you through it.'},
+  ]);
+});
+for (const [theme,width,height] of [['midnight',1440,1000],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]) {
+  await page.setViewportSize({width,height});
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  await page.evaluate(async theme=>{applyTheme(theme);await openView(dmView(dms.find(dm=>dm.id==='dm-1')));},theme);
+  assert.equal(await page.locator('.call-invite').count(),1);
+  assert.equal(await page.locator('[data-id="call-invite"] .msg-head').count(),0);
+  assert.equal(await page.locator('[data-id="call-invite"] .msg-content').count(),0);
+  assert.equal(await page.locator('[data-id="call-invite"] [data-act="edit"]').count(),0);
+  assert.equal(await page.locator('[data-id="after-call"].grouped').count(),0);
+  assert.equal(await page.locator('.dm-receipt').count(),1); // the following typed message still has receipts
+  const box=await fit('.call-invite');
+  assert(box.rect.width>200 && box.rect.right<=width+1 && box.scroll<=box.width+1,`call card fits ${theme}/${width}`);
+  assert.equal(await page.locator('[data-join-private-call]').isEnabled(),true);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.locator('.msg-content').first().evaluate(el=>getComputedStyle(el).color),theme==='midnight'?'rgb(244, 242, 255)':'rgb(32, 30, 27)');
+  await capture(`call-event-${theme}-${width}`);
+}
+await page.evaluate(()=>{
+  window.originalStartPrivateCall=startPrivateCall;
+  startPrivateCall=(dm,options)=>{window.joinedInvitation={id:dm.id,options};return new Promise(resolve=>window.finishInvitationJoin=resolve);};
+});
+await page.locator('[data-join-private-call]').focus();
+await page.keyboard.press('Enter');
+assert.equal(await page.locator('[data-join-private-call]').isDisabled(),true);
+assert.deepEqual(await page.evaluate(()=>window.joinedInvitation),{id:'dm-1',options:{invite:false}});
+await page.evaluate(()=>window.finishInvitationJoin());
+await page.waitForFunction(()=>!document.querySelector('[data-join-private-call]').disabled);
+await page.evaluate(()=>{
+  startPrivateCall=window.originalStartPrivateCall;
+  dmBlockedUsers.add('alice');renderTimeline();
+});
+assert.equal(await page.locator('[data-join-private-call]').isDisabled(),true);
+await page.evaluate(()=>{dmBlockedUsers.clear();msgCache.set('dm:dm-1',[]);});
+await page.setViewportSize({width:1440,height:1000});
+await page.evaluate(async()=>{applyTheme('midnight');await openView({type:'channel',id:'general'});});
+
 // Call chooser searches correctly and explains why a one-member group cannot call.
 await page.evaluate(()=>openPrivateCallPicker());
 assert.equal(await page.locator('[data-call-conversation]').count(),4);
@@ -184,5 +230,5 @@ await page.setViewportSize({width:390,height:844});
 assert(await page.locator('#vc-stage').evaluate(el=>el.scrollWidth<=el.clientWidth),'mobile voice stage fits');
 await capture('voice-mobile');
 assert.deepEqual(errors,[]);
-console.log('Browser checks passed: call search/availability, group selections and pending capacity, Staff/Owner navigation, analytics keyboard details and stale-data recovery, 42 header view/theme/width checks, plus 15 responsive dialog checks.');
+console.log('Browser checks passed: call search/availability, group selections and pending capacity, Staff/Owner navigation, analytics keyboard details and stale-data recovery, 42 header view/theme/width checks, plus 15 responsive dialog checks and call-card layout, keyboard joining, duplicate-invitation prevention, and blocking.');
 await browser.close();

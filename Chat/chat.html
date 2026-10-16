@@ -1047,7 +1047,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-reply-ref .reply-author { color: var(--accent-strong); font-weight: 700; flex: 0 0 auto; }
     .msg-reply-ref .reply-snippet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
-    .msg-content { font-size: 0.875rem; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .msg-content { color: var(--text); font-size: 0.875rem; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
     .msg-content.jumbo { font-size: 2.4rem; line-height: 1.25; }
     .msg-content a { text-decoration-thickness: 1px; }
     .msg-content.deleted { color: var(--muted); font-style: italic; }
@@ -3211,6 +3211,28 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     .private-call-action svg { width: 18px; height: 18px; }
     #private-call-status:empty { display: none; }
     #private-call-status:not(:empty) { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+    .msg.call-message { padding-block: 12px; }
+    .call-message .msg-avatar { display: none; }
+    .call-message .msg-body { min-width: 0; grid-column: 1 / -1; }
+    .call-invite {
+      display: flex; align-items: center; gap: 12px; width: min(100%, 420px); padding: 14px;
+      border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel-strong);
+    }
+    .call-invite-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 10px; background: var(--surface-2); color: var(--text-soft); }
+    .call-invite-icon svg { width: 18px; height: 18px; }
+    .call-invite-copy { display: grid; gap: 5px; flex: 1; min-width: 0; }
+    .call-invite-title { color: var(--text); font: 650 .82rem/1.4 var(--font-ui); }
+    .call-invite-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; color: var(--muted); font: 500 .67rem/1.4 var(--font-ui); }
+    .call-invite-meta .msg-author { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: inherit; color: var(--text-soft); }
+    .call-invite-meta .msg-time { margin: 0; color: inherit; font: inherit; }
+    .call-invite-join { flex: 0 0 auto; min-height: 36px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface-2); color: var(--text); font: 650 .7rem/1 var(--font-ui); cursor: pointer; }
+    .call-invite-join:hover:not(:disabled) { background: var(--surface-3, var(--surface-2)); border-color: var(--accent-line); }
+    .call-invite-join:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+    .call-invite-join:disabled { opacity: .45; cursor: default; }
+    @container (max-width: 360px) {
+      .call-invite { display: grid; grid-template-columns: 36px minmax(0, 1fr); padding: 12px; gap: 10px; }
+      .call-invite-join { grid-column: 2; justify-self: start; }
+    }
     .group-candidates { max-height: min(260px, 33dvh); overscroll-behavior: contain; scrollbar-gutter: stable; }
     .group-person { gap: 12px; padding: 10px 8px; border-radius: 9px; border-bottom: 0; min-width: 0; }
     .group-person > span:not(.avatar) { min-width: 0; }
@@ -7916,7 +7938,7 @@ void main() {
         let preview = '';
         if (dm.lastMsg) {
           const m = dm.lastMsg;
-          preview = m.deleted ? 'Message deleted' : (m.type === 'text' ? m.content : `[${m.type}]`);
+          preview = m.deleted ? 'Message deleted' : isPrivateCallMessage(m) ? messagePreview(m) : (m.type === 'text' ? m.content : `[${m.type}]`);
           if (m.sender === me.username) preview = `You: ${preview}`;
           else if (dm.is_group) preview = `${displayNameOf(profileOf(m.sender))}: ${preview}`;
         }
@@ -8519,6 +8541,26 @@ void main() {
     }
 
     /* ============================= 12. TIMELINE RENDERING ============================= */
+    // Keep the original wire format compatible with older clients and saved invitations.
+    // This is a member's call invitation, never a trusted system or live-call status.
+    const PRIVATE_CALL_INVITE = '📞 Private voice call — tap the phone button in this conversation to join.';
+    function isPrivateCallMessage(msg) {
+      return !!msg?.dm_id && msg.type === 'text' && !msg.deleted && !msg.edited
+        && !msg.reply_to && !msg.media_url && msg.content === PRIVATE_CALL_INVITE;
+    }
+
+    function renderPrivateCallInvite(msg) {
+      const dm = dms.find(item => item.id === msg.dm_id);
+      const unavailable = !dm || dmIsBlocked(msg.dm_id) || !!privateCallIssue(dm);
+      return `<section class="call-invite" aria-label="Private voice call">
+        <span class="call-invite-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L8.7 10.6a16 16 0 0 0 4.7 4.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z"/></svg></span>
+        <div class="call-invite-copy"><span class="call-invite-title">Private voice call</span>
+          <div class="call-invite-meta"><button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(msg.sender))}</button><time class="msg-time" datetime="${esc(msg.created_at)}" title="${esc(fmtDay(msg.created_at))}">${esc(fmtTime(msg.created_at))}</time></div>
+        </div>
+        <button class="call-invite-join" type="button" data-join-private-call ${unavailable ? 'disabled' : ''}>Join call</button>
+      </section>`;
+    }
+
     function shouldGroup(msg, prev) {
       return !!prev
         && prev.sender === msg.sender
@@ -8526,6 +8568,7 @@ void main() {
         && !prev.pending && !msg.pending
         && !prev.failed && !msg.failed
         && msg.type !== 'system' && prev.type !== 'system'
+        && !isPrivateCallMessage(msg) && !isPrivateCallMessage(prev)
         && !msg.reply_to
         && dayKey(prev.created_at) === dayKey(msg.created_at)
         && (new Date(msg.created_at) - new Date(prev.created_at)) < GROUP_WINDOW_MS;
@@ -8608,10 +8651,11 @@ void main() {
         return div;
       }
       const grouped = shouldGroup(msg, prev);
+      const callInvite = isPrivateCallMessage(msg);
       const author = profileOf(msg.sender);
       const mine = me && msg.sender === me.username;
       const node = document.createElement('article');
-      node.className = `msg ${grouped ? 'grouped' : ''} ${(!mine && !msg.deleted && mentionsMe(msg.content)) ? 'mentioned-me' : ''} ${(msg.pinned && !msg.deleted) ? 'pinned-msg' : ''} ${msg.pending ? 'pending' : ''} ${msg.failed ? 'failed' : ''}`;
+      node.className = `msg ${callInvite ? 'call-message' : ''} ${grouped ? 'grouped' : ''} ${(!mine && !msg.deleted && mentionsMe(msg.content)) ? 'mentioned-me' : ''} ${(msg.pinned && !msg.deleted) ? 'pinned-msg' : ''} ${msg.pending ? 'pending' : ''} ${msg.failed ? 'failed' : ''}`;
       node.dataset.id = msg.id;
       node.dataset.sender = msg.sender;
 
@@ -8625,7 +8669,7 @@ void main() {
             <span class="reply-snippet">${esc(reply.snippet || '')}</span>
           </button>`;
       }
-      if (!grouped) {
+      if (!grouped && !callInvite) {
         bodyHtml += `
           <div class="msg-head">
             <button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(author))}</button>
@@ -8639,6 +8683,9 @@ void main() {
 
       if (msg.deleted) {
         return document.createElement('div');
+      } else if (callInvite) {
+        bodyHtml += renderPrivateCallInvite(msg);
+        node._urls = [];
       } else if (msg.type === 'poll') {
         bodyHtml += renderPollCardHtml(msg);
         node._urls = [];
@@ -8679,6 +8726,18 @@ void main() {
       if (avatarEl) avatarEl.addEventListener('click', (e) => showHoverCard(msg.sender, e.currentTarget));
       const authorEl = qs('.msg-author', node);
       if (authorEl) authorEl.addEventListener('click', (e) => showHoverCard(msg.sender, e.currentTarget));
+      const callButton = qs('[data-join-private-call]', node);
+      if (callButton) callButton.addEventListener('click', async () => {
+        const dm = dms.find(item => item.id === msg.dm_id);
+        if (!dm || dmIsBlocked(msg.dm_id)) return;
+        callButton.disabled = true;
+        callButton.setAttribute('aria-busy', 'true');
+        try { await startPrivateCall(dm, { invite: false }); }
+        finally {
+          callButton.disabled = !dms.some(item => item.id === msg.dm_id) || dmIsBlocked(msg.dm_id) || !!privateCallIssue(dm);
+          callButton.removeAttribute('aria-busy');
+        }
+      });
       qsa('[data-lightbox]', node).forEach(img => img.addEventListener('click', () => openLightbox(img.src)));
       wireCodeCardControls(node);
       wireFileCards(node);
@@ -8920,7 +8979,7 @@ void main() {
       const mine = me && msg.sender === me.username;
       const blockedDm = msg.dm_id && dmIsBlocked(msg.dm_id);
       const canReact = !blockedDm && (currentView.type === 'channel' || currentView.type === 'dm');
-      const canEdit = !blockedDm && mine && (msg.type === 'text' || msg.type === 'image');
+      const canEdit = !blockedDm && mine && !isPrivateCallMessage(msg) && (msg.type === 'text' || msg.type === 'image');
       const canDelete = mine || isAdmin();
       const canPin = currentView.type === 'channel' && !isForumThreadView(currentView) && (mine || isAdmin());
       bar.innerHTML = `
@@ -9297,7 +9356,7 @@ void main() {
         row.reply_to = {
           id: replyTarget.id,
           sender: replyTarget.sender,
-          snippet: (replyTarget.content || `[${replyTarget.type}]`).slice(0, 90),
+          snippet: (isPrivateCallMessage(replyTarget) ? messagePreview(replyTarget) : replyTarget.content || `[${replyTarget.type}]`).slice(0, 90),
         };
       }
       const kind = currentView.type === 'dm' ? 'dm' : 'channel';
@@ -9723,14 +9782,14 @@ void main() {
         if (!mine && !isCurrent) {
           if (settings.notif.dm_toast) {
             toast({
-              type: 'dm', title: dm?.is_group ? `${dm.title} · ${displayNameOf(m.sender)}` : `@${m.sender}`, text: m.type === 'text' ? m.content.slice(0, 90) : `Sent a ${m.type}`,
+              type: 'dm', title: dm?.is_group ? `${dm.title} · ${displayNameOf(m.sender)}` : `@${m.sender}`, text: isPrivateCallMessage(m) ? messagePreview(m) : m.type === 'text' ? m.content.slice(0, 90) : `Sent a ${m.type}`,
               onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView(dmView(d)); },
             });
           }
-          addInbox({ kind: 'dm', from: m.sender, text: m.type === 'text' ? m.content.slice(0, 120) : `Sent a ${m.type}`, view: key, msgId: m.id });
+          addInbox({ kind: 'dm', from: m.sender, text: isPrivateCallMessage(m) ? messagePreview(m) : m.type === 'text' ? m.content.slice(0, 120) : `Sent a ${m.type}`, view: key, msgId: m.id });
           notifyDesktop({
             title: dm?.is_group ? `${dm.title} · ${displayNameOf(m.sender)}` : `@${displayNameOf(m.sender)}`,
-            body: m.type === 'text' ? m.content : `Sent a ${m.type}`,
+            body: isPrivateCallMessage(m) ? messagePreview(m) : m.type === 'text' ? m.content : `Sent a ${m.type}`,
             tag: key,
             onClick: () => { const d = dms.find(x => x.id === m.dm_id); if (d) openView(dmView(d)); },
           });
@@ -10347,7 +10406,7 @@ void main() {
       const cache = msgCache.get(viewKey(currentView)) || [];
       for (let i = cache.length - 1; i >= 0; i--) {
         const m = cache[i];
-        if (m.sender === me.username && (m.type === 'text' || m.type === 'image') && !m.deleted && !m.pending && !m.failed) {
+        if (m.sender === me.username && !isPrivateCallMessage(m) && (m.type === 'text' || m.type === 'image') && !m.deleted && !m.pending && !m.failed) {
           startEdit(m);
           return;
         }
@@ -10927,7 +10986,7 @@ void main() {
       updateVoiceUi();
     }
 
-    async function startPrivateCall(dm) {
+    async function startPrivateCall(dm, { invite = true } = {}) {
       if (voice.joining || voice.openingPrivate) return;
       const actor = me?.username;
       const issue = privateCallIssue(dm);
@@ -10946,10 +11005,10 @@ void main() {
         await openView({ ...dmView(dm), privateCall: true });
         const alreadyJoined = voice.connected;
         await joinVoiceRoom();
-        if (!alreadyJoined && voice.connected && voice.roomId === dm.id) {
+        if (invite && !alreadyJoined && me?.username === actor && voice.connected && voice.roomId === dm.id) {
           const { error } = await sb.from('dm_messages').insert({
             dm_id: dm.id, sender: me.username, type: 'text',
-            content: '📞 Private voice call — tap the phone button in this conversation to join.',
+            content: PRIVATE_CALL_INVITE,
           });
           if (error) toast({ type: 'warning', text: 'Call is open, but the call invitation could not be sent. Ask them to use the phone button.' });
         }
@@ -16591,6 +16650,7 @@ void main() {
       return `#${channelById(view.id)?.label || view.id}`;
     }
     function messagePreview(m) {
+      if (isPrivateCallMessage(m)) return 'Private voice call';
       const label = { image: 'Image', gif: 'GIF', sticker: 'Sticker', file: 'File', poll: 'Poll', system: 'Update' }[m.type];
       return [label, String(m.content || '').trim()].filter(Boolean).join(' · ') || 'Message';
     }
@@ -17546,7 +17606,7 @@ void main() {
       const cache = msgCache.get(viewKey(currentView)) || [];
       let last = null;
       for (let i = cache.length - 1; i >= 0; i--) { if (cache[i].sender === me.username && !cache[i].deleted) { last = cache[i]; break; } }
-      if (!last) return;
+      if (!last || isPrivateCallMessage(last)) return;
       const group = groupOf();
       const readers = group ? group.participants.filter(name => name !== me.username && (last.read_by || []).includes(name)) : [];
       const seen = group ? readers.length > 0 : (last.read_by || []).includes(currentView.other);

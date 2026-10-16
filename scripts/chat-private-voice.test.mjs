@@ -108,6 +108,7 @@ test('starting a call checks access before leaving global voice, invites through
   const voice = { connected: true, roomId: null, joining: false };
   const context = vm.createContext({
     voice, me: { username: 'alice' },
+    PRIVATE_CALL_INVITE: 'fixture call invitation',
     $: () => ({ close() {}, open: false, setAttribute() {} }),
     isHiddenBot: () => false, dmBlockedUsers: new Set(),
     sb: {
@@ -133,4 +134,23 @@ test('starting a call checks access before leaving global voice, invites through
   assert.equal(invite.row.dm_id,'dm-a');
   await context.startPrivateCall({id:'dm-a',participants:['alice','bob']});
   assert.equal(operations.filter(item=>item.table).length,1,'returning to active call does not send another invitation');
+  await context.startPrivateCall({id:'dm-b',participants:['alice','bob']}, {invite:false});
+  assert.equal(voice.roomId,'dm-b');
+  assert.equal(operations.filter(item=>item.table).length,1,'joining from a saved invitation must not post a second invitation');
+  context.joinVoiceRoom=async()=>{voice.connected=true;context.me={username:'bob'};};
+  await context.startPrivateCall({id:'dm-c',participants:['alice','bob']});
+  assert.equal(operations.filter(item=>item.table).length,1,'an account change during joining must not post under the replacement account');
+});
+
+
+test('only an unedited, standalone DM call invitation gets call presentation', () => {
+  const context = vm.createContext({});
+  const start = chat.indexOf('    const PRIVATE_CALL_INVITE =');
+  const end = chat.indexOf('    function renderPrivateCallInvite(', start);
+  vm.runInContext(chat.slice(start,end), context);
+  const invitation = { dm_id: 'dm-a', type: 'text', content: '📞 Private voice call — tap the phone button in this conversation to join.' };
+  assert.equal(context.isPrivateCallMessage(invitation), true);
+  for (const extra of [{dm_id:null},{type:'system'},{edited:true},{deleted:true},{reply_to:{id:'a'}},{media_url:'attachment'},{content:'I want a private voice call'}]) {
+    assert.equal(context.isPrivateCallMessage({...invitation,...extra}), false);
+  }
 });
