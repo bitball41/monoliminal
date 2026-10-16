@@ -2,6 +2,8 @@
 
 This folder tracks new changes to the existing Liminal database. It does not recreate the older production schema.
 
+`20261016011605_chat_analytics.sql` adds private, server-validated foreground activity and durable message/signup facts, corrects distinct-browser counting, and gives Control and Chat the same analytics summary. Apply it before deploying either HTML update. See [analytics definitions and coverage](../ANALYTICS.md).
+
 Generate migrations with `supabase migration new`. Keep filenames aligned with the linked project's migration ledger. Apply database changes through Supabase; GitHub's HTML deployment Actions do not apply migrations.
 
 Chat's live online status requires `20261009154000_private_chat_online_presence.sql` in the production database. Apply it before deploying the client, then verify both policies on `realtime.messages`. Without them, or when the presence tracker rejects a track, Chat uses bounded retries. After those retries it falls back to a slow `user_presence` read so the member list still has counts. It does not poll that table while live presence is healthy. Clients that already received a permission rejection need to reload once to retry the join.

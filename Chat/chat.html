@@ -2791,7 +2791,33 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .console-person > .danger-button { margin-left: auto; }
     }
 
-  </style>
+
+/* CHAT_ANALYTICS_CSS_START */
+.analytics-view { color: var(--text, #f5f3ff); margin: 18px 0; }
+.analytics-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.analytics-kpi, .analytics-card { border:1px solid var(--line, #ffffff20); border-radius:14px; padding:16px; background:var(--surface, #ffffff06); min-width:0; }
+.analytics-kpi strong { display:block; font-size:26px; line-height:1.3; font-variant-numeric:tabular-nums; }
+.analytics-kpi span, .analytics-note, .analytics-kpi small { color:var(--muted, #b8b3d3); font-size:12px; line-height:1.6; }
+.analytics-kpi small { display:block; }
+.analytics-card { margin-top:12px; }
+.analytics-card h3 { margin:0 0 10px; font-size:15px; }
+.analytics-toolbar { display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
+.analytics-toolbar button, .analytics-toolbar select { font:inherit; font-size:12px; color:inherit; background:var(--surface, #ffffff08); border:1px solid var(--line, #ffffff20); border-radius:8px; padding:8px 12px; cursor:pointer; }
+.analytics-chart svg { display:block; width:100%; height:auto; max-height:200px; }
+.analytics-chart rect:focus, .analytics-chart rect:hover { fill:#a78bfa; outline:none; }
+.analytics-chart text { fill:var(--muted, #b8b3d3); font-size:11px; }
+.analytics-chart .analytics-missing { fill:#77738a; opacity:.5; }
+.analytics-scroll { overflow-x:auto; }
+.analytics-table { width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
+.analytics-table th, .analytics-table td { text-align:right; padding:9px 8px; border-bottom:1px solid var(--line, #ffffff16); white-space:nowrap; }
+.analytics-table th:first-child, .analytics-table td:first-child { text-align:left; }
+.analytics-table th { color:var(--muted, #b8b3d3); font-weight:500; }
+.analytics-note { margin:10px 0; }
+.analytics-view details summary { cursor:pointer; font-size:13px; padding:8px 0; }
+@media(max-width:600px) { .analytics-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .analytics-kpi { padding:12px; } }
+/* CHAT_ANALYTICS_CSS_END */
+
+</style>
 <style id="liminal-geometry-redesign">
 /* Liminal Chat — geometry-led interface system */
 :root {
@@ -4993,12 +5019,15 @@ void main() {
       DEVICE_ID_KEY,
     ]);
 
+    let cachedDeviceId = '';
     async function getDeviceId() {
+      if (cachedDeviceId) return cachedDeviceId;
       let deviceId = LS.get(DEVICE_ID_KEY, '');
       if (typeof deviceId !== 'string' || deviceId.length < 16) {
         deviceId = `${uuid()}-${uuid()}`;
         LS.set(DEVICE_ID_KEY, deviceId);
       }
+      cachedDeviceId = deviceId;
       return deviceId;
     }
 
@@ -7035,6 +7064,45 @@ void main() {
       if (error || data !== true) console.error('[liminal] device registration failed', error || data);
     }
 
+    // Foreground activity, independent of cosmetic Realtime Presence. Daily
+    // deduplication and timestamps belong to the database, never local counters.
+    let analyticsInteractionAt = 0, analyticsAttemptAt = 0, analyticsInFlight = false;
+    let analyticsListenersBound = false, analyticsRetryMs = 60000;
+    async function recordChatActivity() {
+      const now = Date.now();
+      if (!me || me.is_banned || me.is_test_account || isHiddenBot(me.username)
+          || presenceLeft || presenceStopped || document.visibilityState !== 'visible'
+          || navigator.onLine === false || now - analyticsInteractionAt > 300000
+          || analyticsInFlight || now - analyticsAttemptAt < analyticsRetryMs) return;
+      analyticsInFlight = true;
+      analyticsAttemptAt = now;
+      try {
+        const { error } = await sb.rpc('chat_record_activity', { p_device_id: await getDeviceId() });
+        if (error) throw error;
+        analyticsRetryMs = 60000;
+      } catch (error) {
+        analyticsRetryMs = Math.min(300000, analyticsRetryMs * 2);
+        console.warn('[liminal] activity tracking unavailable', error);
+      } finally { analyticsInFlight = false; }
+    }
+    function startChatActivity() {
+      analyticsInteractionAt = Date.now();
+      if (!analyticsListenersBound) {
+        analyticsListenersBound = true;
+        const interact = () => {
+          analyticsInteractionAt = Date.now();
+          void recordChatActivity();
+        };
+        ['pointerdown','keydown','scroll','touchstart'].forEach(type =>
+          document.addEventListener(type, interact, { passive: true, capture: true }));
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') interact();
+        });
+        window.addEventListener('online', () => { void recordChatActivity(); });
+      }
+      void recordChatActivity();
+    }
+
     function showMaintenance() {
       try { leaveVoiceRoom({ quiet: true }); } catch {}
       signOutLocked = false;
@@ -7233,6 +7301,7 @@ void main() {
 
       setupRealtime();
       startTimers();
+      startChatActivity();
       updateTimeoutUi();
       const shouldTour = options.newUser || LS.get('lc_tour_pending', '') === me.username;
       if (shouldTour) setTimeout(startProductTour, 350);
@@ -12597,6 +12666,7 @@ void main() {
     function startTimers() {
       pendingTimers.forEach(clearInterval);
       pendingTimers = [
+        setInterval(recordChatActivity, 60000),
         setInterval(() => catchUpPoll({ periodic: true }), MESSAGE_FALLBACK_POLL_MS),
         setInterval(refreshPollTimers, 30000),
         setInterval(() => { if (me && document.visibilityState === 'visible' && navigator.onLine !== false) refreshConversations(); }, 30000),
@@ -15597,6 +15667,58 @@ void main() {
       });
     }
     let ownerPanel = 'overview';
+
+
+    /* CHAT_ANALYTICS_UI_START */
+    function analyticsNumber(value) {
+      return value == null ? '—' : Number(value).toLocaleString();
+    }
+    function analyticsChart(summary, key = 'messages') {
+      const daily = summary.daily || [], max = Math.max(1, ...daily.map(row => Number(row[key] || 0)));
+      const labels = { messages: 'Public messages', accounts: 'Active accounts', browsers: 'Browser IDs', dms: 'Private messages' };
+      return '<svg viewBox="0 0 720 180" role="img" aria-label="' + esc(labels[key]) + ' by day; exact values in the daily table">'
+        + '<text x="0" y="13">' + analyticsNumber(max) + '</text>'
+        + daily.map((row, i) => {
+          const missing = row[key] == null, height = missing ? 3 : Math.max(1, Number(row[key]) / max * 125);
+          const title = row.day + ': ' + (missing ? 'not tracked' : analyticsNumber(row[key]) + ' ' + labels[key].toLowerCase());
+          return '<rect tabindex="0" x="' + (i * 23 + 22) + '" y="' + (150 - height) + '" width="17" height="' + height + '" rx="3" fill="#8b72eb" class="' + (missing ? 'analytics-missing' : '') + '" aria-label="' + esc(title) + '"><title>' + esc(title) + '</title></rect>';
+        }).join('') + '<text x="22" y="175">' + esc(daily[0]?.day || '') + '</text><text x="716" y="175" text-anchor="end">' + esc(daily.at(-1)?.day || '') + '</text></svg>';
+    }
+    function analyticsMarkup(summary) {
+      if (!summary || !Array.isArray(summary.daily)) return '<p class="analytics-note" role="status">Analytics unavailable. Refresh to retry.</p>';
+      const age = Date.parse(summary.generated_at) - Date.parse(summary.activity_since);
+      const current = Number(summary.messages_24h || 0), previous = Number(summary.messages_previous_24h || 0);
+      const change = previous ? ((current - previous) / previous * 100).toFixed(1) + '% vs prior 24h' : 'Prior 24h: ' + analyticsNumber(previous);
+      const cards = [
+        ['Active today',summary.dau,'Distinct signed-in accounts'],
+        ['Active · 7 days',summary.wau,age < 7*86400000 ? 'Collecting first 7 days' : '7 calendar days, including today'],
+        ['Active · 30 days',summary.mau,age < 30*86400000 ? 'Collecting first 30 days' : '30 calendar days, including today'],
+        ['Browser IDs today',summary.browsers_today,'Shared across accounts on this browser'],
+        ['Returning today',summary.returning_today,'Also observed on an earlier day'],
+        ['Public messages · 24h',summary.messages_24h,change],
+      ];
+      const since = new Date(summary.activity_since).toLocaleString([], {timeZone:'America/Chicago'});
+      const durable = new Date(summary.durable_messages_since).toLocaleString([], {timeZone:'America/Chicago'});
+      const updated = new Date(summary.generated_at).toLocaleString([], {timeZone:'America/Chicago'});
+      return '<div class="analytics-view"><div class="analytics-kpis">' + cards.map(([label,value,note]) => '<div class="analytics-kpi"><span>' + esc(label) + '</span><strong>' + analyticsNumber(value) + '</strong><small>' + esc(note) + '</small></div>').join('')
+        + '</div><p class="analytics-note">Foreground in last 5m: ' + analyticsNumber(summary.foreground_5m) + ' accounts · Public senders in 7d: ' + analyticsNumber(summary.active_senders_7d) + ' · Signups in 7d: ' + analyticsNumber(summary.signups_7d) + '<br>Tracked public messages: ' + analyticsNumber(summary.messages_total) + ' · Currently visible: ' + analyticsNumber(summary.visible_messages) + ' · Private messages in 24h: ' + analyticsNumber(summary.dm_messages_24h) + '</p>'
+        + '<section class="analytics-card"><div class="analytics-toolbar"><h3>Last 30 calendar days</h3><label>Show <select data-analytics-series aria-label="Chart metric"><option value="messages">Public messages</option><option value="accounts">Active accounts</option><option value="browsers">Browser IDs</option><option value="dms">Private messages</option></select></label></div><div class="analytics-chart">' + analyticsChart(summary) + '</div>'
+        + '<details><summary>Daily values</summary><div class="analytics-scroll"><table class="analytics-table"><thead><tr><th scope="col">Chicago date</th><th scope="col">Accounts</th><th scope="col">Browsers</th><th scope="col">Public messages</th><th scope="col">Private messages</th><th scope="col">Signups</th></tr></thead><tbody>'
+        + [...summary.daily].reverse().map(row => '<tr><th scope="row">' + esc(row.day) + '</th>' + ['accounts','browsers','messages','dms','signups'].map(key => '<td>' + analyticsNumber(row[key]) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div></details></section>'
+        + '<section class="analytics-card"><h3>Busiest public channels · rolling 7 days</h3><div class="analytics-scroll"><table class="analytics-table"><thead><tr><th scope="col">Channel</th><th scope="col">Messages</th><th scope="col">Senders</th></tr></thead><tbody>'
+        + (summary.top_channels || []).map(row => '<tr><th scope="row">' + esc(row.label) + '</th><td>' + analyticsNumber(row.messages) + '</td><td>' + analyticsNumber(row.senders) + '</td></tr>').join('') + '</tbody></table></div></section>'
+        + '<details class="analytics-card"><summary>Definitions & coverage</summary><p class="analytics-note">Active = chat was visible with interaction in the last 5 minutes. Refreshes and extra tabs do not add accounts. Browser IDs identify browser storage, not people or physical devices; clearing storage creates another ID. Bots and test accounts are excluded from engagement. Private conversations contribute counts only.</p>'
+        + '<p class="analytics-note">Activity collection began ' + esc(since) + ' CT; its first day and today are partial. Older activity is unknown (—). Returning counts use only collected activity. The 7/30-day totals are observed counts until enough history accumulates. Calendar dates use America/Chicago, including daylight saving time; 24h and channel rankings use rolling windows.</p>'
+        + '<p class="analytics-note">Message and signup history before ' + esc(durable) + ' CT comes from surviving database rows. Earlier hard-deleted records are unavailable. Future message deletions preserve sent totals; visible messages are counted separately. Historical exclusions use account classification when recorded. Updated ' + esc(updated) + ' CT.</p></details></div>';
+    }
+    function bindAnalyticsChart(root, summary) {
+      root.querySelector('[data-analytics-series]')?.addEventListener('change', event => {
+        const key = event.target.value;
+        if (['messages','accounts','browsers','dms'].includes(key)) root.querySelector('.analytics-chart').innerHTML = analyticsChart(summary,key);
+      });
+    }
+    /* CHAT_ANALYTICS_UI_END */
+
     let staffPanel = 'members';
     let staffRenderGeneration = 0;
     function consoleCard(title, description, content, danger = false) {
@@ -15605,7 +15727,7 @@ void main() {
     function consoleShell(scope, title, description, stats, panels, selected) {
       if (!panels.some(panel => panel.id === selected)) selected = panels[0].id;
       return `<div class="console-shell"><header class="console-heading"><div><span class="console-eyebrow">Liminal / ${scope === 'owner' ? 'Owner' : 'Staff'}</span><h2>${esc(title)}</h2><p>${esc(description)}</p></div><span class="console-rank">${esc(STAFF_ROLE_META[myStaffRole()]?.label || 'Staff')}</span></header>
-        <div class="console-stats">${stats.map(stat => `<div><strong>${esc(stat.value)}</strong><span>${esc(stat.label)}</span></div>`).join('')}</div>
+        <div class="console-stats">${stats.map(stat => `<div><strong ${stat.key ? `data-console-metric="${esc(stat.key)}"` : ''}>${esc(stat.value)}</strong><span>${esc(stat.label)}</span></div>`).join('')}</div>
         <div class="console-nav" role="tablist" aria-label="${scope === 'owner' ? 'Owner' : 'Staff'} sections">${panels.map(panel => `<button id="${scope}-nav-${panel.id}" type="button" role="tab" data-console-panel="${panel.id}" aria-controls="${scope}-panel-${panel.id}" aria-selected="${panel.id === selected}" tabindex="${panel.id === selected ? '0' : '-1'}">${esc(panel.label)}</button>`).join('')}</div>
         ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
       </div>`;
@@ -15644,6 +15766,44 @@ void main() {
         ${canModerateUser(p) ? `<select data-staff-action="${esc(p.username)}" aria-label="Moderate ${esc(displayNameOf(p))}"><option value="">Actions…</option><option value="timeout">Timeout 10 minutes</option>${isStaff() ? '<option value="kick">Kick</option>' : ''}${canBanUsers() ? '<option value="ban">Ban</option>' : ''}</select>` : '<span class="console-protected">Protected</span>'}
       </div>`).join('');
     }
+    function consoleAnalyticsPanel() {
+      return consoleCard('Community analytics', 'Account activity, browser IDs, and message volume from the database.', '<div class="analytics-toolbar"><button type="button" class="secondary-button" data-analytics-refresh>Refresh analytics</button><span data-analytics-status role="status"></span></div><div data-analytics-content><p class="analytics-note">Loading analytics…</p></div>');
+    }
+    const consoleAnalyticsRequests = new WeakMap();
+    function loadConsoleAnalytics(root) {
+      const content = root.querySelector('[data-analytics-content]');
+      if (!content || !isStaff()) return Promise.resolve();
+      if (consoleAnalyticsRequests.has(content)) return consoleAnalyticsRequests.get(content);
+      const job = (async () => {
+        const button = root.querySelector('[data-analytics-refresh]');
+        const status = root.querySelector('[data-analytics-status]');
+        if (!content || !isStaff()) return;
+        button.disabled = true;
+        status.textContent = 'Updating…';
+        try {
+          const { data, error } = await sb.rpc('chat_get_analytics');
+          if (error) throw error;
+          if (!content.isConnected || !isStaff()) return;
+          content.innerHTML = analyticsMarkup(data);
+          bindAnalyticsChart(content,data);
+          root.querySelectorAll('[data-console-metric]').forEach(node => {
+            node.textContent = analyticsNumber(data?.[node.dataset.consoleMetric]);
+          });
+          status.textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
+        } catch (error) {
+          if (!content.isConnected) return;
+          content.innerHTML = '<p class="analytics-note" role="status">Analytics unavailable: ' + esc(error?.message || 'Connection failed') + '. Refresh to retry.</p>';
+          root.querySelectorAll('[data-console-metric]').forEach(node => { node.textContent = '—'; });
+          status.textContent = 'Could not update';
+        } finally { button.disabled = false; }
+      })().finally(() => consoleAnalyticsRequests.delete(content));
+      consoleAnalyticsRequests.set(content,job);
+      return job;
+    }
+    function bindConsoleAnalytics(root) {
+      root.querySelector('[data-analytics-refresh]')?.addEventListener('click', () => { void loadConsoleAnalytics(root); });
+      void loadConsoleAnalytics(root);
+    }
     async function renderAdminTab() {
       const el = $('tab-admin');
       if (!isStaff()) { el.innerHTML = ''; return; }
@@ -15658,14 +15818,15 @@ void main() {
         const moderation = consoleCard('Member directory', 'Find a member and choose an action. Your role limits who you can moderate.', `<div class="field"><label for="staff-member-search">Find a member</label><input id="staff-member-search" type="search" placeholder="Name, username, or staff role"></div><div class="console-member-list">${staffMemberRows()}</div><p id="staff-member-empty" class="field-help" hidden>No matching members.</p>`)
           + consoleCard('Active timeouts', 'Temporary restrictions currently in effect.', `<div class="console-list">${timeouts.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>Until ${esc(new Date(u.timeout_until).toLocaleString())} · by @${esc(u.timeout_by || '?')}</small></div>${canModerateUser(u.username) ? `<button class="secondary-button" type="button" data-clear-timeout="${esc(u.username)}">Clear timeout</button>` : ''}</div>`).join('') || '<p class="console-empty">No active timeouts.</p>'}</div>`)
           + (canBanUsers() ? consoleCard('Banned accounts', 'Review a ban or allow an account to return.', `<div class="console-list">${banned.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>${esc(u.ban_reason || 'No reason provided')} · by @${esc(u.banned_by || '?')}</small></div><button class="secondary-button" type="button" data-unban="${esc(u.username)}">Unban</button></div>`).join('') || '<p class="console-empty">No banned accounts.</p>'}</div>`) : '');
-        const panels = [{ id: 'members', label: 'Members', html: moderation },
+        const panels = [{ id: 'analytics', label: 'Analytics', html: consoleAnalyticsPanel() }, { id: 'members', label: 'Members', html: moderation },
           { id: 'badges', label: 'Badges & roles', html: consoleCard('Member badges', 'Cosmetic badges are separate from staff permissions.', subRoleManagerHtml()) + (canManageStaffRoles() && !isOwner() ? consoleCard('Staff hierarchy', 'Manage roles below your own rank.', `<div class="admin-list">${staffRoleRowsHtml()}</div>`) : '') }];
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
-        el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', [{value:memberCount,label:'Members'},{value:timeouts.length,label:'Timed out'},{value:banned.length,label:'Banned'}], panels, staffPanel);
+        el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', [{value:'—',label:'Members',key:'members_total'},{value:'—',label:'Active today',key:'dau'},{value:'—',label:'Public messages · 24h',key:'messages_24h'}], panels, staffPanel);
+        bindConsoleAnalytics(el);
         const loadPanel = id => { if (id === 'activity') loadAdminLogs(); if (id === 'archive') loadDeletedMessages(); };
         bindConsoleNavigation(el, 'staff', loadPanel); bindStaffRoleControls(el, renderAdminTab); bindSubRoleControls(el);
         $('staff-member-search').addEventListener('input', event => { const q = event.target.value.trim().replace(/^@/,'').toLowerCase(); let visible = 0; qsa('[data-staff-search]', el).forEach(row => { row.hidden = !!q && !row.dataset.staffSearch.includes(q); if (!row.hidden) visible++; }); $('staff-member-empty').hidden = visible > 0; });
@@ -15688,13 +15849,15 @@ void main() {
       const featureRows = features.map(([key,label,description]) => `<div class="console-feature"><div><strong>${esc(label)}</strong><p>${esc(description)}</p></div><button class="switch" type="button" role="switch" data-owner-feature="${key}" aria-label="${esc(label)}" aria-checked="${appSettings[key] !== 'false'}"></button></div>`).join('');
       const testAccount = lastDevSession ? `<div class="console-test-account"><strong>@${esc(lastDevSession.username)}</strong><div class="field-help">Temporary test account</div><div class="console-credentials"><div><span>Username</span><code>${esc(lastDevSession.username)}</code></div><div><span>Password</span><code>${esc(lastDevSession.password)}</code></div></div><div class="group-actions"><button id="owner-dev-copy-un" class="secondary-button" type="button">Copy username</button><button id="owner-dev-copy-pw" class="secondary-button" type="button">Copy password</button><button id="owner-dev-reopen" class="secondary-button" type="button">Open session</button><button id="owner-dev-delete" class="danger-button" type="button">Delete session</button></div></div>` : '<div class="console-inline-form"><label class="sr-only" for="owner-dev-name">Test account name</label><input id="owner-dev-name" maxlength="40" value="Dev Tester" placeholder="Display name"><button class="secondary-button" id="owner-dev-create" type="button">Create test account</button></div>';
       const panels = [
+        {id:'analytics',label:'Analytics',html:consoleAnalyticsPanel()},
         {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
         {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
-      el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:members.length,label:'Members'},{value:channels.filter(ch=>![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).length,label:'Channels'},{value:availableSubroles().length,label:'Badges'}],panels,ownerPanel);
+      el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:'—',label:'Members',key:'members_total'},{value:'—',label:'Active today',key:'dau'},{value:'—',label:'Public messages · 24h',key:'messages_24h'}],panels,ownerPanel);
+      bindConsoleAnalytics(el);
       bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindSubRoleControls(el);
       $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
       $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});
