@@ -14,22 +14,14 @@ function budget(options = {}) {
   return c.createBackgroundBudget({ fps: 30 }, { chromebook: false, lite: false, ...options });
 }
 
-test('backgrounds retain desktop quality and start with a smaller Chromebook or lite budget', () => {
+test('backgrounds limit animation rates on Chromebooks and lite devices', () => {
   const desktop = budget(), chromebook = budget({ chromebook: true }), lite = budget({ lite: true });
   assert.equal(desktop.fps, 30);
-  assert.equal(desktop.maxDimension, 1024);
-  assert.equal(desktop.scale, 1);
-  assert.equal(desktop.dpr, 1.5);
   assert.equal(chromebook.fps, 24);
-  assert.equal(chromebook.maxDimension, 640);
-  assert(chromebook.scale < desktop.scale);
-  assert.equal(chromebook.dpr, 1);
   assert.equal(lite.fps, 20);
-  assert.equal(lite.maxDimension, 480);
-  assert(lite.scale < chromebook.scale);
 });
 
-test('one hitch or a steady 30 Hz display does not lower background quality', () => {
+test('one hitch or a steady 30 Hz display does not lower the animation rate', () => {
   const b = budget();
   let now = 0;
   b.sample(now);
@@ -37,41 +29,42 @@ test('one hitch or a steady 30 Hz display does not lower background quality', ()
     now += i === 60 ? 250 : 1000 / 30;
     assert.equal(b.sample(now), false);
   }
-  assert.equal(b.maxDimension, 1024);
+  assert.equal(b.fps, 30);
 });
 
-test('repeated frame drops reduce GPU work; recovery requires sustained stable frames', () => {
+test('repeated frame drops reduce animation work; recovery requires sustained stable frames', () => {
   const b = budget({ chromebook: true });
   let now = 0;
   b.sample(now);
   for (let i = 0; i < 80; i++) b.sample(now += 50);
-  const minimum = b.maxDimension;
-  assert(minimum < 640);
-  assert.equal(b.fps, 15);
+  const minimum = b.fps;
+  assert.equal(minimum, 12);
   const advance = duration => {
     const end = now + duration;
     while (now < end) b.sample(now += 1000 / 60);
   };
   advance(14000);
-  assert.equal(b.maxDimension, minimum, 'a brief recovery cannot immediately raise GPU demand');
+  assert.equal(b.fps, minimum, 'a brief recovery cannot immediately raise GPU demand');
   advance(4000);
-  assert(b.maxDimension > minimum && b.maxDimension < 640);
+  assert(b.fps > minimum && b.fps < 24);
   advance(16000);
-  assert.equal(b.maxDimension, 640);
+  assert(b.fps < 24, 'recovery returns one cadence tier at a time');
+  advance(16000);
+  assert.equal(b.fps, 24);
 });
 
 test('pausing resets sampling without discarding the current quality budget', () => {
   const b = budget();
   b.sample(0);
   for (let now = 50; now <= 2000; now += 50) b.sample(now);
-  const dimension = b.maxDimension;
+  const rate = b.fps;
   b.resetClock();
   assert.equal(b.sample(1_000_000), false, 'time spent asleep is not a missed frame');
   for (let now = 1_000_017; now < 1_006_000; now += 17) b.sample(now);
-  assert.equal(b.maxDimension, dimension, 'time spent asleep is not recovery time');
+  assert.equal(b.fps, rate, 'time spent asleep is not recovery time');
 });
 
-function renderer({ chromebook = false, reduced = false } = {}) {
+function renderer({ chromebook = false, lite = false, reduced = false } = {}) {
   let sequence = 0, now = 0, draws = 0, rectReads = 0, motionReads = 0, removed = false, lost = false;
   const frames = new Map(), listeners = new Map(), observers = [], times = [];
   const target = name => ({
@@ -105,7 +98,7 @@ function renderer({ chromebook = false, reduced = false } = {}) {
   const nodes = { 'chat-background-stage': stage, timeline, 'app-shell': shell };
   const c = vm.createContext({
     document, navigator: { userAgent: chromebook ? 'X11; CrOS x86_64' : 'X11; Linux x86_64' },
-    matchMedia: () => motion, isLiteMode: () => false, devicePixelRatio: 2,
+    matchMedia: () => motion, isLiteMode: () => lite, devicePixelRatio: 2,
     ResizeObserver: Observer, MutationObserver: Observer,
     $: id => nodes[id] || { textContent: '' },
     me: { username: 'alice' }, chatBackgroundChoice: 'balatro', chatBackgroundOwner: 'alice',
@@ -134,13 +127,13 @@ function renderer({ chromebook = false, reduced = false } = {}) {
     get removed() { return removed; }, get lost() { return lost; } };
 }
 
-test('WebGL caps Chromebook pixels and limits frames without reading layout each draw', () => {
-  for (const chromebook of [false, true]) {
-    const r = renderer({ chromebook });
+test('WebGL keeps the same detail on Chromebooks and limits frames without polling layout', () => {
+  for (const options of [{}, { chromebook: true }, { lite: true }]) {
+    const r = renderer(options), fps = options.lite ? 20 : options.chromebook ? 24 : 30;
     r.tick(0); r.run(2000);
-    assert.equal(r.canvas.width, chromebook ? 640 : 1024);
-    assert(r.draws >= (chromebook ? 46 : 58) && r.draws <= (chromebook ? 50 : 62),
-      `frame limiter stays near ${chromebook ? 24 : 30} fps: ${r.draws} draws`);
+    assert.equal(r.canvas.width, 1024, 'device detection does not sacrifice spatial detail');
+    assert(r.draws >= fps * 2 - 2 && r.draws <= fps * 2 + 2,
+      `frame limiter stays near ${fps} fps: ${r.draws} draws`);
     assert.equal(r.rectReads, 1, 'frame scheduling never polls layout');
     assert.equal(r.motionReads, 1, 'frames use the cached motion preference');
     r.background.destroy();
@@ -163,7 +156,7 @@ test('a WebGL background sleeps behind dialogs, redraws theme changes and resume
   assert.equal(r.frames.size, 0);
   r.tick(60000);
   r.document.hidden = false; r.emit('document:visibilitychange'); r.run(100);
-  assert.equal(r.canvas.width, 640, 'tab wake does not trigger a false downgrade');
+  assert.equal(r.canvas.width, 1024, 'tab wake retains the original render resolution');
   r.background.destroy();
   assert.equal(r.frames.size, 0);
   assert.equal(r.listeners.size, 0);
@@ -189,10 +182,17 @@ test('reduced motion renders a still frame and reacts to preference changes', ()
   r.background.destroy();
 });
 
-test('sustained slow browser frames shrink the actual render target', () => {
+test('sustained slow frames reduce draw cadence without shrinking or reallocating the canvas', () => {
   const r = renderer({ chromebook: true });
-  r.tick(0); r.run(3000, 50);
-  assert(r.canvas.width < 400);
-  assert(r.rectReads <= 3, 'only quality transitions resize the canvas');
+  r.tick(0);
+  const width = r.canvas.width, height = r.canvas.height;
+  r.run(4000, 50);
+  const draws = r.draws;
+  r.run(2000, 50);
+  assert(r.draws - draws >= 23 && r.draws - draws <= 25, 'sustained overload limits drawing to 12 fps');
+  assert.equal(r.canvas.width, width);
+  assert.equal(r.canvas.height, height);
+  assert.equal(width, 1024);
+  assert.equal(r.rectReads, 1, 'cadence changes never resize or remeasure the canvas');
   r.background.destroy();
 });

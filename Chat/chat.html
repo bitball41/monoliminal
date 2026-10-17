@@ -5060,7 +5060,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.23.2";
+    const APP_VERSION = "2.23.3";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -5912,18 +5912,13 @@ void main() {
       return `rgba(${backgroundRGB(hex).map(v => Math.round(v * 255)).join(',')},${opacity})`;
     }
     function createBackgroundBudget(preset, { chromebook, lite }) {
-      const baseDimension = lite ? 480 : chromebook ? 640 : 1024;
-      const baseScale = lite ? 0.65 : chromebook ? 0.75 : 1;
       const baseFps = Math.min(preset.fps, lite ? 20 : chromebook ? 24 : preset.fps);
       let tier = 0, previous = null, windowStart = 0, frames = 0, slowFrames = 0, stableSince = null;
       function resetClock() {
         previous = null; frames = 0; slowFrames = 0; stableSince = null;
       }
       return {
-        get fps() { return Math.max(15, Math.round(baseFps * Math.pow(0.8, tier))); },
-        get maxDimension() { return Math.max(256, Math.round(baseDimension * Math.pow(0.72, tier))); },
-        get scale() { return baseScale * Math.pow(0.72, tier); },
-        dpr: lite || chromebook ? 1 : 1.5,
+        get fps() { return Math.max(12, Math.round(baseFps * Math.pow(0.8, tier))); },
         resetClock,
         sample(now) {
           if (previous === null) { previous = windowStart = now; return false; }
@@ -5935,11 +5930,11 @@ void main() {
           const struggling = slowFrames >= 3 && slowFrames / frames >= 0.18;
           const stable = slowFrames / frames <= 0.05;
           windowStart = now; frames = 0; slowFrames = 0;
-          // Optional shaders yield GPU time when the page repeatedly misses frames.
-          // A single hitch does not change quality; recovery needs sustained headroom.
+          // Reduce animation work under load while keeping the render target sharp.
+          // A single hitch does not change cadence; recovery needs sustained headroom.
           if (struggling) {
             stableSince = null;
-            if (tier < 2) { tier++; return true; }
+            if (tier < 3) { tier++; return true; }
           } else if (stable) {
             if (stableSince === null) stableSince = now;
             if (tier > 0 && now - stableSince >= 15000) {
@@ -6020,8 +6015,8 @@ void main() {
           if (!drawable()) return;
           const rect = stage.getBoundingClientRect();
           if (!rect.width || !rect.height) return;
-          const ratio = Math.min(preset.scale * budget.scale * Math.min(devicePixelRatio || 1, budget.dpr),
-            budget.maxDimension / Math.max(rect.width, rect.height));
+          const ratio = Math.min(preset.scale * Math.min(devicePixelRatio || 1, 1.5),
+            1024 / Math.max(rect.width, rect.height));
           const w = Math.max(1, Math.floor(rect.width * ratio));
           const h = Math.max(1, Math.floor(rect.height * ratio));
           pixelScale = w / rect.width;
@@ -6035,7 +6030,7 @@ void main() {
           raf = 0;
           if (!drawable()) { budget.resetClock(); last = null; return; }
           if (animated) {
-            if (budget.sample(now)) { resize(); last = null; }
+            if (budget.sample(now)) last = null;
             raf = requestAnimationFrame(paint);
             const interval = 1000 / budget.fps;
             if (last !== null && now - last < interval) return;
