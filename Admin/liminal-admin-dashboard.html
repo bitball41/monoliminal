@@ -893,6 +893,7 @@
       dashboardOpen = false;
       admin = null;
       state = null;
+      qsa("[data-broadcast-dirty]").forEach((el) => { delete el.dataset.broadcastDirty; });
       writeAdminCache(null);
       showLogin();
       if (callServer && token) {
@@ -1175,9 +1176,9 @@
       el.value = value ?? "";
     }
     function renderBroadcast() {
-      fillIdle("announcement", state.settings.announcement || "");
-      fillIdle("whats-new", state.settings.whats_new || "");
-      fillIdle("luna-custom-status", state.settings.luna_custom_status || "");
+      for (const [id, key] of [["announcement", "announcement"], ["whats-new", "whats_new"], ["luna-custom-status", "luna_custom_status"]]) {
+        if (!$(id).dataset.broadcastDirty) fillIdle(id, state.settings[key] || "");
+      }
       $("announcement-preview").textContent = ($("announcement").value || "").trim() || "No announcement is active.";
       updateBroadcastCounters();
     }
@@ -1267,10 +1268,22 @@
         state.settings[key] = value;
         renderAll();
         toast("Saved.");
+        return true;
       } catch (error) {
         console.error(error);
         toast(error.message || "Could not save that.", true);
+        return false;
       } finally { setBusy(false); }
+    }
+    async function saveBroadcastField(id, key, draft) {
+      const saved = await setSetting(key, draft.trim());
+      // Keep edits made while the request was in flight, and keep failed drafts.
+      if (saved && $(id).value === draft) {
+        delete $(id).dataset.broadcastDirty;
+        $(id).value = draft.trim();
+        renderBroadcast();
+      }
+      return saved;
     }
     async function setLunaCustomStatus(value) {
       if (!admin?.is_owner) return toast("Owner access is required.", true);
@@ -1278,6 +1291,9 @@
       try {
         await rpc("admin_dashboard_set_luna_custom_status", { p_admin_token: admin.token, p_custom_status: value });
         state.settings.luna_custom_status = value;
+        if ($("luna-custom-status").value.trim() === value) {
+          delete $("luna-custom-status").dataset.broadcastDirty;
+        }
         renderAll();
         toast(value ? "Luna's status updated." : "Luna's status cleared.");
       } catch (error) {
@@ -1494,18 +1510,23 @@
     });
     $("save-broadcast").addEventListener("click", async () => {
       if (!admin?.is_owner) return toast("Owner access is required.", true);
-      await setSetting("announcement", $("announcement").value.trim());
-      await setSetting("whats_new", $("whats-new").value.trim());
+      // Capture both drafts before either save can re-render the form.
+      const announcement = $("announcement").value;
+      const whatsNew = $("whats-new").value;
+      if (!await saveBroadcastField("announcement", "announcement", announcement)) return;
+      await saveBroadcastField("whats-new", "whats_new", whatsNew);
     });
     $("clear-announcement").addEventListener("click", async () => {
       if (!await dialog({ title: "Clear announcement", message: "Take the banner off every connected chat?", okLabel: "Clear" })) return;
       $("announcement").value = "";
-      await setSetting("announcement", "");
+      $("announcement").dataset.broadcastDirty = "true";
+      await saveBroadcastField("announcement", "announcement", "");
     });
     $("clear-whats-new").addEventListener("click", async () => {
       if (!await dialog({ title: "Clear What's new", message: "Stop showing this release note?", okLabel: "Clear" })) return;
       $("whats-new").value = "";
-      await setSetting("whats_new", "");
+      $("whats-new").dataset.broadcastDirty = "true";
+      await saveBroadcastField("whats-new", "whats_new", "");
     });
     $("save-luna-custom-status").addEventListener("click", () => setLunaCustomStatus($("luna-custom-status").value.trim()));
     $("clear-luna-custom-status").addEventListener("click", async () => {
@@ -1513,6 +1534,9 @@
       $("luna-custom-status").value = "";
       await setLunaCustomStatus("");
     });
+    for (const id of ["announcement", "whats-new", "luna-custom-status"]) {
+      $(id).addEventListener("input", () => { $(id).dataset.broadcastDirty = "true"; });
+    }
     $("announcement").addEventListener("input", () => {
       $("announcement-preview").textContent = $("announcement").value.trim() || "No announcement is active.";
       updateBroadcastCounters();
