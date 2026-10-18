@@ -1,5 +1,53 @@
 # Liminal Chat
 
+## Noelle AI
+
+The initial release is visible to owners only (the existing Owner/Preston
+access level; co-owners and other staff do not have access). Owners can mention
+`@NoelleAI` in a chat channel to get a reply from GPT-6 Luna. Test prompts,
+replies, and their reply chains are owner-only rows enforced by RLS, including
+history, direct API reads, Realtime, inboxes, and administrative readers.
+Only owners see mention autocomplete and the bot profile. Losing owner access
+cancels pending generations and clears the preview from the current client.
+The separate `Noelle AI` identity carries an AI badge and cannot be used to log in.
+The bot is absent from member counts and DMs. Only successfully sent channel
+mentions invoke it; loading history, edits, and other clients' Realtime events
+do not create API calls.
+
+Apply `Backend/migrations/20261018044605_noelle_ai.sql` and
+`Backend/migrations/20261018045645_noelle_ai_owner_preview.sql` and
+`Backend/migrations/20261018050243_noelle_ai_recent_examples.sql`, then deploy
+`Backend/edge-functions/noelle-ai/{index.ts,handler.ts,persona.ts}` with JWT
+verification enabled, and deploy the updated `chat-auth` before publishing Chat.
+The function reuses the existing `OPEN_AI`/`OPENAI_API_KEY` server secret. It uses
+the Responses API with `gpt-6-luna`, no tools, no provider-side response storage,
+no reasoning, and at most 256 output tokens. This is persona prompting, not
+fine-tuning.
+
+The private corpus view reads only the consenting Noelle account's current,
+undeleted public text messages/forum posts; it never reads `dm_messages`.
+Each reply uses a bounded mixture of relevant, representative, and recent
+examples, excluding contact details, credential-like text, and unsuitable
+examples. The selection reserves space for recent messages before the older representative
+sample, so new public messages are picked up without a rebuild or retraining.
+Edits/deletions take effect on the next request. Deleting the consent message
+(including soft deletion) or the source account stops new replies.
+No message examples or private records are committed to the repository.
+
+Owner settings → Noelle AI controls availability, the daily USD budget (25 cents
+by default), and the per-person daily limit (50 by default). Six requests per
+minute per person and three concurrent generations are enforced server-side.
+Days reset at midnight America/Chicago. Each claim conservatively reserves
+$0.005; completed requests settle at the published $0.10 input / $0.50 output
+per million tokens. Unknown usage and uncertain provider failures retain the
+reservation. The 44,000-byte input limit and 256-output-token cap keep the
+reservation above the maximum request cost at those rates. Review this bound
+before changing model, pricing, tools, or token limits. Duplicate source IDs
+cannot generate or post a second reply. Deleted/edited source messages, disabled
+chat, banned senders, lost channel permission, or revoked consent cancel an
+in-flight reply before insertion. Bot replies are excluded from engagement
+analytics.
+
 Canonical source: [`chat.html`](chat.html).
 
 The standalone launcher is [liminal-chat-launcher.html](liminal-chat-launcher.html) and has its own deployment Action.

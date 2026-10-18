@@ -2,6 +2,13 @@
 
 Tracked deployed source:
 
+- `noelle-ai`: authenticated `@NoelleAI` channel replies, private live style
+  examples, and atomic usage reservations. The initial release requires owner
+  access; owner-only row policies also protect prompts, replies, and reply chains. Deploy `index.ts`, `handler.ts`, and
+  `persona.ts` with `verify_jwt: true`; it also validates Auth and the current
+  profile. Reuses the existing OpenAI server secret. The Noelle AI migration
+  must be applied before deploying the function and Chat client.
+
 - `liminal-drive`: public listing, file streaming, range requests, and download responses.
 - `liminal-drive-admin`: verified Liminal profiles, role-based uploads, signed URLs, multipart uploads, folders, and file management.
 - `chat-auth`: shared Chat account signup, self-deletion, authorized password resets and owner test-account management.

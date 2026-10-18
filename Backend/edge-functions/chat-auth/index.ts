@@ -21,7 +21,7 @@ function json(body: unknown, status = 200) {
 
 function validUsername(value: string) {
   return /^[A-Za-z0-9_]{3,20}$/.test(value)
-    && !["claude", "system", "liminal", "admin", "luna"].includes(value.toLowerCase());
+    && !["claude", "system", "liminal", "admin", "luna", "noelleai"].includes(value.toLowerCase());
 }
 
 function accountEmail(username: string) {

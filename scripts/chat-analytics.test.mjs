@@ -17,7 +17,8 @@ test('analytics deduplicates identities, preserves sent totals, enforces permiss
   try {
     await db.exec(await file('Backend/tests/authorization-fixture.sql'));
     const migrations=(await readdir(new URL('../Backend/migrations/',import.meta.url))).filter(x=>x.endsWith('.sql')).sort();
-    for(const name of migrations.filter(x=>!x.endsWith('_chat_analytics.sql'))) await db.exec(await file('Backend/migrations/'+name));
+    const analyticsIndex=migrations.findIndex(x=>x.endsWith('_chat_analytics.sql'));
+    for(const name of migrations.slice(0,analyticsIndex)) await db.exec(await file('Backend/migrations/'+name));
     for(const [name,id] of Object.entries(ids)) {
       await db.query('insert into auth.users(id) values($1)',[id]);
       await db.query('insert into public.profiles(username,display_name,user_id,staff_role,is_banned,is_test_account) values($1,$1,$2,$3,$4,$5)',[name,name==='Luna'?null:id,name==='owner'?'owner':'member',name==='banned',name==='tester']);
@@ -27,6 +28,7 @@ test('analytics deduplicates identities, preserves sent totals, enforces permiss
     const dm=(await one("insert into public.dms(participants) values(array['alice','bob']) returning id")).id;
     await db.query("insert into public.dm_messages(dm_id,sender,content) values($1,'alice','secret must never appear in analytics')",[dm]);
     await db.exec(await file('Backend/migrations/'+migrations.find(x=>x.endsWith('_chat_analytics.sql'))));
+    for(const name of migrations.slice(analyticsIndex+1)) await db.exec(await file('Backend/migrations/'+name));
     let s=await summary();
     assert.equal(s.messages_total,2,'surviving soft-deleted rows backfill into sent counts');
     assert.equal(s.visible_messages,1);

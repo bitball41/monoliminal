@@ -5062,12 +5062,27 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.23.4";
+    const APP_VERSION = "2.24.0";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
+    const NOELLE_AI_USERNAME = 'NoelleAI';
+    const NOELLE_AI_PROFILE = Object.freeze({ username: NOELLE_AI_USERNAME, display_name: 'Noelle AI',
+      color: '#c4b5fd', pfp: '', tag: 'AI', bio: 'Owner preview. Mention @NoelleAI in a channel. Prompts and replies are visible to owners only.',
+      banner: '', custom_status: '', staff_role: 'member', user_id: null });
+    function isNoelleAI(username) { return String(username || '').toLowerCase() === 'noelleai'; }
+    function clearNoelleOwnerPreview() {
+      msgCache.forEach((rows, key) => setViewMessages(key, rows.filter(row => !row.owner_preview)));
+      historyContexts.forEach(context => {
+        context.rows.filter(row => row.owner_preview).forEach(unindexMessage);
+        context.rows = context.rows.filter(row => !row.owner_preview);
+      });
+      hideAutocomplete();
+      hidePopovers();
+      renderTimeline();
+    }
     function isHiddenBot(username) {
-      return String(username || '').toLowerCase() === HIDDEN_BOT_USERNAME.toLowerCase();
+      return String(username || '').toLowerCase() === HIDDEN_BOT_USERNAME.toLowerCase() || isNoelleAI(username);
     }
     const PAGE_SIZE = 60;
     const LAUNCHER_PROTOCOL = 2;
@@ -5114,7 +5129,7 @@ void main() {
         iceCandidatePoolSize: 2,
       };
     }
-    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'admin', 'luna'];
+    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'admin', 'luna', 'noelleai'];
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
     const GROUP_WINDOW_MS = 5 * 60 * 1000;
     const FORUM_PREFIX = 'forum:';
@@ -5126,7 +5141,7 @@ void main() {
     ];
     const SEEN_IDS_CAP = 8000;
 
-    const MESSAGE_COLUMNS = 'id,channel_id,sender,content,type,media_url,reply_to,reactions,deleted,edited,created_at,pinned';
+    const MESSAGE_COLUMNS = 'id,channel_id,sender,content,type,media_url,reply_to,reactions,deleted,edited,created_at,pinned,owner_preview';
     const DM_MESSAGE_COLUMNS = 'id,dm_id,sender,content,type,media_url,reply_to,read_by,reactions,deleted,edited,created_at';
 
     const THEMES = {
@@ -6615,7 +6630,7 @@ void main() {
     function canModerateUser(target) {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
-      if (!t.username || t.username === me.username) return false;
+      if (!t.username || t.username === me.username || isNoelleAI(t.username)) return false;
       if (staffRoleOf(t) === 'owner') return false;
       return myStaffRank() > staffRankOf(t);
     }
@@ -7138,7 +7153,7 @@ void main() {
     function setViewMessages(key, rows) {
       const prev = msgCache.get(key);
       if (prev) prev.forEach(unindexMessage);
-      const next = rows || [];
+      const next = (rows || []).filter(row => !row.owner_preview || isOwner());
       msgCache.set(key, next);
       next.forEach(indexMessage);
       return next;
@@ -7147,6 +7162,7 @@ void main() {
       return msgById.get(id) || null;
     }
     function profileOf(username) {
+      if (isNoelleAI(username)) return NOELLE_AI_PROFILE;
       return profiles.get(username) || { username, display_name: username, color: '#a78bfa', pfp: '', tag: '', bio: '', banner: '', custom_status: '' };
     }
     function displayNameOf(profileOrUsername) {
@@ -8448,7 +8464,7 @@ void main() {
 
       text = expandShortcodes(text);
       text = text.replace(/@([A-Za-z0-9_]{3,20})/g, (m, name) => {
-        if (!profiles.has(name)) return m;
+        if (!profiles.has(name) && !(isOwner() && isNoelleAI(name))) return m;
         const self = me && name === me.username;
         return hold(`<span class="mention ${self ? 'self-mention' : ''}">@${esc(name)}</span>`);
       });
@@ -8754,7 +8770,7 @@ void main() {
       let prev = null;
       let prevDay = null;
       msgs.forEach(msg => {
-        if (msg.deleted) return;
+        if (msg.deleted || (msg.owner_preview && !isOwner())) return;
         const day = dayKey(msg.created_at);
         if (day !== prevDay) {
           const sep = document.createElement('div');
@@ -8806,6 +8822,7 @@ void main() {
     }
 
     function buildMessageNode(msg, prev) {
+      if (msg.owner_preview && !isOwner()) return document.createElement('div');
       const sourceMessage = msg;
       const privateMedia = groupMediaPath(msg.media_url);
       const resolvedMedia = privateMedia ? groupMediaCache.get(msg.media_url) : null;
@@ -8844,6 +8861,7 @@ void main() {
             ${roleBadgeHtml(author)}
             ${subRoleBadgeHtml(author)}
             ${author.tag ? `<span class="msg-tag">${esc(author.tag)}</span>` : ''}
+            ${msg.owner_preview ? '<span class="msg-tag" title="Visible to owners only">Owners only</span>' : ''}
             <span class="msg-time">${esc(fmtDay(msg.created_at))} at ${esc(fmtTime(msg.created_at))}</span>
             ${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}
           </div>`;
@@ -9578,7 +9596,47 @@ void main() {
       }
       lastSuccessfulSendAt = Date.now();
       ingestMessage(result.data, kind);
+      void requestNoelleReply(result.data, kind);
       return true;
+    }
+
+    const noelleRequests = new Set();
+    function shouldInvokeNoelle(message, kind) {
+      return isOwner() && kind === 'channel' && !!message?.id && !message.deleted && !message.pending
+        && ['text', 'image'].includes(message.type)
+        && /(^|[^a-z0-9_@])@noelleai(?![a-z0-9_])/i.test(message.content || '')
+        && channelById(message.channel_id)?.kind === 'chat';
+    }
+    async function requestNoelleReply(message, kind) {
+      if (!isOwner() || !me || message?.sender !== me.username || !shouldInvokeNoelle(message, kind) || noelleRequests.has(message.id)) return;
+      noelleRequests.add(message.id);
+      const node = qs(`#message-list [data-id="${CSS.escape(message.id)}"]`);
+      const status = document.createElement('div');
+      status.className = 'msg-edited';
+      status.setAttribute('role', 'status');
+      status.textContent = 'Noelle AI is replying…';
+      qs('.msg-body', node || document.createElement('div'))?.appendChild(status);
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Sign in again to talk to Noelle AI.');
+        const response = await fetch(`${runtimeSupabaseUrl}/functions/v1/noelle-ai`, {
+          method: 'POST', signal: AbortSignal.timeout(60_000),
+          headers: { 'Content-Type': 'application/json', apikey: runtimeSupabaseKey, Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'reply', source_message_id: message.id }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Noelle AI couldn’t reply.');
+        if (!me || me.user_id !== session.user.id) return;
+        if (result.response_message_id) {
+          const reply = await sb.from('messages').select(MESSAGE_COLUMNS).eq('id', result.response_message_id).maybeSingle();
+          if (reply.data) ingestMessage(reply.data, 'channel');
+        } else if (result.duplicate && result.status === 'failed') {
+          throw new Error('Noelle AI couldn’t reply. Mention it again to try again.');
+        }
+      } catch (error) {
+        if (me && message.sender === me.username) toast({ type: 'error', title: 'Noelle AI',
+          text: error?.name === 'TimeoutError' ? 'The reply is taking too long. It may still arrive.' : error?.message || 'Couldn’t reach Noelle AI.' });
+      } finally { status.remove(); noelleRequests.delete(message.id); }
     }
 
     /* ===== Optimistic send bookkeeping ===== */
@@ -9676,6 +9734,7 @@ void main() {
       }
       lastSuccessfulSendAt = Date.now();
       ingestMessage(result.data, kind);
+      void requestNoelleReply(result.data, kind);
     }
 
     function forgetMessage(id) {
@@ -9891,6 +9950,7 @@ void main() {
     }
 
     function ingestMessage(m, kind) {
+      if (m.owner_preview && !isOwner()) return;
       if (kind === 'dm' && dmBlockedUsers.has(m.sender)) return;
       if (kind === 'dm' && (isHiddenBot(m.sender) || isHiddenBot((dms.find(d => d.id === m.dm_id) || {}).other))) {
         if (!seenIds.has(m.id)) rememberId(m.id);
@@ -13042,6 +13102,7 @@ void main() {
       if (me && p.username === me.username) {
         const nextRole = staffRoleOf({ ...me, ...merged });
         me = { ...me, ...merged };
+        if (['owner', 'preston'].includes(prevRole) && !isOwner()) clearNoelleOwnerPreview();
         if (merged.is_banned) { showBanned(merged); return; }
         if (merged.kicked_at && merged.kicked_at > bootedAt) {
           toast({ type: 'warning', title: 'Kicked', text: 'You were signed out by a moderator.' });
@@ -13742,6 +13803,8 @@ void main() {
         });
         const byName = (a, b) => displayNameOf(profileOf(a)).localeCompare(displayNameOf(profileOf(b)));
         const names = online.sort(byName).concat(offline.sort(byName)).slice(0, 8);
+        if (isOwner() && currentView.type === 'channel' && !isForumThreadView(currentView)
+          && channelById(currentView.id)?.kind === 'chat' && matchUser(NOELLE_AI_PROFILE)) names.unshift(NOELLE_AI_USERNAME);
         if (names.length) {
           acMode = 'mention';
           acTokenStart = upToCursor.length - m[1].length - 1;
@@ -13749,7 +13812,7 @@ void main() {
             const profile = profileOf(name);
             return {
               label: displayNameOf(profile), profile, insert: `@${name} `,
-              sub: `@${name} · ${presenceStatusOf(name) !== 'offline' ? 'online' : 'offline'}`,
+              sub: isNoelleAI(name) ? '@NoelleAI · AI' : `@${name} · ${presenceStatusOf(name) !== 'offline' ? 'online' : 'offline'}`,
             };
           });
           showAutocomplete('Mention someone');
@@ -14847,6 +14910,7 @@ void main() {
 
     /* ============================= 27. HOVER CARD ============================= */
     function showHoverCard(username, anchor) {
+      if (isNoelleAI(username) && !isOwner()) return;
       const p = profileOf(username);
       const self = me && username === me.username;
       hoverCardUser = username;
@@ -14893,7 +14957,9 @@ void main() {
       $('hc-extra-actions').innerHTML = '';
       timeoutMenu.hidden = true;
       timeoutMenu.innerHTML = '';
-      if (self) {
+      if (isNoelleAI(username)) {
+        actions.innerHTML = '<span class="field-help">Mention @NoelleAI in a channel to chat.</span>';
+      } else if (self) {
         actions.innerHTML = '<button class="secondary-button" type="button" data-hc-act="edit">Edit profile</button>';
       } else {
         const following = myFollowing.has(username);
@@ -16541,6 +16607,40 @@ void main() {
         $('admin-logs-refresh').addEventListener('click', loadAdminLogs); $('deleted-messages-refresh').addEventListener('click',loadDeletedMessages); loadPanel(staffPanel);
       } catch(error) { if (request !== staffRenderGeneration) return; el.innerHTML = '<div class="console-empty"><strong>Staff tools could not load.</strong><button class="secondary-button" id="staff-retry" type="button">Try again</button></div>'; $('staff-retry').addEventListener('click', renderAdminTab); }
     }
+    async function loadNoelleOwnerSettings() {
+      const form = $('owner-noelle-form'), status = $('owner-noelle-status');
+      if (!form || !status || !isOwner()) return;
+      const show = data => {
+        $('owner-noelle-enabled').value = String(data.enabled);
+        $('owner-noelle-budget').value = data.daily_budget_cents;
+        $('owner-noelle-limit').value = data.user_daily_limit;
+        status.textContent = `$${(Number(data.spent_micros || 0) / 1_000_000).toFixed(3)} used or reserved today. Resets at midnight Central.`;
+        form.hidden = false;
+      };
+      try {
+        const { data, error } = await sb.rpc('chat_noelle_settings');
+        if (error) throw error;
+        if (!form.isConnected) return;
+        show(data);
+      } catch { status.textContent = 'Noelle AI settings could not load.'; return; }
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = qs('button', form);
+        button.disabled = true;
+        try {
+          const { data, error } = await sb.rpc('chat_noelle_settings', {
+            p_enabled: $('owner-noelle-enabled').value === 'true',
+            p_daily_budget_cents: Number($('owner-noelle-budget').value),
+            p_user_daily_limit: Number($('owner-noelle-limit').value),
+          });
+          if (error) throw error;
+          show(data);
+          toast({ type: 'success', text: 'Noelle AI settings saved.' });
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save Noelle AI settings.' }); }
+        finally { button.disabled = false; }
+      });
+    }
+
     function renderOwnerTab() {
       const el = $('tab-owner');
       if (!isOwner()) { el.innerHTML = ''; return; }
@@ -16554,9 +16654,11 @@ void main() {
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
         {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
+        {id:'noelle',label:'Noelle AI',html:consoleCard('Noelle AI','Owner preview. Prompts and replies are visible to owners only.',`<p class="field-help" id="owner-noelle-status" role="status">Loading settings…</p><form id="owner-noelle-form" hidden><div class="console-form-grid"><div class="field"><label for="owner-noelle-enabled">Replies</label><select id="owner-noelle-enabled"><option value="true">On</option><option value="false">Off</option></select></div><div class="field"><label for="owner-noelle-budget">Daily budget (USD cents)</label><input id="owner-noelle-budget" type="number" min="1" max="10000" required></div><div class="field"><label for="owner-noelle-limit">Replies per person per day</label><input id="owner-noelle-limit" type="number" min="1" max="500" required></div></div><button class="primary-button" type="submit">Save settings</button></form>`)},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
       el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:'—',label:'Members',key:'members_total'},{value:'—',label:'Active today',key:'dau'},{value:'—',label:'Public messages · 24h',key:'messages_24h'}],panels,ownerPanel);
+      void loadNoelleOwnerSettings();
       bindConsoleAnalytics(el);
       bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindSubRoleControls(el);
       $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
