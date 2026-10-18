@@ -480,6 +480,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
     }
     .avatar.has-ring.ring-anim::before { animation: ring-spin 3.5s linear infinite; }
+    html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
+    html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .avatar.has-ring.ring-anim::before { animation: none; } }
     .avatar-xs { width: 22px; height: 22px; font-size: 0.55rem; }
@@ -5060,7 +5062,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.23.3";
+    const APP_VERSION = "2.23.4";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -7022,6 +7024,65 @@ void main() {
       if (r) el.style.setProperty('--ring-bg', r.css); else el.style.removeProperty('--ring-bg');
     }
 
+    let ringVisibilityController = null;
+    function initRingVisibility() {
+      if (ringVisibilityController || typeof IntersectionObserver !== 'function') return ringVisibilityController;
+      const root = document.documentElement;
+      const tracked = new Set();
+      const selector = '.avatar.ring-anim';
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          const el = entry.target;
+          if (!tracked.has(el) || !el.isConnected) return;
+          const visible = String(entry.isIntersecting && entry.intersectionRatio > 0);
+          if (el.dataset.ringVisible !== visible) el.dataset.ringVisible = visible;
+        });
+      }, { rootMargin: '32px' });
+      const forget = el => {
+        if (!tracked.delete(el)) return;
+        observer.unobserve(el);
+        delete el.dataset.ringVisible;
+      };
+      const track = el => {
+        if (!el.isConnected) { forget(el); return; }
+        if (!el.matches(selector)) { forget(el); return; }
+        if (tracked.has(el)) return;
+        delete el.dataset.ringVisible;
+        tracked.add(el);
+        observer.observe(el);
+      };
+      const scan = (node, visit) => {
+        if (node.nodeType !== 1) return;
+        if (node.matches('.avatar')) visit(node);
+        node.querySelectorAll('.avatar').forEach(visit);
+      };
+      const mutations = new MutationObserver(records => {
+        records.forEach(record => {
+          if (record.type === 'attributes') {
+            if (tracked.has(record.target) || record.target.matches('.avatar')) track(record.target);
+            return;
+          }
+          record.removedNodes.forEach(node => scan(node, el => { if (!el.isConnected) forget(el); }));
+          record.addedNodes.forEach(node => scan(node, track));
+        });
+      });
+      const sync = () => root.toggleAttribute('data-ring-paused', document.hidden);
+      root.setAttribute('data-ring-visibility', '');
+      sync();
+      scan(document.body, track);
+      mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+      document.addEventListener('visibilitychange', sync);
+      ringVisibilityController = { destroy() {
+        observer.disconnect(); mutations.disconnect();
+        document.removeEventListener('visibilitychange', sync);
+        tracked.forEach(el => { delete el.dataset.ringVisible; });
+        tracked.clear();
+        root.removeAttribute('data-ring-visibility'); root.removeAttribute('data-ring-paused');
+        ringVisibilityController = null;
+      } };
+      return ringVisibilityController;
+    }
+
     function effectiveMyStatus() {
       const raw = (me && me.status && me.status !== 'invisible') ? me.status : 'online';
       if (raw === 'dnd') return 'dnd';
@@ -8005,6 +8066,9 @@ void main() {
             if (node) {
               const avatar = qs('.avatar', node), nextAvatar = qs('.avatar', fresh);
               if (avatar && nextAvatar) {
+                if (avatar.dataset.ringVisible !== undefined && nextAvatar.classList.contains('ring-anim')) {
+                  nextAvatar.dataset.ringVisible = avatar.dataset.ringVisible;
+                }
                 const dot = qs('.presence-dot', avatar), nextDot = qs('.presence-dot', nextAvatar);
                 if (dot && nextDot && dot.dataset.status !== nextDot.dataset.status) dot.dataset.status = nextDot.dataset.status;
                 if (avatar.isEqualNode(nextAvatar)) nextAvatar.replaceWith(avatar);
@@ -12857,6 +12921,15 @@ void main() {
       });
     }
 
+    let dmRenderFrame = 0;
+    function scheduleRenderDmList() {
+      if (dmRenderFrame) return;
+      dmRenderFrame = requestAnimationFrame(() => {
+        dmRenderFrame = 0;
+        if (me) renderDmList();
+      });
+    }
+
     function handleMessageChange(payload) {
       const row = payload.new || payload.old;
       if (row && row.channel_id === VOICE_CHANNEL_ID) {
@@ -12955,6 +13028,8 @@ void main() {
       const p = payload.new;
       if (!p || !p.username || isHiddenBot(p.username)) return;
       const existing = profiles.get(p.username) || {};
+      const changed = Object.keys(p).filter(key => p[key] !== undefined && existing[key] !== p[key]);
+      const uiChanged = changed.some(key => key !== 'last_seen');
       const prevRole = staffRoleOf(existing);
       const merged = { ...existing };
       Object.keys(p).forEach((key) => {
@@ -12973,6 +13048,7 @@ void main() {
           setTimeout(signOut, 1500);
           return;
         }
+        if (!uiChanged) return;
         if (nextRole !== prevRole && (STAFF_ROLE_META[nextRole]?.rank || 1) > (STAFF_ROLE_META[prevRole]?.rank || 1)) {
           notifyRolePromotion(nextRole);
         }
@@ -12981,16 +13057,16 @@ void main() {
         renderSelf();
         updateVoiceUi();
         refreshPresenceUi();
-      }
+      } else if (!uiChanged) return;
       voice.peers.forEach(peer => {
         if (peer.account?.username !== p.username) return;
         peer.account = { ...peer.account, displayName: displayNameOf(merged), pfp: merged.pfp || '' };
         updatePeerTileIdentity(peer);
       });
       scheduleRenderMembers();
-      renderDmList();
+      scheduleRenderDmList();
       const TIMELINE_IRRELEVANT = new Set(['status', 'custom_status', 'timeout_until', 'kicked_at', 'last_seen']);
-      const timelineDirty = Object.keys(p).some(k => existing[k] !== p[k] && !TIMELINE_IRRELEVANT.has(k));
+      const timelineDirty = changed.some(k => !TIMELINE_IRRELEVANT.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
       if (existing.sub_role !== merged.sub_role) {
         refreshSubroleMemberControls(p.username);
@@ -17936,6 +18012,7 @@ void main() {
 
     /* ============================= 38. EVENT WIRING ============================= */
     function wireStaticEvents() {
+      initRingVisibility();
       wireVoiceEvents();
       $('auth-tab-login').addEventListener('click', () => {
         $('auth-tab-login').setAttribute('aria-selected', 'true');

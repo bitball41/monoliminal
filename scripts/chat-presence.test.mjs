@@ -135,7 +135,7 @@ function chatPresence() {
     memberListClicksBound: false,
     reconcileSidebarRows(groups) { groups.forEach(({list,rows}) => { list.innerHTML = rows.map(row => row.html).join(''); }); },
     memberListSignature: '', memberPresenceSignature: () => '',
-    refreshSubroleMemberControls() {}, renderSubroleDialog() {}, showHoverCard() {}, voice: { peers: new Map() }, renderDmList() {}, refreshTimelineForAuthor() {},
+    refreshSubroleMemberControls() {}, renderSubroleDialog() {}, showHoverCard() {}, voice: { peers: new Map() }, renderDmList() {}, scheduleRenderDmList() {}, refreshTimelineForAuthor() {},
   });
   vm.runInContext(
     section('    const LIVE_PRESENCE_TOPIC =', '    let memberListSignature =') + '\n' +
