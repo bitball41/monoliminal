@@ -161,8 +161,10 @@ test('Drive CSS is balanced and the Chat shell/auth/file styles apply at desktop
 });
 
 test('library indexing preserves bundles and reuses the listing across searches and tabs', () => {
-  const state = { objects: [], trash: [], view: 'games', search: '', filter: 'all', sort: 'name', prefix: '', starred: new Set(), recent: [] };
-  const c = frontSection('function libraryView()', 'function connection(', { state, CURATED: {}, write() {} });
+  const state = { objects: [], trash: [], view: 'games', search: '', filter: 'all', genre: 'all', catalogFilter: 'hosted', sort: 'name', prefix: '', starred: new Set(), recent: [] };
+  const context = { state, CURATED: {}, write() {} };
+  frontSection('const SPECIAL_GAMES=', 'Object.assign(I,', context);
+  const c = frontSection('function libraryView()', 'function connection(', context);
   state.objects = [
     { key: 'Games/bundle/index.html', size: 10, lastModified: '2026-10-06' },
     { key: 'Games/bundle/help.html', size: 20, lastModified: '2026-10-07' },
@@ -187,7 +189,7 @@ test('library indexing preserves bundles and reuses the listing across searches 
   assert.equal(c.indexListing(), index, 'navigation/search do not rebuild folder or entrypoint indexes');
   state.objects = [...state.objects, c.normalize({ key: 'Games/new.html' })];
   assert.notEqual(c.indexListing(), index, 'a refreshed listing invalidates the index');
-  assert.equal(c.indexListing().games.length, 3);
+  assert.equal(c.indexListing().games.filter(f => !f.virtual).length, 3);
 });
 
 test('cached public listings load before refresh without caching account permissions', () => {
@@ -293,4 +295,106 @@ test('signup validates confirmation and creates the shared Chat account before s
   });
   assert.deepEqual(signIns, [{ username: 'newuser', password: 'test-password' }]);
   assert.deepEqual(closed, [true]);
+});
+
+function gameLibrary(objects = []) {
+  const state = { objects: [], trash: [], view: 'games', search: '', filter: 'all', genre: 'all', catalogFilter: 'all', sort: 'name', prefix: '', starred: new Set(), recent: [] };
+  const context = { state, CURATED: {}, write() {}, URL, SUPABASE_URL: 'https://auth.test' };
+  frontSection('const SPECIAL_GAMES=', 'Object.assign(I,', context);
+  frontSection('function libraryView()', 'function connection(', context);
+  state.objects = objects.map(context.normalize);
+  return context;
+}
+
+test('V5 games fill catalog gaps without inventing hosted files, sizes, or missing links', () => {
+  const c = gameLibrary([{ key: 'Games/balatro.html', size: 3210 }, { key: 'notes.txt', size: 15 }]);
+  const index = c.indexListing();
+  assert.equal(index.games.length, 18);
+  assert.equal(index.games.filter(f => c.gameInfo(f).id === 'balatro').length, 1);
+  assert.equal(index.games.find(f => c.gameInfo(f).id === 'balatro').virtual, undefined);
+  assert.equal(index.bytes, 3225, 'original links do not count as stored bytes');
+  const celeste = index.games.find(f => f.catalogId === 'celeste');
+  assert.equal(c.sourceLabel(celeste), 'Google Drive link');
+  assert.match(c.fileUrl(celeste, true), /^https:\/\/drive\.google\.com\/file\//);
+  const unavailable = index.games.find(f => f.catalogId === '60-seconds');
+  assert.equal(c.gameLink(unavailable), null);
+  c.state.view = 'drive';
+  assert.deepEqual(Array.from(c.visible(), f => f.key), ['Games/', 'notes.txt']);
+});
+
+test('game metadata matches accented names and bundle names without giving mods the base game rating', () => {
+  const c = gameLibrary([
+    { key: 'Games/poke-rogue.html' }, { key: 'Games/brotatoglm.html' },
+    { key: 'Games/Kindergarten 2/index.html' }, { key: 'Games/Kindergarten 2/assets/help.html' },
+  ]);
+  assert.equal(c.gameInfo({ name: 'PokéRogue.html' }).id, 'pokerogue');
+  const hosted = c.indexListing().games.filter(f => !f.virtual);
+  assert.equal(hosted.length, 3, 'nested supporting HTML is hidden from the game catalog');
+  const mod = hosted.find(f => f.name === 'brotatoglm.html');
+  assert.equal(c.gameInfo(mod).title, 'Brotato · GMO');
+  assert.equal(c.gameInfo(mod).status, undefined);
+  assert.equal(c.gameInfo(mod).rating, undefined);
+  assert(hosted.some(f => c.gameInfo(f).id === 'kindergarten-2'));
+  assert(c.indexListing().games.some(f => f.catalogId === 'brotato'), 'the base game remains a separate entry');
+});
+
+test('search, genre, source, compatibility, and ratings work together on the game catalog', () => {
+  const c = gameLibrary([{ key: 'Games/balatro.html' }, { key: 'Games/brotatoglm.html' }]);
+  c.state.search = 'powerful jokers';
+  assert.deepEqual(Array.from(c.visible(), f => f.key), ['Games/balatro.html']);
+  c.state.search = ''; c.state.genre = 'Roguelike'; c.state.catalogFilter = 'hosted';
+  assert.equal(c.visible().length, 2);
+  c.state.catalogFilter = 'unknown';
+  assert.deepEqual(Array.from(c.visible(), f => f.name), ['brotatoglm.html']);
+  c.state.genre = 'all'; c.state.catalogFilter = 'issues';
+  assert(c.visible().some(f => f.catalogId === 'celeste'));
+  assert(c.visible().some(f => f.catalogId === '60-seconds'));
+  assert(!c.visible().some(f => f.key === 'Games/balatro.html'));
+  c.state.catalogFilter = 'all'; c.state.sort = 'rating';
+  assert.equal(c.gameInfo(c.visible()[0]).rating, 11);
+  c.state.catalogFilter = 'working';
+  assert(c.visible().every(f => ['working', 'viewer', 'slow'].includes(c.gameInfo(f).status)));
+});
+
+test('original games support Starred and Recent and migrate to hosted replacements', () => {
+  const c = gameLibrary();
+  c.state.starred.add('special:balatro'); c.state.recent = ['special:balatro'];
+  c.state.view = 'starred';
+  assert.equal(c.visible()[0].catalogId, 'balatro');
+  c.state.view = 'recent';
+  assert.equal(c.visible()[0].catalogId, 'balatro');
+  c.state.objects = [{ key: 'Games/balatro.html', size: 3210 }].map(c.normalize);
+  c.indexListing();
+  assert(c.state.starred.has('Games/balatro.html'));
+  assert(!c.state.starred.has('special:balatro'));
+  assert.deepEqual(Array.from(c.state.recent), ['Games/balatro.html']);
+  assert.equal(c.visible()[0].key, 'Games/balatro.html');
+});
+
+test('game launches use external HTTPS URLs and retain the user gesture', () => {
+  const opened = [], recents = [], messages = [];
+  const c = { URL, SUPABASE_URL: 'https://auth.test', window: { open: (...args) => { opened.push(args); return null; } }, markRecent: f => recents.push(f.key), toast: text => messages.push(text) };
+  frontSection('const SPECIAL_GAMES=', 'Object.assign(I,', c);
+  c.launch({ key: 'Games/balatro.html', publicUrl: 'https://files.test/Games/balatro.html' });
+  assert.equal(opened[0][0], 'https://files.test/Games/balatro.html');
+  assert.equal(opened[0][2], 'noopener,noreferrer');
+  for (const publicUrl of ['javascript:alert(1)', 'data:text/html,test', 'https://auth.test/session']) {
+    assert.equal(c.gameLink({ publicUrl }), null);
+  }
+  c.launch({ key: 'special:missing', virtual: true });
+  assert.equal(opened.length, 1);
+  assert.equal(recents.length, 1);
+  assert.match(messages[0], /No download link/);
+});
+
+test('original links never expose storage-management or source-preview actions', async () => {
+  const actions = [], writes = [], messages = [];
+  const c = { I: {}, state: { canManage: true, starred: new Set() }, menu: entries => actions.push(...entries), gameLink: () => 'https://files.test/game.html', toast: m => messages.push(m), requestAdmin: x => writes.push(x) };
+  frontSection('function fileMenu(', 'async function copy(', c);
+  const f = { key: 'special:celeste', id: 'special:celeste', virtual: true };
+  c.fileMenu(f, 0, 0);
+  assert(!actions.some(e => ['trash', 'rename', 'move', 'source'].includes(e[0])));
+  await c.dispatch('trash', f);
+  assert.equal(writes.length, 0);
+  assert.match(messages[0], /managed in the Special Games catalog/);
 });

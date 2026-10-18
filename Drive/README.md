@@ -3,7 +3,7 @@
 Canonical single-file source: [`Liminal-Drive.html`](Liminal-Drive.html).
 Production Storage bucket: `liminal-apps`. Keep the object name `Liminal-Drive.html` unchanged.
 
-Drive opens on **Games**, followed by **Apps**, **Drive**, Recent, Starred, and **Junk**.
+Drive opens on **Special Games**, followed by **Apps**, **Drive**, Recent, Starred, and **Junk**.
 The existing root games and tools are grouped without changing their public file URLs.
 New uploads from Games go under `Games/`; Apps uploads go under `Apps/`.
 Folder bundles list their `index.html` as the main file; their assets remain available in Drive.
@@ -17,7 +17,13 @@ The UI fonts are embedded; no client SDK or font CDN is required.
 Moderators and Managers can upload files and folder bundles. Admins and higher roles can also replace, rename, move, trash, restore, and permanently delete files.
 These rights are enforced in `Backend/edge-functions/liminal-drive-admin`, not only by hiding buttons.
 
-Games and Apps are download libraries, with file names, sizes, dates, and download actions. They contain no generated thumbnails or embedded game player. Download the HTML and open it in HTML Online Viewer or directly in a browser. HTML source remains available from the file menu; ordinary images, media, text, CSV, and PDFs retain their previews.
+Special Games is a game catalog with descriptions, genres, reported compatibility, V5 ratings, stars, and play/download details. Genre, source, compatibility, and Starred filters combine with search, including description keywords. Game cards and compact lists have a separate layout and sort preference from Drive. V5 rating is the initial library sort; Drive retains its existing file sort.
+
+The 18 entries in the supplied **Liminal V5 / Special Games** notes are embedded in `SPECIAL_GAMES`. Existing hosted files take precedence through exact filename aliases; missing entries keep their original Google Drive or external links. Those links are clearly labeled and are never represented as uploaded files or counted in storage. The entry without a supplied download link remains unavailable. Compatibility and ratings are attributed to V5 reports, not live playtests. Mods and sequels have independent metadata; new uploads without a report say “Not checked.” Edit the inline catalog to maintain these notes or original links.
+
+Games and Apps retain direct HTML downloads and have no generated thumbnails or embedded player. Game details provide Open game for an external HTTPS public URL, with HTML Online Viewer instructions as the fallback. Original Google Drive links open their original pages. Games open in a separate tab with `noopener,noreferrer`; the authenticated Drive origin is not used to execute uploaded HTML. Folder bundles keep one index entry, including when supporting HTML exists in nested folders. Their details explain that assets must remain alongside the HTML.
+
+Original catalog links support Recent and Starred; their saved state migrates to the hosted file when an exact matching upload appears. Their menus never expose storage writes or source previews. HTML source remains available for hosted files from the file menu; ordinary images, media, text, CSV, and PDFs retain their previews.
 
 Navigation, search, and account dialogs render synchronously. File rows and profile images are preserved during unchanged refreshes. A public metadata snapshot appears immediately on later opens while the server listing refreshes. Account permissions are never cached, and opening Account does not wait for a server response.
 
