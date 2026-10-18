@@ -19,7 +19,7 @@ These rights are enforced in `Backend/edge-functions/liminal-drive-admin`, not o
 
 Special Games is a game catalog with descriptions, genres, reported compatibility, V5 ratings, stars, and play/download details. Genre, source, compatibility, and Starred filters combine with search, including description keywords. Game cards and compact lists have a separate layout and sort preference from Drive. V5 rating is the initial library sort; Drive retains its existing file sort.
 
-The 18 entries in the supplied **Liminal V5 / Special Games** notes are embedded in `SPECIAL_GAMES`. Existing hosted files take precedence through exact filename aliases; missing entries keep their original Google Drive or external links. Those links are clearly labeled and are never represented as uploaded files or counted in storage. The entry without a supplied download link remains unavailable. Compatibility and ratings are attributed to V5 reports, not live playtests. Mods and sequels have independent metadata; new uploads without a report say “Not checked.” Edit the inline catalog to maintain these notes or original links.
+The 18 entries in the supplied **Liminal V5 / Special Games** notes are embedded in `SPECIAL_GAMES`. Existing hosted files take precedence through exact filename aliases; missing entries keep their original Google Drive or external links. Those links are clearly labeled and are never represented as uploaded files or counted in storage. The entry without a supplied download link remains unavailable. Compatibility and ratings are attributed to V5 reports, not live playtests. Mods and sequels have independent metadata; new uploads without a report say “Not checked.” Admins can now edit uploaded file details in Drive; the inline catalog remains the fallback for original links and V5 notes.
 
 Games and Apps retain direct HTML downloads and have no generated thumbnails or embedded player. Game details provide Open game for an external HTTPS public URL, with HTML Online Viewer instructions as the fallback. Original Google Drive links open their original pages. Games open in a separate tab with `noopener,noreferrer`; the authenticated Drive origin is not used to execute uploaded HTML. Folder bundles keep one index entry, including when supporting HTML exists in nested folders. Their details explain that assets must remain alongside the HTML.
 
@@ -36,3 +36,13 @@ node --experimental-strip-types --test scripts/deployment.test.mjs scripts/drive
 
 HTML changes on `main` use the existing Deploy Drive Action. Backend functions are deployed separately; see [backend functions](../Backend/edge-functions/README.md).
 See [deployment setup](../docs/deployment.md) for repository secrets and rollback.
+
+## Settings and uploaded file details
+
+Settings stores browser preferences for the start page, game opening action, game/file layouts, theme, density, original-link visibility, broken-game visibility, descriptions, ratings, and automatic customization after a single upload. Existing theme, layout, stars, and recent-file preferences remain compatible.
+
+After an upload, admins can use **Customize file** in the upload panel, file menu, or details dialog. A single completed upload opens the editor automatically when the setting is enabled. Display titles and descriptions work for all files; HTML files also support category, genre, compatibility, notes, rating, and opening behavior. Blank fields inherit the catalog defaults. “Drive only” removes the uploaded entry from Games and Apps without changing its stored path or reviving its original V5 link.
+
+These are shared file details, stored as small JSON objects under the reserved R2 `.liminal-meta/` prefix. File bytes and download URLs are not rewritten. The public API attaches metadata to actual files; internal metadata objects are excluded from browsing and storage totals. Only current Admin-and-higher profiles can update it. Editors load a fresh revision before saving and use atomic conditional writes to reject conflicting edits. Rename/move and trash/restore carry metadata with the file; permanent deletion removes it.
+
+**Deployment:** this update requires both Drive Edge Functions, including each function’s `metadata.ts`, plus the HTML. Deploy `liminal-drive` and `liminal-drive-admin` before publishing the updated HTML. Keep their existing environment variables and JWT settings. No SQL migration is needed. The HTML Action does not deploy these functions.

@@ -17,6 +17,7 @@ export const json = (body: unknown,status=200) => new Response(JSON.stringify(bo
 export function keyOf(value: unknown, folder=false, trash=false) {
   let key=String(value || "").replace(/^\/+/, "");
   if (!key || new TextEncoder().encode(key).length>1024 || /[\\\x00-\x1f\x7f]/.test(key) || key.split("/").some(p=>p==="."||p==="..") || (!trash && key.startsWith(".liminal-trash/"))) return null;
+  if(key.split("/").some(p=>p.startsWith(".liminal-"))&&!(trash&&key.startsWith(".liminal-trash/")))return null;
   if(folder&&!key.endsWith("/"))key+="/";
   return key;
 }
