@@ -514,3 +514,46 @@ test('the public API returns shared customization without exposing internal meta
   const response=await handler(new Request('https://drive.test/')),data=await response.json();assert.equal(response.status,200);
   assert.equal(data.files.length,1);assert.equal(data.files[0].metadata.title,'Shared title');assert.equal(data.features.fileMetadata,true);
 });
+
+test('Settings is a separate sidebar button beside the account, with no duplicate toolbar controls',()=>{
+  const body=driveHtml.slice(driveHtml.indexOf('<body>'),driveHtml.indexOf('<script',driveHtml.indexOf('<body>'))),stack=[],nodes=[];
+  const voids=new Set(['input','img','br','hr','meta','link','source','area','base','embed','param','track','wbr']);
+  for(const m of body.matchAll(/<\/?([a-z][a-z0-9-]*)\b([^>]*)>/gi)){
+    const tag=m[1].toLowerCase();if(m[0].startsWith('</')){const i=stack.map(x=>x.tag).lastIndexOf(tag);if(i>=0)stack.length=i;continue;}
+    const id=m[2].match(/\bid="([^"]*)"/)?.[1],node={tag,id,parents:stack.map(x=>({...x})),className:m[2].match(/\bclass="([^"]*)"/)?.[1]||''};
+    if(tag==='button')assert(!stack.some(x=>x.tag==='button'),'buttons are never nested');
+    if(id)nodes.push(node);if(!voids.has(tag)&&!m[0].endsWith('/>'))stack.push({tag,id,className:node.className});
+  }
+  const settings=nodes.filter(n=>n.id==='settingsBtn');assert.equal(settings.length,1);assert.equal(settings[0].tag,'button');
+  assert(settings[0].parents.some(n=>n.tag==='aside'));assert(settings[0].parents.some(n=>n.className.split(' ').includes('self-card')));
+  assert(!nodes.some(n=>n.id==='themeBtn'),'theme belongs to Settings');
+  assert.equal(nodes.find(n=>n.id==='sidebarAccount').tag,'button');
+});
+
+test('resetting settings selects defaults without applying or changing current preferences',()=>{
+  const c=gameLibrary(),fields=new Map();c.state.preferences={...c.defaultPreferences(),density:'compact',hideBroken:true};
+  for(const [name,value]of Object.entries({...c.defaultPreferences(),libraryLayout:'list',fileLayout:'grid',theme:'rose'}))fields.set(name,{type:typeof value==='boolean'?'checkbox':'select',value:'old',checked:false});
+  c.resetSettingsForm({elements:{namedItem:name=>fields.get(name)}});
+  assert.equal(fields.get('libraryLayout').value,'grid');assert.equal(fields.get('fileLayout').value,'list');assert.equal(fields.get('theme').value,'midnight');
+  assert.equal(fields.get('includeOriginal').checked,true);assert.equal(fields.get('hideBroken').checked,false);
+  assert.equal(c.state.preferences.density,'compact');assert.equal(c.state.preferences.hideBroken,true,'nothing applies until Save settings');
+});
+
+test('the file editor locks fields during fetch and save while leaving a retry available on failure',()=>{
+  const fields=[{name:'title'},{name:'description'}],elements=new Map(['#saveCustomization','#resetCustomization','#reloadCustomization','#customLoading'].map(k=>[k,{}]));
+  const form={elements:fields,setAttribute(k,v){this[k]=v},querySelector:key=>elements.get(key)},c={};
+  frontSection('function setEditorState(', 'async function customizeFile(',c);
+  c.setEditorState(form,'loading',false);assert(fields.every(f=>f.disabled));assert.equal(form['aria-busy'],'true');assert.match(elements.get('#customLoading').textContent,/Loading/);
+  c.setEditorState(form,'idle',false);assert.equal(elements.get('#saveCustomization').disabled,true);assert.equal(elements.get('#reloadCustomization').disabled,false);
+  c.setEditorState(form,'idle',true);assert(fields.every(f=>!f.disabled));assert.equal(elements.get('#saveCustomization').disabled,false);
+  c.setEditorState(form,'saving',true);assert(fields.every(f=>f.disabled));assert.equal(elements.get('#saveCustomization').textContent,'Saving…');
+  c.setEditorState(form,'idle',true);assert.equal(elements.get('#customLoading').textContent,'');assert.equal(elements.get('#saveCustomization').textContent,'Save changes');
+});
+
+test('closing a dialog returns focus to its visible trigger or to mobile navigation',()=>{
+  const calls=[],toggle={getClientRects:()=>[{}],focus:()=>calls.push('navigation')},c={$:()=>toggle};
+  frontSection('function restoreDialogFocus(', 'function closeModal(',c);
+  c.restoreDialogFocus({isConnected:true,getClientRects:()=>[{}],focus:()=>calls.push('settings')});
+  c.restoreDialogFocus({isConnected:true,getClientRects:()=>[],focus:()=>calls.push('hidden')});
+  assert.deepEqual(calls,['settings','navigation']);
+});

@@ -39,10 +39,12 @@ See [deployment setup](../docs/deployment.md) for repository secrets and rollbac
 
 ## Settings and uploaded file details
 
-Settings stores browser preferences for the start page, game opening action, game/file layouts, theme, density, original-link visibility, broken-game visibility, descriptions, ratings, and automatic customization after a single upload. Existing theme, layout, stars, and recent-file preferences remain compatible.
+The Settings gear beside the sidebar profile opens grouped preferences. Clicking the profile itself opens the Liminal account. Settings stores browser preferences for the start page, game opening action, game/file layouts, theme, density, original-link visibility, broken-game visibility, descriptions, ratings, and automatic customization after a single upload. Existing theme, layout, stars, and recent-file preferences remain compatible.
 
 After an upload, admins can use **Customize file** in the upload panel, file menu, or details dialog. A single completed upload opens the editor automatically when the setting is enabled. Display titles and descriptions work for all files; HTML files also support category, genre, compatibility, notes, rating, and opening behavior. Blank fields inherit the catalog defaults. “Drive only” removes the uploaded entry from Games and Apps without changing its stored path or reviving its original V5 link.
 
 These are shared file details, stored as small JSON objects under the reserved R2 `.liminal-meta/` prefix. File bytes and download URLs are not rewritten. The public API attaches metadata to actual files; internal metadata objects are excluded from browsing and storage totals. Only current Admin-and-higher profiles can update it. Editors load a fresh revision before saving and use atomic conditional writes to reject conflicting edits. Rename/move and trash/restore carry metadata with the file; permanent deletion removes it.
 
 **Deployment:** this update requires both Drive Edge Functions, including each function’s `metadata.ts`, plus the HTML. Deploy `liminal-drive` and `liminal-drive-admin` before publishing the updated HTML. Keep their existing environment variables and JWT settings. No SQL migration is needed. The HTML Action does not deploy these functions.
+
+Settings and file customization keep their headers and actions visible while their content scrolls. Reset preferences selects defaults in the form, including theme and layouts, and applies them only on Save. The file editor locks fields while fetching a revision or saving; loading is shown separately from errors. Closing a dialog returns focus to the sidebar gear or the mobile navigation button when the sidebar is hidden.
