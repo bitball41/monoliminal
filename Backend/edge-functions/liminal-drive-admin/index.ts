@@ -1,7 +1,9 @@
-import { PutObjectCommand,CopyObjectCommand,DeleteObjectCommand,DeleteObjectsCommand,GetBucketCorsCommand,PutBucketCorsCommand,CreateMultipartUploadCommand,UploadPartCommand,CompleteMultipartUploadCommand,AbortMultipartUploadCommand } from "npm:@aws-sdk/client-s3@3.1146.0";
+import { GetObjectCommand,PutObjectCommand,CopyObjectCommand,DeleteObjectsCommand,GetBucketCorsCommand,PutBucketCorsCommand,CreateMultipartUploadCommand,UploadPartCommand,CompleteMultipartUploadCommand,AbortMultipartUploadCommand } from "npm:@aws-sdk/client-s3@3.1146.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1146.0";
 import { s3,bucket,cors,json,all,keyOf,exists,publicUrl,manifest } from "./shared.ts";
 import { drivePermissions } from "./permissions.ts";
+import { createMetadataStore,metadataKey,METADATA_PREFIX } from "./metadata.ts";
+const fileMetadata=createMetadataStore({get:key=>s3.send(new GetObjectCommand({Bucket:bucket,Key:key})),put:(key,body,condition={})=>s3.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:body,ContentType:"application/json",...condition}))});
 const MAX_PROXY_BYTES=32*1024*1024;
 async function authorize(req:Request){
   const token=(req.headers.get("authorization")||"").replace(/^Bearer\s+/i,"").trim();if(!token)return null;
@@ -26,8 +28,8 @@ function ensureCors(){
     }catch(e:any){console.warn("[liminal-drive] Direct upload CORS unavailable",e.name);return false;}
   })();
 }
-const copy=async(oldKey:string,newKey:string)=>s3.send(new CopyObjectCommand({Bucket:bucket,Key:newKey,CopySource:(bucket+"/"+oldKey).split("/").map(encodeURIComponent).join("/")}));
-async function remove(keys:string[]){for(let i=0;i<keys.length;i+=1000){const r=await s3.send(new DeleteObjectsCommand({Bucket:bucket,Delete:{Objects:keys.slice(i,i+1000).map(Key=>({Key})),Quiet:true}}));if(r.Errors?.length)throw new Error("Some files could not be removed. Refresh Drive before retrying.");}}
+const copy=async(oldKey:string,newKey:string)=>{await s3.send(new CopyObjectCommand({Bucket:bucket,Key:newKey,CopySource:(bucket+"/"+oldKey).split("/").map(encodeURIComponent).join("/")}));await fileMetadata.copy(oldKey,newKey);};
+async function remove(keys:string[]){keys=[...new Set((await Promise.all(keys.map(async key=>key.startsWith(METADATA_PREFIX)?[key]:[key,await metadataKey(key)]))).flat())];for(let i=0;i<keys.length;i+=1000){const r=await s3.send(new DeleteObjectsCommand({Bucket:bucket,Delete:{Objects:keys.slice(i,i+1000).map(Key=>({Key})),Quiet:true}}));if(r.Errors?.length)throw new Error("Some files could not be removed. Refresh Drive before retrying.");}}
 async function movePairs(pairs:{from:string,to:string}[]){
   // Complete every copy before deleting any source; preserve originals on a copy failure.
   for(let i=0;i<pairs.length;i+=10)await Promise.all(pairs.slice(i,i+10).map(p=>copy(p.from,p.to)));
@@ -59,12 +61,20 @@ Deno.serve(async(req:Request)=>{
     }
     let body:any;try{body=await req.json();}catch{return json({error:"JSON body required"},400);}
     const action=String(body.action||"");
-    if(action==="status")return json({ok:true,username:actor.username,displayName:actor.display_name,pfp:actor.pfp,ring:actor.ring,role:actor.is_owner?'owner':actor.staff_role|| (actor.is_admin?'admin':'member'),canUpload:actor.canUpload,canManage:actor.canManage,maxProxyBytes:MAX_PROXY_BYTES});
+    if(action==="status")return json({ok:true,username:actor.username,displayName:actor.display_name,pfp:actor.pfp,ring:actor.ring,role:actor.is_owner?'owner':actor.staff_role|| (actor.is_admin?'admin':'member'),canUpload:actor.canUpload,canManage:actor.canManage,maxProxyBytes:MAX_PROXY_BYTES,fileMetadata:true});
     // R2 documents atomic conditions for PutObject, but not multipart completion.
     // Keep all legacy raw multipart paths behind management permission.
     if(action.startsWith('multipart_')&&!actor.canManage)return json({error:"Multipart uploads require an Admin role. Mod and Manager uploads use create-only signed URLs."},403);
     const uploading=['presign_upload','multipart_create','multipart_complete','multipart_abort','create_folder'].includes(action);
     if(uploading?!actor.canUpload:!actor.canManage)return json({error:uploading?"Uploads require a Liminal moderator role or above":"File management requires a Liminal administrator role"},403);
+    if(action==="update_metadata"||action==="get_metadata"){
+      const key=keyOf(body.key);if(!key||key.endsWith("/"))return json({error:"Invalid file path"},400);
+      if(!await exists(key))return json({error:"File no longer exists"},404);
+      if(action==="get_metadata")return json({ok:true,...await fileMetadata.read(key)});
+      if(!Object.prototype.hasOwnProperty.call(body,'revision'))return json({error:"Reload the file details before saving"},400);
+      try{return json({ok:true,...await fileMetadata.save(key,body.metadata,body.revision)});}
+      catch(e:any){return json({error:e.message||"Could not save file details"},e.status||500);}
+    }
     if(action==="presign_upload"){
       const key=keyOf(body.key);if(!key)return json({error:"Invalid file path"},400);
       if(await exists(key)){
@@ -133,7 +143,7 @@ Deno.serve(async(req:Request)=>{
     // Compatibility for older clients: preserve their explicit permanent-delete actions.
     if(action==="delete"||action==="delete_folder"){
       const folder=action==="delete_folder",key=keyOf(folder?body.prefix:body.key,folder);if(!key)return json({error:"Invalid file path"},400);
-      if(folder)await remove((await all(key)).map(o=>o.key));else await s3.send(new DeleteObjectCommand({Bucket:bucket,Key:key}));return json({ok:true});
+      if(folder)await remove((await all(key)).map(o=>o.key));else await remove([key]);return json({ok:true});
     }
     return json({error:"Unsupported action"},400);
   }catch(e:any){console.error("[liminal-drive-admin]",e.name);if([409,412].includes(e?.$metadata?.httpStatusCode))return json({error:"A file with this name already exists. Refresh Drive before retrying.",exists:true},409);return json({error:e.message||"Drive action failed"},e?.$metadata?.httpStatusCode===404?404:500);}

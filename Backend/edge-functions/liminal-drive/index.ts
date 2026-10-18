@@ -1,5 +1,7 @@
 import { GetObjectCommand, HeadObjectCommand } from "npm:@aws-sdk/client-s3@3.1146.0";
 import { s3,bucket,cors,json,all,keyOf,mime,manifest } from "./shared.ts";
+import { createMetadataStore,METADATA_PREFIX } from "./metadata.ts";
+const fileMetadata=createMetadataStore({get:key=>s3.send(new GetObjectCommand({Bucket:bucket,Key:key})),put:async()=>{throw new Error("Read-only metadata store");}});
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
   if(!["GET","HEAD"].includes(req.method))return json({error:"Method not allowed"},405);
@@ -22,11 +24,12 @@ Deno.serve(async(req:Request)=>{
       return new Response(req.method==="HEAD"?null:r.Body!.transformToWebStream(),{status:r.ContentRange?206:200,headers});
     }
     const objects=await all();
-    const files=objects.filter(o=>!o.key.startsWith(".liminal-trash/"));
+    const files=objects.filter(o=>!o.key.startsWith(".liminal-trash/")&&!o.key.startsWith(METADATA_PREFIX));
     const ids=objects.filter(o=>/^\.liminal-trash\/[a-f0-9-]{36}\/\.entry\.json$/.test(o.key)).map(o=>o.key.split("/")[1]);
     const trash:any[]=[];
     for(let i=0;i<ids.length;i+=10){const entries=await Promise.all(ids.slice(i,i+10).map(async id=>{try{return {...await manifest(id),id};}catch{return null;}}));trash.push(...entries.filter(Boolean));}
-    return json({ok:true,files,trash,count:files.length,truncated:false});
+    await fileMetadata.attach(files,objects);
+    return json({ok:true,files,trash,count:files.length,truncated:false,features:{fileMetadata:true}});
   }catch(e:any){console.error("[liminal-drive]",e.name);return json({ok:false,error:e?.$metadata?.httpStatusCode===404?"File not found":e.message||"Unable to load Drive"},e?.$metadata?.httpStatusCode===404?404:500);}
 });
 

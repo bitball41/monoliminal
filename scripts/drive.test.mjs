@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
+import {createMetadataStore, metadataKey, METADATA_PREFIX, validateMetadata} from '../Backend/edge-functions/liminal-drive-admin/metadata.ts';
 import { drivePermissions } from '../Backend/edge-functions/liminal-drive-admin/permissions.ts';
 
 const source = await readFile(new URL('../Backend/edge-functions/liminal-drive-admin/index.ts', import.meta.url), 'utf8');
@@ -15,12 +16,12 @@ function frontSection(start, end, context) {
   return context;
 }
 const commandNames = [...source.matchAll(/new (\w+Command)\(/g)].map(m => m[1]);
-function backend(profile, { existing = false } = {}) {
+function backend(profile, { existing = false, objects = null } = {}) {
   let handler;
   const writes = [], signatures = [];
   const context = {
     Request, Response, URL, TextEncoder, Uint8Array, console, crypto,
-    drivePermissions,
+    drivePermissions, createMetadataStore, metadataKey, METADATA_PREFIX,
     Deno: { env: { get: key => ({ SUPABASE_URL: 'https://auth.test', SUPABASE_SERVICE_ROLE_KEY: 'server-only-test-key' })[key] }, serve: fn => { handler = fn; } },
     fetch: async url => new Response(JSON.stringify(String(url).includes('/auth/v1/user') ? { id: 'test-user' } : profile ? [profile] : [])),
     s3: { send: async command => { writes.push(command); return { ETag: 'test-etag' }; } },
@@ -31,13 +32,27 @@ function backend(profile, { existing = false } = {}) {
     all: async () => [], publicUrl: key => 'https://files.test/' + key,
     manifest: async () => ({}), getSignedUrl: async (client,command,options) => {signatures.push({command,options});return 'https://upload.test';},
   };
+  if(objects){
+    let sequence=0;
+    const get=key=>{if(!objects.has(key))throw Object.assign(new Error('Missing'),{name:'NoSuchKey',$metadata:{httpStatusCode:404}});return objects.get(key);};
+    context.exists=async key=>objects.has(key);
+    context.all=async(prefix='')=>[...objects].filter(([key])=>key.startsWith(prefix)).map(([key,value])=>({key,size:value.length,name:key.split('/').pop()}));
+    context.manifest=async id=>JSON.parse(get('.liminal-trash/'+id+'/.entry.json'));
+    context.s3.send=async command=>{writes.push(command);const x=command.input;
+      if(command.name==='GetObjectCommand')return {ETag:'"'+get(x.Key)+'"',Body:{transformToString:async()=>get(x.Key)}};
+      if(command.name==='PutObjectCommand'){objects.set(x.Key,typeof x.Body==='string'?x.Body:new TextDecoder().decode(x.Body));return {ETag:'"stored-'+(++sequence)+'"'};}
+      if(command.name==='CopyObjectCommand'){objects.set(x.Key,get(x.CopySource.split('/').slice(1).map(decodeURIComponent).join('/')));return {};}
+      if(command.name==='DeleteObjectsCommand'){x.Delete.Objects.forEach(({Key})=>objects.delete(Key));return {};}
+      return {};
+    };
+  }
   for (const name of new Set(commandNames)) context[name] = class { constructor(input) { this.name = name; this.input = input; } };
   vm.runInNewContext(stripTypeScriptTypes(source.replace(/^import .*;$/gm, '')), context);
   const invoke = (action, body = {}, { token = true, method = 'POST' } = {}) => handler(new Request(method === 'PUT' ? 'https://drive.test/?key=Games/test.html' : 'https://drive.test/', {
     method, headers: { ...(token ? { authorization: 'Bearer test-jwt' } : {}), 'content-type': method === 'PUT' ? 'text/html' : 'application/json' },
     body: method === 'PUT' ? '<h1>test</h1>' : JSON.stringify({ action, ...body }),
   }));
-  return { invoke, writes, signatures };
+  return { invoke, writes, signatures, context };
 }
 
 test('every Chat staff role has upload rights, with management reserved for admins', () => {
@@ -243,7 +258,7 @@ test('HTML files open download details while ordinary files keep their preview',
   const calls = [];
   let library = true;
   const c = frontSection('function openItem(f)', 'function preview(f)', {
-    libraryView: () => library, details: f => calls.push(['details', f.key]),
+    preferences: () => ({primaryAction:'details'}), libraryView: () => library, details: f => calls.push(['details', f.key]),
     preview: f => calls.push(['preview', f.key]), navigate: key => calls.push(['folder', key]),
   });
   c.openItem({ type: 'html', key: 'Games/a.html' });
@@ -397,4 +412,105 @@ test('original links never expose storage-management or source-preview actions',
   await c.dispatch('trash', f);
   assert.equal(writes.length, 0);
   assert.match(messages[0], /managed in the Special Games catalog/);
+});
+
+test('preferences validate saved values and catalog visibility respects staff metadata', () => {
+  const c=gameLibrary([{key:'Games/balatro.html',metadata:{title:'Custom Balatro',description:'A staff description',genre:'Cards',status:'broken',rating:9,category:'games'}}]);
+  const prefs=c.cleanPreferences({startView:'trash',primaryAction:'javascript',includeOriginal:false,hideBroken:true,showRatings:'false',density:'compact'});
+  assert.equal(prefs.startView,'games');assert.equal(prefs.primaryAction,'details');assert.equal(prefs.showRatings,true);assert.equal(prefs.density,'compact');
+  c.state.preferences=prefs;assert.equal(c.visible().length,0);
+  c.state.preferences.hideBroken=false;c.state.search='staff description';
+  assert.equal(c.visible()[0].key,'Games/balatro.html');assert.equal(c.libraryTitle(c.visible()[0]),'Custom Balatro');
+  c.state.objects=[c.normalize({key:'Games/balatro.html',metadata:{category:'files'}})];c.state.search='';c.state.preferences.includeOriginal=true;
+  assert(!c.visible().some(f=>c.gameInfo(f).id==='balatro'),'Drive-only files do not reappear as original-link games');
+});
+
+test('per-file opening behavior overrides the browser preference and trash never launches',()=>{
+  const calls=[],c={preferences:()=>({primaryAction:'download'}),download:f=>calls.push('download'),launch:f=>calls.push('launch'),details:f=>calls.push('details'),preview:f=>calls.push('preview'),libraryView:()=>true};
+  frontSection('function openItem(f)','function preview(f)',c);
+  c.openItem({type:'html'});c.openItem({type:'html',metadata:{launchMode:'details'}});c.openItem({type:'html',metadata:{launchMode:'new_tab'}});c.openItem({type:'html',trashed:true,metadata:{launchMode:'new_tab'}});
+  assert.deepEqual(calls,['download','details','launch','details']);
+});
+
+function metadataFixture(){
+  const objects=new Map();let version=0;
+  const storage={get:async key=>{const o=objects.get(key);if(!o)throw Object.assign(new Error('Missing'),{name:'NoSuchKey'});return {ETag:o.etag,Body:{transformToString:async()=>o.body}}},put:async(key,body,condition={})=>{const old=objects.get(key);if(condition.IfNoneMatch==='*'&&old||condition.IfMatch&&condition.IfMatch!==old?.etag)throw {$metadata:{httpStatusCode:412}};const etag='"revision-'+(++version)+'"';objects.set(key,{body,etag});return {ETag:etag}}};
+  return {store:createMetadataStore(storage),objects};
+}
+
+test('file metadata validates fields and rejects unsupported or executable configuration',()=>{
+  assert.deepEqual(validateMetadata({title:' Name ',description:'<script>alert(1)</script>',rating:11,status:'working',category:'games',launchMode:'details'}),{title:'Name',description:'<script>alert(1)</script>',rating:11,status:'working',category:'games',launchMode:'details'});
+  for(const data of [{title:'x'.repeat(121)},{rating:NaN},{rating:101},{status:'verified'},{launchMode:'javascript:alert(1)'},{launchUrl:'javascript:alert(1)'},JSON.parse('{"__proto__":"x"}'),{constructor:'x'}])assert.throws(()=>validateMetadata(data));
+});
+
+test('metadata saves persist independently of file contents and reject stale admin edits',async()=>{
+  const {store}=metadataFixture(),key='Games/test.html';assert.equal((await store.read(key)).metadataRevision,null);
+  const first=await store.save(key,{title:'First',rating:11},null);
+  assert.equal((await store.read(key)).metadata.title,'First');
+  await assert.rejects(store.save(key,{title:'Stale'},null),/Someone else changed/);
+  await store.save(key,{title:'Second'},first.metadataRevision);
+  await assert.rejects(store.save(key,{title:'Old revision'},first.metadataRevision),/Someone else changed/);
+  assert.equal((await store.read(key)).metadata.title,'Second');
+});
+
+test('metadata follows the same paths as rename, trash and restore, including long Unicode keys',async()=>{
+  const {store,objects}=metadataFixture(),key='Games/'+('é'.repeat(400))+'.html',trash='.liminal-trash/id/files/'+key;
+  assert((await metadataKey(key)).length<100);
+  await store.save(key,{title:'Stored name',description:'Keep this'},null);
+  await store.copy(key,'Games/renamed.html');assert.equal((await store.read('Games/renamed.html')).metadata.title,'Stored name');
+  await store.copy('Games/renamed.html',trash);await store.copy(trash,'Games/restored.html');
+  assert.equal((await store.read('Games/restored.html')).metadata.description,'Keep this');
+  const files=[{key:'Games/restored.html',size:20},{key:'Games/plain.html',size:10}];
+  await store.attach(files,[...objects.keys()].map(key=>({key})));
+  assert.equal(files[0].metadata.title,'Stored name');assert.equal(files[1].metadata,undefined);
+});
+
+test('only admins can edit uploaded file details and saves require a revision and an existing file',async()=>{
+  for(const role of ['member','mod','manager']){const b=backend({staff_role:role},{existing:true});assert.equal((await b.invoke('update_metadata',{key:'Games/a.html',metadata:{title:'No'},revision:null})).status,403);assert.equal(b.writes.length,0);}
+  const b=backend({staff_role:'admin'},{existing:true});
+  assert.equal((await b.invoke('update_metadata',{key:'Games/a.html',metadata:{title:'New'}})).status,400);
+  assert.equal((await b.invoke('update_metadata',{key:'Games/a.html',metadata:{title:'New'},revision:null})).status,200);
+  const write=b.writes.find(x=>x.name==='PutObjectCommand');assert.match(write.input.Key,/^\.liminal-meta\/[a-f0-9]{64}\.json$/);assert.equal(write.input.IfNoneMatch,'*');
+  assert.equal((await backend({staff_role:'admin'}).invoke('update_metadata',{key:'missing.html',metadata:{title:'x'},revision:null})).status,404);
+});
+
+test('metadata storage paths cannot be supplied through public or admin file endpoints',async()=>{
+  const shared=await readFile(new URL('../Backend/edge-functions/liminal-drive/shared.ts',import.meta.url),'utf8');
+  const c={TextEncoder};vm.runInNewContext(stripTypeScriptTypes(shared.slice(shared.indexOf('export function keyOf('),shared.indexOf('export const publicUrl')).replace('export ','')),c);
+  for(const key of ['.liminal-meta/a.json','Games/.liminal-meta/a.json','.liminal-trash/id/files/a.html'])assert.equal(c.keyOf(key),null);
+  assert.equal(c.keyOf('.liminal-meta/a.json',false,true),null);
+  assert.equal(c.keyOf('Games/a.html'),'Games/a.html');
+});
+
+test('both deployed metadata helpers remain identical and public listings exclude their storage objects',async()=>{
+  const a=await readFile(new URL('../Backend/edge-functions/liminal-drive/metadata.ts',import.meta.url),'utf8'),b=await readFile(new URL('../Backend/edge-functions/liminal-drive-admin/metadata.ts',import.meta.url),'utf8');assert.equal(a,b);
+  const index=await readFile(new URL('../Backend/edge-functions/liminal-drive/index.ts',import.meta.url),'utf8');assert.match(index,/!o\.key\.startsWith\(METADATA_PREFIX\)/);
+  assert(!driveHtml.includes('Your next good game.'));assert(!driveHtml.includes('Tools worth keeping.'));
+});
+
+test('admin operations preserve file bytes and metadata through rename, trash, restore and permanent deletion',async()=>{
+  const objects=new Map([['Games/a.html','<h1>Original game</h1>']]),b=backend({staff_role:'admin'},{objects});
+  let r=await b.invoke('update_metadata',{key:'Games/a.html',metadata:{title:'Admin title'},revision:null});assert.equal(r.status,200);assert.equal(objects.get('Games/a.html'),'<h1>Original game</h1>');
+  r=await b.invoke('rename',{key:'Games/a.html',new_key:'Games/renamed.html'});assert.equal(r.status,200);
+  assert(!objects.has(await metadataKey('Games/a.html')));
+  r=await b.invoke('get_metadata',{key:'Games/renamed.html'});assert.equal((await r.json()).metadata.title,'Admin title');
+  const trashed=await (await b.invoke('trash',{key:'Games/renamed.html'})).json();assert(trashed.ok);
+  assert(!objects.has(await metadataKey('Games/renamed.html')),'new files at the old path cannot inherit the trashed metadata');
+  const trashFile='.liminal-trash/'+trashed.id+'/files/Games/renamed.html';assert(objects.has(await metadataKey(trashFile)));
+  r=await b.invoke('restore',{id:trashed.id});assert.equal(r.status,200);assert.equal(objects.get('Games/renamed.html'),'<h1>Original game</h1>');
+  assert(!objects.has(await metadataKey(trashFile)));
+  r=await b.invoke('get_metadata',{key:'Games/renamed.html'});assert.equal((await r.json()).metadata.title,'Admin title');
+  const again=await (await b.invoke('trash',{key:'Games/renamed.html'})).json();await b.invoke('delete_trash',{id:again.id});
+  assert.equal(objects.size,0,'permanent deletion also removes sidecars and trash manifests');
+});
+
+test('the public API returns shared customization without exposing internal metadata objects',async()=>{
+  const objects=new Map([['Games/a.html','<h1>Game</h1>']]),b=backend({staff_role:'admin'},{objects});
+  await b.invoke('update_metadata',{key:'Games/a.html',metadata:{title:'Shared title',status:'working'},revision:null});
+  const publicSource=await readFile(new URL('../Backend/edge-functions/liminal-drive/index.ts',import.meta.url),'utf8');let handler;
+  const c={...b.context,Deno:{serve:fn=>handler=fn}};
+  c.HeadObjectCommand=class{constructor(input){this.input=input;this.name='HeadObjectCommand'}};
+  vm.runInNewContext(stripTypeScriptTypes(publicSource.replace(/^import .*;$/gm,'')),c);
+  const response=await handler(new Request('https://drive.test/')),data=await response.json();assert.equal(response.status,200);
+  assert.equal(data.files.length,1);assert.equal(data.files[0].metadata.title,'Shared title');assert.equal(data.features.fileMetadata,true);
 });
