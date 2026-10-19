@@ -1,4 +1,4 @@
-# Chat performance audit — 2.24.2
+# Chat performance audit — 2.24.3
 
 The reported symptom is intermittent, page-wide frame drops on an 8 GB
 Chromebook with backgrounds Off and about three people online. Earlier narrow
@@ -30,7 +30,7 @@ observations, not proof that a particular person's image caused their spikes.
    layout to individual timeline scroll callbacks under 4x CPU throttling.
    Message insertion also synchronously pinned and started nine more settling
    frames. Geometry reads now happen together in a scheduled frame; resize and
-   message requests share one pin. Scrolling up cancels queued work. The generic
+   message requests share one pin. Scrolling up cancels queued work. Explicit Latest/conversation navigation also clears a pending history anchor hold. The generic
    scroll listener no longer races the timeline's class/timer handling.
 2. **History rebuilds:** each older page rebuilt all existing message HTML,
    restarted images/previews, and allowed histories to grow without a bound.

@@ -115,10 +115,20 @@ if(verify){
  const download=page.waitForEvent('download');await page.click('#export-performance-btn');const artifact=await download;const reportPath=path.join(root,label+'-download.json');await artifact.saveAs(reportPath);
  const report=JSON.parse(await fs.readFile(reportPath,'utf8'));assert.equal(report.counts.backgroundCanvases,0);assert(!JSON.stringify(report).includes('member_'));assert(report.samples.length<=120);
  await page.evaluate(()=>$('settings-dialog').close());
+ // Exercise a Latest click inside the history anchoring interval, not only
+ // several seconds later after the interval has already elapsed.
+ await page.evaluate(()=>holdTimeline(2500));
  // Confirm the actual Latest control, late media growth and composer resizing
  // still keep the final message in view after the scroll scheduler changed.
  await page.evaluate(()=>returnToLatest());
  await page.waitForFunction(()=>!historyContexts.has(viewKey(currentView))&&distanceFromBottom()<2);
+ await page.evaluate(()=>{holdTimeline(2500);return openView({...currentView})});
+ assert.equal(await page.evaluate(()=>timelineHeld()),false,'reopening the active conversation cancels a stale history hold');
+ await page.evaluate(()=>holdTimeline(2500));
+ await page.evaluate(()=>openView({type:'channel',id:'random'}));
+ assert.equal(await page.evaluate(()=>timelineHeld()),false,'switching conversations cancels a stale history hold');
+ await page.evaluate(()=>openView({type:'channel',id:'general'}));
+ await page.waitForFunction(()=>distanceFromBottom()<2);
  await page.evaluate(()=>{
   const media=document.createElement('div');media.className='msg-media';
   const image=document.createElement('img');image.id='fixture-late-image';

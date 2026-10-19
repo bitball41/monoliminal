@@ -5074,7 +5074,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.2";
+    const APP_VERSION = "2.24.3";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -8362,6 +8362,7 @@ void main() {
         return;
       }
       const switched = viewKey(currentView) !== viewKey(view);
+      timelineHoldUntil = 0;
       beginViewSwitch(view);
       if (view.type === 'channel' && !isForumThreadView(view)) {
         const fch = channelById(view.id);
@@ -18290,6 +18291,7 @@ void main() {
       finally { context.busy = false; button.disabled = false; }
     }
     async function returnToLatest() {
+      timelineHoldUntil = 0; // An explicit navigation overrides a history anchor hold.
       const view = {...currentView}, key = viewKey(view), context = historyContexts.get(key);
       const request = ++messageJumpRequest;
       if (!context) { scrollToBottom(true); hideNewBadge(); return true; }
