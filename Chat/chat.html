@@ -480,6 +480,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
     }
     .avatar.has-ring.ring-anim::before { animation: ring-spin 3.5s linear infinite; }
+    /* Keep image identity and geometry while stopping animation/texture work
+       outside the viewport. Native lazy loading alone also loads nearby GIFs. */
+    html[data-ring-visibility] .avatar[data-media-visible="false"] img,
+    html[data-ring-visibility] .msg[data-media-visible="false"] .msg-media img,
+    html[data-ring-paused] .avatar img,
+    html[data-ring-paused] .msg-media img { visibility: hidden; }
     html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
     html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
@@ -1386,6 +1392,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       flex: 1 1 140px; min-width: 0; height: 38px; min-height: 38px; max-height: 9.5em; margin: 0;
       padding: 8px 8px; border: none; background: transparent; resize: none;
       color: var(--text); line-height: 22px; font-size: 0.875rem;
+    }
+    @supports (field-sizing: content) {
+      .composer textarea { field-sizing: content; height: auto; }
     }
     .composer textarea:focus,
     .composer textarea:focus-visible { outline: none; box-shadow: none; }
@@ -3910,6 +3919,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <button class="secondary-button" type="button" id="import-data-btn">Import local data</button>
           <input id="import-data-input" type="file" accept="application/json" hidden>
         </div>
+        <div class="settings-section-title settings-separator">Troubleshooting</div>
+        <p class="field-help">Download recent slow-frame timings after a lag spike. The report contains no messages or account details.</p>
+        <button class="secondary-button" type="button" id="export-performance-btn">Download performance report</button>
         <details class="settings-details">
           <summary>How your data works</summary>
         <div class="privacy-copy">
@@ -5062,7 +5074,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.1";
+    const APP_VERSION = "2.24.2";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6326,6 +6338,61 @@ void main() {
     let loadedAppUpdateMarker = '';
     try { loadedAppUpdateMarker = localStorage.getItem(APP_UPDATE_MARKER_KEY) || ''; } catch {}
     const bootedAt = new Date().toISOString();
+    const performanceDiagnostics = { observer: null, type: '', total: 0, samples: [], work: [] };
+    function notePerformanceWork(name, count = 0) {
+      if (!performanceDiagnostics.observer) return;
+      performanceDiagnostics.work.push({ at: Math.round(performance.now()), name, count });
+      if (performanceDiagnostics.work.length > 64) performanceDiagnostics.work.shift();
+    }
+    function startPerformanceDiagnostics() {
+      if (performanceDiagnostics.observer || typeof PerformanceObserver !== 'function') return;
+      const supported = PerformanceObserver.supportedEntryTypes || [];
+      const type = supported.includes('long-animation-frame') ? 'long-animation-frame'
+        : supported.includes('longtask') ? 'longtask' : '';
+      if (!type) return;
+      try {
+        const observer = new PerformanceObserver(list => {
+          if (document.hidden) return;
+          list.getEntries().forEach(entry => {
+            performanceDiagnostics.total++;
+            performanceDiagnostics.samples.push({ at: Math.round(entry.startTime), duration: Math.round(entry.duration),
+              blocking: Math.round(entry.blockingDuration || 0), renderStart: Math.round(entry.renderStart || 0),
+              layoutStart: Math.round(entry.styleAndLayoutStart || 0),
+              scripts: (entry.scripts || []).slice(0, 5).map(script => ({
+                function: String(script.sourceFunctionName || '').slice(0, 80),
+                duration: Math.round(script.duration), layout: Math.round(script.forcedStyleAndLayoutDuration || 0),
+                type: String(script.invokerType || '').slice(0, 32),
+              })),
+            });
+            if (performanceDiagnostics.samples.length > 120) performanceDiagnostics.samples.shift();
+          });
+        });
+        observer.observe({ type });
+        performanceDiagnostics.type = type;
+        performanceDiagnostics.observer = observer;
+      } catch {}
+    }
+    function performanceReport() {
+      return { version: APP_VERSION, uptimeMs: Math.round(performance.now()),
+        environment: { chromium: navigator.userAgent.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1] || '',
+          chromebook: /\bCrOS\b/.test(navigator.userAgent), memoryGB: navigator.deviceMemory || null,
+          threads: navigator.hardwareConcurrency || null, lite: isLiteMode(), background: chatBackgroundChoice,
+          viewport: [innerWidth, innerHeight], devicePixelRatio },
+        counts: { members: profiles.size, liveMembers: livePresence.size, cachedViews: msgCache.size,
+          cachedMessages: [...msgCache.values()].reduce((total, rows) => total + rows.length, 0),
+          historyMessages: [...historyContexts.values()].reduce((total, context) => total + context.rows.length, 0),
+          mountedMessages: qsa('#message-list .msg').length, images: document.images.length,
+          backgroundCanvases: qsa('#chat-background-stage canvas').length, voicePeers: voice.peers.size },
+        realtime: { healthy: realtimeHealthy(), generation: realtimeGen },
+        timingType: performanceDiagnostics.type, slowFrames: performanceDiagnostics.total,
+        samples: performanceDiagnostics.samples.slice(), work: performanceDiagnostics.work.slice() };
+    }
+    function exportPerformanceReport() {
+      const blob = new Blob([JSON.stringify(performanceReport(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = `liminal-performance-${APP_VERSION}.json`; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
     const profiles = new Map();
     let channels = [];
     let dms = [];
@@ -7062,19 +7129,21 @@ void main() {
       if (ringVisibilityController || typeof IntersectionObserver !== 'function') return ringVisibilityController;
       const root = document.documentElement;
       const tracked = new Set();
-      const selector = '.avatar.ring-anim';
+      const selector = '.avatar, .msg';
       const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           const el = entry.target;
           if (!tracked.has(el) || !el.isConnected) return;
           const visible = String(entry.isIntersecting && entry.intersectionRatio > 0);
-          if (el.dataset.ringVisible !== visible) el.dataset.ringVisible = visible;
+          if (el.dataset.mediaVisible !== visible) el.dataset.mediaVisible = visible;
+          if (el.classList.contains('ring-anim') && el.dataset.ringVisible !== visible) el.dataset.ringVisible = visible;
         });
       }, { rootMargin: '32px' });
       const forget = el => {
         if (!tracked.delete(el)) return;
         observer.unobserve(el);
         delete el.dataset.ringVisible;
+        delete el.dataset.mediaVisible;
       };
       const track = el => {
         if (!el.isConnected) { forget(el); return; }
@@ -7086,15 +7155,16 @@ void main() {
       };
       const scan = (node, visit) => {
         if (node.nodeType !== 1) return;
-        if (node.matches('.avatar')) visit(node);
-        node.querySelectorAll('.avatar').forEach(visit);
+        if (node.matches(selector)) visit(node);
+        node.querySelectorAll(selector).forEach(visit);
       };
       const mutations = new MutationObserver(records => {
         records.forEach(record => {
           if (record.type === 'attributes') {
-            if (tracked.has(record.target) || record.target.matches('.avatar')) track(record.target);
+            if (tracked.has(record.target) || record.target.matches(selector)) track(record.target);
             return;
           }
+          if (record.target?.matches?.('.avatar')) track(record.target);
           record.removedNodes.forEach(node => scan(node, el => { if (!el.isConnected) forget(el); }));
           record.addedNodes.forEach(node => scan(node, track));
         });
@@ -7108,7 +7178,7 @@ void main() {
       ringVisibilityController = { destroy() {
         observer.disconnect(); mutations.disconnect();
         document.removeEventListener('visibilitychange', sync);
-        tracked.forEach(el => { delete el.dataset.ringVisible; });
+        tracked.forEach(el => { delete el.dataset.ringVisible; delete el.dataset.mediaVisible; });
         tracked.clear();
         root.removeAttribute('data-ring-visibility'); root.removeAttribute('data-ring-paused');
         ringVisibilityController = null;
@@ -7625,6 +7695,7 @@ void main() {
     /* ============================= 8. BOOT APP ============================= */
     async function bootApp(profile, options = {}) {
       me = profile;
+      startPerformanceDiagnostics();
       loadAccountInbox();
       $('auth-screen').hidden = true;
       $('blocked-screen').hidden = true;
@@ -8106,6 +8177,7 @@ void main() {
             if (node) {
               const avatar = qs('.avatar', node), nextAvatar = qs('.avatar', fresh);
               if (avatar && nextAvatar) {
+                if (avatar.dataset.mediaVisible !== undefined) nextAvatar.dataset.mediaVisible = avatar.dataset.mediaVisible;
                 if (avatar.dataset.ringVisible !== undefined && nextAvatar.classList.contains('ring-anim')) {
                   nextAvatar.dataset.ringVisible = avatar.dataset.ringVisible;
                 }
@@ -8416,9 +8488,14 @@ void main() {
       try {
         const older = await fetchMessages(loadingView, cache[0].created_at);
         const existing = new Set(cache.map(m => m.id));
-        setViewMessages(key, older.filter(m => !existing.has(m.id)).concat(cache));
         if (viewKey(currentView) !== key) return;
-        renderTimeline();
+        const context = { view: loadingView, rows: older.filter(m => !existing.has(m.id)).concat(cache),
+          hasOlder: !!hasMoreMap.get(key), hasNewer: false, busy: false };
+        historyContexts.set(key, context);
+        context.rows.forEach(indexMessage);
+        capHistoryContext(context, 'older');
+        holdTimeline(900);
+        renderTimeline({ preserve: true });
         const restore = () => {
           const node = qs(`[data-id="${anchorId}"]`);
           if (!node || anchorTopBefore === null) return;
@@ -8782,32 +8859,74 @@ void main() {
         && (new Date(msg.created_at) - new Date(prev.created_at)) < GROUP_WINDOW_MS;
     }
 
-    function renderTimeline() {
-      const key = viewKey(currentView);
-      const context = historyContexts.get(key);
-      const msgs = context ? context.rows : (msgCache.get(key) || []);
-      $('history-context-bar').hidden = !context;
-      $('history-newer-wrap').hidden = !context || !context.hasNewer;
-      const listEl = $('message-list');
-      listEl.innerHTML = '';
-      const frag = document.createDocumentFragment();
-      let prev = null;
-      let prevDay = null;
+    function reconcileTimelineRows(msgs) {
+      const list = $('message-list');
+      const remaining = new Set(list.children);
+      const messages = new Map(), days = new Map();
+      remaining.forEach(node => {
+        if (node.dataset.id) messages.set(String(node.dataset.id), node);
+        else if (node.dataset.day) days.set(node.dataset.day, node);
+      });
+      let cursor = list.firstElementChild, previous = null, previousDay = null;
+      const place = node => {
+        remaining.delete(node);
+        if (node === cursor) cursor = cursor.nextElementSibling;
+        else list.insertBefore(node, cursor);
+      };
       msgs.forEach(msg => {
         if (msg.deleted || (msg.owner_preview && !isOwner())) return;
         const day = dayKey(msg.created_at);
-        if (day !== prevDay) {
-          const sep = document.createElement('div');
-          sep.className = 'date-sep';
-          sep.innerHTML = `<span>${esc(fmtDay(msg.created_at))}</span>`;
-          frag.appendChild(sep);
-          prevDay = day;
-          prev = null;
+        if (day !== previousDay) {
+          let sep = days.get(day);
+          if (!sep) {
+            sep = document.createElement('div'); sep.className = 'date-sep'; sep.dataset.day = day;
+            sep.innerHTML = `<span>${esc(fmtDay(msg.created_at))}</span>`;
+          }
+          place(sep); previousDay = day; previous = null;
         }
-        frag.appendChild(buildMessageNode(msg, prev));
-        prev = msg;
+        let node = messages.get(String(msg.id));
+        if (node && node.classList.contains('grouped') !== shouldGroup(msg, previous)) {
+          if (cursor === node) cursor = cursor.nextElementSibling;
+          remaining.delete(node); node.remove(); node = null;
+        }
+        if (!node) node = buildMessageNode(msg, previous);
+        place(node); previous = msg;
       });
-      listEl.appendChild(frag);
+      remaining.forEach(node => node.remove());
+    }
+
+    function renderTimeline({ preserve = false } = {}) {
+      const key = viewKey(currentView);
+      const context = historyContexts.get(key);
+      const msgs = context ? context.rows : (msgCache.get(key) || []);
+      notePerformanceWork(preserve ? 'history-render' : 'timeline-render', msgs.length);
+      $('history-context-bar').hidden = !context;
+      $('history-newer-wrap').hidden = !context || !context.hasNewer;
+      const listEl = $('message-list');
+      if (preserve && listEl.dataset.view === key) reconcileTimelineRows(msgs);
+      else {
+        listEl.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        let prev = null;
+        let prevDay = null;
+        msgs.forEach(msg => {
+          if (msg.deleted || (msg.owner_preview && !isOwner())) return;
+          const day = dayKey(msg.created_at);
+          if (day !== prevDay) {
+            const sep = document.createElement('div');
+            sep.className = 'date-sep';
+            sep.dataset.day = day;
+            sep.innerHTML = `<span>${esc(fmtDay(msg.created_at))}</span>`;
+            frag.appendChild(sep);
+            prevDay = day;
+            prev = null;
+          }
+          frag.appendChild(buildMessageNode(msg, prev));
+          prev = msg;
+        });
+        listEl.appendChild(frag);
+      }
+      listEl.dataset.view = key;
       markTimelineTail();
       if (!msgs.length && messageLoadErrors.has(key)) {
         listEl.innerHTML = `<div class="empty-state api-empty-state"><div class="big-icon">↻</div><h3>Messages couldn't load</h3><p>The server hit a temporary API limit. Nothing was deleted.</p><button class="secondary-button" type="button" data-retry-messages>Retry</button></div>`;
@@ -9298,6 +9417,7 @@ void main() {
     let timelineHoldUntil = 0;
     let pinGeneration = 0;
     let applyingPin = false;
+    let pinRequestFrame = 0;
     let pinReleaseFrame = 0;
     let upWheelAccum = 0;
     let scrollbarPointer = false;
@@ -9323,6 +9443,9 @@ void main() {
       releaseBottomPin();
     }
     function releaseBottomPin() {
+      if (pinRequestFrame) cancelAnimationFrame(pinRequestFrame);
+      if (pinReleaseFrame) cancelAnimationFrame(pinReleaseFrame);
+      pinRequestFrame = pinReleaseFrame = 0;
       if (!stickyToBottom && !applyingPin) {
         pinGeneration += 1;
         return;
@@ -9338,31 +9461,24 @@ void main() {
       stickyToBottom = true;
       applyingPin = true;
       upWheelAccum = 0;
-      const gen = ++pinGeneration;
-      t.scrollTop = t.scrollHeight;
-      lastTimelineScrollTop = t.scrollTop;
       if (pinReleaseFrame) cancelAnimationFrame(pinReleaseFrame);
-      const release = () => {
-        if (gen !== pinGeneration) return;
-        applyingPin = false;
-        pinReleaseFrame = 0;
-      };
-      if (instant) {
-        pinReleaseFrame = requestAnimationFrame(() => {
-          pinReleaseFrame = requestAnimationFrame(release);
-        });
-        return;
-      }
-      let frames = 0;
-      const settle = () => {
-        if (gen !== pinGeneration || !stickyToBottom) return;
-        applyingPin = true;
+      pinReleaseFrame = 0;
+      // Message bursts, image loads and ResizeObserver can all request a pin in
+      // the same frame. Read layout once after those writes, rather than forcing
+      // it now and on another nine frames. ResizeObserver handles later growth.
+      if (pinRequestFrame) return;
+      const gen = ++pinGeneration;
+      pinRequestFrame = requestAnimationFrame(function flushBottomPin() {
+        pinRequestFrame = 0;
+        if (gen !== pinGeneration || !stickyToBottom || timelineHeld()) return;
         t.scrollTop = t.scrollHeight;
         lastTimelineScrollTop = t.scrollTop;
-        if (frames++ < 8) requestAnimationFrame(settle);
-        else pinReleaseFrame = requestAnimationFrame(release);
-      };
-      requestAnimationFrame(settle);
+        pinReleaseFrame = requestAnimationFrame(function releaseAppliedPin() {
+          if (gen !== pinGeneration) return;
+          applyingPin = false;
+          pinReleaseFrame = 0;
+        });
+      });
     }
     function scrollToBottom(instant) {
       pinToBottom(instant);
@@ -9462,6 +9578,7 @@ void main() {
       if (!prev || dayKey(prev.created_at) !== dayKey(msg.created_at)) {
         const sep = document.createElement('div');
         sep.className = 'date-sep';
+        sep.dataset.day = dayKey(msg.created_at);
         sep.innerHTML = `<span>${esc(fmtDay(msg.created_at))}</span>`;
         listEl.appendChild(sep);
         node = buildMessageNode(msg, null);
@@ -9982,6 +10099,7 @@ void main() {
       }
       if (m.deleted) { rememberId(m.id); return; }
       const key = kind === 'dm' ? `dm:${m.dm_id}` : `c:${m.channel_id}`;
+      notePerformanceWork(key === viewKey(currentView) ? 'message-current' : 'message-other');
       if (!msgCache.has(key) && loadingViewKeys.has(key)) {
         holdLiveMessage(key, m);
         return;
@@ -10029,13 +10147,25 @@ void main() {
         indexMessage(m);
       }
       const isCurrent = key === viewKey(currentView);
-      const readingContext = isCurrent && historyContexts.has(key);
+      let readingContext = isCurrent && historyContexts.has(key);
+      const wasNear = isCurrent && !readingContext && (stickyToBottom || isNearBottom());
+      // Keep the page being read still. New messages belong to the bounded live
+      // cache until the member returns to latest, not an ever-growing DOM above
+      // or below their scroll position.
+      if (isCurrent && !readingContext && !mine && !wasNear) {
+        const rows = (msgCache.get(key) || []).filter(row => row.id !== m.id);
+        historyContexts.set(key, { view: { ...currentView }, rows: rows.slice(),
+          hasOlder: !!hasMoreMap.get(key), hasNewer: true, busy: false });
+        readingContext = true;
+        $('history-context-bar').hidden = false;
+      }
       const forumBoardId = kind !== 'dm' ? forumBoardIdFromChannelId(m.channel_id) : null;
       if (readingContext) {
+        historyContexts.get(key).hasNewer = true;
+        $('history-newer-wrap').hidden = false;
         trimLiveCache(key);
         bumpNewBadge();
       } else if (isCurrent) {
-        const wasNear = stickyToBottom || isNearBottom();
         if ((mine || wasNear) && trimLiveCache(key)) {
           trimTimelineToCache();
         }
@@ -10110,13 +10240,20 @@ void main() {
     }
 
     /* ============================= 16. COMPOSER ============================= */
+    const nativeComposerSizing = typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content');
     function autogrow() {
       const ta = $('message-input');
+      $('char-count').textContent = ta.value.length;
+      if (nativeComposerSizing) {
+        // The browser sizes the field during normal layout. A height reset and
+        // scrollHeight read on every keypress otherwise forces two layouts.
+        if (ta.style.height) ta.style.removeProperty('height');
+        return;
+      }
       const previousHeight = ta.style.height;
       ta.style.height = 'auto';
       const nextHeight = Math.min(ta.scrollHeight, 9.5 * 16) + 'px';
       ta.style.height = nextHeight;
-      $('char-count').textContent = ta.value.length;
       if (stickyToBottom && previousHeight !== nextHeight) pinToBottom(true);
     }
 
@@ -12937,6 +13074,7 @@ void main() {
       const now = Date.now();
       if (realtimeHealthy() && now - lastWakeAt < 4000) return;
       lastWakeAt = now;
+      notePerformanceWork('wake-sync');
       wakeRunning = true;
       presenceLeft = false;
       try {
@@ -13151,11 +13289,11 @@ void main() {
       });
       scheduleRenderMembers();
       scheduleRenderDmList();
-      const TIMELINE_IRRELEVANT = new Set(['status', 'custom_status', 'timeout_until', 'kicked_at', 'last_seen']);
-      const timelineDirty = changed.some(k => !TIMELINE_IRRELEVANT.has(k));
+      const TIMELINE_IDENTITY = new Set(['display_name', 'pfp', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
+      const timelineDirty = changed.some(k => TIMELINE_IDENTITY.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
-      if (p.username === noelleSourceProfile?.source_username && timelineDirty) {
-        refreshTimelineForAuthor(NOELLE_AI_USERNAME);
+      if (p.username === noelleSourceProfile?.source_username && (timelineDirty || changed.includes('bio'))) {
+        if (timelineDirty) refreshTimelineForAuthor(NOELLE_AI_USERNAME);
         if (hoverCardUser === NOELLE_AI_USERNAME && !$('hover-card').hidden) showHoverCard(NOELLE_AI_USERNAME, hoverCardAnchor);
       }
       if (existing.sub_role !== merged.sub_role) {
@@ -13170,15 +13308,27 @@ void main() {
 
     function refreshTimelineForAuthor(username) {
       const list = $('message-list');
-      const cache = msgCache.get(viewKey(currentView)) || [];
-      if (!list || !cache.length) return;
-      const byId = new Map(cache.map((message, index) => [String(message.id), { message, index }]));
+      if (!list) return;
+      const profile = profileOf(username);
       qsa('.msg[data-sender]', list).forEach(node => {
         if (node.dataset.sender !== username) return;
-        const item = byId.get(String(node.dataset.id));
-        if (!item) return;
-        const previous = item.index > 0 ? cache[item.index - 1] : null;
-        node.replaceWith(buildMessageNode(item.message, previous));
+        const author = qs('.msg-author', node);
+        if (author) author.textContent = displayNameOf(profile);
+        const head = qs('.msg-head', node);
+        if (head && author) {
+          qsa('.role-check, .subrole-badge, .msg-tag:not([title="Visible to owners only"])', head).forEach(el => el.remove());
+          author.insertAdjacentHTML('afterend', roleBadgeHtml(profile) + subRoleBadgeHtml(profile)
+            + (profile.tag ? `<span class="msg-tag">${esc(profile.tag)}</span>` : ''));
+        }
+        const avatar = qs('.msg-avatar .avatar', node);
+        if (avatar) {
+          applyRing(avatar, profile);
+          const image = qs('img', avatar);
+          if (profile.pfp) {
+            if (image) { if (image.getAttribute('src') !== profile.pfp) image.src = profile.pfp; }
+            else avatar.innerHTML = `<img src="${esc(profile.pfp)}" alt="" loading="lazy" decoding="async">`;
+          } else avatar.textContent = initialsOf(displayNameOf(profile));
+        }
       });
     }
 
@@ -16308,11 +16458,10 @@ void main() {
           toast({ type: 'error', text: 'Could not save your profile.' });
           return false;
         }
-        me = { ...me, ...patch, ...data };
-        profiles.set(me.username, { ...profiles.get(me.username), ...patch, ...data });
+        handleProfileChange({ new: { ...patch, ...data, username: me.username } });
+        Object.assign(me, { bio: patch.bio, banner: patch.banner });
+        Object.assign(profiles.get(me.username), { bio: patch.bio, banner: patch.banner });
         profileDetailLoaded.add(me.username);
-        renderSelf(); renderMembers(); renderDmList(); renderTimeline();
-        refreshPresenceUi();
         broadcastProfileUpdated();
         if (revision === profileSaveRevision) $('profile-save-status').textContent = 'All changes saved.';
         return true;
@@ -18060,7 +18209,21 @@ void main() {
 
     // A history window keeps old-message navigation bounded without mixing gaps into the live cache.
     const historyContexts = new Map();
+    const HISTORY_MESSAGE_CAP = 200;
     let messageJumpRequest = 0;
+    function capHistoryContext(context, direction) {
+      const cap = isLiteMode() ? 120 : HISTORY_MESSAGE_CAP;
+      if (context.rows.length <= cap) return;
+      const excess = context.rows.length - cap;
+      const dropped = direction === 'older' ? context.rows.splice(cap) : context.rows.splice(0, excess);
+      context[direction === 'older' ? 'hasNewer' : 'hasOlder'] = true;
+      const live = new Map((msgCache.get(viewKey(context.view)) || []).map(row => [row.id, row]));
+      dropped.forEach(row => {
+        unindexMessage(row);
+        if (live.has(row.id)) indexMessage(live.get(row.id));
+        else { pollCache.delete(row.id); pollBusy.delete(row.id); }
+      });
+    }
     function clearHistoryContexts() {
       historyContexts.forEach(context => context.rows.forEach(unindexMessage));
       historyContexts.clear();
@@ -18115,9 +18278,12 @@ void main() {
         const page = older ? (data || []).reverse() : (data || []);
         if (context.view.type === 'channel') await loadPollsForMessages(page);
         if (historyContexts.get(key) !== context || viewKey(currentView) !== key) return;
-        context.rows = older ? page.concat(context.rows) : context.rows.concat(page);
+        const existing = new Set(context.rows.map(row => row.id));
+        const unique = page.filter(row => !existing.has(row.id));
+        context.rows = older ? unique.concat(context.rows) : context.rows.concat(unique);
         context[older ? 'hasOlder' : 'hasNewer'] = page.length === 50;
-        page.forEach(indexMessage); holdTimeline(1500); renderTimeline();
+        unique.forEach(indexMessage); capHistoryContext(context, direction);
+        holdTimeline(1500); renderTimeline({ preserve: true });
         const fresh = qs(`[data-id="${cssAttr(edge.id)}"]`,timelineEl());
         if (fresh && top !== undefined) timelineEl().scrollTop += fresh.getBoundingClientRect().top - top;
       } catch { toast({type:'error',text:'Could not load more history. Try again.'}); }
@@ -18420,35 +18586,33 @@ void main() {
         }
       });
       timelineElRef.addEventListener('scroll', () => {
-        const top = timelineElRef.scrollTop;
-        const movedUp = top < lastTimelineScrollTop - 2;
-        lastTimelineScrollTop = top;
-        if (timelineHeld()) {
-          stickyToBottom = false;
-        } else if (scrollbarPointer && movedUp && !isNearBottom()) releaseBottomPin();
-        if (!timelineHeld() && !scrollFrame) {
-          scrollFrame = requestAnimationFrame(() => {
+        // Scroll events can arrive between DOM writes. Defer all geometry reads
+        // together, before changing classes; the old handler forced layout here.
+        if (!scrollFrame) {
+          scrollFrame = requestAnimationFrame(function onTimelineScrollFrame() {
             scrollFrame = 0;
-            const near = isNearBottom();
-            if (applyingPin) {
-              if (stickyToBottom) updateViewingOlder(true);
-              return;
-            }
+            const top = timelineElRef.scrollTop;
+            const movedUp = top < lastTimelineScrollTop - 2;
+            lastTimelineScrollTop = top;
+            const near = applyingPin ? true : isNearBottom();
             if (timelineHeld()) {
               stickyToBottom = false;
               updateViewingOlder(false);
-              return;
+            } else if (applyingPin) {
+              if (stickyToBottom) updateViewingOlder(true);
+            } else {
+              if (scrollbarPointer && movedUp && !near) releaseBottomPin();
+              if (near) {
+                stickyToBottom = true;
+                if (pendingNewCount) { hideNewBadge(); markViewRead(viewKey(currentView)); }
+              }
+              updateViewingOlder(near);
             }
-            if (near) {
-              stickyToBottom = true;
-              if (pendingNewCount) { hideNewBadge(); markViewRead(viewKey(currentView)); }
-            }
-            updateViewingOlder(near);
+            timelineElRef.classList.add('is-scrolling');
+            clearTimeout(scrollSettle);
+            scrollSettle = setTimeout(() => timelineElRef.classList.remove('is-scrolling'), 120);
           });
         }
-        if (!timelineElRef.classList.contains('is-scrolling')) timelineElRef.classList.add('is-scrolling');
-        clearTimeout(scrollSettle);
-        scrollSettle = setTimeout(() => timelineElRef.classList.remove('is-scrolling'), 120);
       }, { passive: true });
       if ('ResizeObserver' in window) {
         let pinResizeFrame = 0;
@@ -18460,7 +18624,9 @@ void main() {
             if (stickyToBottom && !timelineHeld()) pinToBottom(true);
           });
         };
-        new ResizeObserver(pinFromResize).observe($('message-list'));
+        const pinObserver = new ResizeObserver(pinFromResize);
+        pinObserver.observe($('message-list'));
+        pinObserver.observe(timelineElRef); // Includes composer growth and responsive layout.
       }
       window.addEventListener('resize', () => { if (stickyToBottom && !timelineHeld()) pinToBottom(true); });
       $('new-msgs-badge').addEventListener('click', () => {
@@ -18667,6 +18833,7 @@ void main() {
       });
       $('change-pass-btn').addEventListener('click', changePassword);
       $('export-data-btn').addEventListener('click', exportLocalData);
+      $('export-performance-btn').addEventListener('click', exportPerformanceReport);
       $('import-data-btn').addEventListener('click', () => $('import-data-input').click());
       $('import-data-input').addEventListener('change', () => {
         const file = $('import-data-input').files[0];
@@ -19017,6 +19184,7 @@ void main() {
       document.addEventListener('scroll', (event) => {
         const scroller = event.target === document ? document.scrollingElement : event.target;
         if (!(scroller instanceof Element)) return;
+        if (scroller.id === 'timeline') return; // The timeline batches this after its geometry reads.
         scroller.classList.add('is-scrolling');
         clearTimeout(hideTimers.get(scroller));
         hideTimers.set(scroller, setTimeout(() => {

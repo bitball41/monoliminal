@@ -122,6 +122,7 @@ function chatPresence() {
     clearInterval() {},
     currentView: { type: 'channel', id: 'general' },
     snapshotComposer: view => wakeJobs.push(`snapshot:${view.id}`),
+    notePerformanceWork() {},
     refreshSessionQuiet: async () => { wakeJobs.push('session'); },
     catchUpPoll: async () => { wakeJobs.push('messages'); },
     refreshListsQuiet: async () => { wakeJobs.push('lists'); },

@@ -14,9 +14,14 @@ function rings(supported = true) {
   class Node {
     constructor(classes = [], children = []) {
       this.nodeType = 1; this.classes = new Set(classes); this.children = children;
+      this.classList = { contains: name => this.classes.has(name) };
       this.dataset = {}; this.isConnected = true;
     }
-    matches(selector) { return selector.split('.').filter(Boolean).every(name => this.classes.has(name)); }
+    matches(selector) { return selector.split(',').some(part => {
+      const needsImage = part.includes(':has(img)');
+      return (!needsImage || this.children.some(child => child.classes.has('img')))
+        && part.trim().replace(':has(img)', '').split('.').filter(Boolean).every(name => this.classes.has(name));
+    }); }
     querySelectorAll(selector) {
       return this.children.flatMap(child => [child, ...child.querySelectorAll(selector)]).filter(child => child.matches(selector));
     }
@@ -47,7 +52,7 @@ function rings(supported = true) {
 
 test('only intersecting avatar rings animate; hidden tabs pause the entire set', () => {
   const r = rings();
-  assert.equal(r.intersections[0].targets.size, 2);
+  assert.equal(r.intersections[0].targets.size, 3);
   assert.equal(r.visible.dataset.ringVisible, undefined, 'new rings stay paused until visibility is known');
   r.intersect([[r.visible, true], [r.hidden, false]]);
   assert.equal(r.visible.dataset.ringVisible, 'true');
@@ -95,6 +100,31 @@ test('ring tracking initializes once, releases observers, and preserves the fall
   const fallback = rings(false);
   assert.equal(fallback.controller, null);
   assert.equal(fallback.attributes.size, 0);
+});
+
+test('ordinary avatar images and message media pause offscreen and release detached tracking', () => {
+  const r = rings(), observer = r.intersections[0];
+  const avatar = new r.Node(['avatar'], [new r.Node(['img'])]);
+  const message = new r.Node(['msg']);
+  r.change([{ type: 'childList', addedNodes: [avatar, message], removedNodes: [] }]);
+  assert(observer.targets.has(avatar) && observer.targets.has(message));
+  r.intersect([[avatar, false], [message, true]]);
+  assert.equal(avatar.dataset.mediaVisible, 'false');
+  assert.equal(message.dataset.mediaVisible, 'true');
+  r.intersect([[avatar, true], [message, false]]);
+  assert.equal(avatar.dataset.mediaVisible, 'true');
+  assert.equal(message.dataset.mediaVisible, 'false');
+  avatar.isConnected = false; message.isConnected = false;
+  r.change([{ type: 'childList', addedNodes: [], removedNodes: [avatar, message] }]);
+  assert(!observer.targets.has(avatar) && !observer.targets.has(message));
+  assert.equal(avatar.dataset.mediaVisible, undefined);
+});
+
+test('adding an image to an existing plain avatar starts visibility tracking', () => {
+  const r = rings();
+  r.ordinary.children.push(new r.Node(['img']));
+  r.change([{ type: 'childList', target: r.ordinary, addedNodes: r.ordinary.children, removedNodes: [] }]);
+  assert(r.intersections[0].targets.has(r.ordinary));
 });
 
 function profileChanges() {
@@ -159,6 +189,12 @@ test('identity edits refresh their author and current DM heading while list upda
   assert.equal(p.elements.get('channel-title').textContent, 'Renamed');
   assert.equal(p.elements.get('channel-topic').textContent, 'New status');
   p.flush(); assert.equal(p.calls.dms, 1);
+});
+
+test('profile detail and metadata changes do not rebuild timeline media', () => {
+  const p = profileChanges();
+  p.context.handleProfileChange({ new: { username: 'user1', bio: 'Changed', banner: 'https://example.test/banner.gif', last_seen: 'later', created_at: 'new metadata' } });
+  assert.equal(p.calls.timeline, undefined);
 });
 
 test('ban, kick and promotion handling remains immediate', () => {
