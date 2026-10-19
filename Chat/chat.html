@@ -3920,8 +3920,12 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
           <input id="import-data-input" type="file" accept="application/json" hidden>
         </div>
         <div class="settings-section-title settings-separator">Troubleshooting</div>
-        <p class="field-help">Download recent slow-frame timings after a lag spike. The report contains no messages or account details.</p>
-        <button class="secondary-button" type="button" id="export-performance-btn">Download performance report</button>
+        <p class="field-help">Record frames while using Chat, then download the report after a spike. No messages or account details are included.</p>
+        <div class="settings-actions-row">
+          <button class="secondary-button" type="button" id="record-performance-btn" aria-pressed="false">Record frames (60s)</button>
+          <button class="secondary-button" type="button" id="export-performance-btn">Download performance report</button>
+        </div>
+        <p class="field-help" id="performance-recording-status" role="status">Frame recording is off. Recent long frames are collected automatically.</p>
         <details class="settings-details">
           <summary>How your data works</summary>
         <div class="privacy-copy">
@@ -5074,7 +5078,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.3";
+    const APP_VERSION = "2.24.4";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6338,41 +6342,137 @@ void main() {
     let loadedAppUpdateMarker = '';
     try { loadedAppUpdateMarker = localStorage.getItem(APP_UPDATE_MARKER_KEY) || ''; } catch {}
     const bootedAt = new Date().toISOString();
-    const performanceDiagnostics = { observer: null, type: '', total: 0, samples: [], work: [] };
+    const performanceDiagnostics = { observer: null, taskObserver: null, type: '', scope: '', ancestorDepth: 0,
+      clockOffset: 0, total: 0, samples: [], taskTotal: 0, tasks: [], work: [], lifecycleBound: false,
+      frameCapture: null, frameRaf: 0, frameLastAt: 0 };
     function notePerformanceWork(name, count = 0) {
-      if (!performanceDiagnostics.observer) return;
+      if (!performanceDiagnostics.observer && !performanceDiagnostics.taskObserver && !performanceDiagnostics.frameCapture?.running) return;
       performanceDiagnostics.work.push({ at: Math.round(performance.now()), name, count });
       if (performanceDiagnostics.work.length > 64) performanceDiagnostics.work.shift();
     }
-    function startPerformanceDiagnostics() {
-      if (performanceDiagnostics.observer || typeof PerformanceObserver !== 'function') return;
-      const supported = PerformanceObserver.supportedEntryTypes || [];
-      const type = supported.includes('long-animation-frame') ? 'long-animation-frame'
-        : supported.includes('longtask') ? 'longtask' : '';
-      if (!type) return;
-      try {
-        const observer = new PerformanceObserver(list => {
-          if (document.hidden) return;
-          list.getEntries().forEach(entry => {
-            performanceDiagnostics.total++;
-            performanceDiagnostics.samples.push({ at: Math.round(entry.startTime), duration: Math.round(entry.duration),
-              blocking: Math.round(entry.blockingDuration || 0), renderStart: Math.round(entry.renderStart || 0),
-              layoutStart: Math.round(entry.styleAndLayoutStart || 0),
-              scripts: (entry.scripts || []).slice(0, 5).map(script => ({
-                function: String(script.sourceFunctionName || '').slice(0, 80),
-                duration: Math.round(script.duration), layout: Math.round(script.forcedStyleAndLayoutDuration || 0),
-                type: String(script.invokerType || '').slice(0, 32),
-              })),
-            });
-            if (performanceDiagnostics.samples.length > 120) performanceDiagnostics.samples.shift();
-          });
+    function collectPerformanceFrames(entries) {
+      if (document.hidden) return;
+      const offset = performanceDiagnostics.clockOffset;
+      for (const entry of entries) {
+        performanceDiagnostics.total++;
+        performanceDiagnostics.samples.push({ at: Math.round(entry.startTime + offset), duration: Math.round(entry.duration),
+          blocking: Math.round(entry.blockingDuration || 0),
+          renderStart: entry.renderStart ? Math.round(entry.renderStart + offset) : 0,
+          layoutStart: entry.styleAndLayoutStart ? Math.round(entry.styleAndLayoutStart + offset) : 0,
+          scripts: (entry.scripts || []).slice(0, 5).map(script => ({
+            function: String(script.sourceFunctionName || '').slice(0, 80),
+            duration: Math.round(script.duration), layout: Math.round(script.forcedStyleAndLayoutDuration || 0),
+            type: String(script.invokerType || '').slice(0, 32),
+          })),
         });
-        observer.observe({ type });
-        performanceDiagnostics.type = type;
-        performanceDiagnostics.observer = observer;
-      } catch {}
+        if (performanceDiagnostics.samples.length > 120) performanceDiagnostics.samples.shift();
+      }
+    }
+    function collectPerformanceTasks(entries) {
+      if (document.hidden) return;
+      for (const entry of entries) {
+        performanceDiagnostics.taskTotal++;
+        performanceDiagnostics.tasks.push({ at: Math.round(entry.startTime), duration: Math.round(entry.duration) });
+        if (performanceDiagnostics.tasks.length > 120) performanceDiagnostics.tasks.shift();
+      }
+    }
+    function flushPerformanceDiagnostics() {
+      if (performanceDiagnostics.observer) collectPerformanceFrames(performanceDiagnostics.observer.takeRecords());
+      if (performanceDiagnostics.taskObserver) collectPerformanceTasks(performanceDiagnostics.taskObserver.takeRecords());
+    }
+    function stopPerformanceDiagnostics() {
+      flushPerformanceDiagnostics();
+      performanceDiagnostics.observer?.disconnect();
+      performanceDiagnostics.taskObserver?.disconnect();
+      performanceDiagnostics.observer = performanceDiagnostics.taskObserver = null;
+    }
+    function startPerformanceDiagnostics() {
+      if (performanceDiagnostics.observer || performanceDiagnostics.taskObserver) return;
+      // LoAF entries belong to the nearest same-origin root, not a srcdoc child.
+      // Use that window's constructor and translate its clock to Chat's clock.
+      let root = window, depth = 0;
+      try { while (root.parent !== root && root.parent.document) { root = root.parent; depth++; } } catch {}
+      performanceDiagnostics.ancestorDepth = depth;
+      performanceDiagnostics.scope = depth ? 'same-origin-root' : 'document';
+      performanceDiagnostics.clockOffset = root.performance.timeOrigin - performance.timeOrigin;
+      if (root.PerformanceObserver?.supportedEntryTypes?.includes('long-animation-frame')) {
+        try {
+          const observer = new root.PerformanceObserver(list => collectPerformanceFrames(list.getEntries()));
+          observer.observe({ type: 'long-animation-frame' });
+          performanceDiagnostics.observer = observer;
+        } catch {}
+      }
+      // Keep local long tasks separately: they can occur without a rendered frame.
+      if (window.PerformanceObserver?.supportedEntryTypes?.includes('longtask')) {
+        try {
+          const observer = new window.PerformanceObserver(list => collectPerformanceTasks(list.getEntries()));
+          observer.observe({ type: 'longtask' });
+          performanceDiagnostics.taskObserver = observer;
+        } catch {}
+      }
+      performanceDiagnostics.type = performanceDiagnostics.observer ? 'long-animation-frame'
+        : performanceDiagnostics.taskObserver ? 'longtask' : '';
+      if (!performanceDiagnostics.lifecycleBound) {
+        performanceDiagnostics.lifecycleBound = true;
+        window.addEventListener('pagehide', () => { stopFrameCapture('page-hidden'); stopPerformanceDiagnostics(); });
+        window.addEventListener('pageshow', event => { if (event.persisted) startPerformanceDiagnostics(); });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) stopFrameCapture('page-hidden'); });
+      }
+    }
+    function updateFrameCaptureControls() {
+      const capture = performanceDiagnostics.frameCapture, running = !!capture?.running;
+      const button = document.getElementById('record-performance-btn');
+      const status = document.getElementById('performance-recording-status');
+      if (button) { button.textContent = running ? 'Stop recording' : 'Record frames (60s)'; button.setAttribute('aria-pressed', String(running)); }
+      if (status) status.textContent = running ? 'Recording for up to 60 seconds. Return to Chat, then download the report after a spike.'
+        : capture ? `Recording stopped${capture.stopReason === 'page-hidden' ? ' when Chat was hidden' : ''}. Download the performance report.`
+        : 'Frame recording is off. Recent long frames are collected automatically.';
+    }
+    function stopFrameCapture(reason = 'stopped') {
+      const capture = performanceDiagnostics.frameCapture;
+      if (!capture?.running) return;
+      cancelAnimationFrame(performanceDiagnostics.frameRaf);
+      performanceDiagnostics.frameRaf = 0;
+      capture.running = false;
+      capture.durationMs = Math.round(performance.now() - capture.startedAt);
+      capture.stopReason = reason;
+      notePerformanceWork('frame-capture-stop');
+      updateFrameCaptureControls();
+    }
+    function startFrameCapture() {
+      if (performanceDiagnostics.frameCapture?.running || document.hidden) return;
+      const startedAt = performance.now();
+      const capture = { running: true, startedAt: Math.round(startedAt), durationMs: 0, stopReason: '',
+        intervals: 0, maxGapMs: 0, histogram: { upperBoundsMs: [20, 35, 50, 100, 250, null], counts: [0, 0, 0, 0, 0, 0] }, gaps: [] };
+      performanceDiagnostics.frameCapture = capture;
+      performanceDiagnostics.frameLastAt = 0;
+      notePerformanceWork('frame-capture-start');
+      const tick = at => {
+        performanceDiagnostics.frameRaf = 0;
+        if (!capture.running) return;
+        if (document.hidden) { stopFrameCapture('page-hidden'); return; }
+        if (performanceDiagnostics.frameLastAt) {
+          const gap = at - performanceDiagnostics.frameLastAt;
+          capture.intervals++;
+          capture.maxGapMs = Math.max(capture.maxGapMs, Math.round(gap * 10) / 10);
+          let bucket = 0;
+          while (bucket < 5 && gap > capture.histogram.upperBoundsMs[bucket]) bucket++;
+          capture.histogram.counts[bucket]++;
+          if (gap > 35) {
+            capture.gaps.push({ at: Math.round(at), duration: Math.round(gap * 10) / 10 });
+            if (capture.gaps.length > 120) capture.gaps.shift();
+          }
+        }
+        performanceDiagnostics.frameLastAt = at;
+        if (at - startedAt >= 60000) { stopFrameCapture('time-limit'); return; }
+        performanceDiagnostics.frameRaf = requestAnimationFrame(tick);
+      };
+      performanceDiagnostics.frameRaf = requestAnimationFrame(tick);
+      updateFrameCaptureControls();
     }
     function performanceReport() {
+      flushPerformanceDiagnostics();
+      const capture = performanceDiagnostics.frameCapture;
       return { version: APP_VERSION, uptimeMs: Math.round(performance.now()),
         environment: { chromium: navigator.userAgent.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1] || '',
           chromebook: /\bCrOS\b/.test(navigator.userAgent), memoryGB: navigator.deviceMemory || null,
@@ -6384,10 +6484,21 @@ void main() {
           mountedMessages: qsa('#message-list .msg').length, images: document.images.length,
           backgroundCanvases: qsa('#chat-background-stage canvas').length, voicePeers: voice.peers.size },
         realtime: { healthy: realtimeHealthy(), generation: realtimeGen },
-        timingType: performanceDiagnostics.type, slowFrames: performanceDiagnostics.total,
-        samples: performanceDiagnostics.samples.slice(), work: performanceDiagnostics.work.slice() };
+        timingType: performanceDiagnostics.type,
+        slowFrames: performanceDiagnostics.type === 'long-animation-frame' ? performanceDiagnostics.total : null,
+        coverage: { active: !!(performanceDiagnostics.observer || performanceDiagnostics.taskObserver),
+          embedded: window.parent !== window,
+          frameObserver: !!performanceDiagnostics.observer, taskObserver: !!performanceDiagnostics.taskObserver,
+          frameScope: performanceDiagnostics.scope, ancestorDepth: performanceDiagnostics.ancestorDepth,
+          rootClockOffsetMs: Math.round(performanceDiagnostics.clockOffset) },
+        samples: performanceDiagnostics.samples.slice(),
+        longTasks: { total: performanceDiagnostics.taskTotal, samples: performanceDiagnostics.tasks.slice() },
+        frameCapture: capture ? { ...capture, durationMs: capture.running ? Math.round(performance.now() - capture.startedAt) : capture.durationMs,
+          histogram: { upperBoundsMs: capture.histogram.upperBoundsMs.slice(), counts: capture.histogram.counts.slice() }, gaps: capture.gaps.slice() } : null,
+        work: performanceDiagnostics.work.slice() };
     }
     function exportPerformanceReport() {
+      stopFrameCapture('download');
       const blob = new Blob([JSON.stringify(performanceReport(), null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob), link = document.createElement('a');
       link.href = url; link.download = `liminal-performance-${APP_VERSION}.json`; link.click();
@@ -18835,6 +18946,7 @@ void main() {
       });
       $('change-pass-btn').addEventListener('click', changePassword);
       $('export-data-btn').addEventListener('click', exportLocalData);
+      $('record-performance-btn').addEventListener('click', () => performanceDiagnostics.frameCapture?.running ? stopFrameCapture() : startFrameCapture());
       $('export-performance-btn').addEventListener('click', exportPerformanceReport);
       $('import-data-btn').addEventListener('click', () => $('import-data-input').click());
       $('import-data-input').addEventListener('change', () => {

@@ -18,23 +18,36 @@ const label=process.argv[3]||'audit-before';
 const quick=process.argv.includes('--quick');
 const noMedia=process.argv.includes('--no-media');
 const realistic=process.argv.includes('--realistic');
+const launcher=process.argv.includes('--launcher');
 let html=await fs.readFile(source,'utf8');
 html=html.replace(/    initAuthRays\(\);\s*whenSupabaseReady\(\)\.then\(\(ready\) => \{[\s\S]*?\n    \}\);/,'    window.__auditReady=true;');
+// Preserve the real loader, srcdoc assignment and handshake; fixture only its backend.
+const launcherHtml=launcher?(await fs.readFile(path.join(repo,'Chat/liminal-chat-launcher.html'),'utf8')).replace('watchForceRefresh();',`window.supabase.createClient=()=>({
+ from(){const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:{value:''}})};return q},
+ channel(){return {on(){return this},subscribe(fn){queueMicrotask(()=>fn('SUBSCRIBED'));return this}}}
+});watchForceRefresh();`):'';
 const files=(await fs.readdir(mediaDir)).filter(x=>x.endsWith('.gif'));
 if(!files.length)throw Error('CHAT_MEDIA_DIR contains no .gif files');
 const assets=await Promise.all(files.map(f=>fs.readFile(path.join(mediaDir,f))));
 const browser=await chromium.launch({...(process.env.CHAT_BROWSER_PATH?{executablePath:process.env.CHAT_BROWSER_PATH}:{}),headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
-const page=await browser.newPage({viewport:{width:1366,height:768},userAgent:'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/147.0.0.0 Safari/537.36',reducedMotion:'no-preference'});
+const host=await browser.newPage({viewport:{width:1366,height:768},userAgent:'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/147.0.0.0 Safari/537.36',reducedMotion:'no-preference'});
+let page=host;
 const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('PAGEERROR',e.message)});
 await page.route('**/*',async route=>{
  const url=new URL(route.request().url());
- if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html});
+ if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:launcher?launcherHtml:html});
+ if(url.pathname.endsWith('/chat.html'))return route.fulfill({contentType:'text/html',headers:{'access-control-allow-origin':'*'},body:html});
  if(url.pathname.startsWith('/media/'))return route.fulfill({contentType:'image/gif',body:assets[Number(url.pathname.split('/')[2])%assets.length]});
  return route.fulfill({status:200,contentType:'application/json',body:'{}'});
 });
-await page.goto('https://liminal.test/');await page.waitForFunction(()=>window.__auditReady);
-const cdp=await page.context().newCDPSession(page);
+await host.goto('https://liminal.test/');
+if(launcher){
+ await host.waitForFunction(()=>document.getElementById('chat-frame')?.contentWindow?.__auditReady);
+ page=host.frames().find(frame=>frame.parentFrame());
+}
+await page.waitForFunction(()=>window.__auditReady);
+const cdp=await host.context().newCDPSession(host);
 await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
 await cdp.send('Performance.enable');
 await cdp.send('Tracing.start',{categories:'devtools.timeline,v8.execute,blink.user_timing,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,disabled-by-default-devtools.timeline.frame',transferMode:'ReturnAsStream'});
@@ -42,7 +55,9 @@ await cdp.send('Tracing.start',{categories:'devtools.timeline,v8.execute,blink.u
  Object.defineProperty(navigator,'deviceMemory',{configurable:true,get:()=>8});
  window.__audit={calls:{},longTasks:[],loafs:[],frames:[],requests:{},phases:[],lastFrame:0};
  new PerformanceObserver(list=>list.getEntries().forEach(e=>__audit.longTasks.push({start:e.startTime,ms:e.duration}))).observe({type:'longtask',buffered:true});
- if(PerformanceObserver.supportedEntryTypes.includes('long-animation-frame'))new PerformanceObserver(list=>list.getEntries().forEach(e=>__audit.loafs.push({start:e.startTime,ms:e.duration,blocking:e.blockingDuration,renderStart:e.renderStart,style:e.styleAndLayoutStart,scripts:e.scripts.map(s=>({name:s.sourceFunctionName,line:s.sourceCharPosition,duration:s.duration,layout:s.forcedStyleAndLayoutDuration,invoker:s.invoker,type:s.invokerType}))}))).observe({type:'long-animation-frame',buffered:true});
+ let timingRoot=window;try{while(timingRoot.parent!==timingRoot&&timingRoot.parent.document)timingRoot=timingRoot.parent}catch{}
+ const clockOffset=timingRoot.performance.timeOrigin-performance.timeOrigin;
+ if(timingRoot.PerformanceObserver.supportedEntryTypes.includes('long-animation-frame'))new timingRoot.PerformanceObserver(list=>list.getEntries().forEach(e=>__audit.loafs.push({start:e.startTime+clockOffset,ms:e.duration,blocking:e.blockingDuration,renderStart:e.renderStart?e.renderStart+clockOffset:0,style:e.styleAndLayoutStart?e.styleAndLayoutStart+clockOffset:0,scripts:e.scripts.map(s=>({name:s.sourceFunctionName,line:s.sourceCharPosition,duration:s.duration,layout:s.forcedStyleAndLayoutDuration,invoker:s.invoker,type:s.invokerType}))}))).observe({type:'long-animation-frame'});
  const tick=t=>{if(__audit.lastFrame)__audit.frames.push({at:t,ms:t-__audit.lastFrame});__audit.lastFrame=t;requestAnimationFrame(tick)};requestAnimationFrame(tick);
  for(const name of ['renderMembers','renderDmList','renderChannels','patchPresenceDots','pinToBottom','autogrow','renderTimeline','refreshTimelineForAuthor','handleProfileChange','ingestMessage','applyFeatureControls','renderSelf','markViewRead','refreshPollTimers','catchUpPoll','refreshConversations','scheduleRealtimeRecover','attachLinkPreview']){
   const original=window[name];window[name]=function(...args){const start=performance.now();try{return original.apply(this,args)}finally{const item=__audit.calls[name]||={count:0,ms:0,max:0};const duration=performance.now()-start;item.count++;item.ms+=duration;item.max=Math.max(item.max,duration)}};
@@ -85,6 +100,27 @@ await page.waitForTimeout(3000);
 const results={};
 if(verify){
  assert.equal(await page.locator('#chat-background-stage canvas').count(),0);
+ // A positive control proves the recorder sees an actual child-thread stall,
+ // rather than just reporting that its observer was successfully registered.
+ const before=await page.evaluate(()=>performanceReport());
+ await page.evaluate(()=>openSettings('security'));await page.click('#record-performance-btn');
+ assert.equal(await page.locator('#record-performance-btn').getAttribute('aria-pressed'),'true');
+ await page.evaluate(()=>$('settings-dialog').close());await host.waitForTimeout(80);
+ await page.evaluate(()=>new Promise(resolve=>setTimeout(function fixtureKnownStall(){
+  notePerformanceWork('fixture-known-stall');const start=performance.now();while(performance.now()-start<180){}
+  document.getElementById('char-count').textContent='Fixture changed';resolve();
+ },30)));
+ await page.waitForFunction(before=>performanceReport().slowFrames>before.slowFrames&&performanceReport().longTasks.total>before.longTasks.total,before);
+ await host.waitForTimeout(80);await page.evaluate(()=>openSettings('security'));await page.click('#record-performance-btn');
+ assert.equal(await page.locator('#record-performance-btn').getAttribute('aria-pressed'),'false');
+ await page.evaluate(()=>$('settings-dialog').close());
+ const probe=await page.evaluate(()=>performanceReport());
+ assert(probe.slowFrames>before.slowFrames&&probe.samples.some(s=>s.duration>=150),'known stall reaches the production frame recorder');
+ assert(probe.longTasks.total>before.longTasks.total,'local task recorder also sees the stall');
+ assert(probe.frameCapture.maxGapMs>=100,'opt-in capture sees the missed frame intervals');
+ assert.equal(probe.frameCapture.running,false);
+ assert.equal(probe.coverage.frameScope,launcher?'same-origin-root':'document');
+ assert.equal(await page.evaluate(()=>performanceDiagnostics.frameRaf),0);
  await page.evaluate(()=>{window.fixtureRetainedNode=$('message-list').querySelectorAll('.msg')[10];window.fixtureRetainedImage=$('message-list').querySelector('.msg-media img')});
 }
 async function phase(name,ms,work){
@@ -112,8 +148,18 @@ if(verify){
  assert(await page.evaluate(()=>fixtureRetainedNode.isConnected&&fixtureAuthorMedia===fixtureRetainedNode.querySelector('.msg-cards')),'profile changes retain timeline/media identity');
  assert.equal(await page.locator(`[data-id="${beforeAuthor}"] .msg-author`).textContent(),'Renamed fixture');
  await page.evaluate(()=>openSettings('security'));
- const download=page.waitForEvent('download');await page.click('#export-performance-btn');const artifact=await download;const reportPath=path.join(root,label+'-download.json');await artifact.saveAs(reportPath);
+ await page.click('#record-performance-btn');await host.waitForTimeout(80);
+ const download=host.waitForEvent('download');await page.click('#export-performance-btn');const artifact=await download;const reportPath=path.join(root,label+'-download.json');await artifact.saveAs(reportPath);
  const report=JSON.parse(await fs.readFile(reportPath,'utf8'));assert.equal(report.counts.backgroundCanvases,0);assert(!JSON.stringify(report).includes('member_'));assert(report.samples.length<=120);
+ assert.equal(report.frameCapture.running,false);assert.equal(report.frameCapture.stopReason,'download');
+ assert.equal(await page.evaluate(()=>performanceDiagnostics.frameRaf),0);
+ for(const [width,height]of [[1536,839],[320,720]]){
+  await host.setViewportSize({width,height});await page.locator('#record-performance-btn').scrollIntoViewIfNeeded();
+  const controls=await page.locator('#record-performance-btn,#export-performance-btn,#performance-recording-status').evaluateAll(nodes=>nodes.map(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right,width:n.clientWidth,scroll:n.scrollWidth})));
+  assert(controls.every(c=>c.left>=0&&c.right<=width+1&&c.scroll<=c.width+1),'troubleshooting controls fit the viewport');
+  await host.screenshot({path:path.join(root,`${label}-troubleshooting-${width}.png`)});
+ }
+ await host.setViewportSize({width:1366,height:768});
  await page.evaluate(()=>$('settings-dialog').close());
  // Exercise a Latest click inside the history anchoring interval, not only
  // several seconds later after the interval has already elapsed.
@@ -159,5 +205,6 @@ await phase('all-media-hidden',quick?2000:6000,()=>page.addStyleTag({content:'.a
 const done=new Promise(resolve=>cdp.once('Tracing.tracingComplete',resolve));await cdp.send('Tracing.end');const {stream}=await done;
 const trace=await fs.open(`${root}/${label}-trace.json`,'w');for(;;){const part=await cdp.send('IO.read',{handle:stream});await trace.write(part.data);if(part.eof)break}await trace.close();await cdp.send('IO.close',{handle:stream});
 results.errors=errors;await fs.writeFile(`${root}/${label}.json`,JSON.stringify(results,null,2));
+assert.deepEqual(errors,[],'no uncaught application errors');
 console.log('RESULT',JSON.stringify({errors,phases:Object.keys(results)}));
 }finally{await browser.close()}
