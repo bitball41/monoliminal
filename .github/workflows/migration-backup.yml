@@ -1,0 +1,68 @@
+name: Encrypted Liminal migration backup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/liminal-migration-backup]
+    paths:
+      - '.github/workflows/migration-backup.yml'
+      - 'scripts/migration_backup*'
+      - 'config/migration-source.json'
+  pull_request:
+    paths:
+      - '.github/workflows/migration-backup.yml'
+      - 'scripts/migration_backup*'
+      - 'config/migration-source.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test export guards and actual encryption
+        run: python3 -m unittest discover -s scripts -p 'migration_backup_test.py' -v
+
+  backup:
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    concurrency:
+      group: liminal-readonly-migration-backup
+      cancel-in-progress: false
+    env:
+      LIMINAL_SOURCE_DB_URL: ${{ secrets.LIMINAL_SOURCE_DB_URL }}
+      LIMINAL_SOURCE_STORAGE_KEY: ${{ secrets.LIMINAL_SOURCE_STORAGE_KEY || secrets.SUPABASE_DEPLOY_KEY }}
+      LIMINAL_SOURCE_ACCESS_TOKEN: ${{ secrets.LIMINAL_SOURCE_ACCESS_TOKEN }}
+      LIMINAL_BACKUP_PASSPHRASE: ${{ secrets.LIMINAL_BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check source identity and required secrets
+        run: python3 scripts/migration_backup.py --preflight
+      - name: Install database query client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends postgresql-client gnupg
+      - name: Export and verify encrypted backup
+        run: python3 scripts/migration_backup.py --bootstrap-cli --output-dir "$RUNNER_TEMP/liminal-encrypted-output"
+      - name: Keep encrypted export and credential-free summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: liminal-encrypted-backup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/liminal-encrypted-output/liminal-backup.tar.gz.gpg
+            ${{ runner.temp }}/liminal-encrypted-output/summary.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove runner output
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/liminal-encrypted-output"
