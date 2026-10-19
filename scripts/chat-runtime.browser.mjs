@@ -17,7 +17,8 @@ const source=process.argv[2]||path.join(repo,'Chat/chat.html');
 const label=process.argv[3]||'audit-before';
 const quick=process.argv.includes('--quick');
 const noMedia=process.argv.includes('--no-media');
-const realistic=process.argv.includes('--realistic');
+const mediaRegression=process.argv.includes('--media-regression');
+const realistic=process.argv.includes('--realistic')||mediaRegression;
 const launcher=process.argv.includes('--launcher');
 let html=await fs.readFile(source,'utf8');
 html=html.replace(/    initAuthRays\(\);\s*whenSupabaseReady\(\)\.then\(\(ready\) => \{[\s\S]*?\n    \}\);/,'    window.__auditReady=true;');
@@ -31,7 +32,7 @@ if(!files.length)throw Error('CHAT_MEDIA_DIR contains no .gif files');
 const assets=await Promise.all(files.map(f=>fs.readFile(path.join(mediaDir,f))));
 const browser=await chromium.launch({...(process.env.CHAT_BROWSER_PATH?{executablePath:process.env.CHAT_BROWSER_PATH}:{}),headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
-const host=await browser.newPage({viewport:{width:1366,height:768},userAgent:'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/147.0.0.0 Safari/537.36',reducedMotion:'no-preference'});
+const host=await browser.newPage({viewport:mediaRegression?{width:1536,height:839}:{width:1366,height:768},...(mediaRegression?{deviceScaleFactor:1.25}:{}),userAgent:'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/147.0.0.0 Safari/537.36',reducedMotion:'no-preference'});
 let page=host;
 const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('PAGEERROR',e.message)});
 await page.route('**/*',async route=>{
@@ -134,6 +135,28 @@ async function phase(name,ms,work){
  for(const key of ['LayoutCount','RecalcStyleCount','LayoutDuration','RecalcStyleDuration','ScriptDuration','TaskDuration','JSHeapUsedSize'])result[key]=+(metric(after,key)-metric(before,key)).toFixed(4);
  results[name]=result;console.log(name,JSON.stringify(result));
 }
+if(mediaRegression){
+ // Rotating rings can mask GIF-only rendering stalls. Compare identical media
+ // with and without the production compositing rule, twice in the same boot.
+ await page.addStyleTag({content:'.avatar.ring-anim::before{animation:none!important}'});
+ const imagesBefore=await page.locator('.avatar img,.msg-media img').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));
+ for(const attempt of [1,2]){
+  const oldPaint=await page.addStyleTag({content:'.avatar img,.msg-media img{transform:none!important}'});
+  await host.waitForTimeout(1000);await phase(`media-before-${attempt}`,5000);
+  await oldPaint.evaluate(el=>el.remove());
+  await host.waitForTimeout(1000);await phase(`media-after-${attempt}`,5000);
+  const before=results[`media-before-${attempt}`],after=results[`media-after-${attempt}`];
+  assert(after.p95<=35,`composited GIF scene stays responsive: ${after.p95} ms p95`);
+  if(before.p95>50)assert(after.p95<before.p95*.6,'reproduced GIF stalls fall with compositing enabled');
+ }
+ assert.deepEqual(await page.locator('.avatar img,.msg-media img').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src'))),imagesBefore,'promotion preserves every original image URL');
+ const layers=await page.evaluate(()=>({visible:[...document.querySelectorAll('.avatar[data-media-visible="true"] img')].filter(n=>getComputedStyle(n).transform!=='none').length,
+  offscreen:[...document.querySelectorAll('.avatar[data-media-visible="false"] img')].filter(n=>getComputedStyle(n).transform!=='none').length}));
+ assert(layers.visible>0);assert.equal(layers.offscreen,0,'offscreen avatars do not retain promoted layers');
+ await page.evaluate(()=>document.documentElement.setAttribute('data-ring-paused',''));
+ assert.equal(await page.locator('.avatar img,.msg-media img').evaluateAll(nodes=>nodes.filter(n=>getComputedStyle(n).transform!=='none').length),0,'hiding the tab releases image layers');
+ console.log('MEDIA_VERIFIED',JSON.stringify(layers));
+}else{
 await phase('idle',quick?6000:21000);
 await phase('messages',quick?3500:10000,()=>page.evaluate(()=>{let i=700;window.fixtureMessageTimer=setInterval(()=>{const row=fixtureRow(i++);fixtureMessages.push(row);fixtureEmit('messages','INSERT',row);if(i>=706)clearInterval(fixtureMessageTimer)},450)}));
 await phase('history',quick?4000:10000,async()=>{for(let i=0;i<3;i++){await page.evaluate(()=>loadOlder());if(verify)assert(await page.evaluate(()=>fixtureRetainedNode.isConnected&&(!fixtureRetainedImage||fixtureRetainedImage.isConnected)),'history retains existing message/image nodes')}await page.evaluate(()=>{releaseBottomPin();$('timeline').scrollTop=0})});
@@ -190,18 +213,21 @@ if(verify){
  const offscreen=await page.evaluate(()=>{
   const image=document.querySelector('.avatar[data-media-visible="false"] img');
   if(!image)return null;
-  window.fixtureOffscreenImage=image;return{src:image.getAttribute('src'),visibility:getComputedStyle(image).visibility};
+  window.fixtureOffscreenImage=image;return{src:image.getAttribute('src'),visibility:getComputedStyle(image).visibility,transform:getComputedStyle(image).transform};
  });
  if(offscreen){
   assert.equal(offscreen.visibility,'hidden');
+  assert.equal(offscreen.transform,'none');
   await page.evaluate(()=>fixtureOffscreenImage.closest('.member-row,.dm-button,.msg')?.scrollIntoView({block:'center'}));
   await page.waitForFunction(()=>getComputedStyle(fixtureOffscreenImage).visibility==='visible');
+  assert.notEqual(await page.evaluate(()=>getComputedStyle(fixtureOffscreenImage).transform),'none');
   assert.equal(await page.evaluate(()=>fixtureOffscreenImage.getAttribute('src')),offscreen.src,'scrolling restores the original full-resolution image');
  }
  console.log('VERIFIED',JSON.stringify({bounds,diagnostics:report.timingType,slowFrames:report.slowFrames}));
 }
 await phase('rings-paused',quick?2000:6000,()=>page.addStyleTag({content:'.avatar.ring-anim::before{animation:none!important}'}));
 await phase('all-media-hidden',quick?2000:6000,()=>page.addStyleTag({content:'.avatar img,.msg-media img{visibility:hidden!important}'}));
+}
 const done=new Promise(resolve=>cdp.once('Tracing.tracingComplete',resolve));await cdp.send('Tracing.end');const {stream}=await done;
 const trace=await fs.open(`${root}/${label}-trace.json`,'w');for(;;){const part=await cdp.send('IO.read',{handle:stream});await trace.write(part.data);if(part.eof)break}await trace.close();await cdp.send('IO.close',{handle:stream});
 results.errors=errors;await fs.writeFile(`${root}/${label}.json`,JSON.stringify(results,null,2));

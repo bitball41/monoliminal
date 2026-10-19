@@ -1,8 +1,69 @@
-# Chat performance audit — 2.24.4
+# Chat performance audit — 2.24.5
 
 The reported symptom is intermittent, page-wide frame drops on an 8 GB
 Chromebook with backgrounds Off and about three people online. Earlier narrow
 profile/ring tests did not establish the cause of the user's remaining spikes.
+
+## On-device captures and rendering repair in 2.24.5
+
+The two 2.24.4 uploads confirm that the corrected recorder sees real stalls.
+They are successive snapshots at about 32 and 33 minutes in the same session,
+with backgrounds Off, no voice peers and a healthy realtime connection.
+The first minute-long recording contains 3,054 frame intervals, 130 over
+35 ms, and a maximum gap of 233.3 ms. The second contains 2,294 intervals,
+268 over 35 ms, and a maximum gap of 499.9 ms. Only one and two long tasks,
+respectively, overlap those recordings. Most of the recent root-frame entries
+have zero blocking time and complete within a few milliseconds of renderStart.
+This points the investigation toward rendering and scheduling; it does not
+identify a particular GPU driver or prove that no JavaScript contributed.
+
+Total image counts are 533 and 545. A controlled test with 400 images retained
+in a closed GIF picker does not reproduce the slowdown: p95 remains 16.7 ms.
+The current 17 public GIF avatar sources are the same sources used by the
+existing offline media fixture. There is no evidence for blaming a new avatar
+or a high online-member count.
+
+The matching rendering failure reproduces in Chrome 147 with the full app
+inside the actual launcher, backgrounds Off, the representative GIF media,
+four-times CPU throttling, software graphics, and a 1536×839 viewport at DPR
+1.25. Rotating CSS rings can mask the failure: stopping them while GIFs remain
+visible produces long frame intervals even though main-thread work is low.
+Isolating the visible avatar and message images into their own compositor
+layers restores regular frame delivery. Removing that change restores the
+slowdown in the same browser session.
+
+| Repeated comparison | Old paint path, p95 | Visible image layers, p95 |
+| --- | --- | --- |
+| A | 99.9 ms | 16.7 ms |
+| B | 99.9 ms | 16.7 ms |
+| C | 83.4 ms | 16.8 ms |
+
+These are five-second measurement windows after a one-second settling period
+for the style changes. One revised window still had an isolated 150 ms gap;
+the result does not establish that every possible stall is eliminated.
+
+The production change adds `transform: translateZ(0)` only to visible avatar
+and message-media images, using the existing intersection and hidden-tab
+state. It releases promotion when an image leaves the viewport or the tab is
+hidden. Image URLs, resolution, animation, rings and backgrounds are preserved.
+It adds no timer, animation loop, image conversion or backend change.
+
+The browser harness now has a `--media-regression` mode that disables the new
+paint rule, restores it, repeats the comparison, and verifies original image
+URLs plus offscreen/hidden-tab layer release. The full boot/UI regression also
+checks that scrolling an avatar back into view restores its promotion.
+This repairs a reproduced GIF rendering path; confirmation on the physical
+Chromebook remains necessary before declaring the reported spikes resolved.
+The repeated browser regression passes in both Chrome 147 and 153. The full
+launcher/UI regression passes with no uncaught errors, all 165 unit tests pass,
+and deployment validation passes for all eight HTML artifacts.
+
+```sh
+CHAT_BROWSER_PATH=/path/to/chromium \
+CHAT_MEDIA_DIR=/path/to/gif-test-assets \
+CHAT_AUDIT_OUTPUT=/tmp/chat-media-audit \
+node scripts/chat-runtime.browser.mjs Chat/chat.html media --launcher --media-regression
+```
 
 ## Recorder correction in 2.24.4
 
@@ -189,6 +250,7 @@ usernames, profile URLs, tokens or stored drafts. There is no network uploader.
 An unsupported long-frame count is `null`, rather than a misleading zero.
 
 Relevant platform references: [long animation frames](https://developer.chrome.com/docs/web-platform/long-animation-frames),
+[measured layer promotion](https://web.dev/articles/animations-guide#force_layer_creation),
 [same-origin root reporting](https://www.w3.org/TR/long-animation-frames/#sec-limitations),
 [content visibility](https://web.dev/articles/content-visibility), and
 [native field sizing](https://developer.chrome.com/docs/css-ui/css-field-sizing).

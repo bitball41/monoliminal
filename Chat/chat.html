@@ -488,6 +488,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     html[data-ring-paused] .msg-media img { visibility: hidden; }
     html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
     html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
+    /* Isolate visible animated images from the surrounding paint surface.
+       GIF-only scenes can stall in Chromium even with an idle UI thread.
+       Release the layer as soon as the image leaves view or the tab is hidden. */
+    html[data-ring-visibility]:not([data-ring-paused]) .avatar[data-media-visible="true"] img,
+    html[data-ring-visibility]:not([data-ring-paused]) .msg[data-media-visible="true"] .msg-media img {
+      transform: translateZ(0);
+    }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .avatar.has-ring.ring-anim::before { animation: none; } }
     .avatar-xs { width: 22px; height: 22px; font-size: 0.55rem; }
@@ -5078,7 +5085,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.4";
+    const APP_VERSION = "2.24.5";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
