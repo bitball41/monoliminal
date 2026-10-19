@@ -8,6 +8,14 @@ Tracked deployed source:
   `persona.ts` with `verify_jwt: true`; it also validates Auth and the current
   profile. Reuses the existing OpenAI server secret. The Noelle AI migration
   must be applied before deploying the function and Chat client.
+  Public examples include bounded response context and topic matches; the
+  caller's channel conversation stays separate from those historical examples.
+  Chat mirrors the configured source profile's exact avatar, raw ring and bio
+  through the owner-only profile RPC, keeping the bot's AI label and member role.
+  Structured replies can request an optional GIF search through the existing
+  authenticated `klipy-gifs` function (which uses its high content filter).
+  The server validates returned media hosts, saves text and GIF atomically, and
+  falls back to text if GIF search fails or GIFs are disabled.
 
 - `liminal-drive`: public listing, file streaming, range requests, and download responses.
 - `liminal-drive-admin`: verified Liminal profiles, role-based uploads, signed URLs, multipart uploads, folders, and file management.

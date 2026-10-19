@@ -108,6 +108,7 @@ function chatPresence() {
     STATUS_META: { online: {}, idle: {}, dnd: {} },
     profileOf: username => profiles.get(username) || { username, custom_status: '' },
     isHiddenBot: username => username === 'hidden-bot',
+    noelleSourceProfile: null, isOwner: () => false, loadNoelleProfile() {},
     $: element, qsa: () => [],
     scheduleRenderMembers: () => context.renderMembers(),
     patchPresenceDots() {}, renderSelf() {},

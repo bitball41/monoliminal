@@ -1,4 +1,4 @@
-import { MODEL, MAX_OUTPUT_TOKENS, INSTRUCTIONS, buildInput, extractReply, usageMicros } from "./persona.ts";
+import { MODEL, MAX_OUTPUT_TOKENS, INSTRUCTIONS, REPLY_FORMAT, buildInput, extractReply, gifUrl, usageMicros } from "./persona.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -76,14 +76,28 @@ export function createHandler(deps: { env: (name: string) => string | undefined;
         method: "POST", signal: AbortSignal.timeout(45_000),
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: MODEL, instructions: INSTRUCTIONS, input, reasoning: { effort: "none" },
-          max_output_tokens: MAX_OUTPUT_TOKENS, store: false, safety_identifier: safetyId }),
+          text: { format: REPLY_FORMAT }, max_output_tokens: MAX_OUTPUT_TOKENS, store: false, safety_identifier: safetyId }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(`provider_${response.status}`);
       cost = usageMicros(payload?.usage);
       const reply = extractReply(payload);
+      let mediaUrl: string | null = null;
+      if (claim.data.gifs_enabled === true && reply.gif_query) {
+        // Reuse the signed-in, high-content-filter GIF service. Never give
+        // the model control of a URL or forward the conversation to search.
+        try {
+          const gifResponse = await deps.fetch(`${url}/functions/v1/klipy-gifs?q=${encodeURIComponent(reply.gif_query)}`, {
+            headers: { apikey: publicKey, Authorization: authorization }, signal: AbortSignal.timeout(8000),
+          });
+          if (gifResponse.ok) {
+            const gifs = await gifResponse.json();
+            mediaUrl = (Array.isArray(gifs.items) ? gifs.items : []).map((item: any) => gifUrl(item?.url)).find(Boolean) || null;
+          }
+        } catch { /* A GIF outage must not lose the generated text reply. */ }
+      }
       const finish = await admin.rpc("chat_noelle_finish", { p_source_message_id: sourceId, p_actor_user_id: actorId,
-        p_content: reply, p_cost_micros: cost });
+        p_content: reply.text, p_cost_micros: cost, p_gif_url: mediaUrl });
       if (finish.error) throw new Error("reply_save_failed");
       return json({ ok: true, model: MODEL, ...finish.data });
     } catch (error) {

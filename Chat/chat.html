@@ -5062,16 +5062,34 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.0";
+    const APP_VERSION = "2.24.1";
     const SUPABASE_URL = 'https://ucgjwrjqmexenmrpbdkh.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL';
     const HIDDEN_BOT_USERNAME = 'Luna';
     const NOELLE_AI_USERNAME = 'NoelleAI';
     const NOELLE_AI_PROFILE = Object.freeze({ username: NOELLE_AI_USERNAME, display_name: 'Noelle AI',
-      color: '#c4b5fd', pfp: '', tag: 'AI', bio: 'Owner preview. Mention @NoelleAI in a channel. Prompts and replies are visible to owners only.',
+      color: '#c4b5fd', pfp: '', ring: '', tag: 'AI', bio: '',
       banner: '', custom_status: '', staff_role: 'member', user_id: null });
+    let noelleSourceProfile = null;
+    function noelleAIProfile() {
+      const source = profiles.get(noelleSourceProfile?.source_username) || noelleSourceProfile || {};
+      return { ...NOELLE_AI_PROFILE, pfp: source.pfp ?? noelleSourceProfile?.pfp ?? '',
+        ring: source.ring ?? noelleSourceProfile?.ring ?? '', bio: source.bio ?? noelleSourceProfile?.bio ?? '' };
+    }
+    async function loadNoelleProfile() {
+      if (!isOwner()) { noelleSourceProfile = null; return; }
+      const { data, error } = await sb.rpc('chat_noelle_profile');
+      if (!error && data && isOwner()) {
+        noelleSourceProfile = data;
+        const source = profiles.get(data.source_username);
+        if (source) Object.assign(source, { pfp: data.pfp, ring: data.ring, bio: data.bio });
+        refreshTimelineForAuthor(NOELLE_AI_USERNAME);
+      }
+    }
     function isNoelleAI(username) { return String(username || '').toLowerCase() === 'noelleai'; }
     function clearNoelleOwnerPreview() {
+      noelleSourceProfile = null;
+      profileDetailLoaded.delete(NOELLE_AI_USERNAME);
       msgCache.forEach((rows, key) => setViewMessages(key, rows.filter(row => !row.owner_preview)));
       historyContexts.forEach(context => {
         context.rows.filter(row => row.owner_preview).forEach(unindexMessage);
@@ -7162,7 +7180,7 @@ void main() {
       return msgById.get(id) || null;
     }
     function profileOf(username) {
-      if (isNoelleAI(username)) return NOELLE_AI_PROFILE;
+      if (isNoelleAI(username)) return noelleAIProfile();
       return profiles.get(username) || { username, display_name: username, color: '#a78bfa', pfp: '', tag: '', bio: '', banner: '', custom_status: '' };
     }
     function displayNameOf(profileOrUsername) {
@@ -7734,6 +7752,11 @@ void main() {
       if (!username || profileDetailLoaded.has(username)) return;
       profileDetailLoaded.add(username);
       try {
+        if (isNoelleAI(username)) {
+          await loadNoelleProfile();
+          if (!noelleSourceProfile) profileDetailLoaded.delete(username);
+          return;
+        }
         const { data, error } = await sb.from('profiles')
           .select(PROFILE_DETAIL_COLUMNS).eq('username', username).maybeSingle();
         if (error || !data) { profileDetailLoaded.delete(username); return; }
@@ -7769,6 +7792,7 @@ void main() {
         profiles.set(p.username, p);
       });
       if (me) profiles.set(me.username, { ...profiles.get(me.username), ...me });
+      await loadNoelleProfile();
     }
 
     async function loadChannels() {
@@ -13103,6 +13127,7 @@ void main() {
         const nextRole = staffRoleOf({ ...me, ...merged });
         me = { ...me, ...merged };
         if (['owner', 'preston'].includes(prevRole) && !isOwner()) clearNoelleOwnerPreview();
+        if (!['owner', 'preston'].includes(prevRole) && isOwner()) void loadNoelleProfile();
         if (merged.is_banned) { showBanned(merged); return; }
         if (merged.kicked_at && merged.kicked_at > bootedAt) {
           toast({ type: 'warning', title: 'Kicked', text: 'You were signed out by a moderator.' });
@@ -13129,6 +13154,10 @@ void main() {
       const TIMELINE_IRRELEVANT = new Set(['status', 'custom_status', 'timeout_until', 'kicked_at', 'last_seen']);
       const timelineDirty = changed.some(k => !TIMELINE_IRRELEVANT.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
+      if (p.username === noelleSourceProfile?.source_username && timelineDirty) {
+        refreshTimelineForAuthor(NOELLE_AI_USERNAME);
+        if (hoverCardUser === NOELLE_AI_USERNAME && !$('hover-card').hidden) showHoverCard(NOELLE_AI_USERNAME, hoverCardAnchor);
+      }
       if (existing.sub_role !== merged.sub_role) {
         refreshSubroleMemberControls(p.username);
         if ($('subrole-dialog')?.open) renderSubroleDialog();
@@ -13804,7 +13833,7 @@ void main() {
         const byName = (a, b) => displayNameOf(profileOf(a)).localeCompare(displayNameOf(profileOf(b)));
         const names = online.sort(byName).concat(offline.sort(byName)).slice(0, 8);
         if (isOwner() && currentView.type === 'channel' && !isForumThreadView(currentView)
-          && channelById(currentView.id)?.kind === 'chat' && matchUser(NOELLE_AI_PROFILE)) names.unshift(NOELLE_AI_USERNAME);
+          && channelById(currentView.id)?.kind === 'chat' && matchUser(profileOf(NOELLE_AI_USERNAME))) names.unshift(NOELLE_AI_USERNAME);
         if (names.length) {
           acMode = 'mention';
           acTokenStart = upToCursor.length - m[1].length - 1;

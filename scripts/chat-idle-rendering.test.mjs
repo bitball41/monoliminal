@@ -108,6 +108,8 @@ function profileChanges() {
     currentView: { type: 'channel', id: 'general' }, bootedAt: '2026-10-18T02:00:00Z',
     voice: { peers: new Map() }, STAFF_ROLE_META: { member: { rank: 1 }, owner: { rank: 3 } },
     isHiddenBot: () => false, staffRoleOf: p => p.staff_role || 'member',
+    noelleSourceProfile: null, NOELLE_AI_USERNAME: 'NoelleAI', hoverCardUser: null,
+    isOwner: () => ['owner', 'preston'].includes(context.me?.staff_role), loadNoelleProfile() {},
     $: id => { if (!elements.has(id)) elements.set(id, { open: false, textContent: '' }); return elements.get(id); },
     requestAnimationFrame(fn) { const id = ++sequence; frames.set(id, fn); return id; },
     renderDmList: () => count('dms'), renderMembers: () => count('members'), renderSelf: () => count('self'),
