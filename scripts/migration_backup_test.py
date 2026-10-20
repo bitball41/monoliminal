@@ -139,6 +139,55 @@ class MigrationTests(unittest.TestCase):
             path.write_text(path.read_text() + 'COPY auth.users (id) FROM stdin;\n')
             backup.validate_data_dump(path, inventory)
 
+    def test_saved_queries_follow_pagination_and_keep_complete_sql(self):
+        values = [{"data": [{"id": "first", "name": "../../saved query"}], "cursor": "next page"},
+                  {"id": "first", "content": {"sql": "select 'unchanged SQL';\n"}},
+                  {"data": [{"id": "second"}], "cursor": None},
+                  {"id": "second", "content": {"sql": "select 'second query';"}}]
+        opener = Opener([json.dumps(v).encode() for v in values])
+        api = backup.Api("https://api.example", {}, opener=opener)
+        with tempfile.TemporaryDirectory() as temp:
+            payload = Path(temp)
+            self.assertEqual(backup.export_snippets(payload, api), 2)
+            self.assertEqual((payload / "sql-editor/00000000.sql").read_text(), "select 'unchanged SQL';\n")
+            self.assertEqual((payload / "sql-editor/00000001.sql").read_text(), "select 'second query';")
+            self.assertFalse((payload / "saved query").exists())
+        first = backup.urllib.parse.parse_qs(backup.urllib.parse.urlsplit(opener.requests[0].full_url).query)
+        next_page = backup.urllib.parse.parse_qs(backup.urllib.parse.urlsplit(opener.requests[2].full_url).query)
+        self.assertEqual(first["project_ref"], [backup.SETTINGS["projectRef"]])
+        self.assertEqual(next_page["cursor"], ["next page"])
+
+    def test_saved_query_missing_content_and_repeated_cursor_are_incomplete(self):
+        for values in ([{"data": [{"id": "first"}]}, {"id": "first", "content": {}}],
+                       [{"data": [], "cursor": "same"}, {"data": [], "cursor": "same"}]):
+            with self.subTest(values=values), tempfile.TemporaryDirectory() as temp:
+                api = backup.Api("https://api.example", {}, opener=Opener([json.dumps(v).encode() for v in values]))
+                with self.assertRaises(backup.BackupError):
+                    backup.export_snippets(Path(temp), api)
+
+    @unittest.skipUnless(shutil.which("gpg"), "GnuPG required")
+    def test_metadata_companion_needs_no_database_or_storage_credentials(self):
+        original_run = backup.run
+        def commands(command, **kwargs):
+            if command[0] == "gpg":
+                return original_run(command, **kwargs)
+            if kwargs.get("output"):
+                kwargs["output"].write_bytes(b"tracked source fixture")
+        env = {k: v for k, v in environment().items() if k in
+               ("LIMINAL_SOURCE_ACCESS_TOKEN", "LIMINAL_BACKUP_PASSPHRASE")}
+        with tempfile.TemporaryDirectory() as temp, \
+             patch.object(backup.shutil, "which", return_value="fixture-tool"), \
+             patch.object(backup, "install_cli", return_value="fixture-supabase"), \
+             patch.object(backup, "run", side_effect=commands), \
+             patch.object(backup, "query", side_effect=AssertionError("Database must not be queried")), \
+             patch.object(backup, "export_objects", side_effect=AssertionError("Storage must not be queried")), \
+             patch.object(backup, "export_management", return_value=2), \
+             patch.object(backup, "export_snippets", return_value=3):
+            summary = backup.perform(Path(temp) / "output", env, bootstrap=True, metadata_only=True)
+            self.assertEqual(summary["status"], "metadata-exported")
+            self.assertFalse(summary["database_exported"])
+            self.assertEqual((summary["functions"], summary["snippets"]), (2, 3))
+
     def test_added_changed_or_deleted_files_require_another_export(self):
         obj = {"id": "1", "name": "file", "version": "a"}
         before = {"objects": [obj]}

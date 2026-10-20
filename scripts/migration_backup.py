@@ -65,14 +65,17 @@ def storage_headers(key):
     raise BackupError("Storage export requires a server secret or service_role key, never a public key.")
 
 
-def credentials(env):
-    missing = [name for name in REQUIRED if not env.get(name)]
+def credentials(env, *, metadata_only=False):
+    required = ("LIMINAL_SOURCE_ACCESS_TOKEN", "LIMINAL_BACKUP_PASSPHRASE") if metadata_only else REQUIRED
+    missing = [name for name in required if not env.get(name)]
     if missing:
         raise BackupError("Missing repository secrets: " + ", ".join(missing))
     if len(env["LIMINAL_BACKUP_PASSPHRASE"]) < 24:
         raise BackupError("LIMINAL_BACKUP_PASSPHRASE must contain at least 24 characters.")
     if any(c in env["LIMINAL_BACKUP_PASSPHRASE"] for c in ("\n", "\r", "\0")):
         raise BackupError("Use a single-line backup passphrase.")
+    if metadata_only:
+        return {}  # Management requests use only the fixed source project ref below.
     url = urllib.parse.urlsplit(env["LIMINAL_SOURCE_DB_URL"])
     ref = SETTINGS["projectRef"]
     user = urllib.parse.unquote(url.username or "")
@@ -302,7 +305,11 @@ def export_management(payload, api, cli, env):
               "realtime": prefix + "/config/realtime", "storage": prefix + "/config/storage",
               "postgrest": prefix + "/postgrest", "secret-inventory": prefix + "/secrets"}
     for name, route in routes.items():
-        write_json(payload / "configuration" / (name + ".json"), api.fetch(route))
+        try:
+            value = api.fetch(route)
+        except BackupError as error:
+            raise BackupError("Configuration export failed for " + name + ": " + str(error)) from None
+        write_json(payload / "configuration" / (name + ".json"), value)
     functions = api.fetch(prefix + "/functions")
     if not isinstance(functions, list):
         raise BackupError("Function inventory did not return a complete list.")
@@ -320,6 +327,42 @@ def export_management(payload, api, cli, env):
     if signature(final) != signature(functions):
         raise BackupError("Backend source changed during export; take another backup.")
     return len(functions)
+
+
+def export_snippets(payload, api):
+    """Save SQL Editor queries separately from installed database definitions."""
+    entries, ids, cursors = [], set(), set()
+    cursor = None
+    folder = payload / "sql-editor"
+    folder.mkdir()
+    while True:
+        params = {"project_ref": SETTINGS["projectRef"], "limit": "100"}
+        if cursor:
+            params["cursor"] = cursor
+        page = api.fetch("/v1/snippets?" + urllib.parse.urlencode(params))
+        if not isinstance(page, dict) or not isinstance(page.get("data"), list):
+            raise BackupError("Saved SQL query inventory was not returned completely.")
+        for item in page["data"]:
+            snippet_id = item.get("id") if isinstance(item, dict) else None
+            if not isinstance(snippet_id, str) or not snippet_id or snippet_id in ids:
+                raise BackupError("Saved SQL query inventory contains an invalid or repeated ID.")
+            detail = api.fetch("/v1/snippets/" + urllib.parse.quote(snippet_id, safe=""))
+            content = detail.get("content") if isinstance(detail, dict) else None
+            sql = content.get("sql") if isinstance(content, dict) else None
+            if not isinstance(detail, dict) or detail.get("id") != snippet_id or not isinstance(sql, str):
+                raise BackupError("A saved SQL query's content was not returned.")
+            name = str(len(entries)).zfill(8)
+            write_json(folder / (name + ".json"), detail)
+            (folder / (name + ".sql")).write_text(sql)
+            ids.add(snippet_id)
+            entries.append({"metadata": item, "file": name + ".sql"})
+        write_json(folder / "index.json", entries)
+        cursor = page.get("cursor")
+        if not cursor:
+            return len(entries)
+        if not isinstance(cursor, str) or cursor in cursors:
+            raise BackupError("Saved SQL query pagination did not finish.")
+        cursors.add(cursor)
 
 
 def encrypt_archive(payload, private, destination, passphrase):
@@ -341,9 +384,9 @@ def encrypt_archive(payload, private, destination, passphrase):
     partial.replace(destination)
 
 
-def perform(output_dir, env, *, bootstrap=False):
-    pg = credentials(env)
-    for program in ("psql", "gpg", "git"):
+def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
+    pg = credentials(env, metadata_only=metadata_only)
+    for program in (("gpg", "git") if metadata_only else ("psql", "gpg", "git")):
         if not shutil.which(program):
             raise BackupError("Required program is unavailable: " + program)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -370,27 +413,30 @@ def perform(output_dir, env, *, bootstrap=False):
             run([cli, "functions", "download", "--help"], env=child_env, cwd=payload)
             # A fresh config prevents upward discovery of an unrelated local project/env file.
             run([cli, "init", "--workdir", str(payload), "--agent", "no"], env=child_env, cwd=payload)
-            inventory = query(INVENTORY_SQL, child_env)
-            objects = query(STORAGE_SQL, child_env)
-            if inventory.get("vault_secret_count", 0):
-                raise BackupError("Vault contains encrypted secrets: its root key must be preserved before this export can be marked complete.")
-            summary["component"] = "database"
-            export_database(payload, cli, child_env, env["LIMINAL_SOURCE_DB_URL"], inventory)
-            summary["database_exported"] = True
-            summary["component"] = "storage"
-            api = Api(SETTINGS["projectUrl"], storage_headers(env["LIMINAL_SOURCE_STORAGE_KEY"]))
-            entries = export_objects(payload, objects, api)
-            summary["files"] = len(entries)
-            summary["bytes"] = sum(entry["bytes"] for entry in entries)
-            final_objects = query(STORAGE_SQL, child_env)
-            write_json(payload / "storage/final-source-manifest.json", final_objects)
-            if changed_objects(objects, final_objects):
-                raise BackupError("Source attachments were added, changed or deleted during the copy; take another backup during a quiet period.")
+            if not metadata_only:
+                inventory = query(INVENTORY_SQL, child_env)
+                objects = query(STORAGE_SQL, child_env)
+                if inventory.get("vault_secret_count", 0):
+                    raise BackupError("Vault contains encrypted secrets: its root key must be preserved before this export can be marked complete.")
+                summary["component"] = "database"
+                export_database(payload, cli, child_env, env["LIMINAL_SOURCE_DB_URL"], inventory)
+                summary["database_exported"] = True
+                summary["component"] = "storage"
+                api = Api(SETTINGS["projectUrl"], storage_headers(env["LIMINAL_SOURCE_STORAGE_KEY"]))
+                entries = export_objects(payload, objects, api)
+                summary["files"] = len(entries)
+                summary["bytes"] = sum(entry["bytes"] for entry in entries)
+                final_objects = query(STORAGE_SQL, child_env)
+                write_json(payload / "storage/final-source-manifest.json", final_objects)
+                if changed_objects(objects, final_objects):
+                    raise BackupError("Source attachments were added, changed or deleted during the copy; take another backup during a quiet period.")
             summary["component"] = "functions-and-configuration"
             management = Api("https://api.supabase.com", {"Authorization": "Bearer " + env["LIMINAL_SOURCE_ACCESS_TOKEN"]})
             summary["functions"] = export_management(payload, management, cli, child_env)
+            summary["component"] = "saved-sql-queries"
+            summary["snippets"] = export_snippets(payload, management)
             run(["git", "archive", "HEAD"], cwd=ROOT, output=payload / "repository-source.tar")
-            summary["status"] = "exported"
+            summary["status"] = "metadata-exported" if metadata_only else "exported"
             summary.pop("component", None)
         except BackupError as error:
             failure = error
@@ -407,6 +453,7 @@ def perform(output_dir, env, *, bootstrap=False):
                 "manual_steps": ["Re-enter custom Edge Function secret values; the inventory may contain only digests.",
                     "Restore managed-schema customizations selectively, not the entire reference schema.",
                     "Existing R2 Drive files remain in their original R2 bucket; reconfigure its credentials.",
+                    "Private SQL Editor queries owned by other team members require their own export.",
                     "Take a final synchronized export before switching traffic; online writes after this export are not included.",
                     "Validate the restored destination before treating this as a proven recovery backup."]})
             checksums = {}
@@ -428,16 +475,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--bootstrap-cli", action="store_true")
+    parser.add_argument("--metadata-only", action="store_true", help="Only export configuration, functions and saved SQL queries.")
     parser.add_argument("--output-dir", type=Path, default=Path("migration-output"))
     args = parser.parse_args()
     os.umask(0o077)
     try:
-        credentials(os.environ)
+        credentials(os.environ, metadata_only=args.metadata_only)
         if args.preflight:
             print("Source identity and required secrets are configured.")
         else:
-            summary = perform(args.output_dir.resolve(), dict(os.environ), bootstrap=args.bootstrap_cli)
-            print("Encrypted export verified: " + str(summary["files"]) + " files. Destination restore still required.")
+            summary = perform(args.output_dir.resolve(), dict(os.environ), bootstrap=args.bootstrap_cli,
+                              metadata_only=args.metadata_only)
+            if args.metadata_only:
+                print("Encrypted configuration export verified: " + str(summary["functions"]) +
+                      " functions, " + str(summary["snippets"]) + " saved SQL queries.")
+            else:
+                print("Encrypted export verified: " + str(summary["files"]) + " files. Destination restore still required.")
         return 0
     except BackupError as error:
         print(str(error), file=sys.stderr)
