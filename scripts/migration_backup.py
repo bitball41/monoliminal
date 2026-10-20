@@ -2,8 +2,8 @@
 """Read-only Supabase export. Only authenticated, encrypted archives may leave staging."""
 import argparse
 import base64
-import concurrent.futures
 import datetime
+import email.utils
 import hashlib
 import json
 import os
@@ -151,7 +151,8 @@ class Api:
     def fetch(self, route, destination=None):
         if not route.startswith("/") or route.startswith("//"):
             raise BackupError("Invalid export route.")
-        for attempt in range(4):
+        for attempt in range(8):
+            delay = min(2 ** attempt, 30)
             try:
                 request = urllib.request.Request(self.origin + route, headers=self.headers, method="GET")
                 with self.opener.open(request, timeout=90) as response:
@@ -166,12 +167,23 @@ class Api:
                         return {"bytes": total, "sha256": h.hexdigest()}
                     return json.loads(response.read())
             except urllib.error.HTTPError as error:
-                if error.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                if error.code not in (429, 500, 502, 503, 504) or attempt == 7:
                     raise BackupError("Authenticated export request failed (HTTP " + str(error.code) + ").") from None
+                retry_after = error.headers.get("Retry-After", "")
+                try:
+                    seconds = float(retry_after)
+                except ValueError:
+                    try:
+                        seconds = (email.utils.parsedate_to_datetime(retry_after) -
+                                   datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+                    except (TypeError, ValueError):
+                        seconds = 0
+                delay = max(delay, min(60, seconds))
+                error.close()
             except (OSError, ValueError):
-                if attempt == 3:
+                if attempt == 7:
                     raise BackupError("Authenticated export request could not finish.") from None
-            self.pause(min(2 ** attempt, 8))
+            self.pause(delay)
         raise BackupError("Authenticated export request exhausted retries.")
 
 
@@ -242,7 +254,7 @@ def export_database(payload, cli, env, db_url, inventory):
     write_json(folder / "catalog.json", inventory)
 
 
-def export_objects(payload, manifest, api, workers=6):
+def export_objects(payload, manifest, api):
     folder = payload / "storage" / "objects"
     folder.mkdir(parents=True)
     objects = manifest["objects"]
@@ -261,9 +273,17 @@ def export_objects(payload, manifest, api, workers=6):
             raise BackupError("An attachment's byte count differs from its database metadata.")
         return {"source": obj, "file": local.relative_to(payload).as_posix(), **result}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        entries = list(pool.map(download, enumerate(objects)))
-    write_json(payload / "storage/downloaded-manifest.json", entries)
+    # A small source pool can saturate even with six simultaneous downloads.
+    # Serial requests also stop promptly on failure instead of draining queued work.
+    entries = []
+    try:
+        for pair in enumerate(objects):
+            entries.append(download(pair))
+            if len(entries) % 100 == 0 or len(entries) == len(objects):
+                print("Storage export: " + str(len(entries)) + "/" + str(len(objects)) +
+                      " files verified.", flush=True)
+    finally:
+        write_json(payload / "storage/downloaded-manifest.json", entries)
     return entries
 
 
@@ -376,6 +396,11 @@ def perform(output_dir, env, *, bootstrap=False):
             failure = error
             write_json(payload / "export-failure.json", {"message": str(error), "component": summary.get("component", "preflight")})
         finally:
+            downloaded = payload / "storage/downloaded-manifest.json"
+            if downloaded.is_file():
+                entries = json.loads(downloaded.read_text())
+                summary["files"] = len(entries)
+                summary["bytes"] = sum(entry["bytes"] for entry in entries)
             summary["finished_at"] = now()
             write_json(payload / "backup-manifest.json", {**summary, "source_project": SETTINGS["projectRef"],
                 "not_a_cutover": True,
