@@ -48,6 +48,7 @@ jobs:
           repository: bitball41/monoliminal
           run-id: ${{ inputs.checkpoint_run_id || '39355466049' }}
           artifact-ids: ${{ inputs.checkpoint_artifact_id || '12236244177' }}
+          merge-multiple: true
           path: ${{ runner.temp }}/liminal-checkpoint
       - name: Install database query client
         run: |
