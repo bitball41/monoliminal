@@ -78,7 +78,7 @@ class MigrationTests(unittest.TestCase):
             {"id": "1", "bucket_id": "private", "name": "../../secret image.png", "metadata": {"size": 13}}]}
         with tempfile.TemporaryDirectory() as temp:
             payload = Path(temp)
-            entries = backup.export_objects(payload, manifest, api, workers=1)
+            entries = backup.export_objects(payload, manifest, api)
             self.assertEqual((payload / entries[0]["file"]).read_bytes(), b"private image")
             self.assertEqual(entries[0]["file"], "storage/objects/00000000.bin")
             self.assertEqual(entries[0]["source"]["name"], "../../secret image.png")
@@ -89,7 +89,7 @@ class MigrationTests(unittest.TestCase):
         api = backup.Api("https://source.example", {}, opener=Opener([b"short"]))
         manifest = {"objects": [{"id": "1", "bucket_id": "private", "name": "file", "metadata": {"size": 100}}]}
         with tempfile.TemporaryDirectory() as temp, self.assertRaises(backup.BackupError):
-            backup.export_objects(Path(temp), manifest, api, workers=1)
+            backup.export_objects(Path(temp), manifest, api)
             self.fail("A truncated attachment must stop the export")
 
     def test_rate_limit_retry_and_nonretryable_auth_failure(self):
@@ -103,6 +103,30 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(backup.BackupError, "HTTP 401") as caught:
             api.fetch("/route")
         self.assertNotIn("secret response", str(caught.exception))
+
+    def test_storage_pool_recovers_after_repeated_429_and_retry_after(self):
+        errors = [urllib.error.HTTPError("https://source.example", 429, "private body",
+                                         {"Retry-After": "20"}, None) for _ in range(5)]
+        pauses = []
+        api = backup.Api("https://source.example", {}, opener=Opener([*errors, b'{"ok":true}']),
+                         pause=pauses.append)
+        self.assertTrue(api.fetch("/route")["ok"])
+        self.assertEqual(len(pauses), 5)
+        self.assertTrue(all(delay >= 20 for delay in pauses))
+
+    def test_storage_failure_preserves_verified_files_and_stops_queued_downloads(self):
+        opener = Opener([b"saved", urllib.error.HTTPError("https://source.example", 404,
+                                                       "private body", {}, None), b"unused"])
+        api = backup.Api("https://source.example", {}, opener=opener)
+        manifest = {"objects": [{"id": str(i), "bucket_id": "private", "name": str(i)} for i in range(3)]}
+        with tempfile.TemporaryDirectory() as temp:
+            payload = Path(temp)
+            with self.assertRaises(backup.BackupError):
+                backup.export_objects(payload, manifest, api)
+            saved = json.loads((payload / "storage/downloaded-manifest.json").read_text())
+            self.assertEqual(len(saved), 1)
+            self.assertEqual((payload / saved[0]["file"]).read_bytes(), b"saved")
+            self.assertEqual(len(opener.requests), 2)
 
     def test_missing_auth_rows_are_detected(self):
         inventory = {"tables": [{"schema": "auth", "table": "users", "rows": 75},
