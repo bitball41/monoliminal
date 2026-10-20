@@ -1,0 +1,85 @@
+name: Encrypted Liminal incremental backup
+
+on:
+  workflow_dispatch:
+    inputs:
+      checkpoint_run_id:
+        description: Run containing the encrypted source checkpoint
+        required: true
+        type: string
+      checkpoint_artifact_id:
+        description: Encrypted checkpoint artifact ID from that run
+        required: true
+        type: string
+  push:
+    branches: [codex/liminal-migration-resume]
+    paths:
+      - '.github/workflows/migration-resume-backup.yml'
+      - 'scripts/migration_backup*'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    concurrency:
+      group: liminal-readonly-migration-backup
+      cancel-in-progress: false
+    env:
+      LIMINAL_SOURCE_DB_URL: ${{ secrets.LIMINAL_SOURCE_DB_URL }}
+      LIMINAL_SOURCE_STORAGE_KEY: ${{ secrets.LIMINAL_SOURCE_STORAGE_KEY || secrets.SUPABASE_DEPLOY_KEY }}
+      LIMINAL_SOURCE_ACCESS_TOKEN: ${{ secrets.LIMINAL_SOURCE_ACCESS_TOKEN }}
+      LIMINAL_BACKUP_PASSPHRASE: ${{ secrets.LIMINAL_BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test export guards and actual encryption
+        run: python3 -m unittest discover -s scripts -p 'migration_backup_test.py' -v
+      - name: Check source identity and required secrets
+        run: python3 scripts/migration_backup.py --preflight
+      - name: Download encrypted source checkpoint
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          github-token: ${{ github.token }}
+          repository: bitball41/monoliminal
+          run-id: ${{ inputs.checkpoint_run_id || '39355466049' }}
+          artifact-ids: ${{ inputs.checkpoint_artifact_id || '12236244177' }}
+          path: ${{ runner.temp }}/liminal-checkpoint
+      - name: Install database query client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes --no-install-recommends postgresql-client gnupg
+      - name: Refresh database and changed files, then verify encrypted backup
+        run: |
+          checkpoint_path="$RUNNER_TEMP/liminal-checkpoint/liminal-backup.tar.gz.gpg"
+          for attempt in 1 2 3; do
+            if python3 scripts/migration_backup.py --bootstrap-cli --resume "$checkpoint_path" --output-dir "$RUNNER_TEMP/liminal-incremental-output"; then
+              exit 0
+            fi
+            if ! python3 -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("source_changes", 0) else 1)' "$RUNNER_TEMP/liminal-incremental-output/summary.json"; then
+              exit 1
+            fi
+            if [ "$attempt" = 3 ]; then
+              exit 1
+            fi
+            cp -- "$RUNNER_TEMP/liminal-incremental-output/liminal-backup.tar.gz.gpg" "$RUNNER_TEMP/liminal-resume-input.gpg"
+            checkpoint_path="$RUNNER_TEMP/liminal-resume-input.gpg"
+            rm -- "$RUNNER_TEMP/liminal-incremental-output/liminal-backup.tar.gz.gpg" "$RUNNER_TEMP/liminal-incremental-output/summary.json"
+          done
+      - name: Keep encrypted export and credential-free summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: liminal-encrypted-backup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/liminal-incremental-output/liminal-backup.tar.gz.gpg
+            ${{ runner.temp }}/liminal-incremental-output/summary.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove runner output and encrypted checkpoint
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/liminal-incremental-output" "$RUNNER_TEMP/liminal-checkpoint" "$RUNNER_TEMP/liminal-resume-input.gpg"
