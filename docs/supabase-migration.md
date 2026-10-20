@@ -12,7 +12,7 @@ Add these **repository Actions secrets** at
 | Secret | Value |
 | --- | --- |
 | `LIMINAL_SOURCE_DB_URL` | Original project's **Connect → Session pooler** PostgreSQL connection URI, with its database password percent-encoded in the URI. Use port **5432**, database `postgres`, and the original project's `postgres.ucgjwrjqmexenmrpbdkh` username. A direct connection is also accepted if IPv6 works. |
-| `LIMINAL_SOURCE_ACCESS_TOKEN` | A Supabase personal access token belonging to an account that can read the original project's configuration, function source, and secret inventory. Generate it at <https://supabase.com/dashboard/account/tokens>. |
+| `LIMINAL_SOURCE_ACCESS_TOKEN` | A Supabase personal access token belonging to an account that can read the original project's configuration, function source, secret inventory, and saved SQL queries (`snippets_read`). Generate it at <https://supabase.com/dashboard/account/tokens>. |
 | `LIMINAL_BACKUP_PASSPHRASE` | A unique, single-line passphrase with at least 24 characters. Keep an independent private copy: the encrypted backup cannot be recovered without it. |
 
 The existing server-only `SUPABASE_DEPLOY_KEY` is reused to download Storage
@@ -59,6 +59,9 @@ never receives export secrets.
 - `configuration/`: Auth, Storage, Realtime, PostgREST and project settings, and
   the Edge Function secret inventory. Some settings are redacted and the secret
   inventory may contain only digests. **This is not a copy of every secret value.**
+- `sql-editor/`: saved SQL Editor query text and metadata visible to the token's
+  account, with every page of results exported. Other team members' private
+  queries require their own exports. Saved SQL is downloaded, never executed.
 - `repository-source.tar`: tracked source at the workflow's checked-out commit.
 - `backup-manifest.json` and `checksums.json`: export status, boundaries,
   required manual work and checksums for every payload file.
@@ -91,6 +94,15 @@ A failed export can still produce an **encrypted incomplete archive**. Check
 does not claim a successful destination restore. Failed components are recorded
 inside the encrypted archive; raw error bodies and database credentials are not
 printed to the public job log.
+
+The **Encrypted Liminal configuration backup** workflow is a companion export
+for project configuration, deployed function source, saved SQL queries, and
+tracked repository source. It needs only the source access token and backup
+passphrase, and does not connect to the source database or download Storage.
+Its first push on `codex/liminal-migration-metadata` starts a run; it can also be
+manually dispatched from the default branch. A successful companion has
+`status: metadata-exported` and `database_exported: false`; it supplements the
+database/file archive and is not a full backup.
 
 To decrypt locally, let GnuPG prompt for the passphrase:
 
@@ -144,3 +156,5 @@ No destination restore/cutover runs automatically from this workflow.
 - <https://supabase.com/docs/reference/api/v1-get-auth-service-config>
 - <https://supabase.com/docs/reference/api/v1-list-all-functions>
 - <https://supabase.com/docs/reference/api/v1-list-all-secrets>
+- <https://supabase.com/docs/reference/api/v1-list-all-snippets>
+- <https://supabase.com/docs/reference/api/v1-get-a-snippet>
