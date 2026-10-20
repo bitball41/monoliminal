@@ -7438,7 +7438,19 @@ void main() {
 
     function ensureClient(url, key) {
       const dev = getDevConfig();
-      sb = makeClient(url || (dev && dev.url) || SUPABASE_URL, key || (dev && dev.key) || SUPABASE_PUBLISHABLE_KEY);
+      let targetUrl = url || (dev && dev.url) || SUPABASE_URL;
+      let targetKey = key || (dev && dev.key) || SUPABASE_PUBLISHABLE_KEY;
+      // Cached launchers and saved developer settings can still carry the retired project.
+      try {
+        const origin = new URL(targetUrl).origin;
+        if (origin === 'https://ucgjwrjqmexenmrpbdkh.supabase.co') {
+          targetUrl = SUPABASE_URL;
+          targetKey = SUPABASE_PUBLISHABLE_KEY;
+        } else if (origin === SUPABASE_URL && targetKey === 'sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL') {
+          targetKey = SUPABASE_PUBLISHABLE_KEY;
+        }
+      } catch { /* Let the client report an invalid custom developer URL normally. */ }
+      sb = makeClient(targetUrl, targetKey);
     }
 
     async function standaloneBoot() {
