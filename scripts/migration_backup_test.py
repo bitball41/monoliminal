@@ -40,6 +40,61 @@ class Opener:
 
 
 class MigrationTests(unittest.TestCase):
+    def checkpoint_fixture(self, root, *, project=None, unsafe=False, corrupt=False):
+        private = root / "original"
+        payload = private / "payload"
+        objects = payload / "storage/objects"
+        objects.mkdir(parents=True)
+        entries = []
+        for index, data in enumerate((b"one", b"old")):
+            path = objects / (str(index).zfill(8) + ".bin")
+            path.write_bytes(data)
+            obj = {"id": str(index), "bucket_id": "private", "name": str(index),
+                   "version": "original", "metadata": {"size": len(data)}}
+            entries.append({"source": obj, "file": path.relative_to(payload).as_posix(),
+                            "bytes": len(data), "sha256": backup.digest(path)})
+        if unsafe:
+            entries[0]["file"] = "../escape"
+        if corrupt:
+            entries[0]["sha256"] = "0" * 64
+        backup.write_json(payload / "backup-manifest.json", {"source_project": project or backup.SETTINGS["projectRef"]})
+        backup.write_json(payload / "storage/downloaded-manifest.json", entries)
+        backup.write_json(payload / "checksums.json", {p.relative_to(payload).as_posix(): backup.digest(p)
+                          for p in payload.rglob("*") if p.is_file()})
+        archive = root / "checkpoint.gpg"
+        backup.encrypt_archive(payload, private, archive, environment()["LIMINAL_BACKUP_PASSPHRASE"])
+        return archive, entries
+
+    @unittest.skipUnless(shutil.which("gpg"), "GnuPG required")
+    def test_encrypted_checkpoint_reuses_only_unchanged_verified_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive, entries = self.checkpoint_fixture(root)
+            private = root / "resume"
+            private.mkdir()
+            cache = backup.read_checkpoint(archive, private, environment()["LIMINAL_BACKUP_PASSPHRASE"])
+            manifest = {"objects": [entries[0]["source"], {**entries[1]["source"], "version": "changed"},
+                                     {"id": "new", "bucket_id": "private", "name": "new", "metadata": {"size": 3}}]}
+            opener = Opener([b"NEW", b"add"])
+            payload = root / "new-export"
+            payload.mkdir()
+            result = backup.export_objects(payload, manifest, backup.Api("https://source.example", {}, opener=opener), cache=cache)
+            self.assertEqual([e["reused"] for e in result], [True, False, False])
+            self.assertEqual([(payload / e["file"]).read_bytes() for e in result], [b"one", b"NEW", b"add"])
+            self.assertEqual(len(opener.requests), 2)
+
+    @unittest.skipUnless(shutil.which("gpg"), "GnuPG required")
+    def test_checkpoint_rejects_other_projects_unsafe_paths_and_corrupt_entries(self):
+        for options in ({"project": "different-project"}, {"unsafe": True}, {"corrupt": True}):
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                archive, _ = self.checkpoint_fixture(root, **options)
+                private = root / "resume"
+                private.mkdir()
+                with self.assertRaises(backup.BackupError):
+                    backup.read_checkpoint(archive, private, environment()["LIMINAL_BACKUP_PASSPHRASE"])
+                self.assertFalse((root / "escape").exists())
+
     def test_original_project_and_session_pooler_are_required(self):
         env = environment()
         self.assertEqual(backup.credentials(env)["PGPASSWORD"], "p@ss")

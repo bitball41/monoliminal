@@ -24,6 +24,7 @@ SETTINGS = json.loads((ROOT / "config/migration-source.json").read_text())
 REQUIRED = ("LIMINAL_SOURCE_DB_URL", "LIMINAL_SOURCE_STORAGE_KEY",
             "LIMINAL_SOURCE_ACCESS_TOKEN", "LIMINAL_BACKUP_PASSPHRASE")
 MANAGED = {"auth", "storage", "realtime", "extensions", "graphql", "graphql_public", "vault", "supabase_migrations"}
+OBJECT_FIELDS = ("bucket_id", "name", "version", "updated_at", "metadata")
 
 
 class BackupError(Exception):
@@ -257,10 +258,65 @@ def export_database(payload, cli, env, db_url, inventory):
     write_json(folder / "catalog.json", inventory)
 
 
-def export_objects(payload, manifest, api):
+def read_checkpoint(archive, private, passphrase):
+    """Decrypt an authenticated checkpoint; extract only verified numeric object files."""
+    homedir = private / "resume-gpg"
+    homedir.mkdir(mode=0o700)
+    decrypted = private / "resume.tar.gz"
+    run(["gpg", "--homedir", str(homedir), "--batch", "--yes", "--pinentry-mode", "loopback",
+         "--no-symkey-cache", "--passphrase-fd", "0", "--output", str(decrypted),
+         "--decrypt", str(archive)], input_bytes=(passphrase + "\n").encode())
+    folder = private / "resume-objects"
+    folder.mkdir(mode=0o700)
+    try:
+        with tarfile.open(decrypted) as tar:
+            members = {}
+            for member in tar.getmembers():
+                if member.name in members:
+                    raise BackupError("Checkpoint contains duplicate archive members.")
+                members[member.name] = member
+            def json_member(name, expected=None):
+                member = members["liminal-backup/" + name]
+                if not member.isfile():
+                    raise BackupError("Checkpoint metadata must contain ordinary files.")
+                raw = tar.extractfile(member).read()
+                if expected is not None and hashlib.sha256(raw).hexdigest() != expected.get(name):
+                    raise BackupError("Checkpoint metadata checksum differs.")
+                return json.loads(raw)
+            checksums = json_member("checksums.json")
+            manifest = json_member("backup-manifest.json", checksums)
+            if manifest.get("source_project") != SETTINGS["projectRef"]:
+                raise BackupError("Checkpoint belongs to a different source project.")
+            entries = json_member("storage/downloaded-manifest.json", checksums)
+            if not isinstance(entries, list):
+                raise BackupError("Checkpoint has no verified Storage file manifest.")
+            cache = {}
+            for entry in sorted(entries, key=lambda item: item["file"]):
+                name, obj = entry["file"], entry["source"]
+                if not re.fullmatch(r"storage/objects/[0-9]{8,}\.bin", name):
+                    raise BackupError("Checkpoint object paths must use numeric local names.")
+                if not isinstance(obj.get("id"), str) or obj["id"] in cache:
+                    raise BackupError("Checkpoint object identity is invalid or repeated.")
+                member = members["liminal-backup/" + name]
+                if not member.isfile() or member.size != entry["bytes"]:
+                    raise BackupError("Checkpoint object file is invalid or truncated.")
+                destination = folder / Path(name).name
+                with tar.extractfile(member) as source, destination.open("wb") as target:
+                    shutil.copyfileobj(source, target)
+                actual = digest(destination)
+                if actual != entry["sha256"] or actual != checksums.get(name):
+                    raise BackupError("Checkpoint object checksum differs.")
+                cache[obj["id"]] = {**entry, "cached_path": destination}
+            return cache
+    except (tarfile.TarError, OSError, KeyError, TypeError, ValueError, AttributeError):
+        raise BackupError("Checkpoint could not be validated; no unverified files were reused.") from None
+
+
+def export_objects(payload, manifest, api, cache=None):
     folder = payload / "storage" / "objects"
     folder.mkdir(parents=True)
     objects = manifest["objects"]
+    cache = cache or {}
     write_json(payload / "storage/source-manifest.json", manifest)
 
     def download(pair):
@@ -270,11 +326,19 @@ def export_objects(payload, manifest, api):
         # Numeric local names prevent remote object paths from escaping the staging directory.
         local = folder / (str(index).zfill(8) + ".bin")
         route = "/storage/v1/object/" + bucket + "/" + path + "?liminal_migration=1"
-        result = api.fetch(route, local)
+        previous = cache.get(obj["id"])
+        reused = bool(previous and all(previous["source"].get(k) == obj.get(k) for k in OBJECT_FIELDS))
+        if reused:
+            shutil.copyfile(previous["cached_path"], local)
+            result = {"bytes": local.stat().st_size, "sha256": digest(local)}
+            if result["sha256"] != previous["sha256"]:
+                raise BackupError("A cached object changed after checkpoint verification.")
+        else:
+            result = api.fetch(route, local)
         expected = (obj.get("metadata") or {}).get("size")
         if expected is not None and result["bytes"] != int(expected):
             raise BackupError("An attachment's byte count differs from its database metadata.")
-        return {"source": obj, "file": local.relative_to(payload).as_posix(), **result}
+        return {"source": obj, "file": local.relative_to(payload).as_posix(), "reused": reused, **result}
 
     # A small source pool can saturate even with six simultaneous downloads.
     # Serial requests also stop promptly on failure instead of draining queued work.
@@ -292,10 +356,9 @@ def export_objects(payload, manifest, api):
 
 def changed_objects(before, after):
     live = {obj["id"]: obj for obj in after["objects"]}
-    fields = ("bucket_id", "name", "version", "updated_at", "metadata")
     old_ids = {obj["id"] for obj in before["objects"]}
     return len(set(live) - old_ids) + sum(1 for obj in before["objects"]
-               if obj["id"] not in live or any(obj.get(k) != live[obj["id"]].get(k) for k in fields))
+               if obj["id"] not in live or any(obj.get(k) != live[obj["id"]].get(k) for k in OBJECT_FIELDS))
 
 
 def export_management(payload, api, cli, env):
@@ -384,7 +447,9 @@ def encrypt_archive(payload, private, destination, passphrase):
     partial.replace(destination)
 
 
-def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
+def perform(output_dir, env, *, bootstrap=False, metadata_only=False, resume_archive=None):
+    if metadata_only and resume_archive:
+        raise BackupError("A configuration-only export cannot resume a Storage checkpoint.")
     pg = credentials(env, metadata_only=metadata_only)
     for program in (("gpg", "git") if metadata_only else ("psql", "gpg", "git")):
         if not shutil.which(program):
@@ -394,7 +459,7 @@ def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
     if backup.exists() or (output_dir / "summary.json").exists():
         raise BackupError("Use a fresh output directory; existing backups are never overwritten.")
     summary = {"status": "incomplete", "started_at": now(), "files": 0, "bytes": 0,
-               "database_exported": False, "functions": 0}
+               "database_exported": False, "functions": 0, "reused_files": 0}
     failure = None
     with tempfile.TemporaryDirectory(prefix="liminal-private-backup-") as temporary:
         private = Path(temporary)
@@ -413,6 +478,7 @@ def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
             run([cli, "functions", "download", "--help"], env=child_env, cwd=payload)
             # A fresh config prevents upward discovery of an unrelated local project/env file.
             run([cli, "init", "--workdir", str(payload), "--agent", "no"], env=child_env, cwd=payload)
+            cache = read_checkpoint(resume_archive, private, env["LIMINAL_BACKUP_PASSPHRASE"]) if resume_archive else {}
             if not metadata_only:
                 inventory = query(INVENTORY_SQL, child_env)
                 objects = query(STORAGE_SQL, child_env)
@@ -423,12 +489,14 @@ def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
                 summary["database_exported"] = True
                 summary["component"] = "storage"
                 api = Api(SETTINGS["projectUrl"], storage_headers(env["LIMINAL_SOURCE_STORAGE_KEY"]))
-                entries = export_objects(payload, objects, api)
+                entries = export_objects(payload, objects, api, cache=cache)
                 summary["files"] = len(entries)
                 summary["bytes"] = sum(entry["bytes"] for entry in entries)
                 final_objects = query(STORAGE_SQL, child_env)
                 write_json(payload / "storage/final-source-manifest.json", final_objects)
-                if changed_objects(objects, final_objects):
+                changes = changed_objects(objects, final_objects)
+                if changes:
+                    summary["source_changes"] = changes
                     raise BackupError("Source attachments were added, changed or deleted during the copy; take another backup during a quiet period.")
             summary["component"] = "functions-and-configuration"
             management = Api("https://api.supabase.com", {"Authorization": "Bearer " + env["LIMINAL_SOURCE_ACCESS_TOKEN"]})
@@ -447,6 +515,7 @@ def perform(output_dir, env, *, bootstrap=False, metadata_only=False):
                 entries = json.loads(downloaded.read_text())
                 summary["files"] = len(entries)
                 summary["bytes"] = sum(entry["bytes"] for entry in entries)
+                summary["reused_files"] = sum(bool(entry.get("reused")) for entry in entries)
             summary["finished_at"] = now()
             write_json(payload / "backup-manifest.json", {**summary, "source_project": SETTINGS["projectRef"],
                 "not_a_cutover": True,
@@ -476,6 +545,7 @@ def main():
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--bootstrap-cli", action="store_true")
     parser.add_argument("--metadata-only", action="store_true", help="Only export configuration, functions and saved SQL queries.")
+    parser.add_argument("--resume", type=Path, help="Reuse unchanged verified files from an encrypted source checkpoint.")
     parser.add_argument("--output-dir", type=Path, default=Path("migration-output"))
     args = parser.parse_args()
     os.umask(0o077)
@@ -485,7 +555,7 @@ def main():
             print("Source identity and required secrets are configured.")
         else:
             summary = perform(args.output_dir.resolve(), dict(os.environ), bootstrap=args.bootstrap_cli,
-                              metadata_only=args.metadata_only)
+                              metadata_only=args.metadata_only, resume_archive=args.resume)
             if args.metadata_only:
                 print("Encrypted configuration export verified: " + str(summary["functions"]) +
                       " functions, " + str(summary["snippets"]) + " saved SQL queries.")

@@ -104,6 +104,25 @@ manually dispatched from the default branch. A successful companion has
 `status: metadata-exported` and `database_exported: false`; it supplements the
 database/file archive and is not a full backup.
 
+For an online copy that stops because attachments changed, use **Encrypted
+Liminal incremental backup**. Provide the checkpoint's GitHub run ID and
+artifact ID when dispatching it. The initial push on
+`codex/liminal-migration-resume` resumes the verified 5,207-object checkpoint
+from run `39355466049`, artifact `12236244177`.
+
+The checkpoint is decrypted privately, checked against the original project,
+and validated against its per-file hashes. Only numeric object files are
+extracted; archive links and unsafe paths are rejected. Files are reused only
+when object identity, bucket, path, version, update timestamp, and metadata
+match the current source. Changed/new objects are downloaded, and the database
+is freshly dumped. The new archive follows the current Storage inventory.
+
+If attachments change again, the workflow retries up to three times using its
+new encrypted checkpoint. Other failures stop immediately. Checkpoints use the
+same backup passphrase and expire from Actions after seven days, so save them
+promptly. An incremental export still needs a verified destination restore and
+a controlled final cutover.
+
 To decrypt locally, let GnuPG prompt for the passphrase:
 
 ```sh
