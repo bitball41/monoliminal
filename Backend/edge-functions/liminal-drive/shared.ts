@@ -9,6 +9,10 @@ export const cors: Record<string,string> = {
   "Cache-Control":"no-store"
 };
 export const bucket = Deno.env.get("R2_BUCKET_NAME")!;
+export function storageConfigurationError() {
+  const required=["R2_ACCOUNT_ID","R2_BUCKET_NAME","R2_ACCESS_KEY_ID","R2_SECRET_ACCESS_KEY"];
+  return required.every(name=>Deno.env.get(name))?null:{ok:false,code:"DRIVE_STORAGE_NOT_CONFIGURED",error:"Drive storage is not connected yet. Ask an owner to restore the R2 settings."};
+}
 export const publicBase = (Deno.env.get("CLOUDFLARE_R2") || "").replace(/\/$/, "");
 export const s3 = new S3Client({region:"auto", endpoint:`https://${Deno.env.get("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
   credentials:{accessKeyId:Deno.env.get("R2_ACCESS_KEY_ID")!,secretAccessKey:Deno.env.get("R2_SECRET_ACCESS_KEY")!},

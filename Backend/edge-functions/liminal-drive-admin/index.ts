@@ -1,6 +1,6 @@
 import { GetObjectCommand,PutObjectCommand,CopyObjectCommand,DeleteObjectsCommand,GetBucketCorsCommand,PutBucketCorsCommand,CreateMultipartUploadCommand,UploadPartCommand,CompleteMultipartUploadCommand,AbortMultipartUploadCommand } from "npm:@aws-sdk/client-s3@3.1146.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1146.0";
-import { s3,bucket,cors,json,all,keyOf,exists,publicUrl,manifest } from "./shared.ts";
+import { s3,bucket,cors,json,all,keyOf,exists,publicUrl,manifest,storageConfigurationError } from "./shared.ts";
 import { drivePermissions } from "./permissions.ts";
 import { createMetadataStore,metadataKey,METADATA_PREFIX } from "./metadata.ts";
 const fileMetadata=createMetadataStore({get:key=>s3.send(new GetObjectCommand({Bucket:bucket,Key:key})),put:(key,body,condition={})=>s3.send(new PutObjectCommand({Bucket:bucket,Key:key,Body:body,ContentType:"application/json",...condition}))});
@@ -42,6 +42,7 @@ Deno.serve(async(req:Request)=>{
     const actor=await authorize(req);if(!actor)return json({error:"Sign in with a valid Liminal account"},401);
     if(req.method==="PUT"){
       if(!actor.canUpload)return json({error:"Uploads require a Liminal moderator role or above"},403);
+      const configError=storageConfigurationError();if(configError)return json(configError,503);
       const u=new URL(req.url),key=keyOf(u.searchParams.get("key"));if(!key)return json({error:"Invalid file path"},400);
       const uploadId=u.searchParams.get("upload_id");
       if(uploadId&&!actor.canManage)return json({error:"Multipart uploads require an Admin role. Mod and Manager uploads use create-only signed URLs."},403);
@@ -62,6 +63,7 @@ Deno.serve(async(req:Request)=>{
     let body:any;try{body=await req.json();}catch{return json({error:"JSON body required"},400);}
     const action=String(body.action||"");
     if(action==="status")return json({ok:true,username:actor.username,displayName:actor.display_name,pfp:actor.pfp,ring:actor.ring,role:actor.is_owner?'owner':actor.staff_role|| (actor.is_admin?'admin':'member'),canUpload:actor.canUpload,canManage:actor.canManage,maxProxyBytes:MAX_PROXY_BYTES,fileMetadata:true});
+    const configError=storageConfigurationError();if(configError)return json(configError,503);
     // R2 documents atomic conditions for PutObject, but not multipart completion.
     // Keep all legacy raw multipart paths behind management permission.
     if(action.startsWith('multipart_')&&!actor.canManage)return json({error:"Multipart uploads require an Admin role. Mod and Manager uploads use create-only signed URLs."},403);

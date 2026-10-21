@@ -25,7 +25,7 @@ function backend(profile, { existing = false, objects = null } = {}) {
     Deno: { env: { get: key => ({ SUPABASE_URL: 'https://auth.test', SUPABASE_SERVICE_ROLE_KEY: 'server-only-test-key' })[key] }, serve: fn => { handler = fn; } },
     fetch: async url => new Response(JSON.stringify(String(url).includes('/auth/v1/user') ? { id: 'test-user' } : profile ? [profile] : [])),
     s3: { send: async command => { writes.push(command); return { ETag: 'test-etag' }; } },
-    bucket: 'test-bucket', cors: {},
+    bucket: 'test-bucket', cors: {}, storageConfigurationError: () => null,
     json: (data, status = 200) => new Response(JSON.stringify(data), { status }),
     keyOf: value => typeof value === 'string' && value && !value.startsWith('.liminal-') ? value : null,
     exists: async () => existing,
@@ -513,4 +513,36 @@ test('the public API returns shared customization without exposing internal meta
   vm.runInNewContext(stripTypeScriptTypes(publicSource.replace(/^import .*;$/gm,'')),c);
   const response=await handler(new Request('https://drive.test/')),data=await response.json();assert.equal(response.status,200);
   assert.equal(data.files.length,1);assert.equal(data.files[0].metadata.title,'Shared title');assert.equal(data.features.fileMetadata,true);
+});
+
+test('Drive downloads redirect to a short-lived R2 attachment without streaming bytes through Supabase',async()=>{
+  const publicSource=await readFile(new URL('../Backend/edge-functions/liminal-drive/index.ts',import.meta.url),'utf8');
+  let handler;const signatures=[],reads=[];
+  const c={Request,Response,URL,console,
+    Deno:{serve:fn=>handler=fn},bucket:'test-bucket',cors:{'Cache-Control':'no-store'},storageConfigurationError:()=>null,
+    json:(data,status=200)=>Response.json(data,{status}),keyOf:key=>key.startsWith('.liminal-')?null:key,
+    createMetadataStore:()=>({}),METADATA_PREFIX:'.liminal-metadata/',
+    s3:{send:async command=>{reads.push(command);throw new Error('Unexpected object read');}},
+    GetObjectCommand:class{constructor(input){this.input=input;}},
+    getSignedUrl:async(client,command,options)=>{signatures.push({command,options});return 'https://r2.test/signed-download';},
+  };
+  vm.runInNewContext(stripTypeScriptTypes(publicSource.replace(/^import .*;$/gm,'')),c);
+  const response=await handler(new Request('https://drive.test/?key=Games/test.html&download=1'));
+  assert.equal(response.status,302);assert.equal(response.headers.get('location'),'https://r2.test/signed-download');
+  assert.equal(reads.length,0);assert.equal(signatures.length,1);
+  assert.equal(signatures[0].options.expiresIn,300);assert.equal(signatures[0].command.input.ResponseContentType,'application/octet-stream');
+  assert.match(signatures[0].command.input.ResponseContentDisposition,/^attachment;/);
+  assert.equal((await handler(new Request('https://drive.test/?key=.liminal-metadata/secret&download=1'))).status,400);
+  c.storageConfigurationError=()=>({code:'DRIVE_STORAGE_NOT_CONFIGURED'});
+  const missing=await handler(new Request('https://drive.test/'));assert.equal(missing.status,503);
+  assert.equal((await missing.json()).code,'DRIVE_STORAGE_NOT_CONFIGURED');
+});
+
+test('missing R2 configuration preserves account status but prevents storage mutations',async()=>{
+  const b=backend({staff_role:'admin'});
+  b.context.storageConfigurationError=()=>({code:'DRIVE_STORAGE_NOT_CONFIGURED'});
+  assert.equal((await b.invoke('status')).status,200);
+  assert.equal((await b.invoke('presign_upload',{key:'Games/new.html'})).status,503);
+  assert.equal((await b.invoke(null,{}, {method:'PUT'})).status,503);
+  assert.equal(b.writes.length,0);
 });

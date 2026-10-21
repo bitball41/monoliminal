@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Launching Brotato…</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      display: grid;
+      place-items: center;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .wrap {
+      text-align: center;
+      max-width: 520px;
+      padding: 24px;
+    }
+    #status {
+      margin-top: 14px;
+      opacity: .75;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <button id="launch">Launch Brotato</button>
+    <div id="status">Opens the game inside an about:blank tab.</div>
+  </div>
+
+  <script>
+    const GAME_URL = 'https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/liminal-games/brotato.html';
+    const BASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/liminal-games/';
+
+    async function launch() {
+      const status = document.getElementById("status");
+      const button = document.getElementById("launch");
+
+      // Open immediately during the click event to avoid popup blockers.
+      const gameWindow = window.open("about:blank", "_blank");
+
+      if (!gameWindow) {
+        status.textContent = "Popup blocked. Allow popups for this page and try again.";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Loading Brotato…";
+
+      try {
+        const response = await fetch(GAME_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        let source = await response.text();
+
+        // Make relative URLs resolve against the Supabase Storage directory.
+        const baseTag = `<base href="${BASE_URL}">`;
+
+        if (/<head[^>]*>/i.test(source)) {
+          source = source.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
+        } else if (/<html[^>]*>/i.test(source)) {
+          source = source.replace(/<html([^>]*)>/i, `<html$1><head>${baseTag}</head>`);
+        } else {
+          source = `<!doctype html><html><head>${baseTag}</head><body>${source}</body></html>`;
+        }
+
+        gameWindow.document.open();
+        gameWindow.document.write(source);
+        gameWindow.document.close();
+
+        status.textContent = "Launched.";
+
+        // Browsers only allow this if this launcher tab was itself script-opened.
+        try {
+          window.close();
+        } catch (_) {}
+
+        // If closing is blocked, replace the launcher with a blank page.
+        setTimeout(() => {
+          try {
+            location.replace("about:blank");
+          } catch (_) {}
+        }, 150);
+      } catch (err) {
+        try { gameWindow.close(); } catch (_) {}
+        button.disabled = false;
+        status.textContent = "Failed to load: " + err.message;
+      }
+    }
+
+    document.getElementById("launch").addEventListener("click", launch);
+  </script>
+</body>
+</html>
