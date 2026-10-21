@@ -2662,10 +2662,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .pin-actions { display: flex; justify-content: flex-end; padding: 3px 8px 0; }
 .pin-actions button { font-size: .69rem; color: var(--muted); min-height: 30px; padding: 4px 8px; border-radius: 7px; }
 .tool-load-more { width: 100%; margin-top: 14px; min-height: 38px; border-radius: 9px; }
-.history-context-bar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; margin: -8px 0 12px; border: 1px solid var(--accent-line); border-radius: 10px; background: var(--panel-strong); color: var(--text-soft); font-size: .74rem; }
-.history-context-bar button { border-radius: 8px; min-height: 32px; padding: 6px 10px; font-size: .72rem; }
-.history-newer { display: flex; justify-content: center; margin: 20px 0; }
-.history-newer button { border-radius: 9px; }
 @media (max-width: 480px) {
   #inbox-dialog, #pins-dialog, #search-dialog { width: calc(100vw - 16px); height: calc(100dvh - 32px); max-height: calc(100dvh - 32px); }
   .tool-header { padding: 16px 14px 12px; }
@@ -3591,12 +3587,10 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         <div class="timeline scroll-thin" id="timeline" tabindex="0">
           <div class="timeline-inner">
             <div class="thread-op" id="thread-op" hidden></div>
-            <div class="history-context-bar" id="history-context-bar" hidden><span>Viewing message history</span><button class="secondary-button" id="history-latest" type="button">Back to latest</button></div>
             <div class="load-older-wrap">
               <button class="text-button" id="load-older" type="button" hidden>Load older messages</button>
             </div>
             <div id="message-list" aria-live="polite" aria-relevant="additions"></div>
-            <div class="history-newer" id="history-newer-wrap" hidden><button class="secondary-button" id="history-newer" type="button">Load newer messages</button></div>
           </div>
         </div>
         <button class="new-msgs-badge" id="new-msgs-badge" type="button" hidden>↓ <span id="new-msgs-count">0</span> new messages</button>
@@ -5085,7 +5079,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.5";
+    const APP_VERSION = "2.24.6";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -9031,8 +9025,6 @@ void main() {
       const context = historyContexts.get(key);
       const msgs = context ? context.rows : (msgCache.get(key) || []);
       notePerformanceWork(preserve ? 'history-render' : 'timeline-render', msgs.length);
-      $('history-context-bar').hidden = !context;
-      $('history-newer-wrap').hidden = !context || !context.hasNewer;
       const listEl = $('message-list');
       if (preserve && listEl.dataset.view === key) reconcileTimelineRows(msgs);
       else {
@@ -9076,6 +9068,7 @@ void main() {
       }
       $('load-older').hidden = !(context ? context.hasOlder : hasMoreMap.get(key));
       renderDmReceipt();
+      updateViewingOlder();
     }
 
     const SKELETON_ROWS = [
@@ -9631,22 +9624,43 @@ void main() {
     }
     function hideNewBadge() {
       pendingNewCount = 0;
-      $('new-msgs-badge').hidden = true;
       updateViewingOlder();
     }
     function bumpNewBadge() {
       pendingNewCount += 1;
       $('new-msgs-count').textContent = pendingNewCount;
-      $('new-msgs-badge').hidden = false;
       updateViewingOlder();
     }
     let viewingOlderShown = null;
     function updateViewingOlder(nearBottom) {
       const near = nearBottom === undefined ? (stickyToBottom || isNearBottom()) : nearBottom;
-      const show = !historyContexts.has(viewKey(currentView)) && !stickyToBottom && !near && pendingNewCount === 0;
+      const inHistory = historyContexts.has(viewKey(currentView));
+      $('new-msgs-badge').hidden = pendingNewCount === 0;
+      const show = pendingNewCount === 0 && (inHistory || (!stickyToBottom && !near));
       if (show === viewingOlderShown) return;
       viewingOlderShown = show;
       $('viewing-older').hidden = !show;
+    }
+
+    function updateTimelineReadState(near, movedDown) {
+      const context = historyContexts.get(viewKey(currentView));
+      if (context) {
+        // The end of a historical page is not the end of the live conversation.
+        releaseBottomPin();
+        updateViewingOlder(false);
+        if (near && movedDown && context.hasNewer && !context.busy) loadHistoryPage('newer');
+      } else if (timelineHeld()) {
+        stickyToBottom = false;
+        updateViewingOlder(false);
+      } else if (applyingPin) {
+        if (stickyToBottom) updateViewingOlder(true);
+      } else {
+        if (near) {
+          stickyToBottom = true;
+          if (pendingNewCount) { hideNewBadge(); markViewRead(viewKey(currentView)); }
+        }
+        updateViewingOlder(near);
+      }
     }
 
     // Long-lived tabs otherwise keep every live message (and GIF) mounted forever.
@@ -10288,12 +10302,10 @@ void main() {
         historyContexts.set(key, { view: { ...currentView }, rows: rows.slice(),
           hasOlder: !!hasMoreMap.get(key), hasNewer: true, busy: false });
         readingContext = true;
-        $('history-context-bar').hidden = false;
       }
       const forumBoardId = kind !== 'dm' ? forumBoardIdFromChannelId(m.channel_id) : null;
       if (readingContext) {
         historyContexts.get(key).hasNewer = true;
-        $('history-newer-wrap').hidden = false;
         trimLiveCache(key);
         bumpNewBadge();
       } else if (isCurrent) {
@@ -18399,8 +18411,8 @@ void main() {
       if (!context || context.busy) return;
       const older = direction === 'older', edge = older ? context.rows[0] : context.rows.at(-1);
       if (!edge) return returnToLatest();
-      const button = $(older ? 'load-older' : 'history-newer');
-      context.busy = true; button.disabled = true;
+      const button = older ? $('load-older') : null;
+      context.busy = true; if (button) button.disabled = true;
       const anchor = qs(`[data-id="${cssAttr(edge.id)}"]`,timelineEl()), top = anchor?.getBoundingClientRect().top;
       try {
         const {data,error} = await historyBoundary(historyQuery(context.view),edge,direction).order('created_at',{ascending:!older}).order('id',{ascending:!older}).limit(50);
@@ -18418,14 +18430,15 @@ void main() {
         const fresh = qs(`[data-id="${cssAttr(edge.id)}"]`,timelineEl());
         if (fresh && top !== undefined) timelineEl().scrollTop += fresh.getBoundingClientRect().top - top;
       } catch { toast({type:'error',text:'Could not load more history. Try again.'}); }
-      finally { context.busy = false; button.disabled = false; }
+      finally { context.busy = false; if (button) button.disabled = false; }
     }
     async function returnToLatest() {
       timelineHoldUntil = 0; // An explicit navigation overrides a history anchor hold.
       const view = {...currentView}, key = viewKey(view), context = historyContexts.get(key);
       const request = ++messageJumpRequest;
-      if (!context) { scrollToBottom(true); hideNewBadge(); return true; }
-      $('history-latest').disabled = true;
+      if (!context) { scrollToBottom(true); hideNewBadge(); markViewRead(key); return true; }
+      const buttons = [$('jump-present-btn'), $('new-msgs-badge')];
+      buttons.forEach(button => { button.disabled = true; });
       try {
         const rows = await fetchMessages(view,null);
         if (request !== messageJumpRequest || viewKey(currentView) !== key) return false;
@@ -18435,7 +18448,7 @@ void main() {
         clearHistoryContexts(); setViewMessages(key,merged); renderTimeline(); scrollToBottom(true); hideNewBadge(); markViewRead(key);
         if (view.type === 'dm') markDmRead(view);
         return true;
-      } finally { $('history-latest').disabled = false; }
+      } finally { buttons.forEach(button => { button.disabled = false; }); }
     }
 
 
@@ -18725,21 +18738,11 @@ void main() {
             scrollFrame = 0;
             const top = timelineElRef.scrollTop;
             const movedUp = top < lastTimelineScrollTop - 2;
+            const movedDown = top > lastTimelineScrollTop + 2;
             lastTimelineScrollTop = top;
             const near = applyingPin ? true : isNearBottom();
-            if (timelineHeld()) {
-              stickyToBottom = false;
-              updateViewingOlder(false);
-            } else if (applyingPin) {
-              if (stickyToBottom) updateViewingOlder(true);
-            } else {
-              if (scrollbarPointer && movedUp && !near) releaseBottomPin();
-              if (near) {
-                stickyToBottom = true;
-                if (pendingNewCount) { hideNewBadge(); markViewRead(viewKey(currentView)); }
-              }
-              updateViewingOlder(near);
-            }
+            if (scrollbarPointer && movedUp && !near) releaseBottomPin();
+            updateTimelineReadState(near, movedDown);
             timelineElRef.classList.add('is-scrolling');
             clearTimeout(scrollSettle);
             scrollSettle = setTimeout(() => timelineElRef.classList.remove('is-scrolling'), 120);
@@ -18761,17 +18764,8 @@ void main() {
         pinObserver.observe(timelineElRef); // Includes composer growth and responsive layout.
       }
       window.addEventListener('resize', () => { if (stickyToBottom && !timelineHeld()) pinToBottom(true); });
-      $('new-msgs-badge').addEventListener('click', () => {
-        if (historyContexts.has(viewKey(currentView))) { returnToLatest(); return; }
-        scrollToBottom();
-        hideNewBadge();
-        markViewRead(viewKey(currentView));
-      });
-      $('jump-present-btn').addEventListener('click', () => {
-        if (historyContexts.has(viewKey(currentView))) { returnToLatest(); return; }
-        scrollToBottom();
-        $('viewing-older').hidden = true;
-      });
+      $('new-msgs-badge').addEventListener('click', returnToLatest);
+      $('jump-present-btn').addEventListener('click', returnToLatest);
       $('message-list').addEventListener('click', (e) => {
         const jump = e.target.closest('[data-jump]');
         if (jump && jump.dataset.jump) {
@@ -18999,8 +18993,6 @@ void main() {
       $('pins-refresh').addEventListener('click', () => loadPins());
       $('pins-more').addEventListener('click', () => loadPins(true));
       $('pins-dialog').addEventListener('close', () => { pinsRequest++; });
-      $('history-latest').addEventListener('click', returnToLatest);
-      $('history-newer').addEventListener('click', () => loadHistoryPage('newer'));
 
 
           $('forum-post-form').addEventListener('submit', submitForumPost);
@@ -19329,3 +19321,4 @@ void main() {
   </script>
 </body>
 </html>
+
