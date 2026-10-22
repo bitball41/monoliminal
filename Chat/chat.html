@@ -5079,7 +5079,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.6";
+    const APP_VERSION = "2.24.7";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6594,6 +6594,7 @@ void main() {
     let realtimeRecovering = false;
     let realtimeRecoverTimer = 0;
     let lastRecoverAt = 0;
+    let realtimeRecoverAttempt = 0;
     let wakeRunning = false;
     let lastWakeAt = 0;
     let lastListRefreshAt = 0;
@@ -6616,6 +6617,7 @@ void main() {
       roomTopic: '',
       roomMembers: [],
       accessChecking: false,
+      accessCheckedAt: 0,
       openingPrivate: false,
       client: null,
       clientId: '',
@@ -6647,6 +6649,7 @@ void main() {
       speaking: false,
       serverMutes: new Map(),
       mutePollAt: 0,
+      muteLoad: null,
       muteBusy: new Set(),
       sharePending: false,
       cameraPending: false,
@@ -10658,7 +10661,7 @@ void main() {
       if (!me.user_id) throw new Error('Signed-in upload identity is missing.');
       const path = `${me.user_id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       try {
-        const { error } = await sb.storage.from(bucket).upload(path, blob, { upsert: true, contentType: blob.type });
+        const { error } = await sb.storage.from(bucket).upload(path, blob, { upsert: false, contentType: blob.type, cacheControl: '604800' });
         if (error) throw error;
         const { data } = sb.storage.from(bucket).getPublicUrl(path);
         return data.publicUrl;
@@ -10806,8 +10809,9 @@ void main() {
       const path = `${me.user_id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}__${encodeURIComponent(safeName)}`;
       const blob = new Blob([await file.text()], { type: 'text/plain' });
       const { error } = await sb.storage.from('liminal-media').upload(path, blob, {
-        upsert: true,
+        upsert: false,
         contentType: 'text/plain',
+        cacheControl: '604800',
       });
       if (error) throw error;
       const { data } = sb.storage.from('liminal-media').getPublicUrl(path);
@@ -11384,10 +11388,18 @@ void main() {
       return voice.deafened || isServerVoiceMuted(peer?.account?.username);
     }
 
-    async function loadVoiceServerMutes() {
+    async function loadVoiceServerMutes({ periodic = false } = {}) {
       if (!sb || !me) return false;
+      if (periodic && Date.now() - voice.mutePollAt < (voice.muteChannel?.state === 'joined' ? 300000 : 12000)) return true;
+      if (voice.muteLoad) return voice.muteLoad;
+      voice.muteLoad = readVoiceServerMutes().finally(() => { voice.muteLoad = null; });
+      return voice.muteLoad;
+    }
+
+    async function readVoiceServerMutes() {
       const { data, error } = await sb.from('voice_server_mutes').select('username,muted_by');
       if (error) return false;
+      voice.mutePollAt = Date.now();
       voice.serverMutes.clear();
       (data || []).forEach(row => {
         if (row?.username) voice.serverMutes.set(row.username, row.muted_by || '');
@@ -11526,10 +11538,14 @@ void main() {
       return data;
     }
 
-    async function checkPrivateVoiceAccess() {
+    async function checkPrivateVoiceAccess({ periodic = false } = {}) {
       if (!voice.roomId || voice.accessChecking) return;
+      // Server authorization still runs on every join. Keep a bounded safety
+      // check for revocations that RLS prevents this client from receiving.
+      if (periodic && Date.now() - voice.accessCheckedAt < 30000) return;
       const id = voice.roomId, gen = voice.joinGen;
       voice.accessChecking = true;
+      voice.accessCheckedAt = Date.now();
       try {
         const room = await privateVoiceAccess(id);
         if (gen !== voice.joinGen || id !== voice.roomId) return;
@@ -11574,6 +11590,7 @@ void main() {
         voice.roomId = dm.id;
         voice.roomTopic = room.topic;
         voice.roomMembers = room.members;
+        voice.accessCheckedAt = Date.now();
         $('private-call-dialog').close();
         await openView({ ...dmView(dm), privateCall: true });
         const alreadyJoined = voice.connected;
@@ -11965,7 +11982,7 @@ void main() {
       clearInterval(voice.linkTimer);
       voice.linkTimer = setInterval(() => {
         if (!voice.connected) return;
-        if (voice.roomId) checkPrivateVoiceAccess();
+        if (voice.roomId) checkPrivateVoiceAccess({ periodic: true });
         if (!voice.peers.size) {
           if (voice.ticketMintedAt && Date.now() - voice.ticketMintedAt > 30 * 60 * 1000) {
             mintVoiceTicket().then(() => publishVoice('announce')).catch(() => {});
@@ -11973,10 +11990,7 @@ void main() {
           return;
         }
         voice.peers.forEach(peer => notePeerHealth(peer));
-        if (!voice.mutePollAt || Date.now() - voice.mutePollAt > 8000) {
-          voice.mutePollAt = Date.now();
-          loadVoiceServerMutes();
-        }
+        loadVoiceServerMutes({ periodic: true });
         if (linkedVoiceCount() === voice.peers.size) return;
         publishVoice('announce');
         voice.peers.forEach(peer => {
@@ -12650,7 +12664,16 @@ void main() {
       renderVoiceChat();
     }
 
-    async function reconcileVoiceChat() {
+    let voiceChatReconcile = null, voiceChatReconciledAt = 0;
+    function reconcileVoiceChat({ periodic = false } = {}) {
+      if (!voice.historyLoaded || !me || !sb || document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
+      if (periodic && Date.now() - voiceChatReconciledAt < (realtimeHealthy() ? MESSAGE_RECONCILE_MS : MESSAGE_FALLBACK_POLL_MS)) return Promise.resolve();
+      if (voiceChatReconcile) return voiceChatReconcile;
+      voiceChatReconciledAt = Date.now();
+      voiceChatReconcile = readVoiceChatUpdates().catch(() => {}).finally(() => { voiceChatReconcile = null; });
+      return voiceChatReconcile;
+    }
+    async function readVoiceChatUpdates() {
       if (!voice.historyLoaded || !me || !sb) return;
       const last = [...voice.messages].reverse().find(message => message && !message.deleted && message.created_at);
       let query = sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', VOICE_CHANNEL_ID).eq('deleted', false);
@@ -12671,7 +12694,9 @@ void main() {
       if (!ready || voice.muteChannel || !sb || !me) return;
       voice.muteChannel = sb.channel(`voice-mutes-${me.username}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_server_mutes' }, () => loadVoiceServerMutes())
-        .subscribe();
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') loadVoiceServerMutes();
+        });
     }
 
     const VOICE_MSG_CAP = 200;
@@ -12894,7 +12919,10 @@ void main() {
       dbChannel = sb.channel(`db-changes-${gen}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, handleMessageChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, handleDmChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, () => queueConversationRefresh())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, payload => {
+          if (voice.roomId && (payload.new?.id || payload.old?.id) === voice.roomId) checkPrivateVoiceAccess();
+          queueConversationRefresh();
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_group_invites' }, () => queueConversationRefresh())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleProfileChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_subroles' }, () => reloadSubroleCatalog())
@@ -12909,6 +12937,7 @@ void main() {
           if (status === 'SUBSCRIBED') {
             realtimeReadyOnce = true;
             updateConnection('connected');
+            if (realtimeHealthy()) realtimeRecoverAttempt = 0;
             reloadSubroleCatalog();
             queueConversationRefresh();
           } else if (realtimeReadyOnce && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
@@ -12928,6 +12957,7 @@ void main() {
           if (status === 'SUBSCRIBED') {
             realtimeReadyOnce = true;
             eventsChannelLive = true;
+            if (realtimeHealthy()) realtimeRecoverAttempt = 0;
           } else if (realtimeReadyOnce && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
             eventsChannelLive = false;
             scheduleRealtimeRecover();
@@ -13132,6 +13162,7 @@ void main() {
       window.addEventListener('online', () => {
         presenceUnavailable = false;
         presenceRetryAttempt = 0;
+        realtimeRecoverAttempt = 0;
         onPageShowPresence();
       });
       window.addEventListener('offline', () => {
@@ -13154,6 +13185,9 @@ void main() {
     }
     function scheduleRealtimeRecover() {
       if (!me || !sb || presenceLeft || presenceStopped || navigator.onLine === false || realtimeRecovering) return;
+      if (document.visibilityState !== 'visible' || realtimeRecoverTimer) return;
+      const retryAfter = Math.min(60000, 2000 * 2 ** Math.min(realtimeRecoverAttempt, 5));
+      if (Date.now() - lastRecoverAt < retryAfter) return;
       clearTimeout(realtimeRecoverTimer);
       realtimeRecoverTimer = setTimeout(() => {
         realtimeRecoverTimer = 0;
@@ -13185,8 +13219,10 @@ void main() {
     }
     async function recoverRealtime() {
       if (!me || !sb || presenceStopped || realtimeRecovering) return;
+      if (realtimeRecoverAttempt && Date.now() - lastRecoverAt < Math.min(60000, 2000 * 2 ** Math.min(realtimeRecoverAttempt, 5))) return;
       realtimeRecovering = true;
       lastRecoverAt = Date.now();
+      realtimeRecoverAttempt++;
       const gen = ++realtimeGen;
       eventsChannelLive = false;
       updateConnection('connecting');
@@ -13696,9 +13732,9 @@ void main() {
       if (!me || !sb || presenceStopped || presenceLeft || !currentView) return Promise.resolve();
       const onVoice = currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID;
       const voiceReady = typeof voice !== 'undefined' && voice && voice.historyLoaded;
-      if (voiceReady && !onVoice) reconcileVoiceChat();
+      if (voiceReady && !onVoice) reconcileVoiceChat({ periodic });
       if (currentView.type === 'forum' || onVoice) {
-        return onVoice && voiceReady ? reconcileVoiceChat() : Promise.resolve();
+        return onVoice && voiceReady ? reconcileVoiceChat({ periodic }) : Promise.resolve();
       }
       if (periodic) {
         if (document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
@@ -15823,7 +15859,8 @@ void main() {
     let groupPendingReady = true;
     let groupBusy = false;
     let groupLeavingId = null;
-    let conversationRefresh = null;
+    let conversationRefresh = null, conversationRefreshQueued = null, conversationRefreshDirty = false;
+    let dmAccessCheck = null, lastDmAccessId = '', lastDmAccessAt = 0;
     function groupOf(view = currentView) { return view?.type === 'dm' ? dms.find(dm => dm.id === view.id && dm.is_group) : null; }
     function conversationTitle(dm) { return dm?.is_group ? dm.title : displayNameOf(profileOf(dm?.other)); }
     function groupAvatarHtml() { return `<span class="avatar avatar-sm group-avatar">${GROUP_ICON}</span>`; }
@@ -16025,13 +16062,32 @@ void main() {
         if (groupLeavingId !== id) toast({ type: 'warning', text: 'You no longer have access to this private group.' });
       }
     }
+    function reconcileOpenDmAccess() {
+      if (currentView.type !== 'dm' || !me || !sb) return Promise.resolve();
+      const id = currentView.id, actor = me.username;
+      if (id === lastDmAccessId && Date.now() - lastDmAccessAt < DM_RECONCILE_MS) return Promise.resolve();
+      if (dmAccessCheck) return dmAccessCheck;
+      dmAccessCheck = (async () => {
+        const { data, error } = await sb.from('dms').select('id').eq('id', id).maybeSingle();
+        if (error || me?.username !== actor) return;
+        lastDmAccessId = id; lastDmAccessAt = Date.now();
+        if (!data) {
+          dms = dms.filter(dm => dm.id !== id);
+          discardGroupCache(id);
+          renderDmList();
+        }
+      })().catch(() => {}).finally(() => { dmAccessCheck = null; });
+      return dmAccessCheck;
+    }
     async function refreshConversations({ periodic = false } = {}) {
       if (!me || !sb) return;
-      // An open DM keeps the short access/membership check even if a revoked
-      // row is no longer visible to this client's Realtime subscription.
-      const interval = currentView.type === 'dm' ? DM_RECONCILE_MS : LIST_RECONCILE_MS;
-      if (periodic && (presenceStopped || presenceLeft || document.visibilityState !== 'visible'
-        || navigator.onLine === false || (realtimeHealthy() && Date.now() - lastConversationRefreshAt < interval))) return;
+      if (periodic) {
+        if (presenceStopped || presenceLeft || document.visibilityState !== 'visible' || navigator.onLine === false) return;
+        // Revoked group rows no longer reach Realtime. Check only the open
+        // conversation ID, rather than redownloading every preview and invite.
+        await reconcileOpenDmAccess();
+        if (realtimeHealthy() && Date.now() - lastConversationRefreshAt < LIST_RECONCILE_MS) return;
+      }
       if (conversationRefresh) return conversationRefresh;
       conversationRefresh = Promise.all([loadDms(), loadGroupInvites()]).then(results => {
         if (results.every(result => result !== false)) lastConversationRefreshAt = Date.now();
@@ -16041,8 +16097,18 @@ void main() {
       return conversationRefresh;
     }
     async function queueConversationRefresh() {
-      if (conversationRefresh) await conversationRefresh;
-      return refreshConversations();
+      conversationRefreshDirty = true;
+      if (conversationRefreshQueued) return conversationRefreshQueued;
+      conversationRefreshQueued = Promise.resolve().then(async () => {
+        if (conversationRefresh) await conversationRefresh;
+        do {
+          // Coalesce bursts of group/invitation events into a single read.
+          await new Promise(resolve => setTimeout(resolve, 150));
+          conversationRefreshDirty = false;
+          await refreshConversations();
+        } while (conversationRefreshDirty && me && !presenceStopped && !presenceLeft);
+      }).finally(() => { conversationRefreshQueued = null; });
+      return conversationRefreshQueued;
     }
     function wireGroupEvents() {
       $('group-new-btn').addEventListener('click', () => openGroupDialog());

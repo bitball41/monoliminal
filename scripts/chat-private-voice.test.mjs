@@ -90,7 +90,7 @@ test('private call stage and dock return to the DM, and private messages never u
   assert.match(chat,/id="private-call-btn"/);
   assert.match(chat,/sb.channel\(voice.roomId \? voice.roomTopic : VOICE_SIGNAL_CHANNEL/);
   assert.match(chat,/if \(voice.roomId && !voice.roomMembers.includes\(username\)\) return/);
-  assert.match(chat,/if \(voice.roomId\) checkPrivateVoiceAccess\(\)/);
+  assert.match(chat,/if \(voice.roomId\) checkPrivateVoiceAccess\(\{ periodic: true \}\)/);
   assert.match(chat,/if \(view.type === 'dm' && view.privateCall\) return openPrivateVoiceStage\(view\)/);
   assert.match(chat,/openView\(dm \? \{ \.\.\.dmView\(dm\), privateCall: true \}/);
   const from = chat.indexOf('    async function sendVoiceChatMessage() {');

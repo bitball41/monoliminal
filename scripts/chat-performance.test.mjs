@@ -91,7 +91,7 @@ test('DM read receipts update cached data without rebuilding the message bubble'
 });
 
 function conversations() {
-  let now = 1_000_000, requests = 0;
+  let now = 1_000_000, requests = 0, accessReads = 0;
   const c = vm.createContext({
     console, Date: { now: () => now }, me: {}, sb: {},
     presenceStopped: false, presenceLeft: false,
@@ -99,11 +99,12 @@ function conversations() {
     healthy: true, realtimeHealthy: () => c.healthy,
     LIST_RECONCILE_MS: 300_000, DM_RECONCILE_MS: 20_000, lastConversationRefreshAt: 0, conversationRefresh: null,
     currentView: { type: 'channel', id: 'general' },
+    reconcileOpenDmAccess: async () => { if (c.currentView.type === 'dm') accessReads++; },
     loadDms: async () => { requests++; }, loadGroupInvites: async () => {},
     renderDmList() {}, renderConversationHeader() {}, applyFeatureControls() {}, groupDialogId: null,
   });
   vm.runInContext(section('    async function refreshConversations(', '    async function queueConversationRefresh('), c);
-  return { c, advance: ms => { now += ms; }, requests: () => requests };
+  return { c, advance: ms => { now += ms; }, requests: () => requests, accessReads: () => accessReads };
 }
 
 test('healthy conversation reconciliation reduces idle requests and still responds to membership events immediately', async () => {
@@ -136,13 +137,14 @@ test('background, offline and departed clients stop periodic conversation reads'
   }
 });
 
-test('an open DM preserves the short membership check while Realtime remains healthy', async () => {
+test('an open DM checks access without redownloading all previews and invites', async () => {
   const p = conversations();
   p.c.currentView = { type: 'dm', id: 'group' };
   await p.c.refreshConversations();
   p.advance(30_000);
   await p.c.refreshConversations({ periodic: true });
-  assert.equal(p.requests(), 2);
+  assert.equal(p.requests(), 1);
+  assert.equal(p.accessReads(), 1);
 });
 
 test('a failed conversation read keeps the short retry and overlapping reads share the request', async () => {
@@ -155,6 +157,7 @@ test('a failed conversation read keeps the short retry and overlapping reads sha
   await Promise.all([first, second]);
   p.advance(30_000);
   const retry = p.c.refreshConversations({ periodic: true });
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(reads, 2);
   finish(true);
   await retry;
