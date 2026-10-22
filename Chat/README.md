@@ -50,6 +50,27 @@ analytics.
 
 Canonical source: [`chat.html`](chat.html).
 
+## Browser tabs demo layout
+
+Settings → Appearance → Layout → **Browser tabs · Demo** saves an optional
+layout for this browser. Select **Reload to apply** to activate it. Classic is
+the default and can be restored from the same setting after another reload.
+
+The demo puts open conversations in a scrollable tab strip, utilities in a left
+rail, and members on the right (a drawer on small screens). The plus button
+opens a home tab with the existing channel and conversation lists, a profile
+preview, and the latest three inbox notifications. Opening a conversation uses
+that home tab or selects its existing tab. Closing a tab preserves its draft;
+closing the last tab opens Home. Home does not read or poll hidden conversation
+history. Open tabs last until the page reloads; saved drafts remain available.
+No backend migration is required.
+
+Offline browser regression coverage is in `scripts/chat-layout.browser.mjs`.
+Run with Playwright available and `CHAT_BROWSER_PATH` set if Chromium is not in
+Playwright's cache. It checks layout changes across reloads, drafts, unreads,
+groups, inbox navigation, forums, voice, keyboard navigation, removed
+conversations, light themes, and 320–1440px viewports without production traffic.
+
 The standalone launcher is [liminal-chat-launcher.html](liminal-chat-launcher.html) and has its own deployment Action.
 
 Production Storage bucket: `liminal-apps`. Keep the production object name `chat.html` unchanged.
