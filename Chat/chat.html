@@ -3353,6 +3353,8 @@ html[data-layout="tabs"] .workspace-tabs { display: flex; grid-column: 2; grid-r
 .workspace-tab.active { background: var(--bg); border-color: var(--line); color: var(--text); }
 .workspace-tab > button { border: 0; background: transparent; color: inherit; cursor: pointer; }
 .workspace-tab-select { display: flex; align-items: center; gap: 7px; padding: 8px 4px 8px 11px; min-width: 0; flex: 1; height: 100%; text-align: left; font: inherit; font-size: .76rem; }
+.workspace-tab-icon { display: inline-flex; flex: 0 0 auto; align-items: center; }
+.workspace-tab-icon svg { width: 14px; height: 14px; }
 .workspace-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-tab-unread { flex-shrink: 0; font-size: .62rem; color: var(--accent-strong); }
 .workspace-tab-close { flex: 0 0 28px; height: 28px; border-radius: 6px; font-size: 1.1rem; }
@@ -3376,30 +3378,35 @@ html[data-layout="tabs"] .vc-dock-main { padding: 5px; justify-content: center; 
 html[data-layout="tabs"] .vc-dock-main > span:last-child { display: none; }
 html[data-layout="tabs"] .vc-dock-actions { display: flex; flex-direction: column; gap: 4px; }
 html[data-layout="tabs"] .vc-dock-actions button { padding: 6px 2px; font-size: .62rem; }
-html[data-layout="tabs"] .workspace-home { grid-column: 1; grid-row: 3; min-width: 0; min-height: 0; overflow: auto; padding: clamp(16px, 3vw, 42px); }
-html[data-layout="tabs"] .main-panel[data-workspace-home="true"] .workspace-home { display: block; }
+html[data-layout="tabs"] .workspace-home { grid-column: 1; grid-row: 3; min-width: 0; min-height: 0; overflow: auto; padding: clamp(16px, 2.2vw, 28px); }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] { grid-template-rows: auto minmax(0, 1fr); }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .channel-header { display: none; }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] .workspace-home { display: block; grid-row: 2; }
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .timeline-wrap,
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .composer-zone,
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .chat-background-stage { display: none; }
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] #channel-settings-btn { display: none; }
 html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"]) :is(#search-btn, #pins-btn, #dm-block-btn, #group-details-btn) { display: none; }
 .workspace-home-inner { width: 100%; max-width: 1060px; margin: auto; }
-.workspace-home h2 { margin: 0 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.04em; }
-.workspace-home-lead { color: var(--muted); margin: 0 0 24px; font-size: .82rem; }
-.workspace-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; margin-bottom: 24px; }
-.workspace-card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 18px; min-width: 0; }
+.workspace-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; margin-bottom: 18px; }
+.workspace-card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 16px; min-width: 0; }
 .workspace-card h3 { margin: 0 0 12px; font-size: .83rem; }
 .workspace-profile-button { display: flex; width: 100%; align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
 .workspace-profile-copy { display: grid; gap: 4px; min-width: 0; }
 .workspace-profile-copy > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-profile-copy small { color: var(--muted); font-size: .72rem; }
+.workspace-status-button { display: flex; align-items: center; gap: 6px; max-width: calc(100% - 44px); min-height: 30px; margin: 6px 0 0 44px; padding: 5px 7px; border: 1px solid transparent; border-radius: 7px; color: var(--text-soft); background: transparent; font: inherit; font-size: .72rem; cursor: pointer; text-align: left; }
+.workspace-status-button:hover { background: var(--surface-2); border-color: var(--line); }
+.workspace-status-button .workspace-status-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-status-button .status-ball { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.workspace-status-button svg { flex-shrink: 0; width: 12px; height: 12px; color: var(--muted); }
 .workspace-bio { margin: 12px 0 0; color: var(--text-soft); font-size: .78rem; overflow-wrap: anywhere; white-space: pre-wrap; }
 .workspace-inbox-item { display: block; width: 100%; padding: 9px 0; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text-soft); text-align: left; cursor: pointer; font: inherit; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-inbox-item.unread { color: var(--text); font-weight: 650; }
 .workspace-inbox-empty { color: var(--muted); font-size: .78rem; }
 .workspace-card-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .workspace-card-heading button { border: 0; background: none; color: var(--accent-strong); font: inherit; font-size: .72rem; cursor: pointer; }
-.workspace-directory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.workspace-directory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
 .workspace-directory .section-label { margin: 0 0 12px; padding: 0; }
 .workspace-directory .dm-button, .workspace-directory .channel-button { width: 100%; }
 .layout-reload-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
@@ -3407,7 +3414,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
   html[data-layout="tabs"] .app-shell, html[data-layout="tabs"] .app-shell.members-hidden { grid-template-columns: 60px minmax(0, 1fr); }
   html[data-layout="tabs"] .sidebar { position: relative; top: auto; bottom: auto; left: auto; width: auto; transform: none; z-index: 1; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: var(--panel); }
   html[data-layout="tabs"] .workspace-tabs { padding-left: 4px; padding-right: 4px; }
-  html[data-layout="tabs"] .workspace-home { padding: 20px 14px; }
+  html[data-layout="tabs"] .workspace-home { padding: 16px 12px; }
   html[data-layout="tabs"] .main-panel { --header-height: 54px; }
   html[data-layout="tabs"] .channel-header { display: flex; }
   .workspace-summary, .workspace-directory { grid-template-columns: minmax(0, 1fr); }
@@ -3640,9 +3647,8 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
 
       <section class="workspace-home scroll-thin" id="workspace-home" aria-label="New tab home" hidden>
         <div class="workspace-home-inner">
-          <h2>Home</h2><p class="workspace-home-lead">Open a channel or conversation in this tab.</p>
           <div class="workspace-summary">
-            <section class="workspace-card"><h3>Your profile</h3><button class="workspace-profile-button" id="workspace-profile" type="button" aria-label="Edit your profile"></button><p class="workspace-bio" id="workspace-bio" hidden></p></section>
+            <section class="workspace-card"><h3>Your profile</h3><button class="workspace-profile-button" id="workspace-profile" type="button" aria-label="Edit your profile"></button><button class="workspace-status-button" id="workspace-status" type="button" aria-label="Change status" aria-haspopup="true" aria-controls="status-pop" title="Change status or custom status"></button><p class="workspace-bio" id="workspace-bio" hidden></p></section>
             <section class="workspace-card"><div class="workspace-card-heading"><h3>Inbox</h3><button id="workspace-inbox-open" type="button">View all</button></div><div id="workspace-inbox-preview"></div></section>
           </div>
           <div class="workspace-directory">
@@ -6850,6 +6856,7 @@ void main() {
       else clearAttachment();
     }
     // Layout is read once per page load. Choosing another layout only saves the preference.
+    const WORKSPACE_HOME_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h5v-6h4v6h5V9"/></svg>';
     const activeLayout = LS.get('lc_layout', 'classic') === 'tabs' ? 'tabs' : 'classic';
     let workspaceTabs = [], workspaceActive = '', workspaceSerial = 0, workspaceRenderQueued = false;
     function syncLayoutSetting() {
@@ -6874,6 +6881,7 @@ void main() {
       $('workspace-channels').append(labels[0], $('channel-list'));
       $('workspace-conversations').append(labels[1], $('group-invites-btn'), $('dm-list'), $('dm-empty'));
       directory.remove();
+      $('workspace-home-btn').innerHTML = WORKSPACE_HOME_ICON;
       const nav = $('workspace-nav');
       nav.append(qs('.header-actions'));
       qs('#sidebar .brand-title').textContent = 'L';
@@ -6903,6 +6911,10 @@ void main() {
         qs('[data-workspace-tab="' + workspaceActive + '"]').focus();
       });
       $('workspace-profile').addEventListener('click', () => openSettings('profile'));
+      $('workspace-status').addEventListener('click', event => {
+        event.stopPropagation();
+        openStatusPop($('workspace-status'));
+      });
       $('workspace-inbox-open').addEventListener('click', openInbox);
       $('workspace-inbox-preview').addEventListener('click', event => {
         const button = event.target.closest('[data-workspace-inbox]');
@@ -6955,7 +6967,7 @@ void main() {
       hideNewBadge();
       $('main-content').dataset.workspaceHome = 'true';
       $('workspace-home').hidden = false;
-      $('channel-icon').textContent = '⌂';
+      $('channel-icon').innerHTML = WORKSPACE_HOME_ICON;
       $('channel-title').textContent = 'Home';
       $('channel-topic').textContent = 'Channels and conversations';
       applyFeatureControls();
@@ -6989,7 +7001,7 @@ void main() {
         const title = workspaceTitle(tab.view);
         const view = tab.view;
         const unread = view ? unreadCounts.get(view.type === 'forum' ? 'c:' + view.id : viewKey(view)) || 0 : 0;
-        return `<div class="workspace-tab ${selected ? 'active' : ''}" role="presentation"><button class="workspace-tab-select" role="tab" type="button" id="workspace-tab-${tab.key}" data-workspace-tab="${tab.key}" aria-controls="main-content" aria-selected="${selected}" tabindex="${selected ? 0 : -1}" title="${esc(title)}${unread ? ' · ' + unread + ' unread' : ''}"><span aria-hidden="true">${view ? view.type === 'dm' ? '@' : '#' : '⌂'}</span><span class="workspace-tab-name">${esc(title)}</span>${unread ? `<span class="workspace-tab-unread">${unread > 99 ? '99+' : unread}</span>` : ''}</button><button class="workspace-tab-close" type="button" data-workspace-close="${tab.key}" aria-label="Close ${esc(title)}">×</button></div>`;
+        return `<div class="workspace-tab ${selected ? 'active' : ''}" role="presentation"><button class="workspace-tab-select" role="tab" type="button" id="workspace-tab-${tab.key}" data-workspace-tab="${tab.key}" aria-controls="main-content" aria-selected="${selected}" tabindex="${selected ? 0 : -1}" title="${esc(title)}${unread ? ' · ' + unread + ' unread' : ''}"><span class="workspace-tab-icon" aria-hidden="true">${view ? view.type === 'dm' ? '@' : '#' : WORKSPACE_HOME_ICON}</span><span class="workspace-tab-name">${esc(title)}</span>${unread ? `<span class="workspace-tab-unread">${unread > 99 ? '99+' : unread}</span>` : ''}</button><button class="workspace-tab-close" type="button" data-workspace-close="${tab.key}" aria-label="Close ${esc(title)}">×</button></div>`;
       }).join('');
       // Presence and unread refreshes must not rebuild the strip or reset keyboard focus.
       if (list._workspaceHtml !== html) {
@@ -7009,10 +7021,16 @@ void main() {
     }
     function renderWorkspaceHome() {
       if (activeLayout !== 'tabs' || !me || currentView.type !== 'home') return;
-      const profile = `<span class="avatar avatar-md">${me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)))}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small><small>${esc(selfPresenceLabel())}</small></span>`;
+      const profile = `<span class="avatar avatar-md">${me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)))}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small></span>`;
       const button = $('workspace-profile');
       if (button._profileHtml !== profile) { button.innerHTML = profile; button._profileHtml = profile; }
       applyRing(qs('.avatar', button), me);
+      const status = statusMeta(effectiveMyStatus());
+      const label = status.label + (me.custom_status ? ' · ' + me.custom_status : '');
+      const statusButton = $('workspace-status');
+      const statusHtml = `<span class="status-ball" style="background:${status.color}" aria-hidden="true"></span><span class="workspace-status-label">${esc(label)}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`;
+      if (statusButton._statusHtml !== statusHtml) { statusButton.innerHTML = statusHtml; statusButton._statusHtml = statusHtml; }
+      statusButton.setAttribute('aria-label', 'Change status: ' + label);
       $('workspace-bio').textContent = me.bio || '';
       $('workspace-bio').hidden = !me.bio;
       const items = inbox.filter(inboxItemVisible).slice(0, 3);
