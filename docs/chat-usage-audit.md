@@ -96,3 +96,18 @@ browser executable was installed and the browser download failed. Its native
 file-origin check must not be represented as having passed. Unit checks do
 exercise actual cache read/write flow, reuse between launcher instances,
 version changes, explicit refresh, unavailable storage and metadata timeouts.
+
+## Completed live header repair
+
+All 4,994 targeted assets now have `max-age=604800`. The final database
+comparison found zero missing objects, zero size/ETag/owner/custom-metadata
+mismatches, and zero remaining `max-age=0` objects in the three public media
+buckets. The first sample did not have a pre-repair ETag recorded; its size
+and owner were checked, and the same Storage copy operation preserved its
+bytes. The other 4,993 recorded ETags matched after repair.
+
+The temporary maintenance endpoint was redeployed with the disabled
+configuration and returned HTTP 410 even with the former maintenance
+capability. The capability file was removed. The client files still require
+the manual rollout above. Existing billing-cycle counters do not reset when
+these repairs are made; subsequent usage is needed to measure savings.
