@@ -36,6 +36,8 @@ try {
       dms = [{id:'dm-a',other:'alice',participants:['tester','alice']},
         {id:'group-a',is_group:true,title:'Project group',participants:['tester','alice'],group_owner:'tester'}];
       window.__queries = [];
+      window.__statusWrites = [];
+      updateOwnProfile = async patch => { __statusWrites.push(patch); return {data:{...me,...patch},error:null}; };
       sb = {rpc:async name => { __queries.push(name); return {data:[]}; }, from:table => {
         __queries.push(table);
         const q = new Proxy({}, {get(_,key) { return key === 'then' ? resolve => Promise.resolve({data:[]}).then(resolve) : () => q; }});
@@ -57,6 +59,28 @@ try {
   assert.equal(await page.locator('#workspace-channels #channel-list').count(),1);
   assert.equal(await page.locator('#workspace-nav #inbox-btn').count(),1);
   assert.equal(await page.locator('#member-panel').isVisible(),true);
+  assert.equal(await page.locator('.channel-header').isVisible(),false,'home has no duplicate header');
+  assert.equal(await page.locator('#workspace-home h1, #workspace-home h2, .workspace-home-lead').count(),0);
+  assert.equal(await page.locator('.workspace-tab.active .workspace-tab-icon svg').count(),1,'home tab uses a drawn icon');
+  await page.locator('#workspace-status').focus();
+  await page.keyboard.press('Enter');
+  assert(await page.locator('#status-pop').isVisible());
+  await page.locator('[data-status-pick="dnd"]').click();
+  await page.waitForFunction(() => me.status === 'dnd');
+  assert.match(await page.locator('#workspace-status').innerText(), /Do not disturb/i);
+  await page.locator('#workspace-status').click();
+  await page.locator('#custom-status-input').fill('Building Liminal');
+  await page.locator('#custom-status-save').click();
+  await page.waitForFunction(() => me.custom_status === 'Building Liminal');
+  assert.match(await page.locator('#workspace-status').innerText(), /Building Liminal/);
+  assert.deepEqual(await page.evaluate(() => __statusWrites), [{status:'dnd'},{custom_status:'Building Liminal'}]);
+  await page.locator('#workspace-status').click();
+  await page.locator('#custom-status-clear').click();
+  await page.waitForFunction(() => me.custom_status === '');
+  await page.evaluate(() => hidePopovers());
+  await page.locator('#workspace-profile').click();
+  assert(await page.locator('#settings-dialog').isVisible(),'profile editing stays available');
+  await page.locator('[data-close-dialog="settings-dialog"]').click();
   await page.screenshot({path:path.join(output,'home-desktop.png')});
   await page.locator('[data-channel="general"]').click();
   assert.equal(await page.locator('#workspace-home').isVisible(),false);
@@ -119,6 +143,11 @@ try {
     assert(await page.locator('#workspace-new-tab').isVisible());
     await page.screenshot({path:path.join(output,`home-${theme}-${width}.png`)});
     if (width<1021) {
+      await page.locator('#workspace-status').click();
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const statusPop = await page.locator('#status-pop').boundingBox();
+      assert(statusPop.x>=0 && statusPop.x+statusPop.width<=width+1 && statusPop.y>=0 && statusPop.y+statusPop.height<=height+1, `status picker fits ${width}: ${JSON.stringify(statusPop)} ${JSON.stringify(await page.evaluate(() => ({w:innerWidth,c:document.documentElement.clientWidth,s:document.body.scrollWidth,left:$('status-pop').style.left,transform:getComputedStyle($('status-pop')).transform})))}`);
+      await page.evaluate(() => hidePopovers());
       await page.locator('#member-toggle').click();
       assert(await page.locator('#member-panel').evaluate(el=>el.classList.contains('open')));
       await page.locator('#close-members').click();
