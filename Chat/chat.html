@@ -3339,6 +3339,82 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       .header-action, .private-call-row, .vc-control { transition: none; }
     }
 </style>
+<style id="workspace-layout-style">
+/* Optional browser-style workspace. Classic keeps the original shell. */
+.workspace-tabs, .workspace-home, .workspace-nav { display: none; }
+html[data-layout="tabs"] .app-shell { grid-template-columns: 76px minmax(0, 1fr) var(--right-width); grid-template-rows: 46px minmax(0, 1fr); }
+html[data-layout="tabs"] .app-shell.members-hidden { grid-template-columns: 76px minmax(0, 1fr); }
+html[data-layout="tabs"] .sidebar { grid-column: 1; grid-row: 1 / 3; }
+html[data-layout="tabs"] .main-panel { grid-column: 2; grid-row: 2; }
+html[data-layout="tabs"] .member-panel { grid-column: 3; grid-row: 1 / 3; }
+html[data-layout="tabs"] .workspace-tabs { display: flex; grid-column: 2; grid-row: 1; min-width: 0; align-items: end; gap: 5px; padding: 5px 8px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.workspace-tab-list { display: flex; align-items: end; flex: 1; gap: 4px; min-width: 0; height: 100%; overflow-x: auto; scrollbar-width: thin; }
+.workspace-tab { display: flex; align-items: center; flex: 0 0 176px; max-width: 220px; min-width: 100px; height: 36px; border: 1px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0; color: var(--muted); }
+.workspace-tab.active { background: var(--bg); border-color: var(--line); color: var(--text); }
+.workspace-tab > button { border: 0; background: transparent; color: inherit; cursor: pointer; }
+.workspace-tab-select { display: flex; align-items: center; gap: 7px; padding: 8px 4px 8px 11px; min-width: 0; flex: 1; height: 100%; text-align: left; font: inherit; font-size: .76rem; }
+.workspace-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-tab-unread { flex-shrink: 0; font-size: .62rem; color: var(--accent-strong); }
+.workspace-tab-close { flex: 0 0 28px; height: 28px; border-radius: 6px; font-size: 1.1rem; }
+.workspace-tab-close:hover { background: var(--surface-2); }
+.workspace-new-tab { flex: 0 0 34px; margin-bottom: 2px; }
+html[data-layout="tabs"] .sidebar .brand { min-height: 46px; justify-content: center; padding: 0; }
+html[data-layout="tabs"] .sidebar .brand-title { font-size: 1.45rem; }
+html[data-layout="tabs"] .sidebar .brand-subtitle { display: none; }
+html[data-layout="tabs"] .workspace-nav { display: flex; flex: 1; min-height: 0; overflow-y: auto; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; }
+html[data-layout="tabs"] .workspace-nav .header-actions { display: flex; flex-direction: column; gap: 7px; }
+html[data-layout="tabs"] .workspace-nav button { position: relative; width: 40px; min-width: 40px; height: 38px; min-height: 38px; padding: 8px; border-radius: 9px; }
+html[data-layout="tabs"] .workspace-nav #subrole-btn-label,
+html[data-layout="tabs"] .workspace-nav #dm-block-label,
+html[data-layout="tabs"] .workspace-nav .toggle-count-label { display: none; }
+html[data-layout="tabs"] #open-channels { display: none !important; }
+html[data-layout="tabs"] .sidebar-footer { padding: 8px 4px; }
+html[data-layout="tabs"] .self-card { display: flex; flex-direction: column; gap: 8px; padding: 6px 0; }
+html[data-layout="tabs"] .self-copy { display: none; }
+html[data-layout="tabs"] .vc-dock { padding: 5px 0; }
+html[data-layout="tabs"] .vc-dock-main { padding: 5px; justify-content: center; }
+html[data-layout="tabs"] .vc-dock-main > span:last-child { display: none; }
+html[data-layout="tabs"] .vc-dock-actions { display: flex; flex-direction: column; gap: 4px; }
+html[data-layout="tabs"] .vc-dock-actions button { padding: 6px 2px; font-size: .62rem; }
+html[data-layout="tabs"] .workspace-home { grid-column: 1; grid-row: 3; min-width: 0; min-height: 0; overflow: auto; padding: clamp(16px, 3vw, 42px); }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] .workspace-home { display: block; }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .timeline-wrap,
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .composer-zone,
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .chat-background-stage { display: none; }
+html[data-layout="tabs"] .main-panel[data-workspace-home="true"] #channel-settings-btn { display: none; }
+html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"]) :is(#search-btn, #pins-btn, #dm-block-btn, #group-details-btn) { display: none; }
+.workspace-home-inner { width: 100%; max-width: 1060px; margin: auto; }
+.workspace-home h2 { margin: 0 0 6px; font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.04em; }
+.workspace-home-lead { color: var(--muted); margin: 0 0 24px; font-size: .82rem; }
+.workspace-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; margin-bottom: 24px; }
+.workspace-card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 18px; min-width: 0; }
+.workspace-card h3 { margin: 0 0 12px; font-size: .83rem; }
+.workspace-profile-button { display: flex; width: 100%; align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.workspace-profile-copy { display: grid; gap: 4px; min-width: 0; }
+.workspace-profile-copy > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-profile-copy small { color: var(--muted); font-size: .72rem; }
+.workspace-bio { margin: 12px 0 0; color: var(--text-soft); font-size: .78rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.workspace-inbox-item { display: block; width: 100%; padding: 9px 0; border: 0; border-top: 1px solid var(--line); background: none; color: var(--text-soft); text-align: left; cursor: pointer; font: inherit; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-inbox-item.unread { color: var(--text); font-weight: 650; }
+.workspace-inbox-empty { color: var(--muted); font-size: .78rem; }
+.workspace-card-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.workspace-card-heading button { border: 0; background: none; color: var(--accent-strong); font: inherit; font-size: .72rem; cursor: pointer; }
+.workspace-directory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.workspace-directory .section-label { margin: 0 0 12px; padding: 0; }
+.workspace-directory .dm-button, .workspace-directory .channel-button { width: 100%; }
+.layout-reload-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+@media (max-width: 1020px) {
+  html[data-layout="tabs"] .app-shell, html[data-layout="tabs"] .app-shell.members-hidden { grid-template-columns: 60px minmax(0, 1fr); }
+  html[data-layout="tabs"] .sidebar { position: relative; top: auto; bottom: auto; left: auto; width: auto; transform: none; z-index: 1; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: var(--panel); }
+  html[data-layout="tabs"] .workspace-tabs { padding-left: 4px; padding-right: 4px; }
+  html[data-layout="tabs"] .workspace-home { padding: 20px 14px; }
+  html[data-layout="tabs"] .main-panel { --header-height: 54px; }
+  html[data-layout="tabs"] .channel-header { display: flex; }
+  .workspace-summary, .workspace-directory { grid-template-columns: minmax(0, 1fr); }
+  .workspace-tab { flex-basis: 152px; }
+}
+
+</style>
 </head>
 <body>
   <a class="skip-link" href="#message-input">Skip to message composer</a>
@@ -3436,6 +3512,10 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
 
   <!-- ============================= APP SHELL ============================= -->
   <div class="app-shell" id="app-shell" hidden>
+    <div class="workspace-tabs" aria-label="Conversation tabs">
+      <div class="workspace-tab-list" id="workspace-tab-list" role="tablist" aria-label="Open conversations"></div>
+      <button class="icon-button workspace-new-tab" id="workspace-new-tab" type="button" aria-label="New conversation tab" title="New tab">+</button>
+    </div>
     <aside class="sidebar" id="sidebar" aria-label="Channels and direct messages">
       <div class="brand">
         <div class="brand-copy">
@@ -3444,6 +3524,9 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         </div>
       </div>
 
+      <nav class="workspace-nav scroll-thin" id="workspace-nav" aria-label="Utilities">
+        <button class="icon-button" id="workspace-home-btn" type="button" title="Home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/></svg></button>
+      </nav>
       <div class="sidebar-scroll scroll-thin">
         <div class="section-label">
           <span>Channels</span>
@@ -3555,6 +3638,19 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
         </div>
       </div>
 
+      <section class="workspace-home scroll-thin" id="workspace-home" aria-label="New tab home" hidden>
+        <div class="workspace-home-inner">
+          <h2>Home</h2><p class="workspace-home-lead">Open a channel or conversation in this tab.</p>
+          <div class="workspace-summary">
+            <section class="workspace-card"><h3>Your profile</h3><button class="workspace-profile-button" id="workspace-profile" type="button" aria-label="Edit your profile"></button><p class="workspace-bio" id="workspace-bio" hidden></p></section>
+            <section class="workspace-card"><div class="workspace-card-heading"><h3>Inbox</h3><button id="workspace-inbox-open" type="button">View all</button></div><div id="workspace-inbox-preview"></div></section>
+          </div>
+          <div class="workspace-directory">
+            <section class="workspace-card" id="workspace-channels" aria-label="Channels"></section>
+            <section class="workspace-card" id="workspace-conversations" aria-label="Conversations"></section>
+          </div>
+        </div>
+      </section>
       <section class="timeline-wrap" aria-label="Message history">
         <div class="vc-stage" id="vc-stage" hidden aria-label="Global voice chat">
           <div class="vc-shell">
@@ -3857,7 +3953,14 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       </section>
 
       <section id="tab-appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" hidden>
-        <div class="settings-section-title">Theme</div>
+        <div class="settings-section-title">Layout</div>
+        <div class="radio-row" role="group" aria-label="Chat layout">
+          <button class="radio-pill" type="button" data-layout-choice="classic" aria-pressed="true">Classic</button>
+          <button class="radio-pill" type="button" data-layout-choice="tabs" aria-pressed="false">Browser tabs · Demo</button>
+        </div>
+        <p class="field-help">Classic has conversations on the left. Browser tabs puts conversations on top and utilities on the left. Changes apply after reloading.</p>
+        <div class="layout-reload-row" id="layout-reload-row" hidden><button class="secondary-button" type="button" id="layout-reload">Reload to apply</button><span class="field-help" role="status">Layout saved for this browser.</span></div>
+        <div class="settings-section-title settings-separator">Theme</div>
         <div class="theme-grid" id="theme-grid"></div>
         <div class="settings-section-title settings-separator">Chat background</div>
         
@@ -5644,6 +5747,7 @@ void main() {
     }
 
     function updateTabBadge() {
+      scheduleWorkspaceRefresh();
       const n = totalUnread();
       document.title = n > 0 ? `(${n > 99 ? '99+' : n}) ${BASE_TITLE}` : BASE_TITLE;
       if (isEmbedded) {
@@ -6678,7 +6782,7 @@ void main() {
       notif: Object.assign({ mention_sound: true, dm_toast: true, mention_toast: true, desktop: false }, LS.get('lc_notif', {})),
     };
 
-    const viewKey = (view) => view.type === 'channel' ? `c:${view.id}` : view.type === 'forum' ? `f:${view.id}` : `dm:${view.id}`;
+    const viewKey = (view) => view.type === 'home' ? `home:${view.id}` : view.type === 'channel' ? `c:${view.id}` : view.type === 'forum' ? `f:${view.id}` : `dm:${view.id}`;
     const DRAFTS_KEY = 'lc_drafts';
     const DRAFTS_CAP = 40;
     function serializeReply(msg) {
@@ -6687,7 +6791,7 @@ void main() {
       return { id: msg.id, sender: msg.sender, snippet, content: msg.content || snippet, type: msg.type || 'text' };
     }
     function snapshotComposer(view) {
-      if (!view || editTarget) return;
+      if (!view || view.type === 'home' || editTarget) return;
       const ta = $('message-input');
       if (!ta) return;
       const key = viewKey(view);
@@ -6745,8 +6849,190 @@ void main() {
       if (att) showAttachmentPreview(att);
       else clearAttachment();
     }
+    // Layout is read once per page load. Choosing another layout only saves the preference.
+    const activeLayout = LS.get('lc_layout', 'classic') === 'tabs' ? 'tabs' : 'classic';
+    let workspaceTabs = [], workspaceActive = '', workspaceSerial = 0, workspaceRenderQueued = false;
+    function syncLayoutSetting() {
+      const selected = LS.get('lc_layout', 'classic') === 'tabs' ? 'tabs' : 'classic';
+      qsa('[data-layout-choice]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.layoutChoice === selected));
+        button.classList.toggle('active', button.dataset.layoutChoice === selected);
+      });
+      $('layout-reload-row').hidden = selected === activeLayout;
+    }
+    function initWorkspaceLayout() {
+      syncLayoutSetting();
+      qsa('[data-layout-choice]').forEach(button => button.addEventListener('click', () => {
+        LS.set('lc_layout', button.dataset.layoutChoice);
+        syncLayoutSetting();
+      }));
+      $('layout-reload').addEventListener('click', () => { if (me && currentView.type !== 'home') snapshotComposer(currentView); location.reload(); });
+      document.documentElement.dataset.layout = activeLayout;
+      if (activeLayout !== 'tabs') return;
+      const directory = qs('#sidebar .sidebar-scroll');
+      const labels = qsa('.section-label', directory);
+      $('workspace-channels').append(labels[0], $('channel-list'));
+      $('workspace-conversations').append(labels[1], $('group-invites-btn'), $('dm-list'), $('dm-empty'));
+      directory.remove();
+      const nav = $('workspace-nav');
+      nav.append(qs('.header-actions'));
+      qs('#sidebar .brand-title').textContent = 'L';
+      qs('#sidebar .brand').setAttribute('aria-label', 'Liminal Chat');
+      $('vc-dock-open').title = 'Open connected voice call';
+      $('workspace-home-btn').addEventListener('click', () => {
+        const home = workspaceTabs.find(tab => !tab.view);
+        home ? activateWorkspaceTab(home.key) : newWorkspaceTab();
+      });
+      $('workspace-new-tab').addEventListener('click', newWorkspaceTab);
+      new ResizeObserver(revealWorkspaceTab).observe($('workspace-tab-list'));
+      $('workspace-tab-list').addEventListener('click', event => {
+        const close = event.target.closest('[data-workspace-close]');
+        if (close) { closeWorkspaceTab(close.dataset.workspaceClose); return; }
+        const tab = event.target.closest('[data-workspace-tab]');
+        if (tab) activateWorkspaceTab(tab.dataset.workspaceTab);
+      });
+      $('workspace-tab-list').addEventListener('keydown', event => {
+        if (!event.target.matches('[data-workspace-tab]')) return;
+        const index = workspaceTabs.findIndex(tab => tab.key === event.target.dataset.workspaceTab);
+        if (event.key === 'Delete') { event.preventDefault(); closeWorkspaceTab(workspaceTabs[index].key); return; }
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? workspaceTabs.length - 1
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + workspaceTabs.length) % workspaceTabs.length;
+        activateWorkspaceTab(workspaceTabs[next].key);
+        qs('[data-workspace-tab="' + workspaceActive + '"]').focus();
+      });
+      $('workspace-profile').addEventListener('click', () => openSettings('profile'));
+      $('workspace-inbox-open').addEventListener('click', openInbox);
+      $('workspace-inbox-preview').addEventListener('click', event => {
+        const button = event.target.closest('[data-workspace-inbox]');
+        const item = button && inbox.find(entry => entry.id === button.dataset.workspaceInbox);
+        if (item) openInboxItem(item, button);
+      });
+    }
+    function workspaceViewKey(view) {
+      return view.type === 'dm' ? 'dm:' + view.id : 'channel:' + view.id;
+    }
+    function workspaceViewValid(view) {
+      if (view.type === 'dm') return dms.some(dm => dm.id === view.id);
+      return !!(isForumThreadView(view) ? channelById(view.forumChannelId) : channelById(view.id));
+    }
+    function workspaceTitle(view) {
+      if (!view) return 'New tab';
+      if (view.type === 'dm') return conversationTitle(dms.find(dm => dm.id === view.id));
+      if (isForumThreadView(view)) return view.thread?.title || 'Forum post';
+      return channelById(view.id)?.label || 'Channel';
+    }
+    function trackWorkspaceView(view) {
+      if (activeLayout !== 'tabs' || view.type === 'home') return;
+      const identity = workspaceViewKey(view);
+      let tab = workspaceTabs.find(item => item.view && workspaceViewKey(item.view) === identity);
+      if (!tab) {
+        tab = workspaceTabs.find(item => item.key === workspaceActive && !item.view);
+        if (!tab) { tab = { key: 'w' + (++workspaceSerial), view: null }; workspaceTabs.push(tab); }
+      }
+      tab.view = { ...view };
+      workspaceActive = tab.key;
+      $('main-content').dataset.workspaceHome = 'false';
+      $('workspace-home').hidden = true;
+      renderWorkspaceTabs();
+    }
+    function newWorkspaceTab() {
+      if (activeLayout !== 'tabs') return;
+      const tab = { key: 'w' + (++workspaceSerial), view: null };
+      workspaceTabs.push(tab);
+      showWorkspaceHome(tab.key);
+    }
+    function showWorkspaceHome(key) {
+      if (currentView.type !== 'home') { snapshotComposer(currentView); sendTypingState(false); }
+      clearHistoryContexts();
+      messageJumpRequest++;
+      currentView = { type: 'home', id: key };
+      workspaceActive = key;
+      closeDrawers();
+      cancelReply(); cancelEdit(); clearAttachment();
+      $('message-input').value = '';
+      hideNewBadge();
+      $('main-content').dataset.workspaceHome = 'true';
+      $('workspace-home').hidden = false;
+      $('channel-icon').textContent = '⌂';
+      $('channel-title').textContent = 'Home';
+      $('channel-topic').textContent = 'Channels and conversations';
+      applyFeatureControls();
+      renderChannels(); renderDmList();
+      renderWorkspaceTabs(); renderWorkspaceHome();
+    }
+    function activateWorkspaceTab(key) {
+      const tab = workspaceTabs.find(item => item.key === key);
+      if (!tab) return;
+      if (!tab.view) { showWorkspaceHome(key); return; }
+      if (!workspaceViewValid(tab.view)) { closeWorkspaceTab(key); return; }
+      workspaceActive = key;
+      openView({ ...tab.view });
+    }
+    function closeWorkspaceTab(key) {
+      const index = workspaceTabs.findIndex(tab => tab.key === key);
+      if (index < 0) return;
+      const active = key === workspaceActive;
+      if (active && currentView.type !== 'home') snapshotComposer(currentView);
+      workspaceTabs.splice(index, 1);
+      if (!workspaceTabs.length) newWorkspaceTab();
+      else if (active) activateWorkspaceTab(workspaceTabs[Math.min(index, workspaceTabs.length - 1)].key);
+      else renderWorkspaceTabs();
+      qs('[data-workspace-tab="' + workspaceActive + '"]')?.focus({ preventScroll: true });
+    }
+    function renderWorkspaceTabs() {
+      if (activeLayout !== 'tabs' || !me) return;
+      const list = $('workspace-tab-list');
+      const html = workspaceTabs.map(tab => {
+        const selected = workspaceActive === tab.key;
+        const title = workspaceTitle(tab.view);
+        const view = tab.view;
+        const unread = view ? unreadCounts.get(view.type === 'forum' ? 'c:' + view.id : viewKey(view)) || 0 : 0;
+        return `<div class="workspace-tab ${selected ? 'active' : ''}" role="presentation"><button class="workspace-tab-select" role="tab" type="button" id="workspace-tab-${tab.key}" data-workspace-tab="${tab.key}" aria-controls="main-content" aria-selected="${selected}" tabindex="${selected ? 0 : -1}" title="${esc(title)}${unread ? ' · ' + unread + ' unread' : ''}"><span aria-hidden="true">${view ? view.type === 'dm' ? '@' : '#' : '⌂'}</span><span class="workspace-tab-name">${esc(title)}</span>${unread ? `<span class="workspace-tab-unread">${unread > 99 ? '99+' : unread}</span>` : ''}</button><button class="workspace-tab-close" type="button" data-workspace-close="${tab.key}" aria-label="Close ${esc(title)}">×</button></div>`;
+      }).join('');
+      // Presence and unread refreshes must not rebuild the strip or reset keyboard focus.
+      if (list._workspaceHtml !== html) {
+        const element = list.contains(document.activeElement) ? document.activeElement : null;
+        const focused = element?.dataset.workspaceTab || element?.dataset.workspaceClose;
+        const attribute = element?.dataset.workspaceClose ? 'data-workspace-close' : 'data-workspace-tab';
+        const changedTab = list.dataset.active !== workspaceActive;
+        list.innerHTML = html; list._workspaceHtml = html;
+        list.dataset.active = workspaceActive;
+        if (focused) qs('[' + attribute + '="' + focused + '"]')?.focus({ preventScroll: true });
+        if (changedTab) revealWorkspaceTab();
+      }
+      $('main-content').setAttribute('aria-labelledby', 'workspace-tab-' + workspaceActive);
+    }
+    function revealWorkspaceTab() {
+      qs('[data-workspace-tab="' + workspaceActive + '"]')?.closest('.workspace-tab')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+    function renderWorkspaceHome() {
+      if (activeLayout !== 'tabs' || !me || currentView.type !== 'home') return;
+      const profile = `<span class="avatar avatar-md">${me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)))}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small><small>${esc(selfPresenceLabel())}</small></span>`;
+      const button = $('workspace-profile');
+      if (button._profileHtml !== profile) { button.innerHTML = profile; button._profileHtml = profile; }
+      applyRing(qs('.avatar', button), me);
+      $('workspace-bio').textContent = me.bio || '';
+      $('workspace-bio').hidden = !me.bio;
+      const items = inbox.filter(inboxItemVisible).slice(0, 3);
+      const html = items.length ? items.map(item => `<button class="workspace-inbox-item ${item.read ? '' : 'unread'}" type="button" data-workspace-inbox="${esc(item.id)}">${esc(item.from === 'system' ? 'Liminal' : displayNameOf(item.from))} · ${esc(item.text || inboxLocation(item))}</button>`).join('') : '<p class="workspace-inbox-empty">No notifications yet.</p>';
+      const preview = $('workspace-inbox-preview');
+      if (preview._previewHtml !== html) { preview.innerHTML = html; preview._previewHtml = html; }
+    }
+    function scheduleWorkspaceRefresh() {
+      if (activeLayout !== 'tabs' || workspaceRenderQueued || !me) return;
+      workspaceRenderQueued = true;
+      queueMicrotask(() => {
+        workspaceRenderQueued = false;
+        const stale = workspaceTabs.filter(tab => tab.view && !workspaceViewValid(tab.view));
+        stale.forEach(tab => closeWorkspaceTab(tab.key));
+        renderWorkspaceTabs(); renderWorkspaceHome();
+      });
+    }
+
     function beginViewSwitch(nextView) {
-      if (currentView && nextView && viewKey(currentView) !== viewKey(nextView)) snapshotComposer(currentView);
+      if (currentView && currentView.type !== 'home' && nextView && viewKey(currentView) !== viewKey(nextView)) snapshotComposer(currentView);
     }
     function finishViewSwitch(view, switched) {
       const ta = $('message-input');
@@ -7848,7 +8134,8 @@ void main() {
       applyFeatureControls();
 
       const startChannel = channels.find(c => c.id === 'general' && channelIsHome(c)) || channels.find(channelIsHome);
-      if (startChannel) await openView({ type: 'channel', id: startChannel.id });
+      if (activeLayout === 'tabs') { workspaceTabs = []; newWorkspaceTab(); }
+      else if (startChannel) await openView({ type: 'channel', id: startChannel.id });
 
       setupRealtime();
       startTimers();
@@ -7880,7 +8167,7 @@ void main() {
       const dmBlocked = currentView.type === 'dm' && dmIsBlocked(currentView.id);
       const dmUnavailable = currentView.type === 'dm' && !dms.some(dm => dm.id === currentView.id);
       renderDmBlockControls();
-      const canSendHere = !dmUnavailable && !dmBlocked && messagesEnabled
+      const canSendHere = currentView.type !== 'home' && !dmUnavailable && !dmBlocked && messagesEnabled
         && (currentView.type !== 'dm' || dmsEnabled)
         && currentView.type !== 'forum'
         && !(forumThreadLocked && !isAdmin())
@@ -8463,7 +8750,7 @@ void main() {
     }
 
     // Selection is styled on the active row; no separate moving overlay is needed.
-    function updateSidebarIndicator() {}
+    function updateSidebarIndicator() { scheduleWorkspaceRefresh(); }
 
     function viewRank(view) {
       if (!view) return -1;
@@ -8472,6 +8759,7 @@ void main() {
     }
 
     function setMainMode(mode) {
+      trackWorkspaceView(currentView);
       renderConversationHeader();
       const composer = qs('.composer-zone');
       $('vc-stage').hidden = mode !== 'voice';
@@ -9788,7 +10076,7 @@ void main() {
 
     /* ============================= 15. SENDING ============================= */
     async function sendMessage({ content = '', type = 'text', media_url = '', batch = false }) {
-      if (!me) return false;
+      if (!me || currentView.type === 'home') return false;
       if (currentView.type === 'dm' && dmIsBlocked(currentView.id)) {
         toast({ type: 'warning', text: 'Unblock this person to send messages.' });
         return false;
@@ -13733,7 +14021,7 @@ void main() {
       const onVoice = currentView.type === 'channel' && currentView.id === VOICE_CHANNEL_ID;
       const voiceReady = typeof voice !== 'undefined' && voice && voice.historyLoaded;
       if (voiceReady && !onVoice) reconcileVoiceChat({ periodic });
-      if (currentView.type === 'forum' || onVoice) {
+      if (currentView.type === 'home' || currentView.type === 'forum' || onVoice) {
         return onVoice && voiceReady ? reconcileVoiceChat({ periodic }) : Promise.resolve();
       }
       if (periodic) {
@@ -15209,6 +15497,7 @@ void main() {
       if (name._nameHtml !== nameHtml) { name.innerHTML = nameHtml; name._nameHtml = nameHtml; }
       $('self-status-text').textContent = selfPresenceLabel();
       renderSubroleButton();
+      scheduleWorkspaceRefresh();
     }
 
     function renderMembers() {
@@ -16268,6 +16557,7 @@ void main() {
       renderBackgroundChoices();
       applyDensity(settings.density);
       applyFontSize(settings.fontsize);
+      syncLayoutSetting();
       $('set-dyslexic').setAttribute('aria-checked', String(!!settings.dyslexic));
       $('ntf-sound').setAttribute('aria-checked', String(!!settings.notif.mention_sound));
       $('ntf-dm').setAttribute('aria-checked', String(!!settings.notif.dm_toast));
@@ -17408,6 +17698,7 @@ void main() {
       $('inbox-count').hidden = n === 0;
       $('inbox-count').textContent = n > 99 ? '99+' : n;
       $('inbox-btn').setAttribute('aria-label', n ? `Inbox, ${n} unread` : 'Inbox');
+      scheduleWorkspaceRefresh();
     }
     async function hydrateInbox(refresh = false) {
       if (!me) return;
@@ -18520,6 +18811,7 @@ void main() {
 
     /* ============================= 38. EVENT WIRING ============================= */
     function wireStaticEvents() {
+      initWorkspaceLayout();
       initRingVisibility();
       wireVoiceEvents();
       $('auth-tab-login').addEventListener('click', () => {
