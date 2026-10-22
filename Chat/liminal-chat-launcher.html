@@ -236,13 +236,19 @@ async function loadChatDocument(refreshToken,signal){
   return {html,record:etag?{html,etag,launcher:LAUNCHER_VERSION}:null};
 }
 async function readChatDocumentVersion(signal){
+  const controller=new AbortController();
+  const cancel=()=>controller.abort();
+  if(signal.aborted)controller.abort();
+  signal.addEventListener('abort',cancel,{once:true});
+  const timer=setTimeout(cancel,3000);
   try{
     const url=CDN.replace('/object/public/','/object/info/public/');
-    const response=await fetch(url,{cache:'no-store',signal});
+    const response=await fetch(url,{cache:'no-store',signal:controller.signal});
     if(!response.ok)return null;
     const info=await response.json();
     return typeof info?.etag==='string'&&info.etag?{etag:info.etag}:null;
   }catch(error){if(signal.aborted)throw error;return null;}
+  finally{clearTimeout(timer);signal.removeEventListener('abort',cancel);}
 }
 async function checkConnection(){
   const button=document.getElementById("check-connection");

@@ -81,3 +81,18 @@ coalescing, reconnect backoff, hidden-tab behavior, maintenance authorization,
 and preservation of storage ownership/metadata. The release does not claim
 that all egress or log ingestion will disappear. Actual billing savings need
 subsequent usage measurements after the updated Chat file is uploaded.
+
+## Rollout and checks
+
+Publish `liminal-chat-launcher.html` before `chat.html`. Existing users need
+Launcher 5 to receive the application-document cache. Once that download is
+live, the admin dashboard's minimum launcher version can be set to 5 using
+its existing control. Do not raise it while the old download is still served.
+
+All 195 unit/database tests pass and all eight deployment artifacts validate.
+The offline native Chromium check is included as
+`scripts/chat-launcher-cache.browser.mjs`; it could not run here because no
+browser executable was installed and the browser download failed. Its native
+file-origin check must not be represented as having passed. Unit checks do
+exercise actual cache read/write flow, reuse between launcher instances,
+version changes, explicit refresh, unavailable storage and metadata timeouts.

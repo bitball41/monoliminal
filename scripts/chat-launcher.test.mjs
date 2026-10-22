@@ -65,6 +65,7 @@ test('startup timeout keeps the error visible and offers inspection instead of r
 test('request timeout covers the response body, and a cancelled attempt cannot replace the retry',async()=>{
   let firstSignal,releaseBody;
   const h=harness(async(url,{signal})=>{
+    if(url.includes('/object/info/public/'))return Response.json({etag:'fixture'});
     firstSignal??=signal;
     if(signal===firstSignal)return {ok:true,text:()=>new Promise(resolve=>releaseBody=resolve)};
     return new Response(chat);
@@ -129,4 +130,15 @@ test('the real document cache persists between launcher instances and releases d
   const second=harness();second.context.indexedDB=indexedDB;
   await second.context.boot();assert.equal(second.documents().length,0);assert.equal(second.element('chat-frame').srcdoc,chat);
   assert.equal(closed,3,'first read/write and later read all close their connection');
+});
+
+
+test('a stalled metadata check times out into a normal download without cancelling startup',async()=>{
+  const h=harness(async(url,{signal})=>{
+    if(url.includes('/object/info/public/'))return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('metadata timeout')),{once:true}));
+    return new Response(chat);
+  });
+  const start=h.context.boot();await new Promise(resolve=>setImmediate(resolve));
+  [...h.timers.values()].find(timer=>timer.ms===3000).fn();await start;
+  assert.equal(h.documents().length,1);assert.equal(h.element('chat-frame').srcdoc,chat);
 });
