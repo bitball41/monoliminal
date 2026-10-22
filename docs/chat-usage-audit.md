@@ -42,6 +42,12 @@ inline data-URL images; removing nonexistent inline images would not help.
 - Failed Realtime recovery backs off to one attempt per minute, rather than
   repeatedly recreating subscriptions and rehydrating unread lists. Hidden
   tabs wait for foreground recovery; healthy sockets remain connected.
+- Launcher 5 stores the public 1.7 MB Chat document locally in IndexedDB. Each
+  launch reads the small public Storage metadata JSON and reuses HTML only when
+  its ETag still matches. Owner refreshes and explicit retries download anew.
+  This avoids depending on cross-origin exposure of the ETag response header.
+  Blocked, full or unsupported browser storage falls back to normal downloading.
+  Both the new launcher and Chat HTML need manual publication.
 - Newly uploaded public media uses unique keys with a seven-day browser cache.
   Existing sticker uploads retain their one-year policy. Private group
   attachments and application HTML are excluded from the media repair.

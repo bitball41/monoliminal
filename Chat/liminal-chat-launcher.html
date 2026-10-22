@@ -107,7 +107,7 @@ var supabase=function(e){function t(e,t){var r={};for(var s in e)Object.prototyp
 const CDN="https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/liminal-apps/chat.html";
 const SUPABASE_URL="https://trsirhyucncmyyfyiuje.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG";
-const LAUNCHER_VERSION=4;
+const LAUNCHER_VERSION=5;
 const STAGES={connecting:"Connecting to Liminal…",downloading:"Downloading Chat…",opening:"Starting Chat…",ready:"Connected",error:"Connection interrupted"};
 // Startup state. Each retry cancels the previous attempt, including body downloads.
 const REQUEST_TIMEOUT_MS=20000;
@@ -183,14 +183,66 @@ function validateChatDocument(html){
   if(!/<html[\s>]/i.test(html)||!html.includes("liminal:chat:ready"))throw new LaunchError("LC_BAD_RESPONSE","The server returned an unexpected file. Ask an owner to check the published Chat version.");
   if(!html.includes(SUPABASE_URL))throw new LaunchError("LC_UPDATE_REQUIRED","The published Chat still uses the retired database. Ask an owner to publish the updated Chat file.");
 }
-// Normal launches share a CDN URL for one minute, bounding stale copies even on
-// the Free plan. Explicit retries and owner refreshes bypass that cache window.
+// A stable URL permits conditional reuse. Retries and owner refreshes bypass it.
 function chatDocumentUrl(refreshToken){
   const url=new URL(CDN);
   url.searchParams.set("launcher",String(LAUNCHER_VERSION));
   if(refreshToken)url.searchParams.set("refresh",String(refreshToken));
-  else url.searchParams.set("minute",String(Math.floor(Date.now()/60000)));
   return url.href;
+}
+// Store only the public application document, never account/session data.
+// Unsupported, denied, full or blocked storage falls back to a normal download.
+function chatDocumentCache(mode,record){
+  return new Promise(resolve=>{
+    if(typeof indexedDB==='undefined'){resolve(null);return;}
+    let db,settled=false;
+    const finish=value=>{if(settled)return;settled=true;clearTimeout(timer);try{db?.close();}catch{}resolve(value);};
+    const timer=setTimeout(()=>finish(null),1500);
+    try{
+      const open=indexedDB.open('liminal-launcher-cache',1);
+      open.onupgradeneeded=()=>{if(!open.result.objectStoreNames.contains('documents'))open.result.createObjectStore('documents');};
+      open.onerror=open.onblocked=()=>finish(null);
+      open.onsuccess=()=>{
+        db=open.result;if(settled){db.close();return;}
+        try{
+          const tx=db.transaction('documents',mode==='read'?'readonly':'readwrite');
+          const store=tx.objectStore('documents');
+          const request=mode==='read'?store.get(CDN):store.put(record,CDN);
+          let value=null;
+          request.onsuccess=()=>{value=mode==='read'?request.result:true;};
+          tx.oncomplete=()=>finish(value);
+          tx.onerror=tx.onabort=()=>finish(null);
+        }catch{finish(null);}
+      };
+    }catch{finish(null);}
+  });
+}
+async function loadChatDocument(refreshToken,signal){
+  // Use the public metadata JSON: browsers need not expose the ETag header
+  // cross-origin, but can always read the same ETag from this small response.
+  const [cached,version]=await Promise.all([
+    refreshToken?null:chatDocumentCache('read'),readChatDocumentVersion(signal)
+  ]);
+  if(cached?.launcher===LAUNCHER_VERSION&&cached.etag&&typeof cached.html==='string'){
+    try{validateChatDocument(cached.html);}catch{cached.etag='';}
+    if(version?.etag&&version.etag===cached.etag)return {html:cached.html,record:null};
+  }
+  const response=await fetch(chatDocumentUrl(refreshToken),{cache:refreshToken?'reload':'no-cache',signal});
+  if(!response.ok)throw responseError(response.status);
+  setStage('downloading');
+  const html=await response.text();
+  validateChatDocument(html);
+  const etag=version?.etag;
+  return {html,record:etag?{html,etag,launcher:LAUNCHER_VERSION}:null};
+}
+async function readChatDocumentVersion(signal){
+  try{
+    const url=CDN.replace('/object/public/','/object/info/public/');
+    const response=await fetch(url,{cache:'no-store',signal});
+    if(!response.ok)return null;
+    const info=await response.json();
+    return typeof info?.etag==='string'&&info.etag?{etag:info.etag}:null;
+  }catch(error){if(signal.aborted)throw error;return null;}
 }
 async function checkConnection(){
   const button=document.getElementById("check-connection");
@@ -360,13 +412,9 @@ async function boot(refreshToken=""){
   try{
     if(navigator.onLine===false)throw new LaunchError("LC_OFFLINE","Your device appears to be offline. Reconnect to the internet, then retry.");
     timeout=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);
-    const response=await fetch(chatDocumentUrl(refreshToken),{cache:refreshToken?"reload":"no-cache",signal:controller.signal});
-    if(!response.ok)throw responseError(response.status);
+    const {html,record}=await loadChatDocument(refreshToken,controller.signal);
     if(sequence!==bootSequence)return;
-    setStage("downloading");
-    const html=await response.text();
-    if(sequence!==bootSequence)return;
-    validateChatDocument(html);
+    if(record)void chatDocumentCache('write',record);
     clearTimeout(timeout);
     setStage("opening");
     frameHasDocument=true;
