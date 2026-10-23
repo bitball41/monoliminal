@@ -1746,13 +1746,24 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       try { window.parent.postMessage({ type: "liminal:games:ready" }, "*"); } catch (e) {}
     }
 
+    var launcherSettingsPromise = null;
+    var launcherSettingsLoaded = false;
+    var gatePromise = null;
     function loadLauncherSettings(){
-      return fetch(SUPABASE_URL + "/rest/v1/app_settings?select=key,value&key=in.(min_games_launcher_version,games_launcher_migrate_message)", {
+      if (launcherSettingsLoaded) return Promise.resolve();
+      if (launcherSettingsPromise) return launcherSettingsPromise;
+      var controller = new AbortController();
+      var timer = setTimeout(function(){ controller.abort(); }, 8000);
+      launcherSettingsPromise = fetch(SUPABASE_URL + "/rest/v1/app_settings?select=key,value&key=in.(min_games_launcher_version,games_launcher_migrate_message)", {
+        signal: controller.signal,
         headers: {
           apikey: SUPABASE_PUBLISHABLE_KEY,
           Authorization: "Bearer " + SUPABASE_PUBLISHABLE_KEY
         }
-      }).then(function(res){ return res.ok ? res.json() : []; }).then(function(rows){
+      }).then(function(res){
+        if (!res.ok) throw new Error("Launcher settings unavailable");
+        return res.json();
+      }).then(function(rows){
         (rows || []).forEach(function(row){
           if (row.key === "min_games_launcher_version") {
             var parsed = parseInt(row.value, 10);
@@ -1762,12 +1773,18 @@ Download the new launcher, replace this file, and open that instead. Saved favor
             migrateMessage = String(row.value);
           }
         });
-      }).catch(function(){});
+        launcherSettingsLoaded = true;
+      }).catch(function(){}).finally(function(){
+        clearTimeout(timer);
+        launcherSettingsPromise = null;
+      });
+      return launcherSettingsPromise;
     }
 
     function finishGate(fromTimeout){
       if (appStarted) return;
-      return loadLauncherSettings().then(function(){
+      if (gatePromise) return gatePromise;
+      gatePromise = loadLauncherSettings().then(function(){
         if (appStarted) return;
         var required = Math.max(LAUNCHER_PROTOCOL, minLauncherVersion || LAUNCHER_PROTOCOL);
         if (launcherVersion < required) {
@@ -1775,7 +1792,8 @@ Download the new launcher, replace this file, and open that instead. Saved favor
           return;
         }
         startApp();
-      });
+      }).finally(function(){ gatePromise = null; });
+      return gatePromise;
     }
 
     if (!isEmbedded) {
