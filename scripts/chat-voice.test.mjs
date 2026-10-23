@@ -100,7 +100,7 @@ test('a stored voice row is forced into the voice room', async () => {
   const context = vm.createContext({
     VOICE_CHANNEL_ID: 'voice-chat',
     channels: [],
-    sb: { from() { return { select() { return { order: async () => ({ data: rows }) }; } }; } },
+    sb: { from() { return { select() { return { order: () => ({ retry: async () => ({ data: rows }) }) }; } }; } },
   });
   vm.runInContext(section(chat, '    async function loadChannels() {', '    async function loadDms() {'), context);
   await context.loadChannels();
@@ -117,7 +117,7 @@ test('voice is inserted when the database has no voice channel', async () => {
   const context = vm.createContext({
     VOICE_CHANNEL_ID: 'voice-chat',
     channels: [],
-    sb: { from() { return { select() { return { order: async () => ({ data: [] }) }; } }; } },
+    sb: { from() { return { select() { return { order: () => ({ retry: async () => ({ data: [] }) }) }; } }; } },
   });
   vm.runInContext(section(chat, '    async function loadChannels() {', '    async function loadDms() {'), context);
   await context.loadChannels();

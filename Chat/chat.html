@@ -5188,7 +5188,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.7";
+    const APP_VERSION = "2.24.8";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -7680,10 +7680,28 @@ void main() {
     /* ============================= 6. SUPABASE / BOOT ============================= */
     let runtimeSupabaseUrl = SUPABASE_URL;
     let runtimeSupabaseKey = SUPABASE_PUBLISHABLE_KEY;
+    // Bound reads, including read-only POST RPCs. Writes have their own
+    // idempotent message ID; aborting a write alone cannot prove it failed.
+    const CHAT_READ_TIMEOUT_MS = 12000;
+    const CHAT_READ_RPCS = new Set(['chat_get_my_profile', 'chat_check_device_ban',
+      'chat_list_conversations', 'chat_list_dm_inbox', 'chat_list_group_invites', 'chat_list_mentions']);
+    async function chatFetch(input, options = {}) {
+      const url = new URL(typeof input === 'string' ? input : input.url || String(input));
+      const method = String(options.method || 'GET').toUpperCase();
+      const read = ['GET', 'HEAD'].includes(method) || CHAT_READ_RPCS.has(url.pathname.split('/').pop());
+      if (!url.pathname.startsWith('/rest/v1/') || !read) return fetch(input, options);
+      const timeout = AbortSignal.timeout(CHAT_READ_TIMEOUT_MS);
+      const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+      return fetch(input, { ...options, signal });
+    }
+    function missingSchema(error) {
+      return ['42703', '42883', 'PGRST202', 'PGRST204'].includes(error?.code);
+    }
     function makeClient(url, key) {
       runtimeSupabaseUrl = url;
       runtimeSupabaseKey = key;
       return window.supabase.createClient(url, key, {
+        global: { fetch: chatFetch },
         auth: {
           persistSession: true,
           autoRefreshToken: true,
@@ -7751,28 +7769,31 @@ void main() {
           targetKey = SUPABASE_PUBLISHABLE_KEY;
         }
       } catch { /* Let the client report an invalid custom developer URL normally. */ }
-      sb = makeClient(targetUrl, targetKey);
+      if (!sb || runtimeSupabaseUrl !== targetUrl || runtimeSupabaseKey !== targetKey) sb = makeClient(targetUrl, targetKey);
     }
 
     async function standaloneBoot() {
       ensureClient();
-      if (await enforceDeviceBan()) return;
-      await loadAppSettings();
       try {
-        const { data: sessionData } = await sb.auth.getSession();
+        const [deviceBanned, , { data: sessionData }] = await Promise.all([
+          enforceDeviceBan(), loadAppSettings(), sb.auth.getSession(),
+        ]);
+        if (deviceBanned) return;
         if (sessionData.session) {
           const { data: profile, error } = await sb.rpc('chat_get_my_profile');
           if (!error && profile) {
             if (profile.is_banned) { showBanned(profile); return; }
             LS.set('lc_user', profile.username);
-            await registerCurrentDevice(profile);
             await bootApp(profile);
             return;
           }
+          if (error) throw error;
           await sb.auth.signOut({ scope: 'local' });
         }
       } catch (err) {
         console.error('[liminal] session restore failed', err);
+        showStartupFailure();
+        return;
       }
       LS.del('lc_user'); LS.del('lc_pass_hash');
       showAuth();
@@ -7804,7 +7825,16 @@ void main() {
       } catch {}
     }
 
-    async function finishEmbeddedGate(fromTimeout) {
+    let embeddedGatePromise = null;
+    function finishEmbeddedGate(fromTimeout) {
+      if (embeddedGatePromise) return embeddedGatePromise;
+      embeddedGatePromise = runEmbeddedGate(fromTimeout).catch(error => {
+        console.error('[liminal] launcher gate failed', error);
+        showStartupFailure();
+      }).finally(() => { embeddedGatePromise = null; });
+      return embeddedGatePromise;
+    }
+    async function runEmbeddedGate(fromTimeout) {
       if (me) return;
       if (!fromTimeout) clearTimeout(embeddedGateTimer);
       ensureClient();
@@ -8052,7 +8082,6 @@ void main() {
           return;
         }
         LS.set('lc_user', data.username);
-        await registerCurrentDevice(data);
         LS.set('lc_tour_pending', data.username);
         if (created.first_user) toast({ type: 'success', title: 'Welcome, owner!', text: 'Your account has owner access.' });
         else toast({ type: 'success', title: `Welcome to Liminal, ${displayName}!`, text: 'A quick tour will show you around.' });
@@ -8093,7 +8122,6 @@ void main() {
         }
         if (data.is_banned) { showBanned(data); return; }
         LS.set('lc_user', data.username);
-        await registerCurrentDevice(data);
         await bootApp(data);
       } catch (err) {
         console.error(err);
@@ -8134,11 +8162,10 @@ void main() {
       await loadAppSettings();
       if (appSettings.app_enabled === 'false' && !isOwner()) { showMaintenance(); return; }
 
-      await Promise.all([loadProfiles(), loadSubroles(), loadChannels(), loadDms(), loadGroupInvites(), loadDmBlocks(), loadFavGifs(), loadFollowing(), loadStickerCatalog()]);
+      // Only identities and channel navigation are needed to read the first chat.
+      await Promise.all([loadProfiles(), loadChannels()]);
       profiles.set(me.username, { ...profiles.get(me.username), ...me });
-      await hydrateChannelUnreads();
       lastListRefreshAt = Date.now();
-      hydrateInbox();
 
       $('app-shell').hidden = false;
       restoreChatBackground();
@@ -8151,11 +8178,12 @@ void main() {
       updateAdminUi();
       applyFeatureControls();
 
+      setupRealtime();
       const startChannel = channels.find(c => c.id === 'general' && channelIsHome(c)) || channels.find(channelIsHome);
       if (activeLayout === 'tabs') { workspaceTabs = []; newWorkspaceTab(); }
       else if (startChannel) await openView({ type: 'channel', id: startChannel.id });
 
-      setupRealtime();
+      void loadChatExtras(profile);
       startTimers();
       startChatActivity();
       updateTimeoutUi();
@@ -8164,14 +8192,43 @@ void main() {
       else maybeShowWhatsNew();
     }
 
-    async function loadAppSettings() {
-      try {
-        const { data } = await sb.from('app_settings').select('key,value');
-        (data || []).forEach(r => { appSettings[r.key] = r.value; });
+    async function runChatLoads(jobs, concurrency = 2) {
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
+        while (next < jobs.length) {
+          const job = jobs[next++];
+          try { await job(); } catch (error) { console.warn('[liminal] background load failed', error); }
+        }
+      }));
+    }
+    async function loadChatExtras(profile) {
+      await runChatLoads([
+        async () => { await loadDmBlocks(); await loadDms(); renderDmList(); await loadGroupInvites(); await hydrateInbox(); },
+        loadSubroles,
+        async () => { await hydrateChannelUnreads(); renderChannels(); },
+        () => registerCurrentDevice(profile), loadFavGifs, loadFollowing, loadStickerCatalog,
+      ].map(job => async () => { if (me?.username === profile.username && !presenceStopped) await job(); }));
+    }
+    function showStartupFailure() {
+      const startup = $('startup-screen');
+      startup.hidden = false;
+      startup.innerHTML = '<div class="empty-state"><h3>Chat is taking too long to load</h3><p>The server could not finish the request. Your session is still saved.</p><button class="secondary-button" type="button" data-retry-startup>Retry</button></div>';
+      qs('[data-retry-startup]', startup).addEventListener('click', () => location.reload());
+    }
+    let appSettingsLoad = null, appSettingsLoadedAt = 0;
+    function loadAppSettings() {
+      if (appSettingsLoad) return appSettingsLoad;
+      if (appSettingsLoadedAt && Date.now() - appSettingsLoadedAt < 15000) return Promise.resolve();
+      appSettingsLoad = (async () => {
+        const { data, error } = await sb.from('app_settings').select('key,value').retry(false);
+        if (error || !data) throw error || new Error('Settings unavailable');
+        data.forEach(r => { appSettings[r.key] = r.value; });
         syncCoOwnerRegistry();
         try { bannedWords = JSON.parse(appSettings.banned_words || '[]'); } catch { bannedWords = []; }
         primeAppUpdateMarker(appSettings.force_refresh_at);
-      } catch {}
+        appSettingsLoadedAt = Date.now();
+      })().finally(() => { appSettingsLoad = null; });
+      return appSettingsLoad;
     }
 
     function applyFeatureControls() {
@@ -8270,13 +8327,13 @@ void main() {
     }
 
     async function loadProfiles() {
-      let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).order('username');
-      if (error || !data) {
+      let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).order('username').retry(false);
+      if (missingSchema(error)) {
         ({ data, error } = await sb.from('profiles').select(PROFILE_BASE_COLUMNS).order('username'));
       }
       if (error || !data) {
         console.error('[liminal] profile load failed', error);
-        ({ data, error } = await sb.from('profiles')
+        if (missingSchema(error)) ({ data, error } = await sb.from('profiles')
           .select('username,display_name,ring,pfp,tag,status,custom_status,is_admin,is_owner,is_banned,timeout_until,kicked_at,is_test_account,created_at,user_id')
           .order('username'));
         if (error || !data) {
@@ -8295,11 +8352,12 @@ void main() {
         profiles.set(p.username, p);
       });
       if (me) profiles.set(me.username, { ...profiles.get(me.username), ...me });
-      await loadNoelleProfile();
+      void loadNoelleProfile();
     }
 
     async function loadChannels() {
-      const { data } = await sb.from('channels').select('*').order('position', { ascending: true });
+      const { data, error } = await sb.from('channels').select('*').order('position', { ascending: true }).retry(false);
+      if (error) throw error;
       channels = (data || []).filter(ch => ch.id !== 'chatgpt');
       let voiceRow = channels.find(ch => ch.id === VOICE_CHANNEL_ID);
       if (!voiceRow) {
@@ -8366,25 +8424,31 @@ void main() {
       if (!me) return;
       const chatChannels = channels.filter(ch => (ch.kind || 'chat') === 'chat' && channelIsVisible(ch));
       const forumChannels = channels.filter(ch => ch.kind === 'forum' && channelIsVisible(ch));
-      await Promise.all([
-        ...chatChannels.map(async (ch) => {
+      await runChatLoads([
+        ...chatChannels.map(ch => async () => {
           const key = `c:${ch.id}`;
           const readAt = lastReadAt[key];
+          const liveAtStart = unreadCounts.get(key) || 0;
           let query = sb.from('messages')
-            .select('id', { count: 'exact', head: true })
+            // The badge displays 99+. Stop at 100 visible rows rather than
+            // counting an entire channel's history on every client startup.
+            .select('id')
             .eq('channel_id', ch.id)
             .eq('deleted', false)
             .neq('sender', me.username);
           if (readAt) query = query.gt('created_at', readAt);
-          const { count, error } = await query;
+          const { data, error } = await query.limit(100).retry(false);
           if (error) {
             console.error('[liminal] channel unread', error);
             return;
           }
-          if (count > 0) unreadCounts.set(key, count);
+          if (lastReadAt[key] !== readAt) return;
+          const arrivals = Math.max(0, (unreadCounts.get(key) || 0) - liveAtStart);
+          const reconciled = Math.max((data || []).length, arrivals);
+          if (reconciled > 0) unreadCounts.set(key, reconciled);
           else unreadCounts.delete(key);
         }),
-        ...forumChannels.map(async (ch) => {
+        ...forumChannels.map(ch => async () => {
           const key = `c:${ch.id}`;
           const readAt = lastReadAt[key];
           const { data, error } = await sb.from('forum_threads')
@@ -8392,12 +8456,13 @@ void main() {
             .eq('channel_id', ch.id)
             .eq('deleted', false)
             .order('last_activity_at', { ascending: false })
-            .limit(200);
+            .limit(200).retry(false);
           if (error) {
             console.error('[liminal] forum unread', error);
             return;
           }
           const rows = data || [];
+          if (lastReadAt[key] !== readAt) return;
           rows.forEach(t => forumThreadBoard.set(t.id, ch.id));
           const count = rows.filter(t => {
             if (!readAt) return t.author !== me.username;
@@ -8407,7 +8472,7 @@ void main() {
           if (count > 0) unreadCounts.set(key, count);
           else unreadCounts.delete(key);
         }),
-      ]);
+      ], 2);
       updateTabBadge();
     }
 
@@ -8888,7 +8953,7 @@ void main() {
         query = sb.from('dm_messages').select(DM_MESSAGE_COLUMNS).eq('dm_id', view.id).eq('deleted', false);
       }
       if (beforeIso) query = query.lt('created_at', beforeIso);
-      const { data, error } = await query.order('created_at', { ascending: false }).limit(pageSize);
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(pageSize).retry(false);
       if (error) {
         if (!beforeIso) messageLoadErrors.set(key, error);
         toast({ type: 'error', text: 'Could not load messages.' });
@@ -9361,7 +9426,7 @@ void main() {
       listEl.dataset.view = key;
       markTimelineTail();
       if (!msgs.length && messageLoadErrors.has(key)) {
-        listEl.innerHTML = `<div class="empty-state api-empty-state"><div class="big-icon">↻</div><h3>Messages couldn't load</h3><p>The server hit a temporary API limit. Nothing was deleted.</p><button class="secondary-button" type="button" data-retry-messages>Retry</button></div>`;
+        listEl.innerHTML = `<div class="empty-state api-empty-state"><div class="big-icon">↻</div><h3>Messages couldn't load</h3><p>The server is slow or unreachable. Retry to load this conversation.</p><button class="secondary-button" type="button" data-retry-messages>Retry</button></div>`;
         qs('[data-retry-messages]', listEl)?.addEventListener('click', async (event) => {
           const button = event.currentTarget;
           button.disabled = true;
@@ -10093,6 +10158,22 @@ void main() {
     }
 
     /* ============================= 15. SENDING ============================= */
+    async function insertChatMessage(table, row, columns) {
+      let result;
+      try {
+        result = await sb.from(table).insert(row).select(columns).single()
+          .abortSignal(AbortSignal.timeout(20000));
+      } catch (error) { result = { error }; }
+      // A lost response or a retry may refer to a write already committed.
+      // Check the same ID; never generate a second message for that attempt.
+      if (result.error) {
+        try {
+          const existing = await sb.from(table).select(columns).eq('id', row.id).maybeSingle().retry(false);
+          if (existing.data) return existing;
+        } catch {}
+      }
+      return result;
+    }
     async function sendMessage({ content = '', type = 'text', media_url = '', batch = false }) {
       if (!me || currentView.type === 'home') return false;
       if (currentView.type === 'dm' && dmIsBlocked(currentView.id)) {
@@ -10163,7 +10244,7 @@ void main() {
       if (!batch && !spamGuard()) return false;
       if (content) checkSelfHarm(content);
 
-      const row = { sender: me.username, content, type, media_url };
+      const row = { id: crypto.randomUUID(), sender: me.username, content, type, media_url };
       if (replyTarget) {
         row.reply_to = {
           id: replyTarget.id,
@@ -10182,9 +10263,10 @@ void main() {
 
       const table = kind === 'channel' ? 'messages' : 'dm_messages';
       const columns = kind === 'channel' ? MESSAGE_COLUMNS : DM_MESSAGE_COLUMNS;
-      const result = await sb.from(table).insert(row).select(columns).single();
+      const result = await insertChatMessage(table, row, columns);
 
       if (result.error) {
+        if (pending.confirmed) { void requestNoelleReply(pending.confirmedMessage, kind); return true; }
         console.error(result.error);
         failPendingSend(pending, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '');
         return 'kept';
@@ -10242,6 +10324,7 @@ void main() {
     function beginPendingSend(row, kind) {
       const entry = {
         tempId: `pending:${++pendingSendSeq}`,
+        serverId: row.id,
         key: pendingKeyFor(row, kind),
         content: row.content || '',
         type: row.type || 'text',
@@ -10256,14 +10339,14 @@ void main() {
         edited: false,
         pending: true,
         failed: false,
+        clientMessageId: row.id,
       };
       entry.placeholder = placeholder;
       pendingSends.push(entry);
 
-      if (msgCache.has(entry.key)) {
-        msgCache.get(entry.key).push(placeholder);
-        indexMessage(placeholder);
-      }
+      if (!msgCache.has(entry.key)) setViewMessages(entry.key, []);
+      msgCache.get(entry.key).push(placeholder);
+      indexMessage(placeholder);
       if (entry.key === viewKey(currentView)) {
         appendToTimeline(placeholder);
         markViewRead(entry.key);
@@ -10300,18 +10383,21 @@ void main() {
       const key = pendingKeyFor(msg, kind);
       const entry = {
         tempId: msg.id,
+        serverId: msg.clientMessageId || crypto.randomUUID(),
         key,
         content: msg.content || '',
         type: msg.type || 'text',
         media_url: msg.media_url || '',
         placeholder: msg,
       };
+      msg.clientMessageId = entry.serverId;
       pendingSends.push(entry);
       if (key === viewKey(currentView)) updateMessageNode(msg);
 
       const table = kind === 'channel' ? 'messages' : 'dm_messages';
       const columns = kind === 'channel' ? MESSAGE_COLUMNS : DM_MESSAGE_COLUMNS;
       const row = {
+        id: entry.serverId,
         sender: me.username,
         content: msg.content || '',
         type: msg.type || 'text',
@@ -10321,8 +10407,9 @@ void main() {
       if (kind === 'channel') row.channel_id = msg.channel_id;
       else { row.dm_id = msg.dm_id; row.read_by = [me.username]; }
 
-      const result = await sb.from(table).insert(row).select(columns).single();
+      const result = await insertChatMessage(table, row, columns);
       if (result.error) {
+        if (entry.confirmed) { void requestNoelleReply(entry.confirmedMessage, kind); return; }
         console.error(result.error);
         failPendingSend(entry, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '');
         return;
@@ -10436,14 +10523,17 @@ void main() {
     }
 
     function resolvePendingSend(m, kind) {
-      if (!me || m.sender !== me.username || !pendingSends.length) return false;
+      if (!me || m.sender !== me.username) return false;
       const key = pendingKeyFor(m, kind);
       const i = pendingSends.findIndex(p => p.key === key
-        && p.content === (m.content || '')
+        && (p.serverId ? p.serverId === m.id : p.content === (m.content || '')
         && p.type === (m.type || 'text')
-        && p.media_url === (m.media_url || ''));
-      if (i < 0) return false;
-      const [entry] = pendingSends.splice(i, 1);
+        && p.media_url === (m.media_url || '')));
+      const failed = i < 0 && (msgCache.get(key) || []).find(row => row.failed && row.clientMessageId === m.id);
+      if (i < 0 && !failed) return false;
+      const entry = i >= 0 ? pendingSends.splice(i, 1)[0] : { tempId: failed.id };
+      entry.confirmed = true;
+      entry.confirmedMessage = m;
 
       const cache = msgCache.get(key);
       if (cache) {
@@ -10503,7 +10593,9 @@ void main() {
       return base;
     }
     function commitLoadedView(key, rows) {
-      const merged = mergeHeldMessages(rows, takeHeldMessages(key));
+      const incoming = mergeHeldMessages(rows, takeHeldMessages(key));
+      incoming.forEach(row => resolvePendingSend(row, key.startsWith('dm:') ? 'dm' : 'channel'));
+      const merged = mergeHeldMessages(incoming, msgCache.get(key) || []);
       setViewMessages(key, merged);
       loadingViewKeys.delete(key);
       const late = takeHeldMessages(key);
@@ -10554,8 +10646,9 @@ void main() {
       if (m.deleted) { rememberId(m.id); return; }
       const key = kind === 'dm' ? `dm:${m.dm_id}` : `c:${m.channel_id}`;
       notePerformanceWork(key === viewKey(currentView) ? 'message-current' : 'message-other');
-      if (!msgCache.has(key) && loadingViewKeys.has(key)) {
+      if (loadingViewKeys.has(key)) {
         holdLiveMessage(key, m);
+        resolvePendingSend(m, kind);
         return;
       }
       if (seenIds.has(m.id)) {

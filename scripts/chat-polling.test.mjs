@@ -127,6 +127,7 @@ function liveLoadHelpers() {
   const context = vm.createContext({
     msgCache,
     rememberId: id => seen.push(id),
+    resolvePendingSend() {},
     setViewMessages(key, rows) { msgCache.set(key, rows || []); return rows; },
     viewKey: view => `${view.type === 'dm' ? 'dm' : 'c'}:${view.id}`,
     fetchMessages: async () => [{ id: 'old', created_at: '1', deleted: false }],
