@@ -132,6 +132,7 @@ function chatPresence() {
     signOutLocked: false, stopChatBackground() {}, leaveVoiceRoom() {},
     LS: { del() {} }, location: { reload: () => wakeJobs.push('reload') },
     esc: value => String(value), displayNameOf: account => account.display_name || account.username,
+    displayNameHtml: account => account.display_name || account.username,
     avatarHtml: () => '', roleBadgeHtml: () => '', subRoleBadgeHtml: () => '', staffRoleOf: () => 'member',
     statusMeta: status => ({ label: status }),
     memberListClicksBound: false,
@@ -531,3 +532,4 @@ test('idle, waking and status changes produce no presence HTTP traffic or repeat
   assert.doesNotMatch(chat.slice(chat.indexOf('    const LIVE_PRESENCE_TOPIC =')), /chat_presence_pulse/);
   assert.equal(p.rest.length, 0, 'a healthy presence socket does not touch user_presence');
 });
+
