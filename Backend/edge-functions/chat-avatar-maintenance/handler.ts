@@ -33,15 +33,20 @@ export function avatarMaintenanceHandler(config: {
     const profile=(await profileResponse.json())[0];
     if(!profile || profile.pfp!==expected_pfp) return json({status:'profile_changed'},409);
     if(profile.pfp_thumbnail) return json({status:'already_optimized'});
-    const key=user_id+'/thumbnails/'+await digest(bytes)+'.webp';
+    const thumbnailHash=await digest(bytes);
+    const key=user_id+'/thumbnails/'+thumbnailHash+'.webp';
     const uploaded=await request(config.projectUrl+'/storage/v1/object/liminal-pfp/'+key,{method:'POST',headers:{...headers,'Content-Type':'image/webp','Cache-Control':'max-age=604800','x-upsert':'false'},body:bytes});
     const uploadError=uploaded.status===400 ? await uploaded.clone().json().catch(()=>({})) : {};
     const conflict=uploaded.status===409 || uploadError.error==='Duplicate';
     if(!uploaded.ok && !conflict) return json({error:'Thumbnail upload failed'},502);
     const publicUrl=config.projectUrl+'/storage/v1/object/public/liminal-pfp/'+key;
     // Verify the HTTP object, not just its SQL metadata, before reporting success.
-    const checked=await request(publicUrl,{method:'HEAD'});
+    // Storage HEAD responses can carry private/no-cache even when GET is
+    // publicly cacheable. Verify the response the browser will actually use.
+    const checked=await request(publicUrl);
     if(!checked.ok || !checked.headers.get('content-type')?.includes('image/webp') || !/max-age=604800/.test(checked.headers.get('cache-control') || '')) return json({error:'Thumbnail verification failed'},502);
+    const storedBytes=new Uint8Array(await checked.arrayBuffer());
+    if(storedBytes.length!==bytes.length || await digest(storedBytes)!==thumbnailHash) return json({error:'Thumbnail content verification failed'},502);
     const patch=await request(config.projectUrl+'/rest/v1/profiles?user_id=eq.'+encodeURIComponent(user_id)+'&pfp=eq.'+encodeURIComponent(expected_pfp)+'&pfp_thumbnail=eq.&select=user_id',{
       method:'PATCH',headers:{...headers,'Content-Type':'application/json',Prefer:'return=representation'},body:JSON.stringify({pfp_thumbnail:publicUrl}),
     });

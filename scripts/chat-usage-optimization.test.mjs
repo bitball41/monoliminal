@@ -7,7 +7,7 @@ import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 
 const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const chat = await file('Chat/chat.html');
-const migration = '20261025051855_optimize_chat_usage.sql';
+const migration = '20261025170945_optimize_chat_usage.sql';
 function section(start, end) { const a=chat.indexOf(start),b=chat.indexOf(end,a); assert(a>=0&&b>a); return chat.slice(a,b); }
 
 test('batched unreads preserve RLS; cursor writes never mutate DM messages; old clients invalidate stale thumbnails', async () => {

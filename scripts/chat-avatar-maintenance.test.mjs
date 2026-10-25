@@ -20,7 +20,7 @@ test('avatar migration checks the original, verifies the uploaded asset, then co
  const handler=avatarMaintenanceHandler({projectUrl,serviceKey:'server-test-key',tokenHash:digest,expiresAt:Date.now()+60000,fetchImpl:async(url,options={})=>{
   calls.push({url,options});
   if(calls.length===1)return Response.json([{pfp:original,pfp_thumbnail:''}]);
-  if(options.method==='HEAD')return new Response(null,{headers:{'content-type':'image/webp','cache-control':'max-age=604800'}});
+  if(url.includes('/storage/v1/object/public/'))return new Response(Uint8Array.from(atob(thumbnail),c=>c.charCodeAt(0)),{headers:{'content-type':'image/webp','cache-control':'public, max-age=604800'}});
   if(options.method==='PATCH')return Response.json([{user_id:id}]);
   return Response.json({Key:'thumbnail'});
  }});
@@ -28,8 +28,8 @@ test('avatar migration checks the original, verifies the uploaded asset, then co
  const patch=calls.find(c=>c.options.method==='PATCH');
  assert.match(patch.url,/pfp=eq\./);assert.match(patch.url,/pfp_thumbnail=eq\./);
  assert.deepEqual(Object.keys(JSON.parse(patch.options.body)),['pfp_thumbnail']);
- assert(calls.findIndex(c=>c.options.method==='HEAD')<calls.indexOf(patch),'verify the object before referencing it');
- assert(calls.every(c=>!c.url.endsWith('/original.gif')||c.options.method==='HEAD'),'originals are never rewritten');
+ assert(calls.findIndex(c=>c.url.includes('/storage/v1/object/public/'))<calls.indexOf(patch),'verify the object before referencing it');
+ assert(calls.every(c=>!c.url.endsWith('/original.gif')||c.options.method===undefined),'originals are never rewritten');
 });
 test('an avatar changed during preparation is skipped without uploading anything',async()=>{
  let calls=0;

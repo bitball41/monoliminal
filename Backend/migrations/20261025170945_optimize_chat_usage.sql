@@ -17,9 +17,17 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.chat_invalidate_avatar_thumbnail() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS chat_invalidate_avatar_thumbnail ON public.profiles;
-CREATE TRIGGER chat_invalidate_avatar_thumbnail BEFORE UPDATE ON public.profiles
-FOR EACH ROW EXECUTE FUNCTION public.chat_invalidate_avatar_thumbnail();
+DO $avatar_trigger$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgrelid='public.profiles'::regclass
+      AND tgname='chat_invalidate_avatar_thumbnail'
+  ) THEN
+    CREATE TRIGGER chat_invalidate_avatar_thumbnail BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.chat_invalidate_avatar_thumbnail();
+  END IF;
+END;
+$avatar_trigger$;
 
 -- A single bounded request replaces one request for each visible channel.
 -- SECURITY INVOKER deliberately keeps the existing message/forum RLS policies,
