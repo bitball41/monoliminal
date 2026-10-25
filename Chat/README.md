@@ -1,5 +1,33 @@
 # Liminal Chat
 
+## Display name styles (2.26)
+
+Settings → Profile → **Name style** has six fonts, a solid color, a two-color
+gradient, a color fade, and a moving gradient. Animated styles have three speed
+choices. A live preview updates before the existing debounced autosave; Reset
+restores the default font and color. Names are styled in messages/replies,
+members, DMs, profile cards, search, forums, and group/member pickers. Handles,
+mentions, notification text, and staff badges keep their existing behavior.
+
+Styles travel in the existing profile load and Realtime subscription, adding no
+polling or per-message queries. Animations pause offscreen and in hidden tabs;
+reduced motion disables them, and the dyslexic setting overrides decorative
+fonts. Unsupported gradient clipping falls back to a solid color. Fonts are
+fixed local stacks or the fonts already used by Chat; arbitrary CSS and font
+URLs are not supported.
+
+**Apply `Backend/migrations/20261025222612_chat_name_styles.sql` before publishing
+the HTML.** It adds `profiles.name_style` with an empty default. The database
+limits the JSON shape, font/effect/speed IDs and colors, and independently
+enforces self-only style edits even with legacy permissive profile policies.
+Existing profiles and older clients keep working. A failed style write reports
+an error and keeps the last saved profile; it is not silently discarded.
+
+Validation: `npm test` covers payload injection, unchanged JSON updates, database
+constraints and authorization. `scripts/chat-name-styles.browser.mjs` runs with
+production traffic blocked and checks preview/autosave, reopening, failed-save
+recovery, reset, live updates, animations/accessibility and narrow/light layouts.
+
 ## Noelle AI
 
 The initial release is visible to owners only (the existing Owner/Preston
@@ -104,3 +132,4 @@ Home calls use STUN and connect directly. School and campus Wi-Fi usually block 
 ## Recent-feature review and polish
 
 See [the ten-area review](../docs/chat-polish-review.md) for scope, fixes, validation, and the database update. The standalone HTML remains the canonical client; shared analytics stays generated from `scripts/chat-analytics-ui.mjs`.
+

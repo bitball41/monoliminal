@@ -412,6 +412,33 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); }
     .field textarea { min-height: 84px; resize: vertical; }
     .field-help { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+    .name-style-editor { margin: 4px 0 22px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+    .name-style-editor .settings-subtitle { margin-top: 0; }
+    .name-style-preview { min-height: 76px; display: flex; align-items: center; padding: 14px 16px; margin: 10px 0 16px; border-radius: 10px; background: var(--bg-deep); font-family: var(--font-ui); font-size: 1.25rem; font-weight: 750; overflow-wrap: anywhere; }
+    .name-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .name-style-colors { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+    .name-style-colors label { font-size: .75rem; color: var(--text-soft); }
+    .name-style-colors input { width: 38px; height: 32px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface); cursor: pointer; }
+    .display-name { display: inline-block; max-width: 100%; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; }
+    .name-font-rounded { font-family: "Trebuchet MS", "Arial Rounded MT Bold", sans-serif; }
+    .name-font-mono { font-family: ui-monospace, "Cascadia Code", "Courier New", monospace; }
+    .name-font-serif { font-family: Georgia, "Times New Roman", serif; }
+    .name-font-script { font-family: "Pacifico", "Brush Script MT", cursive; font-weight: 400; }
+    .name-font-display { font-family: "Syne", "Trebuchet MS", sans-serif; font-style: italic; font-weight: 800; }
+    .name-effect-solid, .name-effect-gradient, .name-effect-shift, .name-effect-fade { color: var(--name-from); }
+    .name-effect-fade { animation: name-color-fade var(--name-speed, 6s) ease-in-out infinite; }
+    @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+      .name-effect-gradient, .name-effect-shift { background-image: linear-gradient(90deg, var(--name-from), var(--name-to), var(--name-from)); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; }
+      .name-effect-shift { animation: name-gradient-shift var(--name-speed, 6s) linear infinite; }
+    }
+    @keyframes name-color-fade { 0%, 100% { color: var(--name-from); } 50% { color: var(--name-to); } }
+    @keyframes name-gradient-shift { to { background-position: 200% 0; } }
+    html[data-ring-visibility] .display-name:not([data-media-visible="true"]),
+    html[data-ring-paused] .display-name { animation-play-state: paused; }
+    :root[data-dyslexic="true"] .display-name { font-family: var(--font-ui); font-style: normal; }
+    @media (prefers-reduced-motion: reduce) { .display-name { animation: none !important; } }
+    @media (forced-colors: active) { .display-name { background: none; color: CanvasText; animation: none !important; } }
+    @media (max-width: 420px) { .name-style-grid { grid-template-columns: 1fr; gap: 0; } }
     .pw-wrap { position: relative; }
     .pw-wrap input { width: 100%; padding-right: 56px; }
     .pw-toggle { position: absolute; top: 50%; right: 7px; padding: 4px 7px; border: none; background: none; color: var(--muted); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 750; cursor: pointer; transform: translateY(-50%); }
@@ -3891,6 +3918,31 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
           <input id="set-display-name" type="text" maxlength="40" placeholder="Your display name">
           <div class="field-help">Your login and mentions stay <strong id="set-username-handle"></strong>.</div>
         </div>
+        <div class="name-style-editor" id="name-style-editor">
+          <div class="settings-subtitle">Name style</div>
+          <div class="name-style-preview" id="name-style-preview" aria-label="Display name preview"></div>
+          <div class="name-style-grid">
+            <div class="field"><label for="set-name-font">Font</label><select id="set-name-font">
+              <option value="default">Default</option><option value="rounded">Rounded</option>
+              <option value="mono">Monospace</option><option value="serif">Serif</option>
+              <option value="script">Handwritten</option><option value="display">Display</option>
+            </select></div>
+            <div class="field"><label for="set-name-effect">Color effect</label><select id="set-name-effect">
+              <option value="default">Default</option><option value="solid">Solid color</option>
+              <option value="gradient">Gradient</option><option value="fade">Color fade</option>
+              <option value="shift">Moving gradient</option>
+            </select></div>
+          </div>
+          <div class="name-style-colors" id="name-style-colors" hidden>
+            <label class="color-row"><input id="set-name-from" type="color" value="#a78bfa" aria-label="First name color"><span>First color</span></label>
+            <label class="color-row" id="name-style-second"><input id="set-name-to" type="color" value="#f472b6" aria-label="Second name color"><span>Second color</span></label>
+          </div>
+          <div class="field" id="name-style-speed" hidden><label for="set-name-speed">Animation speed</label><select id="set-name-speed">
+            <option value="slow">Slow</option><option value="normal" selected>Normal</option><option value="fast">Fast</option>
+          </select></div>
+          <div class="settings-actions-row"><button class="ghost-button" id="name-style-reset" type="button">Reset name style</button></div>
+          <p class="field-help">Everyone sees your style. Animations pause offscreen and respect reduced motion. Your @handle stays the same.</p>
+        </div>
         <div class="field">
           <label for="set-bio">About</label>
           <textarea id="set-bio" maxlength="150" placeholder="Tell people a little about yourself…"></textarea>
@@ -5181,7 +5233,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.25.0";
+    const APP_VERSION = "2.26.0";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -7111,7 +7163,7 @@ void main() {
     }
     function renderWorkspaceHome() {
       if (activeLayout !== 'tabs' || !me || currentView.type !== 'home') return;
-      const profile = `<span class="avatar avatar-md">${avatarImageHtml(me)}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small></span>`;
+      const profile = `<span class="avatar avatar-md">${avatarImageHtml(me)}</span><span class="workspace-profile-copy"><strong>${displayNameHtml(me)}</strong><small>@${esc(me.username)}</small></span>`;
       const button = $('workspace-profile');
       if (button._profileHtml !== profile) { button.innerHTML = profile; button._profileHtml = profile; }
       applyRing(qs('.avatar', button), me);
@@ -7365,7 +7417,7 @@ void main() {
         const strong = qs('strong', row);
         if (strong) {
           strong.className = 'console-person-name';
-          strong.innerHTML = `<span class="name-text">${esc(displayNameOf(fresh))}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
+          strong.innerHTML = `<span class="name-text">${displayNameHtml(fresh)}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
         }
         if (row) row.dataset.subroleRow = `${fresh.username} ${displayNameOf(fresh)} ${subRoleLabel(fresh)}`.toLowerCase();
       });
@@ -7638,7 +7690,7 @@ void main() {
       if (ringVisibilityController || typeof IntersectionObserver !== 'function') return ringVisibilityController;
       const root = document.documentElement;
       const tracked = new Set();
-      const selector = '.avatar, .msg';
+      const selector = '.avatar, .msg, .display-name';
       const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           const el = entry.target;
@@ -7765,6 +7817,41 @@ void main() {
     function displayNameOf(profileOrUsername) {
       const profile = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : profileOrUsername;
       return (profile && (profile.display_name || profile.username)) || 'Unknown user';
+    }
+
+    /* Name styles contain only fixed font/effect IDs and six-digit colors.
+       Never accept CSS, font URLs, or HTML from a profile. */
+    const NAME_FONTS = Object.freeze(['default', 'rounded', 'mono', 'serif', 'script', 'display']);
+    const NAME_EFFECTS = Object.freeze(['default', 'solid', 'gradient', 'fade', 'shift']);
+    const NAME_SPEEDS = Object.freeze({ slow: '10s', normal: '6s', fast: '3s' });
+    function normalizeNameStyle(raw) {
+      let value = raw;
+      if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = null; } }
+      if (!value || typeof value !== 'object' || Array.isArray(value)) value = {};
+      const color = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : fallback;
+      return {
+        font: NAME_FONTS.includes(value.font) ? value.font : 'default',
+        effect: NAME_EFFECTS.includes(value.effect) ? value.effect : 'default',
+        from: color(value.from, '#a78bfa'), to: color(value.to, '#f472b6'),
+        speed: Object.hasOwn(NAME_SPEEDS, value.speed) ? value.speed : 'normal',
+      };
+    }
+    function displayNameHtml(profileOrUsername) {
+      const profile = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : profileOrUsername;
+      const style = normalizeNameStyle(profile?.name_style);
+      return `<span class="display-name name-font-${style.font} name-effect-${style.effect}" data-name-user="${esc(profile?.username || '')}" style="--name-from:${style.from};--name-to:${style.to};--name-speed:${NAME_SPEEDS[style.speed]}">${esc(displayNameOf(profile))}</span>`;
+    }
+    function refreshStyledNames(username) {
+      const profile = profileOf(username);
+      const template = document.createElement('template');
+      template.innerHTML = displayNameHtml(profile);
+      qsa('.display-name[data-name-user]').forEach(el => {
+        if (el.dataset.nameUser !== username || el.closest('#name-style-preview')) return;
+        // Preserve animation phase when the style and label did not change.
+        const next = template.content.firstElementChild;
+        if (el.className === next.className && el.getAttribute('style') === next.getAttribute('style') && el.textContent === next.textContent) return;
+        el.replaceWith(next.cloneNode(true));
+      });
     }
 
     /* ============================= 6. SUPABASE / BOOT ============================= */
@@ -8406,7 +8493,7 @@ void main() {
     }
 
     const PROFILE_BASE_COLUMNS = 'username,display_name,ring,pfp,tag,status,custom_status,staff_role,is_admin,is_owner,is_banned,timeout_until,kicked_at,is_test_account,created_at,user_id';
-    const PROFILE_COLUMNS = PROFILE_BASE_COLUMNS + ',sub_role,pfp_thumbnail';
+    const PROFILE_COLUMNS = PROFILE_BASE_COLUMNS + ',sub_role,pfp_thumbnail,name_style';
     async function updateOwnProfile(patch) {
       let result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
       if (result.error) {
@@ -8841,6 +8928,12 @@ void main() {
                 }
               }
               node.className = fresh.className;
+              const names = qsa('.display-name', node), nextNames = qsa('.display-name', fresh);
+              names.forEach((name, i) => {
+                const next = nextNames[i];
+                if (next && name.dataset.nameUser === next.dataset.nameUser && name.className === next.className
+                    && name.getAttribute('style') === next.getAttribute('style') && name.textContent === next.textContent) next.replaceWith(name);
+              });
               node.replaceChildren(...fresh.childNodes);
             } else node = fresh;
             node._rowHtml = html;
@@ -8874,7 +8967,7 @@ void main() {
         return { key: dm.id, html: `
           <button class="dm-button ${active ? 'active' : ''}" type="button" data-dm="${esc(dm.id)}">
             ${dm.is_group ? groupAvatarHtml() : avatarHtml(other, 'avatar-sm', true)}
-            <span class="dm-copy"><span class="dm-name">${esc(conversationTitle(dm))}</span><span class="dm-preview">${esc(preview.slice(0, 60))}</span></span>
+            <span class="dm-copy"><span class="dm-name">${dm.is_group ? esc(conversationTitle(dm)) : displayNameHtml(other)}</span><span class="dm-preview">${esc(preview.slice(0, 60))}</span></span>
             ${unreadN ? '<span class="dm-unread-dot" aria-label="Unread messages"></span>' : ''}
           </button>` };
       });
@@ -9055,7 +9148,7 @@ void main() {
         setMainMode('chat');
         const other = profileOf(view.other);
         $('channel-icon').textContent = '@';
-        $('channel-title').textContent = displayNameOf(other);
+        $('channel-title').innerHTML = displayNameHtml(other);
         $('channel-topic').textContent = dmTopicText(other);
         $('channel-settings-btn').hidden = true;
         $('pins-btn').hidden = true;
@@ -9493,7 +9586,7 @@ void main() {
       return `<section class="call-invite" aria-label="Private voice call">
         <span class="call-invite-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3.1 5.2 2 2 0 0 1 5.1 3h3a2 2 0 0 1 2 1.7l.5 2.8a2 2 0 0 1-.6 1.8L8.7 10.6a16 16 0 0 0 4.7 4.7l1.3-1.3a2 2 0 0 1 1.8-.6l2.8.5a2 2 0 0 1 1.7 2Z"/></svg></span>
         <div class="call-invite-copy"><span class="call-invite-title">Private voice call</span>
-          <div class="call-invite-meta"><button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(msg.sender))}</button><time class="msg-time" datetime="${esc(msg.created_at)}" title="${esc(fmtDay(msg.created_at))}">${esc(fmtTime(msg.created_at))}</time></div>
+          <div class="call-invite-meta"><button class="msg-author" type="button" title="@${esc(msg.sender)}">${displayNameHtml(msg.sender)}</button><time class="msg-time" datetime="${esc(msg.created_at)}" title="${esc(fmtDay(msg.created_at))}">${esc(fmtTime(msg.created_at))}</time></div>
         </div>
         <button class="call-invite-join" type="button" data-join-private-call ${unavailable ? 'disabled' : ''}>Join call</button>
       </section>`;
@@ -9644,14 +9737,14 @@ void main() {
         bodyHtml += `
           <button class="msg-reply-ref" type="button" data-jump="${esc(reply.id || '')}">
             <svg class="reply-curve" width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12V5a3 3 0 0 1 3-3h11"></path></svg>
-            <span class="reply-author">${esc(displayNameOf(reply.sender))}</span>
+            <span class="reply-author">${displayNameHtml(reply.sender)}</span>
             <span class="reply-snippet">${esc(reply.snippet || '')}</span>
           </button>`;
       }
       if (!grouped && !callInvite) {
         bodyHtml += `
           <div class="msg-head">
-            <button class="msg-author" type="button" title="@${esc(msg.sender)}">${esc(displayNameOf(author))}</button>
+            <button class="msg-author" type="button" title="@${esc(msg.sender)}">${displayNameHtml(author)}</button>
             ${roleBadgeHtml(author)}
             ${subRoleBadgeHtml(author)}
             ${author.tag ? `<span class="msg-tag">${esc(author.tag)}</span>` : ''}
@@ -13973,7 +14066,9 @@ void main() {
       const p = payload.new;
       if (!p || !p.username || isHiddenBot(p.username)) return;
       const existing = profiles.get(p.username) || {};
-      const changed = Object.keys(p).filter(key => p[key] !== undefined && existing[key] !== p[key]);
+      const changed = Object.keys(p).filter(key => p[key] !== undefined && (key === 'name_style'
+        ? JSON.stringify(normalizeNameStyle(existing[key])) !== JSON.stringify(normalizeNameStyle(p[key]))
+        : existing[key] !== p[key]));
       const uiChanged = changed.some(key => key !== 'last_seen');
       const prevRole = staffRoleOf(existing);
       const merged = { ...existing };
@@ -14012,7 +14107,7 @@ void main() {
       });
       scheduleRenderMembers();
       scheduleRenderDmList();
-      const TIMELINE_IDENTITY = new Set(['display_name', 'pfp', 'pfp_thumbnail', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
+      const TIMELINE_IDENTITY = new Set(['display_name', 'name_style', 'pfp', 'pfp_thumbnail', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
       const timelineDirty = changed.some(k => TIMELINE_IDENTITY.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
       if (p.username === noelleSourceProfile?.source_username && (timelineDirty || changed.includes('bio'))) {
@@ -14024,19 +14119,19 @@ void main() {
         if ($('subrole-dialog')?.open) renderSubroleDialog();
       }
       if (currentView.type === 'dm' && currentView.other === p.username) {
-        $('channel-title').textContent = displayNameOf(merged);
+        $('channel-title').innerHTML = displayNameHtml(merged);
         $('channel-topic').textContent = dmTopicText(merged);
       }
     }
 
     function refreshTimelineForAuthor(username) {
+      refreshStyledNames(username);
       const list = $('message-list');
       if (!list) return;
       const profile = profileOf(username);
       qsa('.msg[data-sender]', list).forEach(node => {
         if (node.dataset.sender !== username) return;
         const author = qs('.msg-author', node);
-        if (author) author.textContent = displayNameOf(profile);
         const head = qs('.msg-head', node);
         if (head && author) {
           qsa('.role-check, .subrole-badge, .msg-tag:not([title="Visible to owners only"])', head).forEach(el => el.remove());
@@ -15749,7 +15844,7 @@ void main() {
       } else if ($('self-dot').dataset.status !== effStatus) $('self-dot').dataset.status = effStatus;
       applyRing(avatar, me);
       const name = $('self-name');
-      const nameHtml = `<span class="name-text">${esc(displayNameOf(me))}</span>${subRoleBadgeHtml(me)}`;
+      const nameHtml = `<span class="name-text">${displayNameHtml(me)}</span>${subRoleBadgeHtml(me)}`;
       if (name._nameHtml !== nameHtml) { name.innerHTML = nameHtml; name._nameHtml = nameHtml; }
       $('self-status-text').textContent = selfPresenceLabel();
       renderSubroleButton();
@@ -15780,7 +15875,7 @@ void main() {
           <button class="member-row ${isOnline ? '' : 'offline'}" type="button" data-member="${esc(p.username)}">
             ${avatarHtml(p, 'avatar-sm', true)}
             <span class="member-copy">
-              <span class="member-name"><span class="name-text">${esc(displayNameOf(p))}</span>
+              <span class="member-name"><span class="name-text">${displayNameHtml(p)}</span>
                 ${roleBadgeHtml(p)}
                 ${subRoleBadgeHtml(p)}
               </span>
@@ -15825,7 +15920,7 @@ void main() {
       $('hc-avatar').innerHTML = avatarImageHtml(p, true)
         + `<span class="presence-dot" id="hc-dot" data-status="${esc(status)}"></span>`;
       applyRing($('hc-avatar'), p);
-      $('hc-name').textContent = displayNameOf(p);
+      $('hc-name').innerHTML = displayNameHtml(p);
       $('hc-name').style.color = '';
       $('hc-chips').innerHTML = roleBadgeHtml(p)
         + subRoleBadgeHtml(p)
@@ -16096,7 +16191,7 @@ void main() {
         const fresh = profileOf(username);
         if (strong) {
           strong.className = 'console-person-name';
-          strong.innerHTML = `<span class="name-text">${esc(displayNameOf(fresh))}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
+          strong.innerHTML = `<span class="name-text">${displayNameHtml(fresh)}</span>${roleBadgeHtml(fresh)}${subRoleBadgeHtml(fresh)}`;
         }
       });
       if (hoverCardUser === username && !$('hover-card').hidden) {
@@ -16118,7 +16213,7 @@ void main() {
           `<option value="${esc(item.slug)}" ${current === item.slug ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
     }
     function consolePersonNameHtml(profile, withSubrole = false) {
-      return `<strong class="console-person-name"><span class="name-text">${esc(displayNameOf(profile))}</span>${roleBadgeHtml(profile)}${withSubrole ? subRoleBadgeHtml(profile) : ''}</strong>`;
+      return `<strong class="console-person-name"><span class="name-text">${displayNameHtml(profile)}</span>${roleBadgeHtml(profile)}${withSubrole ? subRoleBadgeHtml(profile) : ''}</strong>`;
     }
     function subRoleRowsHtml() {
       return [...profiles.values()]
@@ -16490,7 +16585,7 @@ void main() {
       $('group-selected').innerHTML = [...groupSelection].map(name => `<button type="button" class="group-selection-chip" data-group-unselect="${esc(name)}" aria-label="Remove ${esc(displayNameOf(name))} from selection" ${groupBusy ? 'disabled' : ''}>${esc(displayNameOf(name))}<span aria-hidden="true">×</span></button>`).join('');
       $('group-candidates').setAttribute('aria-busy', String(!groupPendingReady));
       $('group-candidates').innerHTML = rows.map(profile => `<label class="group-person${groupSelection.has(profile.username) ? ' is-selected' : ''}">
-        ${avatarHtml(profile, 'avatar-sm', false)}<span><strong>${esc(displayNameOf(profile))}</strong><small>@${esc(profile.username)}</small></span>
+        ${avatarHtml(profile, 'avatar-sm', false)}<span><strong>${displayNameHtml(profile)}</strong><small>@${esc(profile.username)}</small></span>
         <input type="checkbox" data-group-person="${esc(profile.username)}" aria-label="Invite ${esc(displayNameOf(profile))}" ${groupSelection.has(profile.username) ? 'checked' : ''} ${groupBusy || !groupPendingReady || (!groupSelection.has(profile.username) && groupSelection.size >= max) ? 'disabled' : ''}>
       </label>`).join('') || `<p class="picker-note">${!max ? 'All 16 places are filled or reserved by invitations.' : 'No matching people. Try another name.'}</p>`;
       if (focused && !groupBusy) qsa('[data-group-person]', $('group-candidates')).find(input => input.dataset.groupPerson === focused)?.focus({preventScroll:true});
@@ -16523,7 +16618,7 @@ void main() {
       if (dm) {
         $('group-members').innerHTML = dm.participants.map(username => {
           const p = profileOf(username);
-          return `<div class="group-person">${avatarHtml(p, 'avatar-sm', false)}<span><strong>${esc(displayNameOf(p))}</strong><small>@${esc(username)}${username === dm.group_owner ? ' · Group owner' : ''}</small></span>
+          return `<div class="group-person">${avatarHtml(p, 'avatar-sm', false)}<span><strong>${displayNameHtml(p)}</strong><small>@${esc(username)}${username === dm.group_owner ? ' · Group owner' : ''}</small></span>
             ${owner && username !== me.username ? `<div class="group-actions"><button class="ghost-button" type="button" data-group-transfer="${esc(username)}" aria-label="Make ${esc(displayNameOf(p))} group owner">Make owner</button><button class="danger-button" type="button" data-group-remove="${esc(username)}" aria-label="Remove ${esc(displayNameOf(p))}">Remove</button></div>` : ''}</div>`;
         }).join('');
         $('group-pending').innerHTML = '';
@@ -16798,7 +16893,7 @@ void main() {
     }
 
     /* ============================= 33. SETTINGS ============================= */
-    let pendingPfp = null, pendingPfpThumbnail = '', pendingBanner = null, pendingRing = null;
+    let pendingPfp = null, pendingPfpThumbnail = '', pendingBanner = null, pendingRing = null, pendingNameStyle = null;
     let cropState = null;
     let profileSaveTimer = null;
     let profileSaveChain = Promise.resolve();
@@ -16808,6 +16903,7 @@ void main() {
       pendingPfpThumbnail = me.pfp_thumbnail || '';
       pendingBanner = me.banner || '';
       pendingRing = parseStoredRing(me.ring);
+      pendingNameStyle = normalizeNameStyle(me.name_style);
       $('set-display-name').value = displayNameOf(me);
       $('set-username-handle').textContent = `@${me.username}`;
       $('set-bio').value = me.bio || '';
@@ -16816,6 +16912,7 @@ void main() {
       refreshPfpPreview();
       refreshBannerPreview();
       renderRingControls();
+      renderNameStyleControls();
       refreshProfileMediaUI();
       renderSettingsStatusOptions();
       $('settings-custom-status').value = me.custom_status || '';
@@ -16874,6 +16971,30 @@ void main() {
       qs('span', el).style.display = pendingBanner ? 'none' : '';
       $('set-banner-remove').hidden = !pendingBanner;
       el.setAttribute('aria-label', pendingBanner ? 'Change profile banner' : 'Upload profile banner');
+    }
+
+    /* ===== Display name editor ===== */
+    function refreshNameStylePreview() {
+      $('name-style-preview').innerHTML = displayNameHtml({ ...me,
+        display_name: $('set-display-name').value.trim() || me.username, name_style: pendingNameStyle });
+    }
+    function renderNameStyleControls() {
+      const style = normalizeNameStyle(pendingNameStyle);
+      $('set-name-font').value = style.font;
+      $('set-name-effect').value = style.effect;
+      $('set-name-from').value = style.from;
+      $('set-name-to').value = style.to;
+      $('set-name-speed').value = style.speed;
+      $('name-style-colors').hidden = style.effect === 'default';
+      $('name-style-second').hidden = style.effect === 'solid';
+      $('name-style-speed').hidden = !['fade', 'shift'].includes(style.effect);
+      refreshNameStylePreview();
+    }
+    function commitNameStyle() {
+      pendingNameStyle = normalizeNameStyle({ font: $('set-name-font').value, effect: $('set-name-effect').value,
+        from: $('set-name-from').value, to: $('set-name-to').value, speed: $('set-name-speed').value });
+      renderNameStyleControls();
+      scheduleProfileSave();
     }
 
     /* ===== Avatar ring editor ===== */
@@ -17224,6 +17345,7 @@ void main() {
         pfp_thumbnail: pendingPfpThumbnail || '',
         banner: pendingBanner || '',
         ring: serializeRing(pendingRing),
+        name_style: normalizeNameStyle(pendingNameStyle),
         bio: $('set-bio').value.slice(0, 150),
         tag: $('set-tag').value.slice(0, 20),
       };
@@ -17939,7 +18061,7 @@ void main() {
     }
     function messageResultHead(m) {
       const p = profileOf(m.sender);
-      return `<span class="result-head">${avatarHtml(p, 'avatar-xs', false)}<span class="result-person"><span class="result-name">${esc(displayNameOf(p))}</span><span class="result-handle">@${esc(m.sender)}</span></span><time class="result-time" datetime="${esc(m.created_at)}" title="${esc(fullDateFmt.format(new Date(m.created_at)) + ' · ' + fmtTime(m.created_at))}">${esc(relTime(m.created_at))}</time></span>`;
+      return `<span class="result-head">${avatarHtml(p, 'avatar-xs', false)}<span class="result-person"><span class="result-name">${displayNameHtml(p)}</span><span class="result-handle">@${esc(m.sender)}</span></span><time class="result-time" datetime="${esc(m.created_at)}" title="${esc(fullDateFmt.format(new Date(m.created_at)) + ' · ' + fmtTime(m.created_at))}">${esc(relTime(m.created_at))}</time></span>`;
     }
     function inboxStorageKey() { return `lc_inbox:${me?.username || ''}`; }
     function validInbox(rows) {
@@ -18234,7 +18356,7 @@ void main() {
             ${isNew && !isFeed ? '<span class="ft-new">New</span>' : ''}
             ${t.locked ? '<span class="ft-pin-ic" title="Locked">🔒</span>' : ''}
           </div>
-          <p class="ft-preview">${isFeed ? '' : `<span class="ft-author">${esc(displayNameOf(author))}</span>: `}${esc(preview.slice(0, 170))}${t.edited && !isFeed ? ' <span class="ft-edited">(edited)</span>' : ''}</p>
+          <p class="ft-preview">${isFeed ? '' : `<span class="ft-author">${displayNameHtml(author)}</span>: `}${esc(preview.slice(0, 170))}${t.edited && !isFeed ? ' <span class="ft-edited">(edited)</span>' : ''}</p>
           <div class="ft-foot">
             ${reactN ? `<span class="ft-stat ft-react">👍 ${reactN}</span>` : ''}
             <span class="ft-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"></path></svg>${t.reply_count || 0}</span>
@@ -18388,7 +18510,7 @@ void main() {
           ${tags ? `<div class="ft-tags">${tags}</div>` : ''}
           <h2>${thread.pinned ? '📌 ' : ''}${esc(thread.title)}</h2>
           <div class="thread-op-meta">
-            <span class="thread-op-author">${avatarHtml(author, 'avatar-xs', false)} <button class="thread-op-name" type="button" data-op-author>${esc(displayNameOf(author))}</button></span>
+            <span class="thread-op-author">${avatarHtml(author, 'avatar-xs', false)} <button class="thread-op-name" type="button" data-op-author>${displayNameHtml(author)}</button></span>
             <span>·</span><span>${esc(relTime(thread.created_at))}</span>
             ${thread.edited ? '<span class="ft-edited">(edited)</span>' : ''}
             <span>·</span><span>${thread.reply_count || 0} ${thread.reply_count === 1 ? 'reply' : 'replies'}</span>
@@ -18749,7 +18871,7 @@ void main() {
         return `<div class="follows-row">
           <button class="follows-person" type="button" data-follow-user="${esc(u)}" aria-label="Open @${esc(u)}'s profile">
             ${avatarHtml(p, 'avatar-sm', false)}
-            <span style="min-width:0;display:grid;"><span class="fr-name">${esc(displayNameOf(p))}</span><span class="fr-handle">@${esc(u)}${self ? ' <span class="you-follow-badge">You</span>' : ''}</span></span>
+            <span style="min-width:0;display:grid;"><span class="fr-name">${displayNameHtml(p)}</span><span class="fr-handle">@${esc(u)}${self ? ' <span class="you-follow-badge">You</span>' : ''}</span></span>
           </button>
           ${self ? '' : `<button class="primary-button follow-btn follows-action ${following ? 'following' : ''}" type="button" data-follow-target="${esc(u)}" aria-pressed="${following}"><span class="fb-follow">＋ Follow</span><span class="fb-following">✓ Following</span><span class="fb-unfollow">Unfollow</span></button>`}
         </div>`;
@@ -19565,7 +19687,10 @@ void main() {
       $('ring-image-btn').addEventListener('click', () => $('ring-image-file').click());
       $('ring-image-file').addEventListener('change', () => uploadRingImage($('ring-image-file').files[0]));
       $('set-dyslexic').addEventListener('click', () => applyDyslexic(!settings.dyslexic));
-      $('set-display-name').addEventListener('input', () => { refreshPfpPreview(); scheduleProfileSave(); });
+      ['set-name-font', 'set-name-effect', 'set-name-speed'].forEach(id => $(id).addEventListener('change', commitNameStyle));
+      ['set-name-from', 'set-name-to'].forEach(id => $(id).addEventListener('input', commitNameStyle));
+      $('name-style-reset').addEventListener('click', () => { pendingNameStyle = normalizeNameStyle(null); renderNameStyleControls(); scheduleProfileSave(); });
+      $('set-display-name').addEventListener('input', () => { refreshPfpPreview(); refreshNameStylePreview(); scheduleProfileSave(); });
       $('set-bio').addEventListener('input', () => { $('bio-count').textContent = $('set-bio').value.length; scheduleProfileSave(); });
       $('set-tag').addEventListener('input', scheduleProfileSave);
       $('settings-status-save').addEventListener('click', async () => {
@@ -19960,4 +20085,5 @@ void main() {
   </script>
 </body>
 </html>
+
 

@@ -150,7 +150,7 @@ function profileChanges() {
     showBanned: () => count('banned'), toast: () => count('toast'), signOut: () => count('signout'),
     notifyRolePromotion: () => count('promotion'),
     setTimeout: (fn, ms) => { timeouts.push({ fn, ms }); },
-    displayNameOf: p => p.display_name, dmTopicText: p => p.custom_status || '',
+    displayNameOf: p => p.display_name, displayNameHtml: p => p.display_name, dmTopicText: p => p.custom_status || '',
   });
   vm.runInContext(section('    let memberRenderFrame =', '    function handleMessageChange(') + '\n' +
     section('    function handleProfileChange(', '    function refreshTimelineForAuthor('), context);
@@ -186,7 +186,7 @@ test('identity edits refresh their author and current DM heading while list upda
   p.context.handleProfileChange({ new: { username: 'user1', display_name: 'Renamed', custom_status: 'New status' } });
   assert.equal(p.calls.timeline, 1);
   assert.equal(p.calls.author, 'user1');
-  assert.equal(p.elements.get('channel-title').textContent, 'Renamed');
+  assert.equal(p.elements.get('channel-title').innerHTML, 'Renamed');
   assert.equal(p.elements.get('channel-topic').textContent, 'New status');
   p.flush(); assert.equal(p.calls.dms, 1);
 });
@@ -212,3 +212,4 @@ test('ban, kick and promotion handling remains immediate', () => {
   assert.equal(promoted.calls.promotion, 1);
   assert.equal(promoted.context.me.staff_role, 'owner');
 });
+
