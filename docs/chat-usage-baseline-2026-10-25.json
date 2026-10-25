@@ -1,0 +1,61 @@
+{
+  "window_end": "2026-10-25T05:00:00Z",
+  "dm_messages": 236,
+  "window_start": "2026-10-24T05:00:00Z",
+  "active_accounts": 8,
+  "active_browsers": 9,
+  "channel_messages": 1266,
+  "source": "One bounded 24-hour edge_logs aggregate plus database activity/message ledgers",
+  "logRowsLimit": 100,
+  "logRowsReturned": 100,
+  "truncated": true,
+  "metrics": {
+    "message_reads": {
+      "path": "/rest/v1/messages",
+      "method": "GET",
+      "status": "200",
+      "requests": 3831,
+      "requests_per_active_account": 478.875,
+      "mean_origin_ms": 155.9185591229444
+    },
+    "forum_reads": {
+      "path": "/rest/v1/forum_threads",
+      "method": "GET",
+      "status": "200",
+      "requests": 1112,
+      "requests_per_active_account": 139,
+      "mean_origin_ms": 63.53687050359712
+    },
+    "activity_rpc": {
+      "path": "/rest/v1/rpc/chat_record_activity",
+      "method": "POST",
+      "status": "200",
+      "requests": 1139,
+      "requests_per_active_account": 142.375,
+      "mean_origin_ms": 216.70676031606672
+    },
+    "conversation_rpc": {
+      "path": "/rest/v1/rpc/chat_list_conversations",
+      "method": "POST",
+      "status": "200",
+      "requests": 784,
+      "requests_per_active_account": 98,
+      "mean_origin_ms": 268.625
+    },
+    "invite_rpc": {
+      "path": "/rest/v1/rpc/chat_list_group_invites",
+      "method": "POST",
+      "status": "200",
+      "requests": 784,
+      "requests_per_active_account": 98,
+      "mean_origin_ms": 231.46173469387756
+    }
+  },
+  "unavailable": [
+    "Exact total requests (top-100 result was truncated)",
+    "Avatar transfer bytes per user",
+    "Billable egress per user",
+    "Log ingestion bytes/hour",
+    "Log query GB scanned"
+  ]
+}

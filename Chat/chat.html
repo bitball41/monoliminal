@@ -2303,13 +2303,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .pinned-item .pi-time { margin-left: auto; color: var(--muted); font-size: 0.68rem; }
     .pinned-item .pi-body { color: var(--text-soft); font-size: 0.83rem; line-height: 1.5; overflow-wrap: anywhere; }
     .pinned-item .pi-unpin { justify-self: start; }
-    .dm-receipt {
-      display: flex; align-items: center; justify-content: flex-end; gap: 6px;
-      margin: 2px 4px 8px auto; padding-right: 2px;
-      color: var(--muted); font-size: 0.66rem; font-family: var(--font-ui); font-weight: 650; text-align: right;
-    }
-    .dm-receipt[data-state="seen"] { color: var(--accent-strong); }
-    .dm-receipt-ticks { letter-spacing: -0.06em; font-weight: 800; }
 
     /* ============================= GLOBAL VOICE CHAT ============================= */
     .vc-stage {
@@ -5188,7 +5181,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.24.8";
+    const APP_VERSION = "2.25.0";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -5199,7 +5192,7 @@ void main() {
     let noelleSourceProfile = null;
     function noelleAIProfile() {
       const source = profiles.get(noelleSourceProfile?.source_username) || noelleSourceProfile || {};
-      return { ...NOELLE_AI_PROFILE, pfp: source.pfp ?? noelleSourceProfile?.pfp ?? '',
+      return { ...NOELLE_AI_PROFILE, pfp: source.pfp ?? noelleSourceProfile?.pfp ?? '', pfp_thumbnail: source.pfp_thumbnail || '',
         ring: source.ring ?? noelleSourceProfile?.ring ?? '', bio: source.bio ?? noelleSourceProfile?.bio ?? '' };
     }
     async function loadNoelleProfile() {
@@ -5286,7 +5279,7 @@ void main() {
     const SEEN_IDS_CAP = 8000;
 
     const MESSAGE_COLUMNS = 'id,channel_id,sender,content,type,media_url,reply_to,reactions,deleted,edited,created_at,pinned,owner_preview';
-    const DM_MESSAGE_COLUMNS = 'id,dm_id,sender,content,type,media_url,reply_to,read_by,reactions,deleted,edited,created_at';
+    const DM_MESSAGE_COLUMNS = 'id,dm_id,sender,content,type,media_url,reply_to,reactions,deleted,edited,created_at';
 
     const THEMES = {
       midnight:  { name: 'Midnight',   bg: '#09003d', accent: '#a78bfa' },
@@ -5487,9 +5480,104 @@ void main() {
 
     function initialsOf(name) { return (name || '?').slice(0, 2); }
 
+    // Public, uniquely named avatars only. Private attachments never enter this cache.
+    const AVATAR_CACHE = 'liminal-avatars-v1';
+    const avatarLoads = new Map(), avatarFailures = new Map(), avatarBlobUrls = new Map();
+    const avatarUsage = { persistentHits: 0, memoryHits: 0, fetches: 0, failures: 0 };
+    function avatarUrl(profile, full = false) { return (!full && profile?.pfp_thumbnail) || profile?.pfp || ''; }
+    function avatarImageHtml(profile, full = false) {
+      const url = avatarUrl(profile, full), initials = esc(initialsOf(profile?.display_name || profile?.username));
+      return initials + (url ? `<img data-avatar-src="${esc(url)}" alt="" decoding="async" loading="lazy">` : '');
+    }
+    async function cachedAvatarUrl(url) {
+      if (avatarLoads.has(url)) { avatarUsage.memoryHits++; return avatarLoads.get(url); }
+      if ((avatarFailures.get(url) || 0) > Date.now()) throw new Error('Avatar temporarily unavailable');
+      let parsed;
+      try { parsed = new URL(url); } catch { return url; }
+      // External providers retain their own cache and access semantics.
+      if (parsed.origin !== runtimeSupabaseUrl || !/^\/storage\/v1\/object\/public\/liminal-(pfp|avatars)\//.test(parsed.pathname)) return url;
+      const promise = (async () => {
+        let cache;
+        try { cache = await caches.open(AVATAR_CACHE); } catch {}
+        let response = await cache?.match(url).catch(() => null);
+        if (response) avatarUsage.persistentHits++;
+        else {
+          avatarUsage.fetches++;
+          response = await fetch(url, { credentials: 'omit' });
+          if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Avatar unavailable');
+          // Bound disk usage; failed requests and oversized originals aren't persisted.
+          const length = Number(response.headers.get('content-length'));
+          if (cache && length > 0 && length <= 262144) {
+            await cache.put(url, response.clone()).catch(() => {});
+            const keys = await cache.keys().catch(() => []);
+            await Promise.all(keys.slice(0, Math.max(0, keys.length - 96)).map(key => cache.delete(key).catch(() => {})));
+          }
+        }
+        const blobUrl = URL.createObjectURL(await response.blob());
+        avatarBlobUrls.set(url, blobUrl);
+        // Never await another in-flight image while evicting: concurrent loads
+        // must not wait on one another. Connected images retain their URLs.
+        for (const [key, old] of avatarBlobUrls) {
+          if (avatarBlobUrls.size <= 96) break;
+          if (key !== url && !Array.from(document.images).some(img => img.src === old)) {
+            URL.revokeObjectURL(old); avatarLoads.delete(key); avatarBlobUrls.delete(key);
+          }
+        }
+        return blobUrl;
+      })().catch(error => {
+        avatarLoads.delete(url); avatarFailures.set(url, Date.now() + 300000); avatarUsage.failures++;
+        throw error;
+      });
+      avatarLoads.set(url, promise);
+      return promise;
+    }
+    function setupAvatarLoading() {
+      const tracked = new Set();
+      async function load(img) {
+        const url = img.dataset.avatarSrc;
+        if (!url || !img.isConnected || document.hidden || img.dataset.avatarLoading === url || img.dataset.avatarLoaded === url) return;
+        img.dataset.avatarLoading = url;
+        try {
+          const source = await cachedAvatarUrl(url);
+          if (!img.isConnected || img.dataset.avatarSrc !== url) return;
+          img.onerror = () => {
+            avatarFailures.set(url, Date.now() + 300000); avatarLoads.delete(url);
+            const failed = avatarBlobUrls.get(url); if (failed) URL.revokeObjectURL(failed);
+            avatarBlobUrls.delete(url); delete img.dataset.avatarLoaded; img.removeAttribute('src');
+            try { void caches.open(AVATAR_CACHE).then(cache => cache.delete(url)).catch(() => {}); } catch {}
+          };
+          if (img.getAttribute('src') !== source) img.src = source;
+          img.dataset.avatarLoaded = url;
+        } catch { /* Initials remain visible; retry on a later visibility change. */ }
+        finally { if (img.dataset.avatarLoading === url) delete img.dataset.avatarLoading; }
+      }
+      const observer = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
+        entries.forEach(entry => { if (entry.isIntersecting) void load(entry.target); });
+      }, { rootMargin: '0px', threshold: 0.01 }) : null;
+      function track(root) {
+        const images = root.matches?.('img[data-avatar-src]') ? [root] : Array.from(root.querySelectorAll?.('img[data-avatar-src]') || []);
+        images.forEach(img => { if (!tracked.has(img)) { tracked.add(img); if (observer) observer.observe(img); else void load(img); } });
+      }
+      const mutations = new MutationObserver(records => {
+        records.forEach(record => {
+          if (record.type === 'attributes') {
+            if (observer) { observer.unobserve(record.target); observer.observe(record.target); } else void load(record.target);
+          } else record.addedNodes.forEach(track);
+        });
+        tracked.forEach(img => { if (!img.isConnected) { observer?.unobserve(img); tracked.delete(img); } });
+      });
+      mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-avatar-src'] });
+      track(document.body);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) tracked.forEach(img => { if (observer) { observer.unobserve(img); observer.observe(img); } else void load(img); });
+      });
+      window.addEventListener('pagehide', () => { observer?.disconnect(); mutations.disconnect(); }, { once: true });
+      window.addEventListener('pageshow', event => { if (event.persisted) { mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-avatar-src'] }); tracked.forEach(img => observer?.observe(img)); } });
+    }
+
     function avatarHtml(profile, sizeClass, withDot) {
       const p = profile || {};
-      const img = p.pfp ? `<img src="${esc(p.pfp)}" alt="" loading="lazy" decoding="async">` : esc(initialsOf(p.display_name || p.username));
+      const img = avatarImageHtml(p, sizeClass === 'avatar-lg');
       const dot = withDot ? `<span class="presence-dot" data-status="${esc(presenceStatusOf(p.username))}"></span>` : '';
       const ring = ringMarkup(p);
       return `<span class="avatar ${sizeClass}${ring.cls}"${ring.style}>${img}${dot}</span>`;
@@ -6606,6 +6694,8 @@ void main() {
         longTasks: { total: performanceDiagnostics.taskTotal, samples: performanceDiagnostics.tasks.slice() },
         frameCapture: capture ? { ...capture, durationMs: capture.running ? Math.round(performance.now() - capture.startedAt) : capture.durationMs,
           histogram: { upperBoundsMs: capture.histogram.upperBoundsMs.slice(), counts: capture.histogram.counts.slice() }, gaps: capture.gaps.slice() } : null,
+        usage: { api: typeof chatNetworkUsage === 'undefined' ? {} : Object.fromEntries(chatNetworkUsage),
+          avatars: typeof avatarUsage === 'undefined' ? {} : { ...avatarUsage } },
         work: performanceDiagnostics.work.slice() };
     }
     function exportPerformanceReport() {
@@ -7021,7 +7111,7 @@ void main() {
     }
     function renderWorkspaceHome() {
       if (activeLayout !== 'tabs' || !me || currentView.type !== 'home') return;
-      const profile = `<span class="avatar avatar-md">${me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)))}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small></span>`;
+      const profile = `<span class="avatar avatar-md">${avatarImageHtml(me)}</span><span class="workspace-profile-copy"><strong>${esc(displayNameOf(me))}</strong><small>@${esc(me.username)}</small></span>`;
       const button = $('workspace-profile');
       if (button._profileHtml !== profile) { button.innerHTML = profile; button._profileHtml = profile; }
       applyRing(qs('.avatar', button), me);
@@ -7684,15 +7774,30 @@ void main() {
     // idempotent message ID; aborting a write alone cannot prove it failed.
     const CHAT_READ_TIMEOUT_MS = 12000;
     const CHAT_READ_RPCS = new Set(['chat_get_my_profile', 'chat_check_device_ban',
-      'chat_list_conversations', 'chat_list_dm_inbox', 'chat_list_group_invites', 'chat_list_mentions']);
+      'chat_list_conversations', 'chat_list_dm_inbox', 'chat_list_group_invites', 'chat_list_mentions', 'chat_unread_counts']);
+    const chatNetworkUsage = new Map(), chatWarningTimes = new Map();
+    function logChatWarning(code, error) {
+      const now = Date.now();
+      if (now - (chatWarningTimes.get(code) || 0) < 300000) return;
+      chatWarningTimes.set(code, now);
+      console.warn('[liminal]', code, /^[a-z0-9_-]{1,40}$/i.test(error?.code || '') ? error.code : 'unavailable');
+    }
     async function chatFetch(input, options = {}) {
       const url = new URL(typeof input === 'string' ? input : input.url || String(input));
       const method = String(options.method || 'GET').toUpperCase();
       const read = ['GET', 'HEAD'].includes(method) || CHAT_READ_RPCS.has(url.pathname.split('/').pop());
-      if (!url.pathname.startsWith('/rest/v1/') || !read) return fetch(input, options);
-      const timeout = AbortSignal.timeout(CHAT_READ_TIMEOUT_MS);
-      const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
-      return fetch(input, { ...options, signal });
+      if (!url.pathname.startsWith('/rest/v1/')) return fetch(input, options);
+      const timeout = read ? AbortSignal.timeout(CHAT_READ_TIMEOUT_MS) : null;
+      const signal = timeout ? (options.signal ? AbortSignal.any([options.signal, timeout]) : timeout) : options.signal;
+      const started = performance.now(), kind = url.pathname.split('/').pop();
+      const metric = chatNetworkUsage.get(kind) || { requests: 0, failures: 0, totalMs: 0 };
+      chatNetworkUsage.set(kind, metric); metric.requests++;
+      try {
+        const response = await fetch(input, { ...options, signal });
+        if (!response.ok) metric.failures++;
+        return response;
+      } catch (error) { metric.failures++; throw error; }
+      finally { metric.totalMs += Math.round(performance.now() - started); }
     }
     function missingSchema(error) {
       return ['42703', '42883', 'PGRST202', 'PGRST204'].includes(error?.code);
@@ -7736,6 +7841,7 @@ void main() {
       applyDyslexic(settings.dyslexic);
       applyFlagFont();
       wireStaticEvents();
+      setupAvatarLoading();
 
       const reducedMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
       reducedMotionQuery.addEventListener?.('change', () => {
@@ -7951,7 +8057,7 @@ void main() {
     // Foreground activity, independent of cosmetic Realtime Presence. Daily
     // deduplication and timestamps belong to the database, never local counters.
     let analyticsInteractionAt = 0, analyticsAttemptAt = 0, analyticsInFlight = false;
-    let analyticsListenersBound = false, analyticsRetryMs = 60000;
+    let analyticsListenersBound = false, analyticsRetryMs = 120000;
     async function recordChatActivity() {
       const now = Date.now();
       if (!me || me.is_banned || me.is_test_account || isHiddenBot(me.username)
@@ -7963,10 +8069,13 @@ void main() {
       try {
         const { error } = await sb.rpc('chat_record_activity', { p_device_id: await getDeviceId() });
         if (error) throw error;
-        analyticsRetryMs = 60000;
+        analyticsRetryMs = 120000;
       } catch (error) {
         analyticsRetryMs = Math.min(300000, analyticsRetryMs * 2);
-        console.warn('[liminal] activity tracking unavailable', error);
+        if (!recordChatActivity.warnedAt || now - recordChatActivity.warnedAt >= 300000) {
+          recordChatActivity.warnedAt = now;
+          console.warn('[liminal] activity tracking unavailable', error?.code || 'unavailable');
+        }
       } finally { analyticsInFlight = false; }
     }
     function startChatActivity() {
@@ -8297,11 +8406,12 @@ void main() {
     }
 
     const PROFILE_BASE_COLUMNS = 'username,display_name,ring,pfp,tag,status,custom_status,staff_role,is_admin,is_owner,is_banned,timeout_until,kicked_at,is_test_account,created_at,user_id';
-    const PROFILE_COLUMNS = PROFILE_BASE_COLUMNS + ',sub_role';
+    const PROFILE_COLUMNS = PROFILE_BASE_COLUMNS + ',sub_role,pfp_thumbnail';
     async function updateOwnProfile(patch) {
       let result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
       if (result.error) {
-        result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_BASE_COLUMNS).single();
+        const { pfp_thumbnail, ...legacyPatch } = patch;
+        result = await sb.from('profiles').update(legacyPatch).eq('username', me.username).select(PROFILE_BASE_COLUMNS).single();
       }
       return result;
     }
@@ -8376,11 +8486,16 @@ void main() {
     }
 
     async function loadDms() {
+      const actor = me?.username;
+      if (loadDms.pending?.actor === actor) return loadDms.pending.promise;
+      const request = { actor };
+      request.promise = (async () => {
       const previousGroups = dms.filter(dm => dm.is_group);
       let { data, error } = await sb.rpc('chat_list_conversations');
       if (error && (error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || ''))) ({ data, error } = await sb.rpc('chat_list_dm_inbox'));
+      if (me?.username !== actor) return false;
       if (error) {
-        console.error('[liminal] dm inbox', error);
+        logChatWarning('dm-inbox-unavailable', error);
         const fallback = await sb.from('dms').select('*').contains('participants', [me.username]);
         if (fallback.error) return false;
         dms = (fallback.data || []).map(d => ({ ...d, other: d.is_group ? '' : (d.participants || []).find(u => u !== me.username) || me.username, lastMsg: null, myLastReadAt: null }))
@@ -8401,7 +8516,7 @@ void main() {
         lastMsg: d.last_id ? {
           id: d.last_id, dm_id: d.id, sender: d.last_sender, content: d.last_content,
           type: d.last_type, created_at: d.last_created_at, deleted: d.last_deleted,
-          read_by: d.last_read_by || [],
+          
         } : null,
       })).filter(d => !isHiddenBot(d.other) && !(d.participants || []).some(isHiddenBot));
       for (const previous of previousGroups) if (!dms.some(dm => dm.id === previous.id)) discardGroupCache(previous.id);
@@ -8412,15 +8527,54 @@ void main() {
           unreadCounts.delete(key);
           return;
         }
-        const readAt = dm.myLastReadAt || lastReadAt[key];
+        const readAt = [dm.myLastReadAt, lastReadAt[key]].filter(Boolean).sort((a,b) => Date.parse(b)-Date.parse(a))[0];
         if (!readAt || new Date(last.created_at) > new Date(readAt)) unreadCounts.set(key, 1);
         else unreadCounts.delete(key);
       });
       sortDms();
       return true;
+      })().finally(() => { if (loadDms.pending === request) loadDms.pending = null; });
+      loadDms.pending = request;
+      return request.promise;
     }
 
-    async function hydrateChannelUnreads() {
+    let unreadHydration = null, unreadHydratedAt = 0, unreadHydratedActor = '';
+    async function hydrateChannelUnreads({ force = false } = {}) {
+      if (!me) return;
+      const actor = me.username;
+      if (unreadHydration?.actor === actor) return unreadHydration.promise;
+      if (!force && unreadHydratedActor === actor && realtimeHealthy() && Date.now() - unreadHydratedAt < LIST_RECONCILE_MS) return;
+      const cursors = {};
+      channels.filter(ch => ['chat', 'forum'].includes(ch.kind || 'chat') && channelIsVisible(ch)).forEach(ch => {
+        const readAt = lastReadAt[`c:${ch.id}`];
+        cursors[ch.id] = readAt && Number.isFinite(Date.parse(readAt)) ? new Date(readAt).toISOString() : null;
+      });
+      const starts = new Map(Object.keys(cursors).map(id => [id, { readAt: lastReadAt[`c:${id}`], count: unreadCounts.get(`c:${id}`) || 0 }]));
+      const request = {};
+      request.actor = actor;
+      request.promise = (async () => {
+        const { data, error } = await sb.rpc('chat_unread_counts', { p_read_cursors: cursors });
+        if (me?.username !== actor) return;
+        if (error) {
+          // Keep a compatibility fallback during the backend-first rollout.
+          if (missingSchema(error)) return hydrateChannelUnreadsLegacy();
+          logChatWarning('unread-unavailable', error); return;
+        }
+        for (const row of data || []) {
+          const key = `c:${row.channel_id}`, start = starts.get(row.channel_id);
+          if (!start || lastReadAt[key] !== start.readAt) continue;
+          for (const id of row.thread_ids || []) forumThreadBoard.set(id, row.channel_id);
+          const arrivals = Math.max(0, (unreadCounts.get(key) || 0) - start.count);
+          const count = arrivals ? Math.max(Number(row.unread_count) || 0, start.count + arrivals) : Number(row.unread_count) || 0;
+          if (count) unreadCounts.set(key, count); else unreadCounts.delete(key);
+        }
+        unreadHydratedAt = Date.now(); unreadHydratedActor = actor;
+        updateTabBadge();
+      })().finally(() => { if (unreadHydration === request) unreadHydration = null; });
+      unreadHydration = request;
+      return request.promise;
+    }
+    async function hydrateChannelUnreadsLegacy() {
       if (!me) return;
       const chatChannels = channels.filter(ch => (ch.kind || 'chat') === 'chat' && channelIsVisible(ch));
       const forumChannels = channels.filter(ch => ch.kind === 'forum' && channelIsVisible(ch));
@@ -8683,7 +8837,7 @@ void main() {
                 if (avatar.isEqualNode(nextAvatar)) nextAvatar.replaceWith(avatar);
                 else {
                   const image = qs('img', avatar), nextImage = qs('img', nextAvatar);
-                  if (image && nextImage && image.isEqualNode(nextImage)) nextImage.replaceWith(image);
+                  if (image && nextImage && ((image.dataset.avatarSrc && image.dataset.avatarSrc === nextImage.dataset.avatarSrc) || image.isEqualNode(nextImage))) nextImage.replaceWith(image);
                 }
               }
               node.className = fresh.className;
@@ -9441,7 +9595,6 @@ void main() {
         listEl.innerHTML = `<div class="empty-state"><div class="big-icon">🌌</div><h3>${isForumThreadView(currentView) ? 'No replies yet' : 'It\'s quiet in here'}</h3><p>${isForumThreadView(currentView) ? 'Be the first to reply to this post.' : 'Be the first to say something.'}</p></div>`;
       }
       $('load-older').hidden = !(context ? context.hasOlder : hasMoreMap.get(key));
-      renderDmReceipt();
       updateViewingOlder();
     }
 
@@ -10071,7 +10224,7 @@ void main() {
       });
       qsa('.date-sep', list).forEach(node => {
         const next = node.nextElementSibling;
-        if (!next || next.classList.contains('date-sep') || next.classList.contains('dm-receipt')) node.remove();
+        if (!next || next.classList.contains('date-sep')) node.remove();
       });
       const byId = new Map(rows.map((message, index) => [String(message.id), { message, index }]));
       qsa('.msg[data-id]', list).forEach(node => {
@@ -10254,7 +10407,7 @@ void main() {
       }
       const kind = currentView.type === 'dm' ? 'dm' : 'channel';
       if (kind === 'channel') row.channel_id = currentView.id;
-      else { row.dm_id = currentView.id; row.read_by = [me.username]; }
+      else { row.dm_id = currentView.id; }
 
       const pending = beginPendingSend(row, kind);
       clearComposerDraft(pending.key);
@@ -10405,7 +10558,7 @@ void main() {
       };
       if (msg.reply_to) row.reply_to = msg.reply_to;
       if (kind === 'channel') row.channel_id = msg.channel_id;
-      else { row.dm_id = msg.dm_id; row.read_by = [me.username]; }
+      else { row.dm_id = msg.dm_id; }
 
       const result = await insertChatMessage(table, row, columns);
       if (result.error) {
@@ -10457,7 +10610,7 @@ void main() {
         if (!node) return;
         const next = node.nextElementSibling;
         const prev = node.previousElementSibling;
-        if (prev && prev.classList.contains('date-sep') && (!next || next.classList.contains('date-sep') || next.classList.contains('dm-receipt'))) {
+        if (prev && prev.classList.contains('date-sep') && (!next || next.classList.contains('date-sep'))) {
           prev.remove();
         }
         node.remove();
@@ -10471,8 +10624,7 @@ void main() {
         if (list && !qs('.msg, .system-msg', list)) renderTimeline();
         else {
           markTimelineTail();
-          renderDmReceipt();
-          if (stickyToBottom) pinToBottom(true);
+              if (stickyToBottom) pinToBottom(true);
         }
       }
     }
@@ -11338,8 +11490,7 @@ void main() {
       if (context) { const idx = context.rows.findIndex(x => x.id === m.id); if (idx >= 0) { context.rows[idx] = m; indexMessage(m); } }
       if (key === viewKey(currentView)) {
         if (renderChanged) updateMessageNode(m);
-        renderDmReceipt();
-      }
+        }
       if ($('pins-dialog').open && pinsState?.view && viewKey(pinsState.view) === key) {
         const idx = pinsState.rows.findIndex(row => row.id === m.id);
         if (!m.pinned || m.deleted) pinsState.rows = pinsState.rows.filter(row => row.id !== m.id);
@@ -11450,7 +11601,7 @@ void main() {
       return {
         username: me.username,
         displayName: displayNameOf(p),
-        pfp: p.pfp || '',
+        pfp: avatarUrl(p),
       };
     }
 
@@ -11460,7 +11611,8 @@ void main() {
       const label = account.displayName || account.username || '?';
       if (account.pfp) {
         const img = document.createElement('img');
-        img.src = account.pfp;
+        img.dataset.avatarSrc = account.pfp;
+        img.loading = 'lazy'; img.decoding = 'async';
         img.alt = '';
         el.append(img);
       } else {
@@ -12671,7 +12823,7 @@ void main() {
       const remoteAccount = {
         username,
         displayName: displayNameOf(username),
-        pfp: profileOf(username).pfp || '',
+        pfp: avatarUrl(profileOf(username)),
       };
 
       if (message.type === 'takeover' && username === me.username) {
@@ -13318,6 +13470,7 @@ void main() {
       dbChannel = sb.channel(`db-changes-${gen}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, handleMessageChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, handleDmChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_reads', filter: `username=eq.${me.username}` }, handleDmReadCursor)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, payload => {
           if (voice.roomId && (payload.new?.id || payload.old?.id) === voice.roomId) checkPrivateVoiceAccess();
           queueConversationRefresh();
@@ -13808,14 +13961,6 @@ void main() {
           }
         }
         patchCachedMessage(m);
-        if (currentView.type === 'dm' && currentView.id === m.dm_id) renderDmReceipt();
-        if (m.dm_id && Array.isArray(m.read_by) && me && m.read_by.includes(me.username)) {
-          if (unreadCounts.has(key)) {
-            unreadCounts.delete(key);
-            renderDmList();
-            updateTabBadge();
-          }
-        }
         return;
       }
       if (type !== 'INSERT') return;
@@ -13862,12 +14007,12 @@ void main() {
       } else if (!uiChanged) return;
       voice.peers.forEach(peer => {
         if (peer.account?.username !== p.username) return;
-        peer.account = { ...peer.account, displayName: displayNameOf(merged), pfp: merged.pfp || '' };
+        peer.account = { ...peer.account, displayName: displayNameOf(merged), pfp: avatarUrl(merged) };
         updatePeerTileIdentity(peer);
       });
       scheduleRenderMembers();
       scheduleRenderDmList();
-      const TIMELINE_IDENTITY = new Set(['display_name', 'pfp', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
+      const TIMELINE_IDENTITY = new Set(['display_name', 'pfp', 'pfp_thumbnail', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
       const timelineDirty = changed.some(k => TIMELINE_IDENTITY.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
       if (p.username === noelleSourceProfile?.source_username && (timelineDirty || changed.includes('bio'))) {
@@ -13903,8 +14048,8 @@ void main() {
           applyRing(avatar, profile);
           const image = qs('img', avatar);
           if (profile.pfp) {
-            if (image) { if (image.getAttribute('src') !== profile.pfp) image.src = profile.pfp; }
-            else avatar.innerHTML = `<img src="${esc(profile.pfp)}" alt="" loading="lazy" decoding="async">`;
+            if (image) { if (image.dataset.avatarSrc !== avatarUrl(profile)) image.dataset.avatarSrc = avatarUrl(profile); }
+            else avatar.innerHTML = avatarImageHtml(profile);
           } else avatar.textContent = initialsOf(displayNameOf(profile));
         }
       });
@@ -15006,7 +15151,7 @@ void main() {
     }
     function applyGifToProfile(url, target) {
       if (!url) return;
-      if (target === 'pfp') { pendingPfp = url; refreshPfpPreview(); }
+      if (target === 'pfp') { pendingPfp = url; pendingPfpThumbnail = ''; refreshPfpPreview(); }
       else { pendingBanner = url; refreshBannerPreview(); }
       saveProfile();
       toast({ type: 'success', text: target === 'pfp' ? 'GIF avatar set.' : 'GIF banner set.' });
@@ -15597,7 +15742,7 @@ void main() {
       if (!me) return;
       const effStatus = presenceStatusOf(me.username);
       const avatar = $('self-avatar');
-      const identity = me.pfp ? `<img src="${esc(me.pfp)}" alt="" decoding="async">` : esc(initialsOf(displayNameOf(me)));
+      const identity = avatarImageHtml(me);
       if (avatar._identityHtml !== identity) {
         avatar.innerHTML = identity + `<span class="presence-dot" id="self-dot" data-status="${esc(effStatus)}"></span>`;
         avatar._identityHtml = identity;
@@ -15677,7 +15822,7 @@ void main() {
       const card = $('hover-card');
 
       applyBannerStyle($('hc-banner'), p.banner);
-      $('hc-avatar').innerHTML = (p.pfp ? `<img src="${esc(p.pfp)}" alt="">` : esc(initialsOf(displayNameOf(p))))
+      $('hc-avatar').innerHTML = avatarImageHtml(p, true)
         + `<span class="presence-dot" id="hc-dot" data-status="${esc(status)}"></span>`;
       applyRing($('hc-avatar'), p);
       $('hc-name').textContent = displayNameOf(p);
@@ -16276,15 +16421,24 @@ void main() {
       $('group-details-btn').hidden = !dm.is_group;
     }
     async function loadGroupInvites() {
+      const actor = me?.username;
+      if (loadGroupInvites.pending?.actor === actor) return loadGroupInvites.pending.promise;
+      const request = { actor };
+      request.promise = (async () => {
       const { data, error } = await sb.rpc('chat_list_group_invites');
       if (error) return false;
+      if (me?.username !== actor) return false;
       groupInvites = Array.isArray(data) ? data : [];
       const button = $('group-invites-btn');
       button.hidden = !groupInvites.length;
       button.textContent = `${groupInvites.length} group ${groupInvites.length === 1 ? 'invite' : 'invites'}`;
       if ($('group-invites-dialog').open) renderGroupInvites();
       return true;
+      })().finally(() => { if (loadGroupInvites.pending === request) loadGroupInvites.pending = null; });
+      loadGroupInvites.pending = request;
+      return request.promise;
     }
+
     function renderGroupInvites() {
       $('group-invites-list').innerHTML = groupInvites.map(invite => `<article class="group-invite-card">
         <div>${groupAvatarHtml()}<div><strong>${esc(invite.title)}</strong><span>Invited by ${esc(displayNameOf(profileOf(invite.invited_by)))} · ${invite.member_count} members</span></div></div>
@@ -16644,13 +16798,14 @@ void main() {
     }
 
     /* ============================= 33. SETTINGS ============================= */
-    let pendingPfp = null, pendingBanner = null, pendingRing = null;
+    let pendingPfp = null, pendingPfpThumbnail = '', pendingBanner = null, pendingRing = null;
     let cropState = null;
     let profileSaveTimer = null;
     let profileSaveChain = Promise.resolve();
     let profileSaveRevision = 0;
     function openSettings(tab) {
       pendingPfp = me.pfp || '';
+      pendingPfpThumbnail = me.pfp_thumbnail || '';
       pendingBanner = me.banner || '';
       pendingRing = parseStoredRing(me.ring);
       $('set-display-name').value = displayNameOf(me);
@@ -16777,11 +16932,22 @@ void main() {
       } catch { toast({ type: 'error', text: 'Ring image upload failed.' }); }
       finally { $('ring-image-file').value = ''; }
     }
+    async function uploadAvatar(blob, ext, fallback) {
+      const original = await uploadMedia('liminal-pfp', blob, ext, fallback);
+      pendingPfpThumbnail = '';
+      try {
+        const thumb = await compressImage(blob, { width: 200, height: 200, type: 'image/webp', quality: 0.78 });
+        if (thumb.blob?.type === 'image/webp') {
+          pendingPfpThumbnail = await uploadMedia('liminal-pfp', thumb.blob, 'webp');
+        }
+      } catch { /* The original remains usable if thumbnail encoding is unavailable. */ }
+      return original;
+    }
     async function uploadAnimatedProfileImage(file, kind) {
       const isPfp = kind === 'pfp';
       if (file.size > 8 * 1024 * 1024) { toast({ type: 'error', text: 'That GIF is too large (max 8 MB).' }); return; }
       try {
-        const url = await uploadMedia('liminal-pfp', file, 'gif');
+        const url = isPfp ? await uploadAvatar(file, 'gif') : await uploadMedia('liminal-pfp', file, 'gif');
         if (isPfp) { pendingPfp = url; refreshPfpPreview(); } else { pendingBanner = url; refreshBannerPreview(); }
         const saved = await saveProfile();
         if (!saved) throw new Error('save failed');
@@ -16932,7 +17098,7 @@ void main() {
         try {
           const cropped = await cropAnimatedGifBlob(blob, crop, outWidth, outHeight);
           if (cropState !== state) return;
-          const url = await uploadMedia('liminal-pfp', cropped, 'gif');
+          const url = isPfp ? await uploadAvatar(cropped, 'gif') : await uploadMedia('liminal-pfp', cropped, 'gif');
           if (cropState !== state) return;
           if (isPfp) {
             pendingPfp = url;
@@ -17014,7 +17180,7 @@ void main() {
           quality: 0.85,
           crop,
         });
-        const url = await uploadMedia('liminal-pfp', blob, 'jpg', dataUrl);
+        const url = isPfp ? await uploadAvatar(blob, 'jpg', dataUrl) : await uploadMedia('liminal-pfp', blob, 'jpg', dataUrl);
         if (isPfp) {
           pendingPfp = url;
           refreshPfpPreview();
@@ -17055,6 +17221,7 @@ void main() {
       const patch = {
         display_name: displayName.slice(0, 40),
         pfp: pendingPfp || '',
+        pfp_thumbnail: pendingPfpThumbnail || '',
         banner: pendingBanner || '',
         ring: serializeRing(pendingRing),
         bio: $('set-bio').value.slice(0, 150),
@@ -17830,9 +17997,9 @@ void main() {
         if (request !== inboxHydrateId || me?.username !== owner) return;
         for (const dm of dms) {
           const m = dm.lastMsg;
-          if (!m || m.deleted || m.sender === owner || (!dm.is_group && dmBlockedUsers.has(dm.other)) || (m.read_by || []).includes(owner)) continue;
+          if (!m || m.deleted || m.sender === owner || (!dm.is_group && dmBlockedUsers.has(dm.other))) continue;
           const key = `dm:${dm.id}`;
-          const readAt = dm.myLastReadAt || lastReadAt[key];
+          const readAt = [dm.myLastReadAt, lastReadAt[key]].filter(Boolean).sort((a,b) => Date.parse(b)-Date.parse(a))[0];
           if (readAt && Date.parse(readAt) >= Date.parse(m.created_at)) continue;
           addInbox({ kind: 'dm', from: m.sender, text: messagePreview(m), view: key, msgId: m.id, ts: m.created_at, read: false }, true);
         }
@@ -17990,17 +18157,24 @@ void main() {
       if (t.id) forumThreadBoard.set(t.id, t.channel_id);
     }
 
+    const forumLoads = new Map(), forumLoadedAt = new Map();
     async function loadForumThreads(channelId, force) {
-      if (!force && forumThreadCache.has(channelId)) return forumThreadCache.get(channelId);
-      const { data, error } = await sb.from('forum_threads')
-        .select('*').eq('channel_id', channelId).eq('deleted', false)
-        .order('pinned', { ascending: false })
-        .order('last_activity_at', { ascending: false })
-        .limit(200);
-      const rows = error ? [] : (data || []);
-      forumThreadCache.set(channelId, rows);
-      rows.forEach(t => { if (t && t.id) forumThreadBoard.set(t.id, channelId); });
-      return rows;
+      const actor = me?.username, scope = actor + ':' + channelId;
+      if (forumLoads.has(scope)) return forumLoads.get(scope);
+      const ttl = realtimeHealthy() ? LIST_RECONCILE_MS : 20000;
+      if (!force && forumThreadCache.has(channelId) && Date.now() - (forumLoadedAt.get(scope) || 0) < ttl) return forumThreadCache.get(channelId);
+      const pending = (async () => {
+        const { data, error } = await sb.from('forum_threads')
+          .select('*').eq('channel_id', channelId).eq('deleted', false)
+          .order('pinned', { ascending: false }).order('last_activity_at', { ascending: false }).limit(200).retry(false);
+        if (me?.username !== actor) return [];
+        if (error) { logChatWarning('forum-unavailable', error); return forumThreadCache.get(channelId) || []; }
+        const rows = data || [];
+        forumThreadCache.set(channelId, rows); forumLoadedAt.set(scope, Date.now());
+        rows.forEach(t => { if (t?.id) forumThreadBoard.set(t.id, channelId); });
+        return rows;
+      })().finally(() => forumLoads.delete(scope));
+      forumLoads.set(scope, pending); return pending;
     }
 
     async function openForumBoard(view) {
@@ -18031,7 +18205,7 @@ void main() {
       renderDmList();
       $('forum-board-inner').innerHTML = '<div class="forum-loading"><div class="spinner"></div></div>';
       if (prevView && viewKey(prevView) !== viewKey(view)) animateViewEnter($('forum-board'), 'up');
-      await loadForumThreads(view.id, true);
+      await loadForumThreads(view.id, false);
       if (view.id === FOLLOWING_CHANNEL) await ensureMyFeedThread();
       if (viewKey(currentView) === viewKey(view)) renderForumBoard();
     }
@@ -18686,56 +18860,52 @@ void main() {
     }
 
 
-    /* ============================= 37e. READ RECEIPTS (DMs) ============================= */
-    const DM_READ_BATCH = 200;
-    async function markDmRead(view) {
-      if (!view || view.type !== 'dm' || !me) return;
-      const key = viewKey(view);
-      const cache = msgCache.get(key) || [];
-      const toMark = cache
-        .filter(m => m.sender !== me.username && !m.deleted && !(m.read_by || []).includes(me.username))
-        .slice(-DM_READ_BATCH);
-      markViewRead(key);
-      if (!toMark.length) { renderDmReceipt(); return; }
-      const previous = toMark.map(m => m.read_by);
-      toMark.forEach(m => { m.read_by = [...(m.read_by || []), me.username]; });
-      renderDmReceipt();
-      const { error } = await sb.rpc('chat_mark_dm_read', {
-        p_dm_id: view.id,
-        p_limit: DM_READ_BATCH,
-      });
-      if (error) {
-        toMark.forEach((m, i) => { m.read_by = previous[i]; });
-        console.error('[liminal] could not mark DM read', error);
-        renderDmReceipt();
-      } else {
-        const dm = dms.find(d => d.id === view.id);
-        if (dm?.lastMsg && toMark.some(m => m.id === dm.lastMsg.id)) {
-          dm.lastMsg = { ...dm.lastMsg, read_by: [...(dm.lastMsg.read_by || []), me.username] };
-        }
+    /* ============================= 37e. DM READ CURSORS ============================= */
+    const dmReadWrites = new Map();
+    function handleDmReadCursor(payload) {
+      const row = payload.new;
+      if (!row || row.username !== me?.username || !row.last_read_at) return;
+      const dm = dms.find(d => d.id === row.dm_id);
+      if (!dm || (dm.myLastReadAt && Date.parse(row.last_read_at) <= Date.parse(dm.myLastReadAt))) return;
+      dm.myLastReadAt = row.last_read_at;
+      const key = `dm:${dm.id}`;
+      if (!lastReadAt[key] || Date.parse(lastReadAt[key]) < Date.parse(row.last_read_at)) {
+        lastReadAt[key] = row.last_read_at; LS.set(`lc_lastread:${me.username}`, lastReadAt);
+      }
+      if (!dm.lastMsg || Date.parse(dm.lastMsg.created_at) <= Date.parse(row.last_read_at)) {
+        unreadCounts.delete(key);
+        inbox.forEach(item => { if (item.view === key && Date.parse(item.ts) <= Date.parse(row.last_read_at)) item.read = true; });
+        saveInbox(); renderDmList(); updateTabBadge();
       }
     }
-    function renderDmReceipt() {
-      const list = $('message-list');
-      const old = qs('.dm-receipt', list);
-      if (currentView.type !== 'dm' || !me || historyContexts.has(viewKey(currentView))) { old?.remove(); return; }
-      const cache = msgCache.get(viewKey(currentView)) || [];
-      let last = null;
-      for (let i = cache.length - 1; i >= 0; i--) { if (cache[i].sender === me.username && !cache[i].deleted) { last = cache[i]; break; } }
-      if (!last || isPrivateCallMessage(last)) { old?.remove(); return; }
-      const group = groupOf();
-      const readers = group ? group.participants.filter(name => name !== me.username && (last.read_by || []).includes(name)) : [];
-      const seen = group ? readers.length > 0 : (last.read_by || []).includes(currentView.other);
-      const seenText = group ? `Seen by ${readers.length} of ${Math.max(0, group.participants.length - 1)}` : 'Seen';
-      const el = old || document.createElement('div');
-      el.className = 'dm-receipt';
-      const state = seen ? 'seen' : 'sent';
-      if (el.dataset.state !== state) el.dataset.state = state;
-      const html = seen
-        ? `<span class="dm-receipt-ticks">✓✓</span><span>${esc(seenText)}${last.created_at ? ' · ' + esc(fmtTime(last.created_at)) : ''}</span>`
-        : `<span class="dm-receipt-ticks">✓</span><span>Sent</span>`;
-      if (el._receiptHtml !== html) { el.innerHTML = html; el._receiptHtml = html; }
-      if (list.lastElementChild !== el) list.appendChild(el);
+    async function markDmRead(view) {
+      if (!view || view.type !== 'dm' || !me || document.visibilityState !== 'visible'
+          || viewKey(view) !== viewKey(currentView) || historyContexts.has(viewKey(view))) return;
+      const key = viewKey(view), actor = me.username;
+      const latest = (msgCache.get(key) || []).filter(m => !m.deleted && !m.pending && m.created_at).at(-1);
+      markViewRead(key);
+      if (!latest) return;
+      const stateKey = actor + ':' + view.id;
+      let state = dmReadWrites.get(stateKey);
+      if (!state) { state = { done: '', wanted: null, promise: null }; dmReadWrites.set(stateKey, state); }
+      if (state.done === latest.id) return;
+      state.wanted = latest;
+      if (state.promise) return state.promise;
+      state.promise = (async () => {
+        // One write for a burst, followed by at most one advancing cursor per burst.
+        await new Promise(resolve => setTimeout(resolve, 250));
+        while (state.wanted && me?.username === actor) {
+          const message = state.wanted; state.wanted = null;
+          const { data, error } = await sb.rpc('chat_update_dm_read_cursor', { p_dm_id: view.id, p_read_at: message.created_at });
+          if (error) { logChatWarning('dm-cursor-unavailable', error); break; }
+          if (me?.username !== actor) break;
+          state.done = message.id;
+          const dm = dms.find(d => d.id === view.id);
+          if (dm && data) dm.myLastReadAt = data;
+          if (state.wanted?.id === state.done) state.wanted = null;
+        }
+      })().finally(() => { state.promise = null; });
+      return state.promise;
     }
 
     /* ============================= 37f. MESSAGE SEARCH ============================= */
@@ -19329,7 +19499,7 @@ void main() {
       $('set-pfp-btn').addEventListener('click', () => $('set-pfp-file').click());
       $('set-pfp-gif-btn').addEventListener('click', () => openGifPicker('', 'pfp'));
       $('set-pfp-file').addEventListener('change', () => promptImageCrop($('set-pfp-file').files[0], 'pfp'));
-      $('set-pfp-remove').addEventListener('click', async () => { pendingPfp = ''; refreshPfpPreview(); await saveProfile(); });
+      $('set-pfp-remove').addEventListener('click', async () => { pendingPfp = ''; pendingPfpThumbnail = ''; refreshPfpPreview(); await saveProfile(); });
       $('set-banner-btn').addEventListener('click', () => $('set-banner-file').click());
       $('set-banner-gif-btn').addEventListener('click', () => openGifPicker('', 'banner'));
       $('set-banner-preview').addEventListener('click', () => $('set-banner-file').click());
