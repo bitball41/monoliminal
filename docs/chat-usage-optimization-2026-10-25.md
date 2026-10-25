@@ -8,7 +8,23 @@ reject anonymous execution. The security advisor reports no new warning groups.
 
 The avatar maintenance function is disabled after backfill and returns HTTP 410.
 The reviewed signup-throttle log reduction is deployed to `chat-auth`. Frontend
-publication uses the existing tested main-branch deployment workflow.
+publication uses the existing tested deployment engine.
+
+Chat 2.25.0 was published on 2026-10-25 at 17:40:13 UTC from commit
+`ec3571b5f5a5df40df0a37d5be492651169f896e`. Public and authenticated downloads
+matched the reviewed SHA-256. Its previous version is preserved in deployment
+history. The temporary release endpoint is also disabled after publication.
+
+The GitHub Actions publish step returned HTTP 402 on its Storage GET, while its
+validation/tests passed. This release therefore used the working Supabase
+connection through a short-lived, fixed-artifact maintenance function and the
+same tested archive/publish/rollback engine. The GitHub deployment connection
+still needs repair before relying on future automatic publication; it was not
+silently treated as successful. Do not rerun the failing connection repeatedly.
+
+A read-only follow-up comparison is scheduled after a complete post-release
+24-hour window. It will compare request rates and traffic volume; billing
+savings are not claimed from thumbnail compression alone.
 
 ## Changes and acceptance evidence
 
