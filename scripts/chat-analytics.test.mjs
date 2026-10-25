@@ -109,9 +109,10 @@ test('foreground collector stops hidden/idle/offline and coalesces calls with bo
   vm.runInContext('analyticsInteractionAt=Date.now()',context);
   let release;pending=new Promise(resolve=>release=resolve);
   const a=run();await Promise.resolve();const b=run();release();await Promise.all([a,b]);pending=null;assert.equal(calls,2);
+  now+=60001;await run();assert.equal(calls,2,'healthy tracking waits two minutes');
   now+=60001;fail=true;await run();assert.equal(calls,3);
   now+=60001;await run();assert.equal(calls,3,'failure backs off');
-  now+=60001;fail=false;await run();assert.equal(calls,4);
+  now+=180001;vm.runInContext('analyticsInteractionAt=Date.now()',context);fail=false;await run();assert.equal(calls,4);
   context.me.is_test_account=true;now+=60001;await run();assert.equal(calls,4);
 });
 

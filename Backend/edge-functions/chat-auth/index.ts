@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       if (error instanceof Error && error.message === "rate_signup") {
         return json({ error: "Too many new accounts from this network. Try again in an hour." }, 429);
       }
-      console.warn("[chat-auth] signup throttle unavailable", error);
+      console.warn("[chat-auth] signup throttle unavailable", { code: error?.code || "unavailable" });
     }
 
     const [{ data: registrationSetting }, { data: deviceBan }] = await Promise.all([

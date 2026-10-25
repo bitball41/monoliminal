@@ -72,7 +72,7 @@ test('trimming preserves unsent content and an open history window until it is c
   assert.equal(c.msgById.size, 202);
 });
 
-test('DM read receipts update cached data without rebuilding the message bubble', () => {
+test('legacy receipt payloads do not rebuild bubbles or render receipt UI', () => {
   const c = messages(), key = 'dm:conversation';
   c.currentView.key = key;
   const row = { id: 'message', dm_id: 'conversation', content: 'Hi', type: 'text', read_by: ['alice'], reactions: { '👍': ['alice'] } };
@@ -81,7 +81,7 @@ test('DM read receipts update cached data without rebuilding the message bubble'
   read.read_by.push('bob');
   c.patchCachedMessage(read);
   assert.equal(c.bubbleUpdates, 0);
-  assert.equal(c.receiptUpdates, 1);
+  assert.equal(c.receiptUpdates, 0, 'read receipt UI is retired');
   assert.equal(c.findCachedMessage(row.id), read);
   assert.deepEqual(c.msgCache.get(key)[0].read_by, ['alice', 'bob']);
   c.patchCachedMessage({ ...read, content: 'Edited', edited: true });

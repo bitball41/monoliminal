@@ -49,7 +49,7 @@ test('settings loads share one request across launcher, session restore and app 
 
 test('message reads time out, preserve an existing cancellation, and leave mutations to their own handler', async () => {
   const requests = [];
-  const c = vm.createContext({ URL, AbortSignal, fetch: async (input, options) => { requests.push({ input, options }); return {}; } });
+  const c = vm.createContext({ URL, AbortSignal, performance, fetch: async (input, options) => { requests.push({ input, options }); return {}; } });
   vm.runInContext(section('    const CHAT_READ_TIMEOUT_MS =', '    function missingSchema('), c);
   const cancel = new AbortController();
   await c.chatFetch('https://fixture.invalid/rest/v1/messages', { method: 'GET', signal: cancel.signal });
@@ -61,33 +61,27 @@ test('message reads time out, preserve an existing cancellation, and leave mutat
   assert.equal(requests[2].options.signal, undefined);
 });
 
-test('badge hydration bounds history work and concurrency; opening a channel during hydration keeps it read', async () => {
-  let active = 0, peak = 0;
-  const releases = [], reads = [];
-  const c = vm.createContext({ console, me: { username: 'alice' },
+test('one unread request covers all channels, coalesces refreshes and preserves reads and live arrivals', async () => {
+  let calls = 0, release, now = 1_000_000;
+  const c = vm.createContext({ console, Date: Object.assign(class extends Date { static now() { return now; } }), me: { username: 'alice' },
     channels: Array.from({ length: 8 }, (_, n) => ({ id: String(n), kind: 'chat' })),
-    channelIsVisible: () => true, lastReadAt: {}, unreadCounts: new Map(), updateTabBadge() {},
-    sb: { from() {
-      const read = { filters: {} }; reads.push(read);
-      const q = { select(columns, options) { assert.equal(columns, 'id'); assert.equal(options, undefined); return q; },
-        eq(k, v) { read.filters[k] = v; return q; }, neq() { return q; }, gt() { return q; },
-        limit(n) { assert.equal(n, 100); return q; }, retry(value) {
-          assert.equal(value, false); active++; peak = Math.max(peak, active);
-          return new Promise(resolve => releases.push(() => { active--; resolve({ data: Array.from({ length: 100 }, (_, id) => ({ id })) }); }));
-        } };
-      return q;
+    channelIsVisible: () => true, lastReadAt: {}, unreadCounts: new Map([['c:2', 5]]), updateTabBadge() {},
+    forumThreadBoard: new Map(), realtimeHealthy: () => true, LIST_RECONCILE_MS: 300000,
+    missingSchema: () => false, logChatWarning() {},
+    sb: { rpc(name, args) {
+      assert.equal(name, 'chat_unread_counts'); assert.equal(Object.keys(args.p_read_cursors).length, 8); calls++;
+      return new Promise(resolve => { release = () => resolve({ data: c.channels.map(ch => ({ channel_id: ch.id, unread_count: ch.id === '2' ? 5 : 100, thread_ids: [] })) }); });
     } },
   });
-  vm.runInContext(section('    async function runChatLoads(', '    async function loadChatExtras(') + '\n' +
-    section('    async function hydrateChannelUnreads(', '    function forumBoardIdFromChannelId('), c);
-  const work = c.hydrateChannelUnreads();
-  assert.equal(reads.length, 2);
-  c.lastReadAt['c:0'] = 'just-opened';
-  while (releases.length) { releases.splice(0).forEach(release => release()); await new Promise(resolve => setImmediate(resolve)); }
-  await work;
-  assert.equal(peak, 2); assert.equal(reads.length, 8);
+  vm.runInContext(section('    let unreadHydration =', '    async function hydrateChannelUnreadsLegacy('), c);
+  const work = c.hydrateChannelUnreads(), duplicate = c.hydrateChannelUnreads();
+  assert.equal(calls, 1);
+  c.lastReadAt['c:0'] = 'just-opened'; c.unreadCounts.set('c:2', 6);
+  release(); await Promise.all([work, duplicate]);
   assert.equal(c.unreadCounts.has('c:0'), false);
-  assert.equal(c.unreadCounts.get('c:1'), 100);
+  assert.equal(c.unreadCounts.get('c:1'), 100); assert.equal(c.unreadCounts.get('c:2'), 6);
+  await c.hydrateChannelUnreads(); assert.equal(calls, 1, 'healthy unchanged state reuses its reconciliation');
+  now += 300001; const later = c.hydrateChannelUnreads(); assert.equal(calls, 2); release(); await later;
 });
 
 test('ambiguous writes and duplicate retry IDs recover the committed row instead of sending another message', async () => {
