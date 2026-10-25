@@ -3918,31 +3918,6 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
           <input id="set-display-name" type="text" maxlength="40" placeholder="Your display name">
           <div class="field-help">Your login and mentions stay <strong id="set-username-handle"></strong>.</div>
         </div>
-        <div class="name-style-editor" id="name-style-editor">
-          <div class="settings-subtitle">Name style</div>
-          <div class="name-style-preview" id="name-style-preview" aria-label="Display name preview"></div>
-          <div class="name-style-grid">
-            <div class="field"><label for="set-name-font">Font</label><select id="set-name-font">
-              <option value="default">Default</option><option value="rounded">Rounded</option>
-              <option value="mono">Monospace</option><option value="serif">Serif</option>
-              <option value="script">Handwritten</option><option value="display">Display</option>
-            </select></div>
-            <div class="field"><label for="set-name-effect">Color effect</label><select id="set-name-effect">
-              <option value="default">Default</option><option value="solid">Solid color</option>
-              <option value="gradient">Gradient</option><option value="fade">Color fade</option>
-              <option value="shift">Moving gradient</option>
-            </select></div>
-          </div>
-          <div class="name-style-colors" id="name-style-colors" hidden>
-            <label class="color-row"><input id="set-name-from" type="color" value="#a78bfa" aria-label="First name color"><span>First color</span></label>
-            <label class="color-row" id="name-style-second"><input id="set-name-to" type="color" value="#f472b6" aria-label="Second name color"><span>Second color</span></label>
-          </div>
-          <div class="field" id="name-style-speed" hidden><label for="set-name-speed">Animation speed</label><select id="set-name-speed">
-            <option value="slow">Slow</option><option value="normal" selected>Normal</option><option value="fast">Fast</option>
-          </select></div>
-          <div class="settings-actions-row"><button class="ghost-button" id="name-style-reset" type="button">Reset name style</button></div>
-          <p class="field-help">Everyone sees your style. Animations pause offscreen and respect reduced motion. Your @handle stays the same.</p>
-        </div>
         <div class="field">
           <label for="set-bio">About</label>
           <textarea id="set-bio" maxlength="150" placeholder="Tell people a little about yourself…"></textarea>
@@ -3987,6 +3962,31 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
             <div class="toggle-copy"><div class="toggle-title">Animate ring</div><div class="toggle-sub"></div></div>
             <button class="switch" id="ring-anim" type="button" role="switch" aria-checked="false" aria-label="Animate ring"></button>
           </div>
+        </div>
+        <div class="name-style-editor" id="name-style-editor">
+          <div class="settings-subtitle">Name style</div>
+          <div class="name-style-preview" id="name-style-preview" aria-label="Display name preview"></div>
+          <div class="name-style-grid">
+            <div class="field"><label for="set-name-font">Font</label><select id="set-name-font">
+              <option value="default">Default</option><option value="rounded">Rounded</option>
+              <option value="mono">Monospace</option><option value="serif">Serif</option>
+              <option value="script">Handwritten</option><option value="display">Display</option>
+            </select></div>
+            <div class="field"><label for="set-name-effect">Color effect</label><select id="set-name-effect">
+              <option value="default">Default</option><option value="solid">Solid color</option>
+              <option value="gradient">Gradient</option><option value="fade">Color fade</option>
+              <option value="shift">Moving gradient</option>
+            </select></div>
+          </div>
+          <div class="name-style-colors" id="name-style-colors" hidden>
+            <label class="color-row"><input id="set-name-from" type="color" value="#a78bfa" aria-label="First name color"><span>First color</span></label>
+            <label class="color-row" id="name-style-second"><input id="set-name-to" type="color" value="#f472b6" aria-label="Second name color"><span>Second color</span></label>
+          </div>
+          <div class="field" id="name-style-speed" hidden><label for="set-name-speed">Animation speed</label><select id="set-name-speed">
+            <option value="slow">Slow</option><option value="normal" selected>Normal</option><option value="fast">Fast</option>
+          </select></div>
+          <div class="settings-actions-row"><button class="ghost-button" id="name-style-reset" type="button">Reset name style</button></div>
+          <p class="field-help">Everyone sees your style. Animations pause offscreen and respect reduced motion. Your @handle stays the same.</p>
         </div>
       </section>
 
