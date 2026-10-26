@@ -707,6 +707,13 @@
     let activeDeployApp = "chat";
     let autoRefreshEnabled = true;
     let autoRefreshTimer = null;
+    const STATE_REFRESH_MS = 120000;
+    const STATE_MAX_RETRY_MS = 900000;
+    let dashboardSessionGeneration = 0;
+    let stateRefreshTask = null;
+    let adminMintTask = null;
+    let stateNextPollAt = 0;
+    let stateRetryMs = STATE_REFRESH_MS;
     let lastRefreshDuration = 0;
     let toastTimer = null;
 
@@ -835,11 +842,16 @@
       return String(username || "").trim().toLowerCase() + "@accounts.liminal.invalid";
     }
     async function rpc(name, params, allowRetry = true) {
+      const session = admin, generation = dashboardSessionGeneration;
       const { data, error } = await sb.rpc(name, params);
       const expired = /expired administrator session|invalid administrator session/i.test(error?.message || "");
       if (error && allowRetry && expired && name !== "admin_dashboard_sign_in_auth") {
-        writeAdminCache(null);
-        await mintAdmin();
+        if (generation !== dashboardSessionGeneration || session?.username !== admin?.username) throw error;
+        if (session?.token === admin?.token) {
+          writeAdminCache(null);
+          await mintAdmin();
+        }
+        if (generation !== dashboardSessionGeneration || session?.username !== admin?.username) throw error;
         const next = params && Object.prototype.hasOwnProperty.call(params, "p_admin_token")
           ? { ...params, p_admin_token: admin.token }
           : params;
@@ -848,11 +860,19 @@
       if (error) throw error;
       return data;
     }
-    async function mintAdmin() {
-      const data = await rpc("admin_dashboard_sign_in_auth", undefined, false);
-      admin = data;
-      writeAdminCache(admin);
-      return admin;
+    function mintAdmin() {
+      const username = admin?.username, generation = dashboardSessionGeneration;
+      if (adminMintTask?.generation === generation && adminMintTask.username === username) return adminMintTask.promise;
+      const task = { generation, username, promise: null };
+      adminMintTask = task;
+      task.promise = (async () => {
+        const data = await rpc("admin_dashboard_sign_in_auth", undefined, false);
+        if (generation !== dashboardSessionGeneration || username !== admin?.username) throw new Error("Control session changed");
+        admin = data;
+        writeAdminCache(admin);
+        return admin;
+      })().finally(() => { if (adminMintTask === task) adminMintTask = null; });
+      return task.promise;
     }
     async function callChatAuth(payload) {
       const { data: sessionData } = await sb.auth.getSession();
@@ -910,6 +930,7 @@
     async function logout(callServer = true) {
       const token = admin?.token;
       clearInterval(autoRefreshTimer);
+      dashboardSessionGeneration++;
       dashboardOpen = false;
       admin = null;
       state = null;
@@ -925,6 +946,9 @@
     }
     async function openDashboard() {
       if (!admin?.token) throw new Error("Missing control session");
+      dashboardSessionGeneration++;
+      stateNextPollAt = 0;
+      stateRetryMs = STATE_REFRESH_MS;
       dashboardOpen = true;
       $("boot-screen").hidden = true;
       $("login-screen").hidden = true;
@@ -936,28 +960,54 @@
       await refreshState();
       startAutoRefresh();
     }
-    async function refreshState(silent = false) {
+    function refreshState(silent = false, { periodic = false } = {}) {
       if (!admin?.token) return logout(false);
-      if (!silent) setBusy(true);
-      const startedAt = performance.now();
-      try {
-        state = await rpc("admin_dashboard_get_state", { p_admin_token: admin.token });
-        lastRefreshDuration = Math.round(performance.now() - startedAt);
-        renderAll();
-        $("connection-label").textContent = "Live · " + lastRefreshDuration + " ms";
-        $("live-pill").classList.remove("offline");
-      } catch (error) {
-        console.error(error);
-        if (/invalid administrator credentials/i.test(error?.message || "")) {
-          showNotStaff(admin?.username || "");
-          return;
-        }
-        $("connection-label").textContent = "Connection error";
-        $("live-pill").classList.add("offline");
-        toast(error.message || "Could not refresh Control.", true);
-      } finally {
-        setBusy(false);
+      if (navigator.onLine === false || (periodic && (!autoRefreshEnabled || document.hidden
+          || !dashboardOpen || Date.now() < stateNextPollAt))) return Promise.resolve();
+      const generation = dashboardSessionGeneration, username = admin.username;
+      if (stateRefreshTask?.generation === generation && stateRefreshTask.username === username) {
+        // Mutations and manual refreshes need a read that starts after their changes.
+        if (!periodic) stateRefreshTask.dirty = true;
+        return stateRefreshTask.promise;
       }
+      const task = { generation, username, dirty: false, promise: null };
+      const current = () => dashboardOpen && generation === dashboardSessionGeneration && admin?.username === username;
+      stateRefreshTask = task;
+      if (!silent) setBusy(true);
+      task.promise = (async () => {
+        do {
+          task.dirty = false;
+          const startedAt = performance.now();
+          try {
+            const next = await rpc("admin_dashboard_get_state", { p_admin_token: admin.token });
+            if (!current()) return;
+            state = next;
+            stateRetryMs = STATE_REFRESH_MS;
+            stateNextPollAt = Date.now() + STATE_REFRESH_MS;
+            lastRefreshDuration = Math.round(performance.now() - startedAt);
+            renderAll();
+            $("connection-label").textContent = "Live · " + lastRefreshDuration + " ms";
+            $("live-pill").classList.remove("offline");
+          } catch (error) {
+            if (!current()) return;
+            stateNextPollAt = Date.now() + stateRetryMs;
+            stateRetryMs = Math.min(STATE_MAX_RETRY_MS, stateRetryMs * 2);
+            if (/invalid administrator credentials/i.test(error?.message || "")) {
+              showNotStaff(admin?.username || "");
+              return;
+            }
+            $("connection-label").textContent = "Connection error";
+            $("live-pill").classList.add("offline");
+            if (!periodic) toast(error.message || "Could not refresh Control.", true);
+          }
+        } while (task.dirty && current() && navigator.onLine !== false);
+      })().finally(() => {
+        if (stateRefreshTask === task) {
+          stateRefreshTask = null;
+          if (current()) setBusy(false);
+        }
+      });
+      return task.promise;
     }
     async function restoreSession() {
       if (!sb) {
@@ -1023,9 +1073,15 @@
       clearInterval(autoRefreshTimer);
       if (!autoRefreshEnabled) return;
       autoRefreshTimer = setInterval(() => {
-        if (!document.hidden && admin?.token && dashboardOpen) refreshState(true);
+        if (admin?.token && dashboardOpen) refreshState(true, { periodic: true });
       }, 30000);
     }
+    function catchUpDashboard() {
+      if (admin?.token && dashboardOpen) void refreshState(true, { periodic: true });
+    }
+    window.addEventListener("online", catchUpDashboard);
+    window.addEventListener("pageshow", catchUpDashboard);
+    document.addEventListener("visibilitychange", catchUpDashboard);
     function showView(view) {
       if (["broadcast", "games-page", "deploys", "devtools"].includes(view) && !admin?.is_owner) return;
       activeView = view;
@@ -1166,7 +1222,7 @@
         ["State generated", fmtDate(state.generated_at)],
         ["Round trip", lastRefreshDuration + " ms"],
         ["Dashboard staff seen in 5m", String(stats.active_dashboard_sessions ?? 0)],
-        ["Auto refresh", autoRefreshEnabled ? "Every 30 seconds" : "Paused"]
+        ["Auto refresh", autoRefreshEnabled ? "Every 2 minutes" : "Paused"]
       ].map(([label, value]) => `<div class="diagnostic"><span>${label}</span><strong>${esc(value)}</strong></div>`).join("");
     }
     function renderControls() {

@@ -888,6 +888,13 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     var lastRecordedVisitorId = "";
     var lastRecordedDay = "";
     var recordingOpen = null;
+    var openNextAttemptAt = 0;
+    var openRetryMs = 60000;
+    var USAGE_REFRESH_MS = 300000;
+    var USAGE_MAX_RETRY_MS = 900000;
+    var usageRefreshTask = null;
+    var usageNextPollAt = 0;
+    var usageRetryMs = 60000;
     var liveCount = 0;
     var uniqueToday = null;
     var uniqueMonth = null;
@@ -1611,27 +1618,58 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     }
     function recordOpen(){
       if (recordingOpen) return recordingOpen;
+      if (navigator.onLine === false || Date.now() < openNextAttemptAt) return Promise.resolve();
       var id = getVisitorId();
       if (!id) return refreshUsage();
       recordingOpen = rpc("games_record_device_open", { p_visitor_id: id }).then(function(data){
-        if (data && data.ok !== false) {
+        if (!data || data.ok === false) throw new Error("Games visit unavailable");
+        openNextAttemptAt = 0; openRetryMs = 60000;
+        if (data) {
           lastRecordedVisitorId = id;
           lastRecordedDay = String(data.usage_day || "");
           applyUsage(data);
+          usageRetryMs = 60000;
+          usageNextPollAt = Date.now() + USAGE_REFRESH_MS;
         }
-      }).catch(function(){}).then(function(){ recordingOpen = null; });
+      }).catch(function(){
+        openNextAttemptAt = Date.now() + openRetryMs;
+        openRetryMs = Math.min(USAGE_MAX_RETRY_MS, openRetryMs * 2);
+        usageNextPollAt = Math.max(usageNextPollAt, openNextAttemptAt);
+      }).then(function(){ recordingOpen = null; });
       return recordingOpen;
     }
-    function refreshUsage(){
-      return rpc("games_get_usage").then(function(data){
-        if (!data) return;
-        applyUsage(data);
-        var id = getVisitorId();
-        if (id && data.usage_day && (lastRecordedVisitorId !== id || lastRecordedDay !== String(data.usage_day))) {
-          return recordOpen();
-        }
-      }).catch(function(){});
+    function refreshUsage(options){
+      var periodic = options && options.periodic;
+      if (navigator.onLine === false || (periodic && (document.hidden || Date.now() < usageNextPollAt))) return Promise.resolve();
+      if (recordingOpen) return recordingOpen.then(function(){ return refreshUsage(options); });
+      if (usageRefreshTask) {
+        if (!periodic) usageRefreshTask.dirty = true;
+        return usageRefreshTask.promise;
+      }
+      var task = { dirty: false, promise: null };
+      usageRefreshTask = task;
+      task.promise = (async function(){
+        do {
+          task.dirty = false;
+          try {
+            var data = await rpc("games_get_usage");
+            if (!data) throw new Error("Games usage unavailable");
+            applyUsage(data);
+            usageRetryMs = 60000;
+            usageNextPollAt = Date.now() + USAGE_REFRESH_MS;
+            var id = getVisitorId();
+            if (id && data.usage_day && (lastRecordedVisitorId !== id || lastRecordedDay !== String(data.usage_day))) {
+              await recordOpen();
+            }
+          } catch (error) {
+            usageNextPollAt = Date.now() + usageRetryMs;
+            usageRetryMs = Math.min(USAGE_MAX_RETRY_MS, usageRetryMs * 2);
+          }
+        } while (task.dirty && navigator.onLine !== false);
+      })().finally(function(){ if (usageRefreshTask === task) usageRefreshTask = null; });
+      return task.promise;
     }
+    function pollUsage(){ return refreshUsage({ periodic: true }); }
     function recordLaunch(key, name){
       // Opening the game stays immediate; only analytics waits for identity.
       resolveDeviceId().then(function(){ recordResolvedLaunch(key, name); });
@@ -1733,11 +1771,13 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       });
       window.addEventListener("pagehide", stopPresence);
       window.addEventListener("pageshow", function(){
-        refreshUsage();
+        pollUsage();
         if (presenceChannel) presenceChannel.track({ at: new Date().toISOString() }).catch(function(){});
         else startPresence();
       });
-      setInterval(refreshUsage, 60000);
+      document.addEventListener("visibilitychange", pollUsage);
+      window.addEventListener("online", pollUsage);
+      setInterval(pollUsage, 60000);
     }
 
     function startApp(){
@@ -1855,7 +1895,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
   var message = document.getElementById("games-announcement-text");
   var links = document.getElementById("games-links");
   var grid = document.getElementById("games-link-grid");
-  var currentAnnouncement = "", lastAttempt = 0, inFlight = false, signature = null;
+  var currentAnnouncement = "", nextAttemptAt = 0, retryMs = 120000, inFlight = false, signature = null;
   var dismissKey = "liminalGames.dismissedAnnouncement.v1";
   function safeLink(value){
     try {
@@ -1899,8 +1939,8 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     banner.hidden = true; panel.hidden = links.hidden;
   });
   async function refreshGamesContent(){
-    if (inFlight || document.hidden || Date.now()-lastAttempt < 60000) return;
-    inFlight = true; lastAttempt = Date.now();
+    if (inFlight || document.hidden || window.navigator?.onLine === false || Date.now() < nextAttemptAt) return;
+    inFlight = true;
     var controller = new AbortController();
     var timer = setTimeout(function(){ controller.abort(); },8000);
     try {
@@ -1911,11 +1951,18 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       if (!res.ok) throw new Error("Games updates unavailable");
       var rows = await res.json();
       paintGamesContent(rows.length ? JSON.parse(rows[0].value) : {announcement:"",links:[]});
-    } catch (e) { /* Keep the catalog usable and retain the last successful content. */ }
+      retryMs = 120000; nextAttemptAt = Date.now() + 120000;
+    } catch (e) {
+      nextAttemptAt = Date.now() + retryMs;
+      retryMs = Math.min(900000,retryMs*2);
+      /* Keep the catalog usable and retain the last successful content. */
+    }
     finally { clearTimeout(timer); inFlight = false; }
   }
   refreshGamesContent();
   window.addEventListener("focus",refreshGamesContent);
+  window.addEventListener("online",refreshGamesContent);
+  window.addEventListener("pageshow",refreshGamesContent);
   document.addEventListener("visibilitychange",refreshGamesContent);
   setInterval(refreshGamesContent,120000);
 })();
