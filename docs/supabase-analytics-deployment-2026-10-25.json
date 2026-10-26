@@ -1,0 +1,115 @@
+{
+  "project_ref": "trsirhyucncmyyfyiuje",
+  "project_name": "Liminal",
+  "migration": {
+    "name": "optimize_chat_analytics_summary",
+    "version": "20261026045434"
+  },
+  "source_migration_sha256": "604d644faa81cfaf06c8c45929615d9f5bf6fc32c3c6dc497f007780bc7b36d4",
+  "applied_from_commit": "414b37c66e41186652f7aa8a34e1f6022e580596",
+  "metadata_captured_at": "2026-10-26T04:55:15.281535+00:00",
+  "verified_at": "2026-10-26T04:57:43Z",
+  "full_summary_equal_in_one_statement": true,
+  "summary_fields": 31,
+  "function_security_properties_unchanged": true,
+  "public_and_private_wrapper_hashes_unchanged": true,
+  "new_definition_md5": "f6e179d1284eef3db13b8fcd4e670498",
+  "index": {
+    "bytes": 458752,
+    "predicate": "((NOT owner_preview) AND (NOT COALESCE(deleted, false)) AND (lower(sender) <> ALL (ARRAY['luna'::text, 'noelleai'::text])) AND (COALESCE(type, ''::text) <> 'system'::text))",
+    "indisready": true,
+    "indisvalid": true
+  },
+  "access_checks": [
+    {
+      "case": "staff",
+      "fields": 31,
+      "allowed": true,
+      "sqlstate": null
+    },
+    {
+      "case": "staff_direct_private",
+      "allowed": false,
+      "sqlstate": "42501"
+    },
+    {
+      "case": "member",
+      "fields": null,
+      "allowed": false,
+      "sqlstate": "P0001"
+    },
+    {
+      "case": "member_direct_private",
+      "allowed": false,
+      "sqlstate": "42501"
+    },
+    {
+      "case": "banned",
+      "fields": null,
+      "allowed": false,
+      "sqlstate": "P0001"
+    },
+    {
+      "case": "banned_direct_private",
+      "allowed": false,
+      "sqlstate": "42501"
+    },
+    {
+      "case": "anon",
+      "allowed": false,
+      "sqlstate": "42501"
+    }
+  ],
+  "security_advisors": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 20
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 5
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 69
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1
+    }
+  ],
+  "performance_advisors": [
+    {
+      "name": "unindexed_foreign_keys",
+      "level": "INFO",
+      "count": 6
+    },
+    {
+      "name": "unused_index",
+      "level": "INFO",
+      "count": 45
+    }
+  ],
+  "live_measurement": {
+    "summary_execution_ms": 157.285,
+    "summary_shared_hits": 18615,
+    "summary_shared_reads": 0,
+    "visible_count_execution_ms": 31.414,
+    "visible_count_shared_hits": 2231,
+    "visible_count_scan": "Index Only Scan",
+    "visible_count_heap_fetches": 7296
+  },
+  "notes": [
+    "One post-deployment observation, not a sustained benchmark or billing saving forecast.",
+    "Entire 31-field summary compared against reviewed previous SELECT inside one SQL statement with the same now() and MVCC snapshot.",
+    "No user identifiers or message contents exported; live role checks selected existing identities inside Postgres.",
+    "The index-only scan still performs heap visibility checks on recently modified production pages.",
+    "Zero diagnostic log scans; frontend delivery was not checked during this backend rollout."
+  ],
+  "source_migration_at_preparation": "Backend/migrations/20261026043647_optimize_chat_analytics_summary.sql",
+  "repository_migration": "Backend/migrations/20261026045434_optimize_chat_analytics_summary.sql"
+}

@@ -5,7 +5,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 
 const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
-const migration = '20261026043647_optimize_chat_analytics_summary.sql';
+const migration = '20261026045434_optimize_chat_analytics_summary.sql';
 
 test('analytics preserves every field and permission while counting visible history from a compact index', async t => {
   const db = new PGlite({ extensions: { pgcrypto } });
