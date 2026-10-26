@@ -1,7 +1,9 @@
 {
   "recordedAtUtc": "2026-10-26T04:43:31.277906+00:00",
-  "status": "local-only; migration not applied to the hosted project",
-  "migration": "Backend/migrations/20261026043647_optimize_chat_analytics_summary.sql",
+  "status": "synthetic benchmark recorded before hosted deployment; see the production deployment record",
+  "migration": "Backend/migrations/20261026045434_optimize_chat_analytics_summary.sql",
+  "sourceMigrationAtBenchmark": "20261026043647_optimize_chat_analytics_summary.sql",
+  "productionDeploymentRecord": "supabase-analytics-deployment-2026-10-25.json",
   "verificationCommand": "node --experimental-strip-types --test scripts/chat-analytics-performance.test.mjs",
   "databaseRuntime": "@electric-sql/pglite 0.5.8",
   "fixture": {
@@ -47,6 +49,6 @@
     "New or frequently updated production pages can require heap visibility checks until vacuum.",
     "The added index incurs bounded storage and write maintenance; local size is not a production size guarantee.",
     "This reduces analytics SQL work; it does not directly reduce the Log Query GB billing meter.",
-    "Production after timings and billing meters require a later deployment and comparable measurement."
+    "The separate deployment record contains live verification; sustained billing savings still require comparable measurement."
   ]
 }

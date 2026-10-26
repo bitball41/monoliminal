@@ -71,8 +71,9 @@ The current follow-up changes these refresh loops:
   in the local before/after tests. The new index is about 450 KB in the synthetic
   fixture. The [saved synthetic benchmark](chat-analytics-performance-2026-10-25.json)
   records 154 → 103 ms median warm execution and 2,574 → 56 shared-buffer hits
-  for the visible count. Production still needs its own post-migration plan
-  and timing check; its visibility map and workload may differ.
+  for the visible count. The [backend rollout record](supabase-analytics-deployment-2026-10-25.json)
+  contains the subsequent live plan and access checks; production's visibility
+  map and workload differ from the fixture.
 
 Those intervals mean passive Games statistics can be five minutes old and
 passive Admin state can be two minutes old. These changes reduce API requests,
@@ -149,15 +150,24 @@ connection; do not assume that connection is repaired. Run one credentialed
 dry run and verify delivered bytes before calling publication successful.
 Backend SQL migrations are a separate step from HTML publication.
 
-For this change, apply
-`Backend/migrations/20261026043647_optimize_chat_analytics_summary.sql`
-through the existing migration process, then verify a staff analytics request,
-the security/performance advisors, and its query plan. Its two-second lock
-timeout fails rather than waiting indefinitely for an index-build lock; apply
-at a quiet time. The migration adds one index and replaces one private function;
-it preserves the existing grants and does not delete data. Publish the Admin
-and Games HTML separately and verify their delivered hashes. Until those steps
-complete, the local test results are not a production rollout or billing result.
+The analytics backend was applied to Liminal on October 25 at 23:54 CDT
+(October 26 04:54 UTC), recorded by Supabase as
+`20261026045434_optimize_chat_analytics_summary`. The repository migration was
+renamed from its preparation timestamp `20261026043647` to that applied version;
+the SQL bytes are unchanged. Its source SHA-256 is recorded in the
+[deployment evidence](supabase-analytics-deployment-2026-10-25.json).
+
+Live verification confirms all 31 summary fields match the previous SELECT
+within one statement/snapshot, function security properties and wrapper hashes
+are preserved, staff access works, and member/banned/anonymous access is denied.
+The index is valid and ready (458,752 bytes). One post-deployment summary call
+took 157 ms; the visible count used the index-only plan in 31 ms, with 7,296 heap
+visibility checks on recently modified pages. These are single observations,
+not sustained billing savings. Advisor warning groups/counts are unchanged.
+
+The two-second index lock timeout did not trigger. No records, grants, or
+rollback artifacts were removed. Admin/Games HTML delivery remains a separate
+publication check and was not inspected during this backend rollout.
 
 ## Verification for this PR
 
