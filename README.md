@@ -27,6 +27,9 @@ All seven existing app files were moved into these folders without changing thei
 - `docs/`: setup and development notes.
 - `.github/workflows/`: separate deployment Actions for each artifact, shared checks, and manual rollback.
 
+For quota controls, current measurements, and low-cost diagnostics, see
+[Supabase usage](docs/supabase-usage.md).
+
 ## Working on an app
 
 1. Edit its canonical file.

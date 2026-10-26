@@ -1,0 +1,490 @@
+{
+  "tables": [
+    {
+      "relname": "messages",
+      "idx_scan": 165444,
+      "seq_scan": 1102,
+      "n_tup_del": 0,
+      "n_tup_ins": 64353,
+      "n_tup_upd": 756,
+      "n_live_tup": 64321,
+      "schemaname": "public",
+      "total_bytes": 38985728,
+      "seq_tup_read": 58860975
+    },
+    {
+      "relname": "chat_message_facts",
+      "idx_scan": 23612,
+      "seq_scan": 328,
+      "n_tup_del": 0,
+      "n_tup_ins": 74067,
+      "n_tup_upd": 0,
+      "n_live_tup": 74053,
+      "schemaname": "private",
+      "total_bytes": 29474816,
+      "seq_tup_read": 21410886
+    },
+    {
+      "relname": "dm_messages",
+      "idx_scan": 121912,
+      "seq_scan": 59,
+      "n_tup_del": 0,
+      "n_tup_ins": 9734,
+      "n_tup_upd": 1701,
+      "n_live_tup": 9733,
+      "schemaname": "public",
+      "total_bytes": 10862592,
+      "seq_tup_read": 465027
+    },
+    {
+      "relname": "chat_admin_audit",
+      "idx_scan": 84,
+      "seq_scan": 51,
+      "n_tup_del": 0,
+      "n_tup_ins": 4136,
+      "n_tup_upd": 0,
+      "n_live_tup": 4134,
+      "schemaname": "private",
+      "total_bytes": 1687552,
+      "seq_tup_read": 184573
+    },
+    {
+      "relname": "games_counted_cooldown",
+      "idx_scan": 581,
+      "seq_scan": 2,
+      "n_tup_del": 0,
+      "n_tup_ins": 4222,
+      "n_tup_upd": 142,
+      "n_live_tup": 4219,
+      "schemaname": "private",
+      "total_bytes": 1171456,
+      "seq_tup_read": 4109
+    },
+    {
+      "relname": "games_launch_days",
+      "idx_scan": 12146,
+      "seq_scan": 2,
+      "n_tup_del": 0,
+      "n_tup_ins": 3411,
+      "n_tup_upd": 472,
+      "n_live_tup": 3408,
+      "schemaname": "private",
+      "total_bytes": 598016,
+      "seq_tup_read": 0
+    },
+    {
+      "relname": "games_visitor_days",
+      "idx_scan": 1,
+      "seq_scan": 2,
+      "n_tup_del": 0,
+      "n_tup_ins": 1814,
+      "n_tup_upd": 0,
+      "n_live_tup": 1814,
+      "schemaname": "private",
+      "total_bytes": 516096,
+      "seq_tup_read": 0
+    },
+    {
+      "relname": "games_device_days",
+      "idx_scan": 4903,
+      "seq_scan": 3,
+      "n_tup_del": 0,
+      "n_tup_ins": 1059,
+      "n_tup_upd": 0,
+      "n_live_tup": 1058,
+      "schemaname": "private",
+      "total_bytes": 335872,
+      "seq_tup_read": 975
+    },
+    {
+      "relname": "user_fav_gifs",
+      "idx_scan": 737,
+      "seq_scan": 4,
+      "n_tup_del": 3,
+      "n_tup_ins": 47,
+      "n_tup_upd": 208,
+      "n_live_tup": 44,
+      "schemaname": "public",
+      "total_bytes": 335872,
+      "seq_tup_read": 82
+    },
+    {
+      "relname": "games_visitor_months",
+      "idx_scan": 1,
+      "seq_scan": 2,
+      "n_tup_del": 0,
+      "n_tup_ins": 1078,
+      "n_tup_upd": 0,
+      "n_live_tup": 1078,
+      "schemaname": "private",
+      "total_bytes": 327680,
+      "seq_tup_read": 0
+    },
+    {
+      "relname": "public_stickers",
+      "idx_scan": 653,
+      "seq_scan": 1852,
+      "n_tup_del": 50,
+      "n_tup_ins": 453,
+      "n_tup_upd": 10,
+      "n_live_tup": 399,
+      "schemaname": "public",
+      "total_bytes": 262144,
+      "seq_tup_read": 657862
+    },
+    {
+      "relname": "games_launch_uniques",
+      "idx_scan": 265,
+      "seq_scan": 2,
+      "n_tup_del": 394,
+      "n_tup_ins": 582,
+      "n_tup_upd": 0,
+      "n_live_tup": 185,
+      "schemaname": "private",
+      "total_bytes": 172032,
+      "seq_tup_read": 394
+    },
+    {
+      "relname": "chat_activity_days",
+      "idx_scan": 12413,
+      "seq_scan": 221,
+      "n_tup_del": 0,
+      "n_tup_ins": 244,
+      "n_tup_upd": 6915,
+      "n_live_tup": 244,
+      "schemaname": "private",
+      "total_bytes": 172032,
+      "seq_tup_read": 41244
+    },
+    {
+      "relname": "dms",
+      "idx_scan": 55791,
+      "seq_scan": 14482,
+      "n_tup_del": 0,
+      "n_tup_ins": 179,
+      "n_tup_upd": 5,
+      "n_live_tup": 179,
+      "schemaname": "public",
+      "total_bytes": 163840,
+      "seq_tup_read": 2478199
+    },
+    {
+      "relname": "rate_events",
+      "idx_scan": 67,
+      "seq_scan": 3,
+      "n_tup_del": 0,
+      "n_tup_ins": 357,
+      "n_tup_upd": 0,
+      "n_live_tup": 357,
+      "schemaname": "public",
+      "total_bytes": 163840,
+      "seq_tup_read": 324
+    },
+    {
+      "relname": "dm_reads",
+      "idx_scan": 21835,
+      "seq_scan": 8,
+      "n_tup_del": 25,
+      "n_tup_ins": 272,
+      "n_tup_upd": 974,
+      "n_live_tup": 247,
+      "schemaname": "public",
+      "total_bytes": 163840,
+      "seq_tup_read": 729
+    },
+    {
+      "relname": "games_rate",
+      "idx_scan": 635,
+      "seq_scan": 6,
+      "n_tup_del": 366,
+      "n_tup_ins": 392,
+      "n_tup_upd": 238,
+      "n_live_tup": 21,
+      "schemaname": "private",
+      "total_bytes": 147456,
+      "seq_tup_read": 478
+    },
+    {
+      "relname": "profiles",
+      "idx_scan": 5119161,
+      "seq_scan": 2058,
+      "n_tup_del": 13,
+      "n_tup_ins": 107,
+      "n_tup_upd": 576,
+      "n_live_tup": 87,
+      "schemaname": "public",
+      "total_bytes": 147456,
+      "seq_tup_read": 166854
+    },
+    {
+      "relname": "games_device_months",
+      "idx_scan": 1418,
+      "seq_scan": 3485,
+      "n_tup_del": 0,
+      "n_tup_ins": 334,
+      "n_tup_upd": 0,
+      "n_live_tup": 333,
+      "schemaname": "private",
+      "total_bytes": 147456,
+      "seq_tup_read": 1133604
+    },
+    {
+      "relname": "poll_votes",
+      "idx_scan": 3982,
+      "seq_scan": 7,
+      "n_tup_del": 93,
+      "n_tup_ins": 397,
+      "n_tup_upd": 0,
+      "n_live_tup": 304,
+      "schemaname": "public",
+      "total_bytes": 147456,
+      "seq_tup_read": 996
+    }
+  ],
+  "storage": [
+    {
+      "bytes": 237984819,
+      "objects": 4354,
+      "bucket_id": "liminal-media",
+      "zero_cache": 0
+    },
+    {
+      "bytes": 170616514,
+      "objects": 618,
+      "bucket_id": "liminal-pfp",
+      "zero_cache": 0
+    },
+    {
+      "bytes": 104308960,
+      "objects": 218,
+      "bucket_id": "liminal-apps",
+      "zero_cache": 217
+    },
+    {
+      "bytes": 19295744,
+      "objects": 450,
+      "bucket_id": "liminal-stickers",
+      "zero_cache": 0
+    },
+    {
+      "bytes": 9000590,
+      "objects": 8,
+      "bucket_id": "liminal-games",
+      "zero_cache": 8
+    },
+    {
+      "bytes": 818154,
+      "objects": 22,
+      "bucket_id": "liminal-group-media",
+      "zero_cache": 15
+    }
+  ],
+  "captured_at": "2026-10-26T04:36:29.071345+00:00",
+  "database_bytes": 120157875,
+  "latest_migrations": [
+    {
+      "name": "games_page_content",
+      "version": "20261026002010"
+    },
+    {
+      "name": "chat_name_styles",
+      "version": "20261025231128"
+    },
+    {
+      "name": "optimize_chat_usage",
+      "version": "20261025170945"
+    },
+    {
+      "name": "reduce_chat_query_work",
+      "version": "20261022164111"
+    },
+    {
+      "name": "index_owner_preview_message_lookups",
+      "version": "20261022163226"
+    }
+  ],
+  "database_stats_reset": "2026-10-02T18:01:15.201525+00:00",
+  "statement_stats_reset": "2026-10-20T22:39:39.662435+00:00",
+  "statement_groups": [
+    {
+      "routine": "chat_record_activity",
+      "calls": 8054,
+      "total_exec_ms": "605526.8",
+      "mean_exec_ms": "75.18",
+      "rows": 8054
+    },
+    {
+      "routine": "chat_list_conversations",
+      "calls": 6820,
+      "total_exec_ms": "605062.2",
+      "mean_exec_ms": "88.72",
+      "rows": 6820
+    },
+    {
+      "routine": "games_get_usage",
+      "calls": 3943,
+      "total_exec_ms": "398998.2",
+      "mean_exec_ms": "101.19",
+      "rows": 3943
+    },
+    {
+      "routine": "chat_get_analytics",
+      "calls": 141,
+      "total_exec_ms": "297192.8",
+      "mean_exec_ms": "2107.75",
+      "rows": 141
+    },
+    {
+      "routine": "chat_list_group_invites",
+      "calls": 6802,
+      "total_exec_ms": "220193.6",
+      "mean_exec_ms": "32.37",
+      "rows": 6802
+    },
+    {
+      "routine": "chat_list_mentions",
+      "calls": 517,
+      "total_exec_ms": "218416.8",
+      "mean_exec_ms": "422.47",
+      "rows": 517
+    },
+    {
+      "routine": "admin_dashboard_get_state",
+      "calls": 47,
+      "total_exec_ms": "138697.1",
+      "mean_exec_ms": "2951.00",
+      "rows": 47
+    },
+    {
+      "routine": "chat_unread_counts",
+      "calls": 276,
+      "total_exec_ms": "127049.3",
+      "mean_exec_ms": "460.32",
+      "rows": 276
+    },
+    {
+      "routine": "chat_private_voice_room",
+      "calls": 9819,
+      "total_exec_ms": "110594.5",
+      "mean_exec_ms": "11.26",
+      "rows": 9819
+    },
+    {
+      "routine": "chat_mark_dm_read",
+      "calls": 927,
+      "total_exec_ms": "97738.9",
+      "mean_exec_ms": "105.44",
+      "rows": 927
+    },
+    {
+      "routine": "chat_list_deleted_messages",
+      "calls": 47,
+      "total_exec_ms": "69778.2",
+      "mean_exec_ms": "1484.64",
+      "rows": 47
+    },
+    {
+      "routine": "games_record_launch",
+      "calls": 324,
+      "total_exec_ms": "60142.4",
+      "mean_exec_ms": "185.62",
+      "rows": 324
+    },
+    {
+      "routine": "games_record_device_open",
+      "calls": 294,
+      "total_exec_ms": "49574.1",
+      "mean_exec_ms": "168.62",
+      "rows": 294
+    },
+    {
+      "routine": "chat_check_device_ban",
+      "calls": 576,
+      "total_exec_ms": "28710.1",
+      "mean_exec_ms": "49.84",
+      "rows": 576
+    },
+    {
+      "routine": "chat_register_device",
+      "calls": 505,
+      "total_exec_ms": "27796.0",
+      "mean_exec_ms": "55.04",
+      "rows": 505
+    },
+    {
+      "routine": "chat_get_polls",
+      "calls": 674,
+      "total_exec_ms": "26752.2",
+      "mean_exec_ms": "39.69",
+      "rows": 674
+    },
+    {
+      "routine": "chat_get_my_profile",
+      "calls": 516,
+      "total_exec_ms": "24545.9",
+      "mean_exec_ms": "47.57",
+      "rows": 516
+    },
+    {
+      "routine": "chat_toggle_reaction",
+      "calls": 63,
+      "total_exec_ms": "18211.8",
+      "mean_exec_ms": "289.08",
+      "rows": 63
+    },
+    {
+      "routine": "chat_get_moderation_state",
+      "calls": 149,
+      "total_exec_ms": "13222.5",
+      "mean_exec_ms": "88.74",
+      "rows": 149
+    },
+    {
+      "routine": "chat_subroles",
+      "calls": 1625,
+      "total_exec_ms": "12766.4",
+      "mean_exec_ms": "7.86",
+      "rows": 1656
+    }
+  ],
+  "statement_groups_note": "Cumulative normalized SELECT/WITH statements grouped by the first matching chat_/games_/admin_dashboard_ identifier. Counts can include diagnostics and are not HTTP request counts or daily rates.",
+  "screenshot": {
+    "source": "User-supplied current-billing-cycle screenshot; capture time unavailable",
+    "egress_gb": 0.97,
+    "egress_allowance_gb": 5,
+    "database_mb": 135,
+    "database_allowance_mb": 500,
+    "monthly_active_users": 46,
+    "monthly_active_user_allowance": 50000,
+    "file_storage_gb": 0.56,
+    "file_storage_allowance_gb": 1,
+    "log_ingestion_gb": 0.55,
+    "log_ingestion_allowance_gb": 1,
+    "log_query_gb": 87.7,
+    "log_query_allowance_gb": 100
+  },
+  "storage_app_breakdown": [
+    {
+      "object_group": "current_or_other",
+      "objects": 10,
+      "bytes": 3079606
+    },
+    {
+      "object_group": "deployment_history",
+      "objects": 208,
+      "bytes": 101229354
+    }
+  ],
+  "postgres_log_settings": {
+    "log_statement": "ddl",
+    "log_min_duration_statement": "-1",
+    "log_connections": "off",
+    "log_disconnections": "off",
+    "log_min_messages": "warning",
+    "log_error_verbosity": "default",
+    "pgaudit.log": "none"
+  },
+  "project_ref": "trsirhyucncmyyfyiuje",
+  "repository_base": "71f6a0e81c184deb4492147efd9b3ed231694e40",
+  "log_queries_run_for_this_audit": 0
+}

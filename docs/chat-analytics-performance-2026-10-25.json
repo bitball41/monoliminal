@@ -1,0 +1,52 @@
+{
+  "recordedAtUtc": "2026-10-26T04:43:31.277906+00:00",
+  "status": "local-only; migration not applied to the hosted project",
+  "migration": "Backend/migrations/20261026043647_optimize_chat_analytics_summary.sql",
+  "verificationCommand": "node --experimental-strip-types --test scripts/chat-analytics-performance.test.mjs",
+  "databaseRuntime": "@electric-sql/pglite 0.5.8",
+  "fixture": {
+    "identities": 46,
+    "messageFacts": 74059,
+    "publicMessages": 64321,
+    "data": "synthetic; no production messages, identities or credentials",
+    "ranges": "50-day message history; rolling-window and Chicago-midnight boundaries; future, excluded and removed-channel facts",
+    "visibilityMap": "VACUUM ANALYZE before comparison; historical pages all visible"
+  },
+  "measurement": {
+    "warmRunsPerVersion": 3,
+    "functionMedianMs": {
+      "before": 154,
+      "after": 103
+    },
+    "visibleCountExplainSharedHits": {
+      "before": 2574,
+      "after": 56
+    },
+    "visibleCountAfterScan": "Index Only Scan",
+    "visibleCountAfterHeapFetches": 0,
+    "indexBytes": 450560
+  },
+  "verification": {
+    "entireSummaryJsonEqual": true,
+    "functionAclAndSecurityPropertiesUnchanged": true,
+    "ownerAndAdminAllowed": true,
+    "membersBannedAndAnonymousDenied": true,
+    "privateFunctionDeniedToBrowserRoles": true,
+    "migrationReplayPassed": true
+  },
+  "productionBeforeOnly": {
+    "method": "one read-only EXPLAIN ANALYZE of the current summary SELECT; no diagnostic-log scan",
+    "executionMs": 3566.249,
+    "sharedHits": 85653,
+    "visibleMessageCountMs": 2082.669,
+    "visibleMessageIndexScanSharedHits": 37932
+  },
+  "limits": [
+    "Local timing is diagnostic, not a timing assertion or a production saving forecast.",
+    "The structural test asserts index-only use, zero historical heap fetches and fewer buffer hits rather than wall-clock speed.",
+    "New or frequently updated production pages can require heap visibility checks until vacuum.",
+    "The added index incurs bounded storage and write maintenance; local size is not a production size guarantee.",
+    "This reduces analytics SQL work; it does not directly reduce the Log Query GB billing meter.",
+    "Production after timings and billing meters require a later deployment and comparable measurement."
+  ]
+}
