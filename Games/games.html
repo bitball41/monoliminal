@@ -742,19 +742,30 @@
     letter-spacing:0;
   }
 
-  .games-updates{display:grid;gap:12px;margin:0 0 22px}
+  /* Compact updates sit with the launcher chrome, leaving room for games. */
+  .games-updates{display:grid;gap:10px;margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid var(--line-soft)}
   .games-updates[hidden],.games-announcement[hidden],.games-links[hidden]{display:none}
-  .games-announcement{position:relative;border:1px solid var(--accent-line);border-radius:14px;background:var(--accent-soft);padding:17px 52px 17px 18px}
-  .games-announcement h2,.games-links h2{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;color:var(--accent2)}
-  .games-announcement p{margin:0;font-size:.87rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
-  .games-dismiss{position:absolute;right:10px;top:10px;background:transparent;border:0;color:var(--muted);font:inherit;font-size:1.3rem;cursor:pointer;width:32px;height:32px;border-radius:8px}
+  .games-announcement{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-left:2px solid var(--accent2);border-radius:0 8px 8px 0;background:linear-gradient(90deg,rgba(124,134,255,.08),transparent)}
+  .games-announcement h2{display:flex;align-items:center;gap:7px;flex:0 0 auto;margin:2px 0 0;color:var(--accent2);font-size:.7rem;font-weight:700;line-height:1.6}
+  .games-announcement h2 svg{width:15px;height:15px;flex:none}
+  .games-announcement p{flex:1;min-width:0;margin:0;color:rgba(255,255,255,.84);font-size:.8rem;font-weight:500;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+  .games-dismiss{flex:none;display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--dim);font:inherit;font-size:1.1rem;cursor:pointer}
   .games-dismiss:hover{background:var(--accent-soft);color:var(--text)}
-  .games-link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:8px}
-  .games-quick-link{display:block;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none;color:var(--text);min-width:0;overflow-wrap:anywhere}
-  .games-quick-link:hover{border-color:var(--accent-line);background:var(--panel2)}
-  .games-quick-link strong{display:flex;justify-content:space-between;gap:8px;font-size:.8rem}
-  .games-quick-link span{display:block;color:var(--muted);font-size:.73rem;line-height:1.5;margin-top:5px}
+  .games-links{display:flex;align-items:flex-start;gap:10px;padding:0 2px}
+  .games-links>svg{flex:none;width:15px;height:15px;margin-top:9px;color:var(--dim)}
+  .games-link-grid{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+  .games-quick-link{display:inline-flex;align-items:center;max-width:100%;min-height:32px;padding:6px 10px;border:1px solid var(--line-soft);border-radius:7px;background:rgba(255,255,255,.025);text-decoration:none;color:var(--muted);overflow-wrap:anywhere;transition:color .15s var(--ease),background .15s var(--ease),border-color .15s var(--ease)}
+  .games-quick-link:hover{color:var(--text);border-color:var(--accent-line);background:var(--accent-soft)}
+  .games-quick-link strong{display:flex;align-items:center;gap:9px;min-width:0;font-size:.73rem;font-weight:600;line-height:1.5}
+  .games-quick-link b{flex:none;color:var(--dim);font-size:.7rem;font-weight:500}
+  .games-quick-link span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
   .games-dismiss:focus-visible,.games-quick-link:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
+  @media(max-width:540px){
+    .games-announcement{gap:9px;padding:10px}
+    .games-announcement h2 span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .games-announcement h2{margin-top:4px}
+    .games-links{gap:8px}
+  }
 </style>
 </head>
 <body>
@@ -784,12 +795,12 @@ Download the new launcher, replace this file, and open that instead. Saved favor
 
       <section class="games-updates" id="games-updates" hidden aria-label="Games news and links">
         <article class="games-announcement" id="games-announcement" hidden>
-          <h2>Announcement</h2>
+          <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 13-5v14L3 14zM16 9l5-2v10l-5-2M6 15l1 5h4l-2-4"/></svg><span>News</span></h2>
           <p id="games-announcement-text"></p>
           <button class="games-dismiss" id="games-dismiss" type="button" aria-label="Dismiss announcement">×</button>
         </article>
         <nav class="games-links" id="games-links" hidden aria-label="Quick links">
-          <h2>Quick links</h2>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m10 13 4-4m-6 6-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0" transform="translate(1 1)"/></svg>
           <div class="games-link-grid" id="games-link-grid"></div>
         </nav>
       </section>
@@ -1875,7 +1886,8 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       var arrow = document.createElement("b"); arrow.textContent = "↗"; arrow.setAttribute("aria-hidden","true");
       title.appendChild(arrow); a.appendChild(title);
       if (typeof item.description === "string" && item.description.trim()) {
-        var description = document.createElement("span"); description.textContent = item.description.slice(0,160); a.appendChild(description);
+        a.title = item.description.slice(0,160);
+        var description = document.createElement("span"); description.textContent = " — " + a.title; a.appendChild(description);
       }
       grid.appendChild(a);
     });
