@@ -397,6 +397,7 @@
         <button class="nav-btn active" data-view="overview" type="button"><svg class="icon"><use href="#i-overview"/></svg>Overview</button>
         <button class="nav-btn" data-view="controls" type="button"><svg class="icon"><use href="#i-controls"/></svg>App controls</button>
         <button class="nav-btn owner-only" data-view="broadcast" type="button"><svg class="icon"><use href="#i-broadcast"/></svg>Announcements</button>
+        <button class="nav-btn owner-only" data-view="games-page" type="button"><svg class="icon"><use href="#i-devtools"/></svg>Games page</button>
         <div class="nav-label">People</div>
         <button class="nav-btn" data-view="moderation" type="button"><svg class="icon"><use href="#i-moderation"/></svg>Moderation</button>
         <button class="nav-btn" data-view="content" type="button"><svg class="icon"><use href="#i-content"/></svg>Messages</button>
@@ -528,6 +529,25 @@
           <button class="primary" id="save-broadcast" type="button">Publish</button>
           <button class="ghost" id="clear-announcement" type="button">Clear announcement</button>
           <button class="ghost" id="clear-whats-new" type="button">Clear What's new</button>
+        </div>
+      </section>
+
+      <section data-page="games-page" hidden>
+        <div class="notice" style="margin-bottom:16px">Owner / PRESTON only. Changes appear for everyone on the Games page.</div>
+        <article class="card pad">
+          <div class="section-title"><div><h3>Games announcement</h3><p>Above search. Leave blank to remove the banner. Updated text reappears for people who dismissed it.</p></div></div>
+          <div class="field"><label for="games-page-announcement">Announcement</label><textarea id="games-page-announcement" maxlength="1000" placeholder="Updates, new games, or anything people need to know…"></textarea></div>
+          <div class="counter" id="games-page-count">0 / 1000</div>
+          <div class="banner-preview" id="games-page-preview" style="white-space:pre-wrap;overflow-wrap:anywhere">No games announcement is active.</div>
+        </article>
+        <article class="card pad" style="margin-top:16px">
+          <div class="section-title"><div><h3>Quick links</h3><p>Up to 12 links, displayed in this order. Use full http:// or https:// URLs.</p></div><button class="secondary" id="games-page-add-link" type="button">Add link</button></div>
+          <div id="games-page-link-editor"></div>
+        </article>
+        <div class="toolbar" style="margin-top:16px">
+          <button class="primary" id="games-page-publish" type="button">Publish Games updates</button>
+          <button class="ghost" id="games-page-clear" type="button">Clear banner</button>
+          <span class="muted" id="games-page-save-status" role="status"></span>
         </div>
       </section>
 
@@ -893,6 +913,8 @@
       dashboardOpen = false;
       admin = null;
       state = null;
+      gamesPageDraft = null; gamesPageDirty = false; gamesPageSaving = false;
+      $("games-page-save-status").textContent = "";
       qsa("[data-broadcast-dirty]").forEach((el) => { delete el.dataset.broadcastDirty; });
       writeAdminCache(null);
       showLogin();
@@ -910,7 +932,7 @@
       $("aside-user").textContent = "@" + admin.username;
       $("aside-role").textContent = admin.is_owner ? "Owner" : "Administrator";
       qsa(".owner-only").forEach((el) => { el.hidden = !admin.is_owner; });
-      if (!admin.is_owner && ["broadcast", "deploys", "devtools"].includes(activeView)) showView("overview");
+      if (!admin.is_owner && ["broadcast", "games-page", "deploys", "devtools"].includes(activeView)) showView("overview");
       await refreshState();
       startAutoRefresh();
     }
@@ -1005,12 +1027,13 @@
       }, 30000);
     }
     function showView(view) {
-      if (["broadcast", "deploys", "devtools"].includes(view) && !admin?.is_owner) return;
+      if (["broadcast", "games-page", "deploys", "devtools"].includes(view) && !admin?.is_owner) return;
       activeView = view;
       const copy = {
         overview: ["Overview", "Live health and community activity."],
         controls: ["App controls", "Availability, limits, and relays."],
         broadcast: ["Announcements", "Messages the whole community sees."],
+        "games-page": ["Games page", "Announcements and links above the game catalog."],
         moderation: ["Moderation", "Bans, timeouts, and account access."],
         content: ["Messages", "Recent public channel posts."],
         channels: ["Channels", "Where the room has been talking."],
@@ -1028,6 +1051,7 @@
       renderOverview();
       renderControls();
       renderBroadcast();
+      renderGamesPage();
       renderUsers();
       renderMessages();
       renderChannels();
@@ -1261,6 +1285,107 @@
       const entries = (state.audit || []).filter((entry) => !query || `${entry.actor_username} ${entry.action} ${entry.target || ""}`.toLowerCase().includes(query));
       $("audit-list").innerHTML = entries.map((entry) => `<div class="audit-item"><div class="audit-actor">@${esc(entry.actor_username)}</div><div class="audit-action">${esc(entry.action.replaceAll("_", " "))}${entry.target ? " · " + esc(entry.target) : ""}</div><div class="audit-time">${fmtDate(entry.created_at)}</div></div>`).join("") || `<div class="empty">No matching events.</div>`;
     }
+    let gamesPageDraft = null, gamesPageDirty = false, gamesPageSaving = false;
+    function parseGamesPageContent(raw) {
+      try {
+        const content = JSON.parse(raw || '{"announcement":"","links":[]}');
+        return { announcement: typeof content.announcement === "string" ? content.announcement : "", links: Array.isArray(content.links) ? content.links : [] };
+      } catch { return { announcement: "", links: [] }; }
+    }
+    function markGamesPageDirty() {
+      gamesPageDirty = true;
+      $("games-page-save-status").textContent = "Unpublished changes";
+    }
+    function updateGamesPagePreview() {
+      const text = $("games-page-announcement").value;
+      $("games-page-preview").textContent = text.trim() || "No games announcement is active.";
+      $("games-page-count").textContent = text.length + " / 1000";
+    }
+    function renderGamesPageLinks() {
+      $("games-page-link-editor").innerHTML = gamesPageDraft.links.map((link,index) => `
+        <fieldset class="card pad" data-games-link="${index}" style="margin-bottom:12px;min-width:0">
+          <legend>Link ${index+1}</legend>
+          <div class="inline-settings">
+            <div class="field"><label for="games-link-label-${index}">Label</label><input id="games-link-label-${index}" data-link-field="label" maxlength="60" value="${esc(link.label || "")}" placeholder="e.g. Community survey"></div>
+            <div class="field"><label for="games-link-url-${index}">URL</label><input id="games-link-url-${index}" data-link-field="url" type="url" maxlength="2000" value="${esc(link.url || "")}" placeholder="https://…"></div>
+          </div>
+          <div class="field"><label for="games-link-description-${index}">Description (optional)</label><input id="games-link-description-${index}" data-link-field="description" maxlength="160" value="${esc(link.description || "")}"></div>
+          <div class="toolbar">
+            <button class="ghost" type="button" data-link-action="up" ${index === 0 ? "disabled" : ""} aria-label="Move link ${index+1} up">Move up</button>
+            <button class="ghost" type="button" data-link-action="down" ${index === gamesPageDraft.links.length-1 ? "disabled" : ""} aria-label="Move link ${index+1} down">Move down</button>
+            <button class="ghost" type="button" data-link-action="remove" aria-label="Remove link ${index+1}">Remove</button>
+          </div>
+        </fieldset>`).join("") || '<div class="empty">No quick links yet. Add one above.</div>';
+      $("games-page-add-link").disabled = gamesPageDraft.links.length >= 12;
+    }
+    function renderGamesPage() {
+      if (gamesPageDirty || gamesPageSaving) return;
+      gamesPageDraft = parseGamesPageContent(state?.settings?.games_page_content);
+      $("games-page-announcement").value = gamesPageDraft.announcement;
+      updateGamesPagePreview(); renderGamesPageLinks();
+    }
+    $("games-page-announcement").addEventListener("input", () => {
+      gamesPageDraft.announcement = $("games-page-announcement").value;
+      markGamesPageDirty(); updateGamesPagePreview();
+    });
+    $("games-page-clear").addEventListener("click", () => {
+      $("games-page-announcement").value = ""; gamesPageDraft.announcement = "";
+      markGamesPageDirty(); updateGamesPagePreview();
+    });
+    $("games-page-add-link").addEventListener("click", () => {
+      if (!gamesPageDraft || gamesPageDraft.links.length >= 12) return;
+      gamesPageDraft.links.push({ label:"",url:"",description:"" });
+      markGamesPageDirty(); renderGamesPageLinks();
+      $("games-link-label-"+(gamesPageDraft.links.length-1)).focus();
+    });
+    $("games-page-link-editor").addEventListener("input", event => {
+      const field = event.target.dataset.linkField;
+      const row = event.target.closest("[data-games-link]");
+      if (!field || !row) return;
+      gamesPageDraft.links[Number(row.dataset.gamesLink)][field] = event.target.value;
+      markGamesPageDirty();
+    });
+    $("games-page-link-editor").addEventListener("click", event => {
+      const button = event.target.closest("[data-link-action]");
+      if (!button) return;
+      const index = Number(button.closest("[data-games-link]").dataset.gamesLink);
+      const action = button.dataset.linkAction;
+      if (action === "remove") gamesPageDraft.links.splice(index,1);
+      else {
+        const target = index + (action === "up" ? -1 : 1);
+        if (target < 0 || target >= gamesPageDraft.links.length) return;
+        [gamesPageDraft.links[index],gamesPageDraft.links[target]] = [gamesPageDraft.links[target],gamesPageDraft.links[index]];
+      }
+      markGamesPageDirty(); renderGamesPageLinks();
+    });
+    $("games-page-publish").addEventListener("click", async () => {
+      if (!admin?.is_owner || gamesPageSaving) return;
+      const snapshot = JSON.stringify(gamesPageDraft);
+      const content = JSON.parse(snapshot);
+      content.announcement = content.announcement.trim();
+      try {
+        content.links = content.links.map((link,index) => {
+          const label = link.label.trim(), raw = link.url.trim();
+          let url;
+          try { url = new URL(raw); } catch { throw new Error("Link "+(index+1)+" needs a full http:// or https:// URL."); }
+          if (!label || !/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("Link "+(index+1)+" needs a label and an http:// or https:// URL without credentials.");
+          return {label,url:url.href,description:link.description.trim()};
+        });
+        gamesPageSaving = true; $("games-page-publish").disabled = true;
+        const saved = await rpc("admin_dashboard_set_games_content",{p_admin_token:admin.token,p_content:content});
+        state.settings.games_page_content = JSON.stringify(saved);
+        if (JSON.stringify(gamesPageDraft) === snapshot) gamesPageDirty = false;
+        $("games-page-save-status").textContent = gamesPageDirty ? "Published. You have newer unpublished changes." : "Published to Games.";
+        toast("Games updates published.");
+      } catch (error) {
+        $("games-page-save-status").textContent = "Not published — your draft is kept.";
+        toast(error.message || "Could not publish Games updates.",true);
+      } finally {
+        gamesPageSaving = false; $("games-page-publish").disabled = false;
+        renderGamesPage();
+      }
+    });
+
     async function setSetting(key, value) {
       setBusy(true);
       try {
