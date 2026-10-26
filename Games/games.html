@@ -741,6 +741,20 @@
     text-transform:none;
     letter-spacing:0;
   }
+
+  .games-updates{display:grid;gap:12px;margin:0 0 22px}
+  .games-updates[hidden],.games-announcement[hidden],.games-links[hidden]{display:none}
+  .games-announcement{position:relative;border:1px solid var(--accent-line);border-radius:14px;background:var(--accent-soft);padding:17px 52px 17px 18px}
+  .games-announcement h2,.games-links h2{font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;color:var(--accent2)}
+  .games-announcement p{margin:0;font-size:.87rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+  .games-dismiss{position:absolute;right:10px;top:10px;background:transparent;border:0;color:var(--muted);font:inherit;font-size:1.3rem;cursor:pointer;width:32px;height:32px;border-radius:8px}
+  .games-dismiss:hover{background:var(--accent-soft);color:var(--text)}
+  .games-link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:8px}
+  .games-quick-link{display:block;padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none;color:var(--text);min-width:0;overflow-wrap:anywhere}
+  .games-quick-link:hover{border-color:var(--accent-line);background:var(--panel2)}
+  .games-quick-link strong{display:flex;justify-content:space-between;gap:8px;font-size:.8rem}
+  .games-quick-link span{display:block;color:var(--muted);font-size:.73rem;line-height:1.5;margin-top:5px}
+  .games-dismiss:focus-visible,.games-quick-link:focus-visible{outline:2px solid var(--accent2);outline-offset:3px}
 </style>
 </head>
 <body>
@@ -767,6 +781,18 @@ Download the new launcher, replace this file, and open that instead. Saved favor
           </p>
         </div>
       </header>
+
+      <section class="games-updates" id="games-updates" hidden aria-label="Games news and links">
+        <article class="games-announcement" id="games-announcement" hidden>
+          <h2>Announcement</h2>
+          <p id="games-announcement-text"></p>
+          <button class="games-dismiss" id="games-dismiss" type="button" aria-label="Dismiss announcement">×</button>
+        </article>
+        <nav class="games-links" id="games-links" hidden aria-label="Quick links">
+          <h2>Quick links</h2>
+          <div class="games-link-grid" id="games-link-grid"></div>
+        </nav>
+      </section>
 
       <section class="toolbar" aria-label="Search and filters">
         <div class="controls">
@@ -1715,6 +1741,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
         if (ignoreMutations) return;
         for (var i = 0; i < mutations.length; i++){
           var node = mutations[i].target;
+          if (document.getElementById("games-updates").contains(node)) continue;
           if (spotlight && (node === spotlight || spotlight.contains(node))) continue;
           if (usageEl && (node === usageEl || usageEl.contains(node))) continue;
           // runSearch toggles .hidden / counts inside the list — that is not new
@@ -1810,5 +1837,76 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     }
   })();
   </script>
+<script id="gamesPageContent">
+(function(){
+  var panel = document.getElementById("games-updates");
+  var banner = document.getElementById("games-announcement");
+  var message = document.getElementById("games-announcement-text");
+  var links = document.getElementById("games-links");
+  var grid = document.getElementById("games-link-grid");
+  var currentAnnouncement = "", lastAttempt = 0, inFlight = false, signature = null;
+  var dismissKey = "liminalGames.dismissedAnnouncement.v1";
+  function safeLink(value){
+    try {
+      var url = new URL(value);
+      return /^https?:$/.test(url.protocol) && !url.username && !url.password ? url.href : "";
+    } catch (e) { return ""; }
+  }
+  function paintGamesContent(content){
+    if (!content || typeof content !== "object" || Array.isArray(content)) return;
+    var next = JSON.stringify(content);
+    if (next === signature) return;
+    signature = next;
+    currentAnnouncement = typeof content.announcement === "string" ? content.announcement.slice(0,1000).trim() : "";
+    var dismissed = "";
+    try { dismissed = localStorage.getItem(dismissKey) || ""; } catch (e) {}
+    message.textContent = currentAnnouncement;
+    banner.hidden = !currentAnnouncement || dismissed === currentAnnouncement;
+    grid.replaceChildren();
+    (Array.isArray(content.links) ? content.links : []).slice(0,12).forEach(function(item){
+      if (!item || typeof item.label !== "string" || typeof item.url !== "string") return;
+      var href = safeLink(item.url);
+      if (!href || !item.label.trim()) return;
+      var a = document.createElement("a");
+      a.className = "games-quick-link";
+      a.href = href; a.target = "_blank"; a.rel = "noopener noreferrer";
+      var title = document.createElement("strong");
+      title.textContent = item.label.slice(0,60);
+      var arrow = document.createElement("b"); arrow.textContent = "↗"; arrow.setAttribute("aria-hidden","true");
+      title.appendChild(arrow); a.appendChild(title);
+      if (typeof item.description === "string" && item.description.trim()) {
+        var description = document.createElement("span"); description.textContent = item.description.slice(0,160); a.appendChild(description);
+      }
+      grid.appendChild(a);
+    });
+    links.hidden = !grid.childElementCount;
+    panel.hidden = banner.hidden && links.hidden;
+  }
+  document.getElementById("games-dismiss").addEventListener("click",function(){
+    try { localStorage.setItem(dismissKey,currentAnnouncement); } catch (e) {}
+    banner.hidden = true; panel.hidden = links.hidden;
+  });
+  async function refreshGamesContent(){
+    if (inFlight || document.hidden || Date.now()-lastAttempt < 60000) return;
+    inFlight = true; lastAttempt = Date.now();
+    var controller = new AbortController();
+    var timer = setTimeout(function(){ controller.abort(); },8000);
+    try {
+      var res = await fetch("https://trsirhyucncmyyfyiuje.supabase.co/rest/v1/app_settings?select=value&key=eq.games_page_content",{
+        signal:controller.signal, cache:"no-store",
+        headers:{apikey:"sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG"}
+      });
+      if (!res.ok) throw new Error("Games updates unavailable");
+      var rows = await res.json();
+      paintGamesContent(rows.length ? JSON.parse(rows[0].value) : {announcement:"",links:[]});
+    } catch (e) { /* Keep the catalog usable and retain the last successful content. */ }
+    finally { clearTimeout(timer); inFlight = false; }
+  }
+  refreshGamesContent();
+  window.addEventListener("focus",refreshGamesContent);
+  document.addEventListener("visibilitychange",refreshGamesContent);
+  setInterval(refreshGamesContent,120000);
+})();
+</script>
 </body>
 </html>
