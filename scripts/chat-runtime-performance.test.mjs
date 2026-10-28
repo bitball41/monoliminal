@@ -54,7 +54,7 @@ test('native composer sizing does not read geometry or synchronously repin while
  ta.style.height='120px';c.autogrow();assert.equal(ta.style.height,'');
 });
 
-function diagnostics({embedded=false,supported=['long-animation-frame','longtask'],blockedParent=false}={}){
+function diagnostics({embedded=false,supported=['long-animation-frame','longtask'],blockedParent=false,query=()=>[]}={}){
  let now=100,sequence=0;
  const observers=[],frames=new Map(),events=new Map(),docEvents=new Map();
  const observerClass=realm=>class {
@@ -63,12 +63,12 @@ function diagnostics({embedded=false,supported=['long-animation-frame','longtask
   observe({type}){this.type=type} takeRecords(){return this.pending.splice(0)} disconnect(){this.disconnected=true}
  };
  const c=vm.createContext({PerformanceObserver:observerClass('chat'),
-  document:{hidden:false,images:[],getElementById:()=>null,addEventListener:(name,fn)=>docEvents.set(name,fn)},
+  document:{hidden:false,images:[],documentElement:{hasAttribute:()=>true},getElementById:()=>null,addEventListener:(name,fn)=>docEvents.set(name,fn)},
   addEventListener:(name,fn)=>events.set(name,fn),performance:{now:()=>now,timeOrigin:1000},
   requestAnimationFrame(fn){const id=++sequence;frames.set(id,fn);return id},cancelAnimationFrame:id=>frames.delete(id),
   APP_VERSION:'test',navigator:{userAgent:'Chrome/147',deviceMemory:8,hardwareConcurrency:8},
   isLiteMode:()=>false,chatBackgroundChoice:'off',innerWidth:1536,innerHeight:839,devicePixelRatio:1.25,
-  profiles:new Map(),livePresence:new Map(),msgCache:new Map(),historyContexts:new Map(),qsa:()=>[],
+  profiles:new Map(),livePresence:new Map(),msgCache:new Map(),historyContexts:new Map(),qsa:query,
   voice:{peers:new Map()},realtimeHealthy:()=>true,realtimeGen:0});
  c.window=c;c.parent=c;
  if(embedded){const parent={PerformanceObserver:observerClass('launcher'),document:{},performance:{timeOrigin:800}};parent.parent=parent;c.parent=parent}
@@ -139,4 +139,77 @@ test('opt-in recording retains bounded frame gaps, stops after 60 seconds, and e
  d.c.startFrameCapture();d.frame(60132);d.c.document.hidden=true;d.docEvents.get('visibilitychange')();
  capture=d.snapshot().frameCapture;assert.equal(capture.intervals,0);assert.equal(capture.stopReason,'page-hidden');assert.equal(d.frames.size,0);
  d.c.document.hidden=false;d.frame(100000);assert.equal(d.snapshot().frameCapture.intervals,0,'restoring the tab cannot add a fake lag gap');
+});
+
+
+test('recordings preserve matching frame/task/work evidence when downloaded ten minutes later',()=>{
+ const d=diagnostics({embedded:true});d.c.startPerformanceDiagnostics();
+ // Start drains old pending observations before creating this recording.
+ d.observers[0].pending.push({startTime:250,duration:60});
+ d.c.startFrameCapture();assert.equal(d.snapshot().frameCapture.evidence.frames.total,0);
+ d.frame(116);
+ d.emit('long-animation-frame',[{startTime:350,duration:80,renderStart:420,styleAndLayoutStart:425}]);
+ d.emit('longtask',[{startTime:150,duration:65}]);
+ d.c.notePerformanceWork('timeline-render',60);
+ d.frame(260);
+ d.observers[0].pending.push({startTime:380,duration:70});
+ d.observers[1].pending.push({startTime:180,duration:55});
+ d.c.stopFrameCapture('download');
+ const saved=d.snapshot().frameCapture;
+ assert.equal(saved.evidence.frames.total,2,'stop drains pending entries into the recording');
+ assert.deepEqual(saved.evidence.frames.samples.map(s=>s.at),[150,180],'root timestamps use Chat time');
+ assert.deepEqual(saved.evidence.tasks.samples.map(s=>s.at),[150,180]);
+ assert(saved.evidence.work.samples.some(s=>s.name==='timeline-render'&&s.count===60));
+ assert.equal(saved.evidence.work.samples.at(-1).name,'frame-capture-stop');
+ d.frame(600260);
+ for(let i=0;i<140;i++){
+  d.emit('long-animation-frame',[{startTime:600200+i,duration:100}]);
+  d.emit('longtask',[{startTime:600000+i,duration:60}]);
+  d.c.notePerformanceWork('message-current');
+ }
+ assert.deepEqual(d.snapshot().frameCapture,saved,'later passive samples cannot overwrite the recorded window');
+ assert(d.snapshot().samples.every(s=>s.at>saved.startedAt+saved.durationMs));
+ assert.equal(d.frames.size,0,'the stopped recording adds no sampler');
+});
+
+test('capture evidence is bounded and private, and rendering context is sampled only on gaps',()=>{
+ const queries=[];
+ const d=diagnostics({query:selector=>{queries.push(selector);return Array.from({length:selector.includes('name-effect')?3:2},()=>({getBoundingClientRect(){throw Error('layout read')},src:'private-avatar-secret'}))}});
+ d.c.startPerformanceDiagnostics();assert.equal(queries.length,0,'passive observers do not inspect the DOM');
+ d.c.startFrameCapture();const initialQueries=queries.length;assert(initialQueries>0);
+ d.frame(116);d.frame(132);assert.equal(queries.length,initialQueries,'regular frames do not collect context');
+ d.frame(200);assert.equal(queries.length,initialQueries,'gaps within a second reuse known context');
+ d.frame(1200);assert.equal(queries.length,initialQueries*2);
+ d.frame(1280);assert.equal(queries.length,initialQueries*2,'repeated gaps are rate limited');
+ const entries=Array.from({length:500},(_,i)=>({startTime:200+i,duration:100,sourceURL:'private-secret',
+  scripts:[{sourceFunctionName:'flushBottomPin',duration:10,invoker:'private-secret',sourceURL:'private-secret'}]}));
+ d.emit('long-animation-frame',entries);d.emit('longtask',entries);
+ for(let i=0;i<500;i++)d.c.notePerformanceWork('message-current');
+ let report=d.snapshot(),capture=report.frameCapture;
+ assert.equal(capture.evidence.frames.total,500);assert.equal(capture.evidence.frames.samples.length,120);
+ assert.equal(capture.evidence.tasks.total,500);assert.equal(capture.evidence.tasks.samples.length,120);
+ assert.equal(capture.evidence.work.samples.length,64);
+ assert(!JSON.stringify(report).includes('private'),'capture omits URLs, invokers and DOM nodes');
+ assert.equal(capture.rendering[0].intersectingAnimatedNames,3);
+ assert.equal(capture.rendering[0].openDialogs,2);assert.equal(capture.rendering[0].background,'off');
+ assert(capture.gaps.every(g=>capture.rendering.some(r=>r.at===g.renderingAt)));
+ for(let at=1320;at<60100;at+=40)d.frame(at);
+ d.frame(60116);capture=d.snapshot().frameCapture;
+ assert.equal(capture.running,false);assert(capture.rendering.length<=62);assert(capture.gaps.length<=120);
+ assert(capture.rendering.every((entry,i,all)=>i===0||i===all.length-1||entry.at-all[i-1].at>=1000));
+ assert.equal(d.frames.size,0);
+});
+
+test('hiding a recording excludes hidden observations and does not collect hidden rendering state',()=>{
+ const d=diagnostics();d.c.startPerformanceDiagnostics();d.c.startFrameCapture();d.frame(116);
+ const before=d.snapshot().frameCapture;
+ d.c.document.hidden=true;d.docEvents.get('visibilitychange')();
+ d.emit('long-animation-frame',[{startTime:120,duration:100}]);
+ d.emit('longtask',[{startTime:120,duration:100}]);d.frame(600116);
+ const stopped=d.snapshot().frameCapture;
+ assert.equal(stopped.stopReason,'page-hidden');assert.equal(stopped.intervals,0);
+ assert.deepEqual(stopped.rendering,before.rendering);
+ assert.equal(stopped.evidence.frames.total,0);assert.equal(stopped.evidence.tasks.total,0);
+ d.c.document.hidden=false;d.frame(600132);
+ assert.deepEqual(d.snapshot().frameCapture,stopped,'restoring the tab cannot add hidden time or new evidence');
 });

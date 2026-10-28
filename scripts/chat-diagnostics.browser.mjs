@@ -31,7 +31,11 @@ document.getElementById('frame').srcdoc=${JSON.stringify(child).replaceAll('<','
 const output=await fs.mkdtemp(path.join(os.tmpdir(),'chat-diagnostics-'));
 const browser=await chromium.launch({...(process.env.CHAT_BROWSER_PATH?{executablePath:process.env.CHAT_BROWSER_PATH}:{}),headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
- for(const kind of ['standalone','https-srcdoc','file-srcdoc','nested-srcdoc','opaque-srcdoc']){
+ // Managed browsers can prohibit file: navigation. Keep that case available
+ // by default and allow the remaining native contexts to run independently.
+ const kinds=['standalone','https-srcdoc','file-srcdoc','nested-srcdoc','opaque-srcdoc']
+  .filter(kind=>!process.argv.includes('--https-only')||kind!=='file-srcdoc');
+ for(const kind of kinds){
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   const body=kind==='standalone'?fixture:kind==='nested-srcdoc'?wrap(wrap(fixture)):wrap(fixture,kind==='opaque-srcdoc');
   await page.route('**/*',route=>route.request().url().startsWith('file:')?route.continue():route.request().url()==='https://diagnostics.test/'?route.fulfill({contentType:'text/html',body}):route.abort());
@@ -55,6 +59,9 @@ try{
   assert.equal(report.coverage.ancestorDepth,kind==='nested-srcdoc'?2:['https-srcdoc','file-srcdoc'].includes(kind)?1:0);
   if(kind!=='opaque-srcdoc')assert(report.samples.some(s=>s.duration>=150&&Math.abs(s.at-result.stallAt)<80),'ancestor timestamps match the child clock');
   assert(report.longTasks.total>0,'local task observer also captures the stall');
+  assert(report.frameCapture.evidence.tasks.samples.some(s=>s.duration>=150),'recording retains the matching local task');
+  if(kind!=='opaque-srcdoc')assert(report.frameCapture.evidence.frames.samples.some(s=>s.duration>=150&&Math.abs(s.at-result.stallAt)<80),'recording retains the matching frame in the child clock');
+  assert(report.frameCapture.rendering.length>=2&&report.frameCapture.rendering.length<=62,'recording includes bounded rendering context');
   assert(report.frameCapture.maxGapMs>=100,'opt-in sampler sees the missed frame intervals');
   assert.equal(report.frameCapture.running,false);
   assert.equal(await frame.evaluate(()=>performanceDiagnostics.frameRaf),0);

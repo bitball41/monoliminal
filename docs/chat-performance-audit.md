@@ -1,4 +1,49 @@
-# Chat performance audit — 2.24.5
+# Chat performance audit
+
+## Follow-up investigation and coverage repair in 2.26.1
+
+The 2.26.0 upload confirms intermittent callback gaps up to 166.7ms in its
+60-second recording (15.5–75.5 seconds after launch). Of 3,448 intervals, 26
+exceed 35ms; only two local long tasks overlap that recording. Its latest 120
+passive long-frame samples instead cover 604–617 seconds after launch. Those
+windows cannot be treated as simultaneous evidence for one cause. In the
+later window, most entries have no script attribution, zero blocking duration,
+and about 1ms between renderStart and frame end. This supports investigating
+rendering and scheduling without identifying one exact source or device fault.
+
+Two gaps in existing rendering coverage are repaired: link/YouTube preview
+images were excluded from message media visibility/promotion, and image ring
+backgrounds remained visible when their avatar left the viewport or the tab
+was hidden. The same existing intersection state now covers these paths.
+The native offline media-visibility regression fails on the old source and
+passes on the revised source, including restoration of original URLs, layer
+release and the controller-disabled fallback. This establishes a coverage
+repair, not that those paths account for every reported hitch.
+
+Recordings now preserve matching bounded frame/task/work evidence, plus
+aggregate intersection and dialog context at start/stop and at most once per
+second following a gap. The recorder uses no additional RAF or timer and
+does not read styles, geometry, URLs or private content for that context.
+Unit regressions exercise download ten minutes after stopping, root/child
+clock conversion, pending observer entries, bounds and hidden-tab behavior.
+
+There is also a reproducible cost in animated name styles: 39 visible moving
+gradient names with synthetic GIF avatars at DPR 1.25, software graphics and
+4x CPU throttling in Chromium 151 produced p95 intervals around 100–183ms.
+Pausing only the names restored 16.7ms p95, with no intervals over 35ms in a
+five-second control. Names alone reproduced stalls. The supplied upload does
+not record how many animated names were visible, so this is a candidate for
+the physical device, not established attribution. Layer promotion and static
+gradient opacity overlays did not eliminate the cost in this environment;
+those experimental rewrites are not included in the application. Existing
+name appearance and animation behavior remain intact.
+
+Native synthetic controls with 272 small 10fps GIFs did not by themselves
+produce sustained 100ms passive frames in Chromium 151. This does not prove
+equivalent behavior in Chrome 147 on the physical Chromebook. Raw uploaded
+reports and local experimental traces/media are not committed.
+
+## Earlier investigation — 2.24.5
 
 The reported symptom is intermittent, page-wide frame drops on an 8 GB
 Chromebook with backgrounds Off and about three people online. Earlier narrow

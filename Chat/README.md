@@ -1,5 +1,21 @@
 # Liminal Chat
 
+## Idle rendering and frame recordings (2.26.1)
+
+Link and YouTube preview images now use the same viewport visibility and
+compositing rules as message media. Avatar ring backgrounds also hide when
+offscreen or in a hidden tab, including image rings containing animated GIFs.
+Original sources, dimensions and appearance are preserved when returning.
+`scripts/chat-media-visibility.browser.mjs` verifies these paths offline.
+
+Frame recordings retain their own bounded long-frame, long-task and operation
+samples after stopping. They also record aggregate intersecting media/name/ring
+counts and open-dialog counts at start/stop and at most once per second after
+a frame gap. These counts describe intersection state, including its 32px
+margin; they do not establish which images were painted. No URLs, message text,
+usernames or new continuous sampling are added. Later passive observations
+remain separate from the recorded minute.
+
 ## Display name styles (2.26)
 
 Settings → Profile → **Name style** has six fonts, a solid color, a two-color
