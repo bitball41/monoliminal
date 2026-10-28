@@ -510,16 +510,24 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     /* Keep image identity and geometry while stopping animation/texture work
        outside the viewport. Native lazy loading alone also loads nearby GIFs. */
     html[data-ring-visibility] .avatar[data-media-visible="false"] img,
+    html[data-ring-visibility] .avatar[data-media-visible="false"].has-ring::before,
     html[data-ring-visibility] .msg[data-media-visible="false"] .msg-media img,
+    html[data-ring-visibility] .msg[data-media-visible="false"] .link-card-img,
+    html[data-ring-visibility] .msg[data-media-visible="false"] .yt-thumb img,
     html[data-ring-paused] .avatar img,
-    html[data-ring-paused] .msg-media img { visibility: hidden; }
+    html[data-ring-paused] .avatar.has-ring::before,
+    html[data-ring-paused] .msg-media img,
+    html[data-ring-paused] .link-card-img,
+    html[data-ring-paused] .yt-thumb img { visibility: hidden; }
     html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
     html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
     /* Isolate visible animated images from the surrounding paint surface.
        GIF-only scenes can stall in Chromium even with an idle UI thread.
        Release the layer as soon as the image leaves view or the tab is hidden. */
     html[data-ring-visibility]:not([data-ring-paused]) .avatar[data-media-visible="true"] img,
-    html[data-ring-visibility]:not([data-ring-paused]) .msg[data-media-visible="true"] .msg-media img {
+    html[data-ring-visibility]:not([data-ring-paused]) .msg[data-media-visible="true"] .msg-media img,
+    html[data-ring-visibility]:not([data-ring-paused]) .msg[data-media-visible="true"] .link-card-img,
+    html[data-ring-visibility]:not([data-ring-paused]) .msg[data-media-visible="true"] .yt-thumb img {
       transform: translateZ(0);
     }
     @keyframes ring-spin { to { transform: rotate(360deg); } }
@@ -5233,7 +5241,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.26.0";
+    const APP_VERSION = "2.26.1";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6598,15 +6606,17 @@ void main() {
       frameCapture: null, frameRaf: 0, frameLastAt: 0 };
     function notePerformanceWork(name, count = 0) {
       if (!performanceDiagnostics.observer && !performanceDiagnostics.taskObserver && !performanceDiagnostics.frameCapture?.running) return;
-      performanceDiagnostics.work.push({ at: Math.round(performance.now()), name, count });
+      const work = { at: Math.round(performance.now()), name, count };
+      performanceDiagnostics.work.push(work);
       if (performanceDiagnostics.work.length > 64) performanceDiagnostics.work.shift();
+      recordFrameCaptureEvidence('work', work);
     }
     function collectPerformanceFrames(entries) {
       if (document.hidden) return;
       const offset = performanceDiagnostics.clockOffset;
       for (const entry of entries) {
         performanceDiagnostics.total++;
-        performanceDiagnostics.samples.push({ at: Math.round(entry.startTime + offset), duration: Math.round(entry.duration),
+        const sample = { at: Math.round(entry.startTime + offset), duration: Math.round(entry.duration),
           blocking: Math.round(entry.blockingDuration || 0),
           renderStart: entry.renderStart ? Math.round(entry.renderStart + offset) : 0,
           layoutStart: entry.styleAndLayoutStart ? Math.round(entry.styleAndLayoutStart + offset) : 0,
@@ -6615,16 +6625,20 @@ void main() {
             duration: Math.round(script.duration), layout: Math.round(script.forcedStyleAndLayoutDuration || 0),
             type: String(script.invokerType || '').slice(0, 32),
           })),
-        });
+        };
+        performanceDiagnostics.samples.push(sample);
         if (performanceDiagnostics.samples.length > 120) performanceDiagnostics.samples.shift();
+        recordFrameCaptureEvidence('frames', sample);
       }
     }
     function collectPerformanceTasks(entries) {
       if (document.hidden) return;
       for (const entry of entries) {
         performanceDiagnostics.taskTotal++;
-        performanceDiagnostics.tasks.push({ at: Math.round(entry.startTime), duration: Math.round(entry.duration) });
+        const task = { at: Math.round(entry.startTime), duration: Math.round(entry.duration) };
+        performanceDiagnostics.tasks.push(task);
         if (performanceDiagnostics.tasks.length > 120) performanceDiagnostics.tasks.shift();
+        recordFrameCaptureEvidence('tasks', task);
       }
     }
     function flushPerformanceDiagnostics() {
@@ -6679,25 +6693,56 @@ void main() {
         : capture ? `Recording stopped${capture.stopReason === 'page-hidden' ? ' when Chat was hidden' : ''}. Download the performance report.`
         : 'Frame recording is off. Recent long frames are collected automatically.';
     }
+    function recordFrameCaptureEvidence(kind, item) {
+      const capture = performanceDiagnostics.frameCapture;
+      if (!capture?.running || item.at + (item.duration || 0) < capture.startedAt) return;
+      const evidence = capture.evidence[kind];
+      evidence.total++;
+      evidence.samples.push(item);
+      if (evidence.samples.length > (kind === 'work' ? 64 : 120)) evidence.samples.shift();
+    }
+    function recordFrameCaptureRendering(at, force = false) {
+      const capture = performanceDiagnostics.frameCapture;
+      if (!capture?.running || document.hidden) return;
+      const previous = capture.rendering.at(-1);
+      if (!force && previous && at - previous.at < 1000) return;
+      // Intersection state already maintained by the media controller; these
+      // counts do not read style/layout or prove that an image was painted.
+      capture.rendering.push({ at: Math.round(at), background: chatBackgroundChoice,
+        intersectionTracking: !!document.documentElement?.hasAttribute('data-ring-visibility'),
+        intersectingAvatarImages: qsa('.avatar[data-media-visible="true"] img').length,
+        intersectingMessageImages: qsa('.msg[data-media-visible="true"] .msg-media img, .msg[data-media-visible="true"] .link-card-img, .msg[data-media-visible="true"] .yt-thumb img').length,
+        intersectingAnimatedNames: qsa('.display-name.name-effect-fade[data-media-visible="true"], .display-name.name-effect-shift[data-media-visible="true"]').length,
+        intersectingAnimatedRings: qsa('.avatar.has-ring.ring-anim[data-ring-visible="true"]').length,
+        mountedMessages: qsa('#message-list .msg').length, openDialogs: qsa('dialog[open]').length });
+      if (capture.rendering.length > 62) capture.rendering.shift();
+    }
     function stopFrameCapture(reason = 'stopped') {
       const capture = performanceDiagnostics.frameCapture;
       if (!capture?.running) return;
       cancelAnimationFrame(performanceDiagnostics.frameRaf);
       performanceDiagnostics.frameRaf = 0;
+      // Drain entries while this recording still owns them. Downloading much
+      // later must not replace this window with the latest passive samples.
+      flushPerformanceDiagnostics();
+      notePerformanceWork('frame-capture-stop');
+      recordFrameCaptureRendering(performance.now(), true);
       capture.running = false;
       capture.durationMs = Math.round(performance.now() - capture.startedAt);
       capture.stopReason = reason;
-      notePerformanceWork('frame-capture-stop');
       updateFrameCaptureControls();
     }
     function startFrameCapture() {
       if (performanceDiagnostics.frameCapture?.running || document.hidden) return;
+      flushPerformanceDiagnostics();
       const startedAt = performance.now();
       const capture = { running: true, startedAt: Math.round(startedAt), durationMs: 0, stopReason: '',
-        intervals: 0, maxGapMs: 0, histogram: { upperBoundsMs: [20, 35, 50, 100, 250, null], counts: [0, 0, 0, 0, 0, 0] }, gaps: [] };
+        intervals: 0, maxGapMs: 0, histogram: { upperBoundsMs: [20, 35, 50, 100, 250, null], counts: [0, 0, 0, 0, 0, 0] }, gaps: [],
+        evidence: { frames: { total: 0, samples: [] }, tasks: { total: 0, samples: [] }, work: { total: 0, samples: [] } }, rendering: [] };
       performanceDiagnostics.frameCapture = capture;
       performanceDiagnostics.frameLastAt = 0;
       notePerformanceWork('frame-capture-start');
+      recordFrameCaptureRendering(startedAt, true);
       const tick = at => {
         performanceDiagnostics.frameRaf = 0;
         if (!capture.running) return;
@@ -6710,7 +6755,9 @@ void main() {
           while (bucket < 5 && gap > capture.histogram.upperBoundsMs[bucket]) bucket++;
           capture.histogram.counts[bucket]++;
           if (gap > 35) {
-            capture.gaps.push({ at: Math.round(at), duration: Math.round(gap * 10) / 10 });
+            recordFrameCaptureRendering(at);
+            capture.gaps.push({ at: Math.round(at), duration: Math.round(gap * 10) / 10,
+              renderingAt: capture.rendering.at(-1)?.at ?? null });
             if (capture.gaps.length > 120) capture.gaps.shift();
           }
         }
@@ -6745,7 +6792,9 @@ void main() {
         samples: performanceDiagnostics.samples.slice(),
         longTasks: { total: performanceDiagnostics.taskTotal, samples: performanceDiagnostics.tasks.slice() },
         frameCapture: capture ? { ...capture, durationMs: capture.running ? Math.round(performance.now() - capture.startedAt) : capture.durationMs,
-          histogram: { upperBoundsMs: capture.histogram.upperBoundsMs.slice(), counts: capture.histogram.counts.slice() }, gaps: capture.gaps.slice() } : null,
+          histogram: { upperBoundsMs: capture.histogram.upperBoundsMs.slice(), counts: capture.histogram.counts.slice() }, gaps: capture.gaps.slice(),
+          evidence: Object.fromEntries(Object.entries(capture.evidence).map(([kind, entries]) => [kind, { total: entries.total, samples: entries.samples.slice() }])),
+          rendering: capture.rendering.slice() } : null,
         usage: { api: typeof chatNetworkUsage === 'undefined' ? {} : Object.fromEntries(chatNetworkUsage),
           avatars: typeof avatarUsage === 'undefined' ? {} : { ...avatarUsage } },
         work: performanceDiagnostics.work.slice() };
