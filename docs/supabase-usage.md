@@ -1,5 +1,60 @@
 # Supabase usage controls
 
+## October 30 follow-up
+
+Saved evidence: [supabase-usage-followup-2026-10-30.json](supabase-usage-followup-2026-10-30.json).
+New meters: Log Query 94.6 / 100 GB, Log Ingestion 0.79 / 1 GB (both still
+marked *Upcoming*, not enforced), **Cached Egress 4.16 / 5 GB (enforced)**.
+
+Cached Egress is CDN-served Storage bytes. One day of edge logs, sized against
+object metadata, gives about 120 MB/day:
+
+| Source | Requests/day | ≈ MB/day |
+| --- | --- | --- |
+| `chat.html?launcher=4&minute=…` from v4 launchers | 76 | 48 |
+| Animated avatar/banner originals (hover cards, banners) | ~40 | 30 |
+| Stickers and emoji | ~430 | 19 |
+| Chat media | ~300 | 17 |
+| Games HTML | ~220 | 5 |
+
+The v4 launcher adds a per-minute query string, so every launch downloads
+the whole 635 KB (brotli) Chat app. The v5 launcher keeps Chat in IndexedDB
+and only downloads after a deploy changes the ETag, but **v5 was never
+published**: the Oct 22 launcher deploy failed. The published download
+(`launcher_download_url`) is still v3 and loads Chat from the retired
+project. `min_chat_launcher_version` is `3`.
+
+The Admin dashboard is also unpublished: the live file is `65a4e6a`, which
+still reconciles every 30 s instead of 2 min. Its Oct 26 deploy failed with
+Storage HTTP 402. The Oct 28 Chat workflow reported success, but its recovery
+archive is absent from this project; the live `chat.html` was an owner
+publish. The repository secrets `SUPABASE_URL` / `SUPABASE_DEPLOY_KEY` very
+likely still target the retired project, so merged PRs do not reach Liminal.
+
+Rollout order (manual publication until the secrets are fixed):
+
+1. Upload `Chat/liminal-chat-launcher.html` to `liminal-apps/liminal-chat-launcher.html`
+   and confirm the delivered file contains `LAUNCHER_VERSION=5`.
+2. Only then raise `min_chat_launcher_version` to `5`. Raising it while the
+   published download is still v3 locks every user out (the replacement they
+   download would also be blocked). v3/v4 users see the existing "launcher out
+   of date" screen once, download v5, then stop re-downloading Chat on each
+   launch. Expected saving: ~40% of current Cached Egress.
+3. The Admin dashboard runs as a downloaded local file: replace local copies
+   with the current `Admin/liminal-admin-dashboard.html` (2-minute reconcile).
+4. Later, point the repository secrets at `trsirhyucncmyyfyiuje`. Until then,
+   merges to `main` publish to the retired project, not Liminal.
+
+A browser probe (file:// launcher + `srcdoc` iframe, two browser restarts)
+confirmed the HTTP cache, Cache API and IndexedDB all work in the launcher, so
+media/sticker/avatar caching is not the leak. Voice tiles already use avatar
+thumbnails. Animated originals in hover cards and banners are intentional.
+
+Log Query is not caused by the apps: it counts log data scanned by Studio
+(Logs Explorer, Reports, project home charts), the logs API and agents.
+Close log/report tabs with auto-refresh. This follow-up ran four bounded scans
+(listed in the evidence file); later checks should use database counters.
+
 Audit date: October 25, 2026 (America/Chicago). Repository base:
 `71f6a0e81c184deb4492147efd9b3ed231694e40`, checked against freshly fetched
 `origin/main`. Current project: `trsirhyucncmyyfyiuje` (Liminal).

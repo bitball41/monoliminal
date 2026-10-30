@@ -1,0 +1,55 @@
+{
+  "captured_at": "2026-10-30T03:00:00Z",
+  "project": "trsirhyucncmyyfyiuje",
+  "screenshot_meters": {
+    "log_query_gb": 94.557, "log_ingestion_gb": 0.792, "cached_egress_gb": 4.159,
+    "egress_gb": 1.364, "storage_gb": 0.564, "database_gb": 0.144,
+    "realtime_messages": 551230, "realtime_peak_connections": 32, "mau": 66,
+    "note": "Log Query and Log Ingestion are marked UPCOMING (not yet enforced) in the screenshot."
+  },
+  "log_scans_used": [
+    {"window": "2026-10-29T15:30:00Z/15:31:00Z", "purpose": "discover edge_logs attribute keys", "limit": 1},
+    {"window": "2026-10-29T15:30:00Z/15:45:00Z", "purpose": "storage object requests by path/status"},
+    {"window": "2026-10-29T02:00:00Z/2026-10-30T02:00:00Z", "purpose": "all edge requests grouped by route family/status"},
+    {"window": "2026-10-29T02:00:00Z/2026-10-30T02:00:00Z", "purpose": "liminal-games and GIF avatar paths only"}
+  ],
+  "edge_requests_24h": {
+    "rest_table_200": 10741, "rest_rpc_200": 7501, "rest_insert_201": 1205,
+    "realtime_upgrades_101": 527, "auth_200": 478,
+    "storage_public": {
+      "liminal-stickers_200": 434, "liminal-stickers_304": 73,
+      "liminal-pfp_200": 382, "liminal-pfp_304": 55,
+      "liminal-media_200": 302,
+      "liminal-apps/games.html_200_cache_busted": 183,
+      "liminal-apps/chat.html_200_launcher4_minute_cache_busted": 76,
+      "liminal-games/balatro.html_200": 37,
+      "liminal-games/theme/love.css_400": 65
+    }
+  },
+  "cached_egress_estimate_mb_per_day": {
+    "chat_html_v4_launcher": "76 x ~635 KB brotli = ~48",
+    "gif_avatar_and_banner_originals": "~40 requests, ~30",
+    "stickers_emoji": "~19",
+    "chat_media": "~17",
+    "games_html_and_game_files": "~5",
+    "total": "~120 MB/day, consistent with ~4.16 GB over a monthly cycle"
+  },
+  "published_vs_repo": {
+    "chat.html": "match",
+    "games.html": "match",
+    "liminal-admin-dashboard.html": "live = 65a4e6a (pre 30s->2min reconcile); repo = 414b37c",
+    "liminal-chat-launcher.html": "live = LAUNCHER_VERSION 3 pointing at retired project ucgjwrjqmexenmrpbdkh; repo = v5"
+  },
+  "app_settings": {"min_chat_launcher_version": "3", "launcher_download_url": "liminal-apps/liminal-chat-launcher.html (new project)"},
+  "deploy_workflow_evidence": {
+    "deploy-admin 2026-10-26": "Storage GET failed (HTTP 402)",
+    "deploy-chat-launcher 2026-10-22": "failure, never re-run",
+    "deploy-chat 2026-10-28": "reported 'chat: deployed' with recovery archive deployments/chat/2026-10-28T22-14-19-523Z-...; that archive does not exist in this project. The live chat.html here was replaced 22:43 by an owner publish.",
+    "conclusion": "Repository secrets SUPABASE_URL/SUPABASE_DEPLOY_KEY very likely still target the retired project."
+  },
+  "pg_stat_statements_delta_since_2026-10-26T04:36Z": {
+    "elapsed_days": 3.93, "stats_reset": "2026-10-20T22:39:39Z",
+    "chat_list_conversations": 3717, "chat_record_activity": 3668, "games_get_usage": 1248
+  },
+  "browser_cache_probe": "Chromium, file:// launcher + srcdoc iframe, 2 loads x 2 browser restarts: 1 network request per resource (same as https control). Browser HTTP cache, Cache API and IndexedDB all work in the launcher context."
+}
