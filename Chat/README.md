@@ -1,5 +1,57 @@
 # Liminal Chat
 
+## Smoothness and delivery fixes (2.27)
+
+**Lite mode removed.** It had no setting; Chat silently switched it on for
+reduced-motion, data-saver, ≤2 GB/≤2-thread devices and ≤4 GB Chromebooks,
+turning off animation, blur and link previews and halving message windows.
+Every device now gets the same rendering and limits (200 history rows, 50-row
+catch-up). Reduced motion is still honored by the existing
+`prefers-reduced-motion` rules; Chromebooks keep their 24 fps background cap
+and static sign-in rays. The always-true `data-performance="auto"` selectors
+and the never-set `"full"` rules are folded into plain rules. Picker popovers
+now get the transparent, unblurred backdrop their own rule intended.
+
+**Rendering**
+
+- Fade and moving-gradient names step at about 20 updates per second (30 for
+  Fast) instead of every frame. In a 40-name software-rendered trace, paint and
+  raster time fell from 379 ms to 148 ms per 3 s. Names also pause while the
+  timeline scrolls. The fade keyframes keep its ease-in-out shape.
+- Message images, GIFs and stickers remember their natural size per browser
+  (`lc_media_sizes`, 600 entries, keyed by stored `media_url` so private group
+  links survive re-signing) and reserve that box on later renders instead of
+  shifting the timeline as they load. Images also decode asynchronously.
+- Link previews persist for seven days (`lc_link_previews`, 200 entries);
+  failed lookups for a day. Timeouts and rate limits are not stored.
+
+**Delivery**
+
+- The catch-up poll re-reads up to 60 s or 50 known rows before the newest
+  message, raising its limit by the known rows, so a row committed late and
+  missed by Realtime is recovered. Late rows are placed by `created_at` among
+  delivered rows (pending sends stay below) and DM previews keep the newest row.
+- Failed sends with no server error code (network/timeouts) retry automatically,
+  oldest first, when the browser comes back online or the tab wakes; at most
+  three automatic attempts. The retry reuses the message ID, so a lost response
+  cannot create a duplicate. Refusals (permissions, filters, blocks) still wait
+  for Retry.
+- Typing indicators expire on the receiving device's clock, and read marks use
+  the newest delivered message's server timestamp, so a skewed device clock no
+  longer sticks "is typing" or miscounts unread messages. Read-state storage
+  writes are batched (flushed on page hide).
+- `profile_updated` broadcasts no longer make every client refetch the profile
+  when the Realtime row change for it arrives within the grace window.
+- Opening a conversation with unread messages shows a **New** divider above the
+  first unread message from someone else until another conversation opens.
+
+No backend migration is required. Validation: `npm test` (new
+`scripts/chat-message-order.test.mjs` covers ordering, catch-up windows, clock
+handling, auto-retry and the profile refetch gate). The offline layout, name
+style, media visibility, diagnostics and runtime `--verify` browser harnesses
+pass; `chat-polish.browser.mjs` fails at the same assertion on the unchanged
+2.26.1 source.
+
 ## Idle rendering and frame recordings (2.26.1)
 
 Link and YouTube preview images now use the same viewport visibility and
