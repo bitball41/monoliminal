@@ -31,14 +31,19 @@ archive is absent from this project; the live `chat.html` was an owner
 publish. The repository secrets `SUPABASE_URL` / `SUPABASE_DEPLOY_KEY` very
 likely still target the retired project, so merged PRs do not reach Liminal.
 
-Rollout order:
+Rollout order (manual publication until the secrets are fixed):
 
-1. Point both repository secrets at `trsirhyucncmyyfyiuje` (a dry run should
-   list its `deployments/` objects).
-2. Run *Deploy Chat launcher* and *Deploy Admin*; verify delivered hashes.
-3. Raise `min_chat_launcher_version` to `5`. v3/v4 users see the existing
-   "launcher out of date" screen once, download v5, then stop re-downloading
-   Chat on each launch. Expected saving: ~40% of current Cached Egress.
+1. Upload `Chat/liminal-chat-launcher.html` to `liminal-apps/liminal-chat-launcher.html`
+   and confirm the delivered file contains `LAUNCHER_VERSION=5`.
+2. Only then raise `min_chat_launcher_version` to `5`. Raising it while the
+   published download is still v3 locks every user out (the replacement they
+   download would also be blocked). v3/v4 users see the existing "launcher out
+   of date" screen once, download v5, then stop re-downloading Chat on each
+   launch. Expected saving: ~40% of current Cached Egress.
+3. The Admin dashboard runs as a downloaded local file: replace local copies
+   with the current `Admin/liminal-admin-dashboard.html` (2-minute reconcile).
+4. Later, point the repository secrets at `trsirhyucncmyyfyiuje`. Until then,
+   merges to `main` publish to the retired project, not Liminal.
 
 A browser probe (file:// launcher + `srcdoc` iframe, two browser restarts)
 confirmed the HTTP cache, Cache API and IndexedDB all work in the launcher, so
