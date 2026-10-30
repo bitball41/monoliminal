@@ -15,7 +15,7 @@ const fixture=`<!doctype html><body><p id="probe">Ready</p><script>
 ${html.slice(from,to)}
 const APP_VERSION='fixture', profiles=new Map(),livePresence=new Map(),msgCache=new Map(),historyContexts=new Map();
 const voice={peers:new Map()},chatBackgroundChoice='off',realtimeGen=0;
-const isLiteMode=()=>false,qsa=selector=>[...document.querySelectorAll(selector)],realtimeHealthy=()=>true;
+const qsa=selector=>[...document.querySelectorAll(selector)],realtimeHealthy=()=>true;
 window.legacyFrames=0;
 if(PerformanceObserver.supportedEntryTypes.includes('long-animation-frame'))
  new PerformanceObserver(list=>legacyFrames+=list.getEntries().length).observe({type:'long-animation-frame'});

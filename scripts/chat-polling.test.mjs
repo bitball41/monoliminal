@@ -22,7 +22,7 @@ function chatPolling() {
     currentView: { type: 'channel', id: 'general' }, VOICE_CHANNEL_ID: 'voice',
     MESSAGE_COLUMNS: 'id,created_at', DM_MESSAGE_COLUMNS: 'id,created_at',
     msgCache: new Map(), viewKey: view => `${view.type}:${view.id}`,
-    isLiteMode: () => false, healthy: true,
+    healthy: true,
     realtimeHealthy: () => context.healthy,
     ingestMessage: (row, kind) => received.push({ row, kind }),
     reply: async () => ({ data: [] }),
@@ -40,7 +40,7 @@ function chatPolling() {
     } },
   });
   vm.runInContext([
-    ...chat.matchAll(/    const (?:MESSAGE_(?:RECONCILE_MS|FALLBACK_POLL_MS)|DM_RECONCILE_MS) = [^;]+;/g),
+    ...chat.matchAll(/    const (?:MESSAGE_(?:RECONCILE_MS|FALLBACK_POLL_MS)|DM_RECONCILE_MS|CATCH_UP_OVERLAP_MS) = [^;]+;/g),
   ].map(match => match[0]).join('\n') + '\nlet lastCatchUpPollAt=0; let catchUpPollPromise=null;\n' +
     section(chat, '    function catchUpPoll(', '    function tickCooldown()'), context);
   return { context, requests, received, advance: ms => { now += ms; } };
@@ -119,6 +119,28 @@ test('an open DM reconciles on the short fallback even while Realtime looks heal
   assert.equal(p.requests.length, 2);
   assert.equal(p.requests[1].table, 'dm_messages');
   assert.deepEqual(p.requests[1].filters, [['dm_id', 'convo'], ['created_at', '2026-10-13T00:00:00Z']]);
+});
+
+test('catch-up re-reads a bounded window so a late-committed row is recovered', async () => {
+  const p = chatPolling();
+  p.context.currentView = { type: 'dm', id: 'convo' };
+  const rows = Array.from({ length: 80 }, (_, i) => ({ id: `m${i}`,
+    created_at: new Date(Date.UTC(2026, 9, 13, 0, 0, i)).toISOString() }));
+  p.context.msgCache.set('dm:convo', [...rows, { id: 'pending:1', created_at: '2099-01-01T00:00:00Z', pending: true }]);
+  await p.context.catchUpPoll();
+  const [[, viewId], [column, from]] = p.requests[0].filters;
+  assert.equal(viewId, 'convo');
+  assert.equal(column, 'created_at');
+  assert.equal(from, rows[30].created_at, 'the window never re-reads more than 50 known rows');
+  assert.equal(p.requests[0].limit, 100, 'known rows do not crowd out new ones');
+
+  const recent = chatPolling();
+  recent.context.msgCache.set('c:general', rows.slice(0, 3).map(row => ({ ...row,
+    created_at: new Date(Date.parse(row.created_at) + 3_600_000).toISOString() })));
+  recent.context.viewKey = view => `c:${view.id}`;
+  await recent.context.catchUpPoll();
+  assert.equal(recent.requests[0].filters[1][1], recent.context.msgCache.get('c:general')[0].created_at);
+  assert.equal(recent.requests[0].limit, 53);
 });
 
 function liveLoadHelpers() {

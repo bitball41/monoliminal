@@ -26,14 +26,14 @@ test('scrolling up cancels a queued bottom pin and an applied pin release',()=>{
  p.c.holdTimeline(2000);p.c.pinToBottom();p.flush();assert.equal(p.writes(),1);
 });
 
-function history(lite=false){
- const c=vm.createContext({isLiteMode:()=>lite,msgCache:new Map(),msgById:new Map(),pollCache:new Map(),pollBusy:new Set(),viewKey:v=>v.key});
+function history(){
+ const c=vm.createContext({msgCache:new Map(),msgById:new Map(),pollCache:new Map(),pollBusy:new Set(),viewKey:v=>v.key});
  vm.runInContext(section('    function indexMessage(','    function profileOf(')+'\n'+section('    const HISTORY_MESSAGE_CAP =','    function clearHistoryContexts('),c);
  return c;
 }
 test('history paging stays bounded in both directions and preserves live message aliases',()=>{
- for(const lite of [false,true]){
-  const c=history(lite),cap=lite?120:200,rows=Array.from({length:500},(_,id)=>({id,content:`row${id}`}));
+ {
+  const c=history(),cap=200,rows=Array.from({length:500},(_,id)=>({id,content:`row${id}`}));
   const live={...rows[499],content:'Live update'};c.msgCache.set('channel',[live]);c.indexMessage(live);
   rows.slice(0,499).forEach(row=>{c.indexMessage(row);c.pollCache.set(row.id,{});c.pollBusy.add(row.id)});
   const context={view:{key:'channel'},rows:rows.slice(),hasOlder:false,hasNewer:false};
@@ -67,7 +67,7 @@ function diagnostics({embedded=false,supported=['long-animation-frame','longtask
   addEventListener:(name,fn)=>events.set(name,fn),performance:{now:()=>now,timeOrigin:1000},
   requestAnimationFrame(fn){const id=++sequence;frames.set(id,fn);return id},cancelAnimationFrame:id=>frames.delete(id),
   APP_VERSION:'test',navigator:{userAgent:'Chrome/147',deviceMemory:8,hardwareConcurrency:8},
-  isLiteMode:()=>false,chatBackgroundChoice:'off',innerWidth:1536,innerHeight:839,devicePixelRatio:1.25,
+  chatBackgroundChoice:'off',innerWidth:1536,innerHeight:839,devicePixelRatio:1.25,
   profiles:new Map(),livePresence:new Map(),msgCache:new Map(),historyContexts:new Map(),qsa:query,
   voice:{peers:new Map()},realtimeHealthy:()=>true,realtimeGen:0});
  c.window=c;c.parent=c;
