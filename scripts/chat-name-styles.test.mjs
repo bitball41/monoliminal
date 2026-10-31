@@ -20,13 +20,14 @@ test('untrusted profile styling cannot inject markup, CSS, URLs or prototype key
   const n = names();
   for (const raw of [null, [], 'broken JSON', {font:'__proto__',effect:'<script>',from:'red;position:fixed',to:'url(https://evil.test)',speed:'constructor'}]) {
     const html = n.displayNameHtml({username:'" onmouseover="bad',display_name:'<img src=x onerror=bad>',name_style:raw});
-    assert.doesNotMatch(html, /<img|<script|position:fixed|url\(|name-font-__proto__|name-effect-<|name-speed:undefined/);
+    assert.doesNotMatch(html, /<img|<script|position:fixed|url\(|name-font-__proto__|name-effect-<|name-speed:undefined|name-steps:undefined/);
     assert.match(html, /&lt;img/);
     assert.match(html, /data-name-user="&quot; onmouseover=&quot;bad"/);
   }
   const html = n.displayNameHtml({username:'alice',display_name:'Alice',name_style:style});
   assert.match(html,/name-font-mono name-effect-shift/);
-  assert.match(html,/--name-speed:10s/);
+  assert.match(html,/--name-speed:10s;--name-steps:200/);
+  assert.match(n.displayNameHtml({username:'bob',name_style:{effect:'fade',speed:'fast'}}),/--name-speed:3s;--name-steps:90/);
 });
 
 test('equivalent JSON profiles do not rebuild timelines or restart name animations', () => {

@@ -10,10 +10,10 @@ function section(start, end) {
   return chat.slice(from, to);
 }
 
-function messages(lite = false) {
+function messages() {
   const context = vm.createContext({
     msgCache: new Map(), msgById: new Map(), pollCache: new Map(), pollBusy: new Set(),
-    historyContexts: new Map(), isLiteMode: () => lite,
+    historyContexts: new Map(),
     hasMoreMap: new Map(), viewKey: view => view.key,
     currentView: { key: 'c:general' }, dms: [],
     updateMessageNode() { context.bubbleUpdates++; }, bubbleUpdates: 0,
@@ -28,9 +28,9 @@ function messages(lite = false) {
   return context;
 }
 
-for (const lite of [false, true]) {
-  test(`a long ${lite ? 'lite' : 'standard'} session releases trimmed message and poll objects`, () => {
-    const c = messages(lite), key = 'c:general';
+{
+  test('a long session releases trimmed message and poll objects', () => {
+    const c = messages(), key = 'c:general';
     c.setViewMessages(key, []);
     for (let i = 0; i < 10_000; i++) {
       const row = { id: i, content: `Message ${i}` };
@@ -41,7 +41,7 @@ for (const lite of [false, true]) {
       c.trimLiveCache(key);
     }
     const rows = c.msgCache.get(key);
-    assert(rows.length <= (lite ? 100 : 200) + 50);
+    assert(rows.length <= 200 + 50);
     assert.equal(c.msgById.size, rows.length * 2, 'numeric and string aliases are both bounded');
     assert.equal(c.pollCache.size, rows.length);
     assert.equal(c.pollBusy.size, rows.length);

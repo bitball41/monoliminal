@@ -426,15 +426,24 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .name-font-script { font-family: "Pacifico", "Brush Script MT", cursive; font-weight: 400; }
     .name-font-display { font-family: "Syne", "Trebuchet MS", sans-serif; font-style: italic; font-weight: 800; }
     .name-effect-solid, .name-effect-gradient, .name-effect-shift, .name-effect-fade { color: var(--name-from); }
-    .name-effect-fade { animation: name-color-fade var(--name-speed, 6s) ease-in-out infinite; }
+    /* Clipped-text gradients repaint every animation frame. About 20 discrete
+       updates per second (30 for Fast) keep the motion fluid at a third of the paint work. */
+    .name-effect-fade { animation: name-color-fade var(--name-speed, 6s) steps(var(--name-steps, 120)) infinite; }
     @supports ((background-clip: text) or (-webkit-background-clip: text)) {
       .name-effect-gradient, .name-effect-shift { background-image: linear-gradient(90deg, var(--name-from), var(--name-to), var(--name-from)); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; }
-      .name-effect-shift { animation: name-gradient-shift var(--name-speed, 6s) linear infinite; }
+      .name-effect-shift { animation: name-gradient-shift var(--name-speed, 6s) steps(var(--name-steps, 120)) infinite; }
     }
-    @keyframes name-color-fade { 0%, 100% { color: var(--name-from); } 50% { color: var(--name-to); } }
+    @keyframes name-color-fade {
+      0%, 100% { color: var(--name-from); }
+      12.5%, 87.5% { color: color-mix(in srgb, var(--name-to) 12%, var(--name-from)); }
+      25%, 75% { color: color-mix(in srgb, var(--name-to) 50%, var(--name-from)); }
+      37.5%, 62.5% { color: color-mix(in srgb, var(--name-to) 88%, var(--name-from)); }
+      50% { color: var(--name-to); }
+    }
     @keyframes name-gradient-shift { to { background-position: 200% 0; } }
     html[data-ring-visibility] .display-name:not([data-media-visible="true"]),
-    html[data-ring-paused] .display-name { animation-play-state: paused; }
+    html[data-ring-paused] .display-name,
+    .timeline.is-scrolling .display-name { animation-play-state: paused; }
     :root[data-dyslexic="true"] .display-name { font-family: var(--font-ui); font-style: normal; }
     @media (prefers-reduced-motion: reduce) { .display-name { animation: none !important; } }
     @media (forced-colors: active) { .display-name { background: none; color: CanvasText; animation: none !important; } }
@@ -1984,107 +1993,44 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .toast.warning { border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
     .toast.warning .toast-progress { background: var(--warning); }
 
-    /* ============================= STANDARD PERF ============================= */
-    html[data-performance="full"] .sidebar,
-    html[data-performance="full"] .member-panel,
-    html[data-performance="full"] .main-panel {
-      box-shadow: var(--shadow-soft);
-    }
-    html[data-performance="full"] dialog::backdrop {
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
-    }
-    html[data-performance="full"] .auth-card,
-    html[data-performance="full"] .hover-card,
-    html[data-performance="full"] .popover {
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-    html[data-performance="full"] .msg {
+    /* ============================= RENDERING ============================= */
+    .msg {
       content-visibility: auto;
       contain-intrinsic-size: auto 72px;
     }
-    html[data-performance="full"] .msg:hover,
-    html[data-performance="full"] .msg:focus-within,
-    html[data-performance="auto"]:not([data-lite="true"]) .msg:hover,
-    html[data-performance="auto"]:not([data-lite="true"]) .msg:focus-within,
-    html[data-performance="full"] .msg.msg-tail,
-    html[data-performance="auto"]:not([data-lite="true"]) .msg.msg-tail,
-    html[data-performance="full"] .msg.msg-jump-target,
-    html[data-performance="auto"]:not([data-lite="true"]) .msg.msg-jump-target {
+    .msg:hover,
+    .msg:focus-within,
+    .msg.msg-tail,
+    .msg.msg-jump-target {
       content-visibility: visible;
       contain: none;
       contain-intrinsic-size: auto;
       overflow: visible;
       z-index: 5;
     }
-    html[data-performance="full"] .auth-rays { opacity: 0.72; }
-    html[data-performance="auto"]:not([data-lite="true"]) .msg {
-      content-visibility: auto;
-      contain-intrinsic-size: auto 72px;
-    }
-    html[data-performance="auto"]:not([data-lite="true"]) dialog::backdrop {
+    dialog::backdrop {
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
     }
-
-    /* ============================= PERFORMANCE PROFILES ============================= */
-    html[data-lite="true"] body {
-      background: var(--bg);
+    /* First unread message when a conversation opens. The divider sits in the gap
+       above the row, so this row opts out of paint containment like the tail. */
+    #message-list .msg.unread-start {
+      content-visibility: visible;
+      contain: none;
+      contain-intrinsic-size: auto;
+      overflow: visible;
+      margin-top: 30px;
     }
-    html[data-lite="true"] body::before,
-    html[data-lite="true"] body::after { display: none; }
-    html[data-lite="true"] *,
-    html[data-lite="true"] *::before,
-    html[data-lite="true"] *::after {
-      animation: none !important;
-      transition: none !important;
-      scroll-behavior: auto !important;
+    #message-list .msg.unread-start::before {
+      content: ""; position: absolute; left: 8px; right: 0; top: -15px; height: 1px;
+      background: color-mix(in srgb, var(--danger) 65%, transparent); pointer-events: none;
     }
-    html[data-lite="true"] .auth-card,
-    html[data-lite="true"] .hover-card,
-    html[data-lite="true"] .vc-tile-label,
-    html[data-lite="true"] dialog,
-    html[data-lite="true"] .popover {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+    #message-list .msg.unread-start::after {
+      content: "New"; position: absolute; right: 0; top: -23px; padding: 2px 8px;
+      border-radius: 999px; background: var(--danger); color: #fff;
+      font: 800 0.6rem/1.35 var(--font-ui); letter-spacing: 0.08em; text-transform: uppercase;
+      pointer-events: none;
     }
-    html[data-lite="true"] .sidebar,
-    html[data-lite="true"] .member-panel,
-    html[data-lite="true"] .main-panel,
-    html[data-lite="true"] .channel-header,
-    html[data-lite="true"] .composer,
-    html[data-lite="true"] .popover,
-    html[data-lite="true"] dialog,
-    html[data-lite="true"] .toast,
-    html[data-lite="true"] .autocomplete {
-      background: var(--panel-strong);
-      box-shadow: none;
-    }
-    html[data-lite="true"] .brand,
-    html[data-lite="true"] .members-header,
-    html[data-lite="true"] .channel-button.active,
-    html[data-lite="true"] .msg:hover,
-    html[data-lite="true"] .self-card {
-      background: var(--surface-2);
-      box-shadow: none;
-    }
-    
-    html[data-lite="true"] dialog::backdrop {
-      backdrop-filter: none; -webkit-backdrop-filter: none;
-      background: var(--scrim-color);
-    }
-    html[data-lite="true"] .auth-rays { filter: none; transform: none; opacity: 0.5; }
-    
-    html[data-lite="true"] .msg-actions,
-    html[data-lite="true"] .new-msgs-badge,
-    html[data-lite="true"] .viewing-older,
-    html[data-lite="true"] .hover-card,
-    html[data-lite="true"] .primary-button:hover:not(:disabled) { box-shadow: none; }
-    html[data-lite="true"] .composer:focus-within { box-shadow: 0 0 0 2px var(--accent-soft); }
-    html[data-lite="true"] .tour-spotlight { box-shadow: 0 0 0 9999px rgba(3, 2, 14, 0.82); }
-    html[data-lite="true"] .lightbox img,
-    html[data-lite="true"] #crop-preview { box-shadow: none; }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -3012,8 +2958,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .member-name { min-width: 0; }
 .member-name .name-text { min-width: 0; }
 .member-close { display: none; position: absolute; right: 10px; top: 9px; }
-html[data-lite="true"] .brand, html[data-lite="true"] .members-header { background: transparent; }
-html[data-lite="true"] .member-search { background: transparent; }
 
 /* Cards only where they group an actual action or object. */
 .primary-button, .secondary-button, .danger-button { border-radius: 999px; }
@@ -5241,7 +5185,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.26.1";
+    const APP_VERSION = "2.27.0";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6020,34 +5964,6 @@ void main() {
         b.setAttribute('aria-pressed', String(active));
       });
     }
-    function detectAutoPerformance() {
-      const memory = Number(navigator.deviceMemory) || 0;
-      const cores = Number(navigator.hardwareConcurrency) || 0;
-      const saveData = !!(navigator.connection && navigator.connection.saveData);
-      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const chromebook = /\bCrOS\b/.test(navigator.userAgent);
-      const lite = saveData
-        || reducedMotion
-        || (memory > 0 && memory <= 2)
-        || (cores > 0 && cores <= 2)
-        || (chromebook && memory > 0 && memory <= 4);
-      const details = [];
-      if (memory) details.push(`${memory} GB memory`);
-      if (cores) details.push(`${cores} CPU threads`);
-      if (saveData) details.push('data saver on');
-      if (reducedMotion) details.push('reduced motion requested');
-      return { lite, details };
-    }
-    function isLiteMode() {
-      return document.documentElement.getAttribute('data-lite') === 'true';
-    }
-    function applyPerformance() {
-      const lite = detectAutoPerformance().lite;
-      const root = document.documentElement;
-      root.setAttribute('data-performance', 'auto');
-      if (lite) root.setAttribute('data-lite', 'true');
-      else root.removeAttribute('data-lite');
-    }
     function renderThemeGrid() {
       $('theme-grid').innerHTML = Object.entries(THEMES).map(([key, t]) => {
         return `
@@ -6221,8 +6137,8 @@ void main() {
     function backgroundCSSColor(hex, opacity) {
       return `rgba(${backgroundRGB(hex).map(v => Math.round(v * 255)).join(',')},${opacity})`;
     }
-    function createBackgroundBudget(preset, { chromebook, lite }) {
-      const baseFps = Math.min(preset.fps, lite ? 20 : chromebook ? 24 : preset.fps);
+    function createBackgroundBudget(preset, { chromebook }) {
+      const baseFps = Math.min(preset.fps, chromebook ? 24 : preset.fps);
       let tier = 0, previous = null, windowStart = 0, frames = 0, slowFrames = 0, stableSince = null;
       function resetClock() {
         previous = null; frames = 0; slowFrames = 0; stableSince = null;
@@ -6311,7 +6227,7 @@ void main() {
         }
         const preset = CHAT_BACKGROUNDS[key];
         const budget = createBackgroundBudget(preset, {
-          chromebook: /\bCrOS\b/.test(navigator.userAgent), lite: isLiteMode(),
+          chromebook: /\bCrOS\b/.test(navigator.userAgent),
         });
         const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
         let last = null, raf = 0, destroyed = false, width = 0, height = 0;
@@ -6774,7 +6690,7 @@ void main() {
       return { version: APP_VERSION, uptimeMs: Math.round(performance.now()),
         environment: { chromium: navigator.userAgent.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1] || '',
           chromebook: /\bCrOS\b/.test(navigator.userAgent), memoryGB: navigator.deviceMemory || null,
-          threads: navigator.hardwareConcurrency || null, lite: isLiteMode(), background: chatBackgroundChoice,
+          threads: navigator.hardwareConcurrency || null, background: chatBackgroundChoice,
           viewport: [innerWidth, innerHeight], devicePixelRatio },
         counts: { members: profiles.size, liveMembers: livePresence.size, cachedViews: msgCache.size,
           cachedMessages: [...msgCache.values()].reduce((total, rows) => total + rows.length, 0),
@@ -6902,6 +6818,7 @@ void main() {
     let lastConversationRefreshAt = 0;
     const LIST_RECONCILE_MS = 5 * 60000;
     const MESSAGE_RECONCILE_MS = 5 * 60000;
+    const CATCH_UP_OVERLAP_MS = 60000;
     const MESSAGE_FALLBACK_POLL_MS = 20000;
     const DM_RECONCILE_MS = 20000;
     let lastCatchUpPollAt = 0;
@@ -7873,6 +7790,7 @@ void main() {
     const NAME_FONTS = Object.freeze(['default', 'rounded', 'mono', 'serif', 'script', 'display']);
     const NAME_EFFECTS = Object.freeze(['default', 'solid', 'gradient', 'fade', 'shift']);
     const NAME_SPEEDS = Object.freeze({ slow: '10s', normal: '6s', fast: '3s' });
+    const NAME_STEPS = Object.freeze({ slow: 200, normal: 120, fast: 90 });
     function normalizeNameStyle(raw) {
       let value = raw;
       if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = null; } }
@@ -7888,7 +7806,7 @@ void main() {
     function displayNameHtml(profileOrUsername) {
       const profile = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : profileOrUsername;
       const style = normalizeNameStyle(profile?.name_style);
-      return `<span class="display-name name-font-${style.font} name-effect-${style.effect}" data-name-user="${esc(profile?.username || '')}" style="--name-from:${style.from};--name-to:${style.to};--name-speed:${NAME_SPEEDS[style.speed]}">${esc(displayNameOf(profile))}</span>`;
+      return `<span class="display-name name-font-${style.font} name-effect-${style.effect}" data-name-user="${esc(profile?.username || '')}" style="--name-from:${style.from};--name-to:${style.to};--name-speed:${NAME_SPEEDS[style.speed]};--name-steps:${NAME_STEPS[style.speed]}">${esc(displayNameOf(profile))}</span>`;
     }
     function refreshStyledNames(username) {
       const profile = profileOf(username);
@@ -7973,19 +7891,10 @@ void main() {
       applyTheme(settings.theme);
       applyDensity(settings.density);
       applyFontSize(settings.fontsize);
-      applyPerformance();
       applyDyslexic(settings.dyslexic);
       applyFlagFont();
       wireStaticEvents();
       setupAvatarLoading();
-
-      const reducedMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
-      reducedMotionQuery.addEventListener?.('change', () => {
-        applyPerformance();
-      });
-      navigator.connection?.addEventListener?.('change', () => {
-        applyPerformance();
-      });
 
       window.addEventListener('message', onParentMessage);
       isEmbedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
@@ -9172,6 +9081,12 @@ void main() {
       closeDrawers();
       finishViewSwitch(view, switched);
       const key = viewKey(view);
+      if (switched) {
+        const dm = view.type === 'dm' ? dms.find(d => d.id === view.id) : null;
+        const since = [dm?.myLastReadAt, lastReadAt[key]].filter(Boolean)
+          .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+        unreadMarker = !isForumThreadView(view) && since && (unreadCounts.get(key) || 0) > 0 ? { key, since } : null;
+      }
 
       if (view.type === 'channel' && isForumThreadView(view) && view.thread) {
         setMainMode('thread');
@@ -9241,7 +9156,7 @@ void main() {
 
     async function fetchMessages(view, beforeIso) {
       const key = viewKey(view);
-      const pageSize = isLiteMode() ? 40 : PAGE_SIZE;
+      const pageSize = PAGE_SIZE;
       let query;
       if (view.type === 'channel') {
         query = sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', view.id).eq('deleted', false);
@@ -9301,9 +9216,34 @@ void main() {
       } finally { btn.disabled = false; }
     }
 
+    // Unread counts compare against server timestamps, so a read mark uses the
+    // newest delivered row rather than this device's clock, which may be skewed.
+    function readStampFor(key) {
+      const rows = msgCache.get(key) || [];
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const row = rows[i];
+        if (!row.pending && !row.failed && row.created_at) return String(row.created_at);
+      }
+      return new Date().toISOString();
+    }
+    let lastReadSave = null;
+    function flushLastRead() {
+      if (!lastReadSave) return;
+      clearTimeout(lastReadSave.timer);
+      LS.set(`lc_lastread:${lastReadSave.owner}`, lastReadSave.values);
+      lastReadSave = null;
+    }
+    function saveLastReadSoon() {
+      if (!me) return;
+      // Reading a busy channel marks it read per message; batch the storage write.
+      if (lastReadSave && (lastReadSave.owner !== me.username || lastReadSave.values !== lastReadAt)) flushLastRead();
+      if (!lastReadSave) lastReadSave = { owner: me.username, values: lastReadAt, timer: setTimeout(flushLastRead, 1000) };
+    }
+    addEventListener('pagehide', flushLastRead);
+
     function markViewRead(key) {
-      lastReadAt[key] = new Date().toISOString();
-      if (me) LS.set(`lc_lastread:${me.username}`, lastReadAt);
+      lastReadAt[key] = readStampFor(key);
+      saveLastReadSoon();
       if (inbox.some(item => item.view === key && !item.read)) { inbox.forEach(item => { if (item.view === key) item.read = true; }); saveInbox(); }
       if (unreadCounts.has(key)) {
         unreadCounts.delete(key);
@@ -9520,27 +9460,64 @@ void main() {
     const linkPreviewCache = new Map();
     const LINK_PREVIEW_CAP = 200;
     let linkPreviewInflight = 0;
+    // Previews persist for this browser so a reload does not refetch every link
+    // from the rate-limited preview service. Only answered lookups are stored;
+    // timeouts and rate limits retry next session.
+    const LINK_PREVIEW_STORE = 'lc_link_previews';
+    const LINK_PREVIEW_TTL_MS = 7 * 86400000, LINK_PREVIEW_MISS_TTL_MS = 86400000;
+    let storedLinkPreviews = null, linkPreviewSaveTimer = 0;
+    function storedLinkPreview(url) {
+      if (!storedLinkPreviews) {
+        const raw = LS.get(LINK_PREVIEW_STORE, {});
+        storedLinkPreviews = new Map(Object.entries(raw && typeof raw === 'object' ? raw : {}));
+      }
+      const entry = storedLinkPreviews.get(url);
+      if (!entry) return undefined;
+      if (Date.now() - entry.t > (entry.d ? LINK_PREVIEW_TTL_MS : LINK_PREVIEW_MISS_TTL_MS)) {
+        storedLinkPreviews.delete(url);
+        return undefined;
+      }
+      return entry.d;
+    }
+    function storeLinkPreview(url, data) {
+      storedLinkPreview(url);
+      const d = data ? { title: String(data.title || '').slice(0, 300), description: String(data.description || '').slice(0, 500),
+        publisher: String(data.publisher || '').slice(0, 120), image: data.image?.url ? { url: String(data.image.url).slice(0, 1000) } : null } : null;
+      storedLinkPreviews.delete(url);
+      storedLinkPreviews.set(url, { d, t: Date.now() });
+      while (storedLinkPreviews.size > LINK_PREVIEW_CAP) storedLinkPreviews.delete(storedLinkPreviews.keys().next().value);
+      if (!linkPreviewSaveTimer) linkPreviewSaveTimer = setTimeout(() => {
+        linkPreviewSaveTimer = 0;
+        LS.set(LINK_PREVIEW_STORE, Object.fromEntries(storedLinkPreviews));
+      }, 2000);
+    }
     async function attachLinkPreview(node, url) {
       if (ytIdOf(url)) { attachYouTubeCard(node, url); return; }
-      if (isLiteMode()) return;
       while (linkPreviewInflight >= 2) {
         await new Promise(r => setTimeout(r, 120));
         if (!node.isConnected) return;
       }
       let data = linkPreviewCache.get(url);
       if (data === undefined) {
+        data = storedLinkPreview(url);
+        if (data !== undefined) linkPreviewCache.set(url, data);
+      }
+      if (data === undefined) {
         linkPreviewInflight++;
+        let answered = false;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 8000);
         try {
           const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`, { signal: controller.signal });
           const json = res.ok ? await res.json() : null;
           data = (json && json.status === 'success' && json.data && (json.data.title || json.data.description)) ? json.data : null;
+          answered = res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429);
         } catch { data = null; } finally {
           clearTimeout(timer);
           linkPreviewInflight = Math.max(0, linkPreviewInflight - 1);
         }
         linkPreviewCache.set(url, data);
+        if (answered) storeLinkPreview(url, data);
         if (linkPreviewCache.size > LINK_PREVIEW_CAP) {
           linkPreviewCache.delete(linkPreviewCache.keys().next().value);
         }
@@ -9558,7 +9535,7 @@ void main() {
           <span class="link-card-title" style="display:block;">${esc(data.title || url)}</span>
           ${data.description ? `<span class="link-card-desc">${esc(data.description)}</span>` : ''}
         </span>
-        ${imgUrl ? `<img class="link-card-img" src="${esc(imgUrl)}" alt="" loading="lazy">` : ''}`;
+        ${imgUrl ? `<img class="link-card-img" src="${esc(imgUrl)}" alt="" loading="lazy" decoding="async">` : ''}`;
       holder.appendChild(card);
     }
 
@@ -9690,6 +9667,24 @@ void main() {
       remaining.forEach(node => node.remove());
     }
 
+    // Captured when a conversation with unread messages opens; kept until another opens.
+    let unreadMarker = null;
+    function paintUnreadMarker() {
+      const list = $('message-list');
+      const previous = qs('.msg.unread-start', list);
+      let target = null;
+      const key = viewKey(currentView);
+      if (unreadMarker?.key === key) {
+        const since = Date.parse(unreadMarker.since);
+        const rows = historyContexts.get(key)?.rows || msgCache.get(key) || [];
+        const first = rows.find(row => !row.deleted && !row.pending && !row.failed
+          && row.sender !== me?.username && Date.parse(row.created_at) > since);
+        if (first) target = qs(`.msg[data-id="${cssAttr(first.id)}"]`, list);
+      }
+      if (previous && previous !== target) previous.classList.remove('unread-start');
+      if (target && !target.classList.contains('unread-start')) target.classList.add('unread-start');
+    }
+
     function renderTimeline({ preserve = false } = {}) {
       const key = viewKey(currentView);
       const context = historyContexts.get(key);
@@ -9721,6 +9716,7 @@ void main() {
       }
       listEl.dataset.view = key;
       markTimelineTail();
+      paintUnreadMarker();
       if (!msgs.length && messageLoadErrors.has(key)) {
         listEl.innerHTML = `<div class="empty-state api-empty-state"><div class="big-icon">↻</div><h3>Messages couldn't load</h3><p>The server is slow or unreachable. Retry to load this conversation.</p><button class="secondary-button" type="button" data-retry-messages>Retry</button></div>`;
         qs('[data-retry-messages]', listEl)?.addEventListener('click', async (event) => {
@@ -9755,6 +9751,38 @@ void main() {
           </div>
         </div>`).join('');
       $('load-older').hidden = true;
+    }
+
+    // Message rows carry no media dimensions. Remember each image's natural size
+    // in this browser so later renders reserve its box instead of shifting the
+    // timeline as it loads. Keys are the stored media_url (stable for private
+    // group media, whose signed URLs change).
+    const MEDIA_SIZE_KEY = 'lc_media_sizes', MEDIA_SIZE_CAP = 600;
+    const mediaSizes = new Map(Object.entries(LS.get(MEDIA_SIZE_KEY, {}) || {}));
+    let mediaSizeSaveTimer = 0;
+    function mediaBoxStyle(key, maxWidth, maxHeight) {
+      const size = key && mediaSizes.get(key);
+      if (!Array.isArray(size)) return '';
+      const [w, h] = size.map(Number);
+      if (!(w > 0 && h > 0)) return '';
+      const scale = Math.min(1, maxWidth / w, maxHeight / h);
+      // A fixed width (narrowed by the stylesheet's max-width) keeps the box sized
+      // inside shrink-to-fit wrappers before the image has loaded.
+      return ` style="width:${Math.max(1, Math.round(w * scale))}px;aspect-ratio:${w} / ${h};height:auto"`;
+    }
+    function rememberMediaSize(event) {
+      const img = event.target;
+      const key = img?.dataset?.sizeKey;
+      if (!key || !img.naturalWidth || !img.naturalHeight) return;
+      const known = mediaSizes.get(key);
+      if (known && known[0] === img.naturalWidth && known[1] === img.naturalHeight) return;
+      mediaSizes.delete(key);
+      mediaSizes.set(key, [img.naturalWidth, img.naturalHeight]);
+      while (mediaSizes.size > MEDIA_SIZE_CAP) mediaSizes.delete(mediaSizes.keys().next().value);
+      if (!mediaSizeSaveTimer) mediaSizeSaveTimer = setTimeout(() => {
+        mediaSizeSaveTimer = 0;
+        LS.set(MEDIA_SIZE_KEY, Object.fromEntries(mediaSizes));
+      }, 2000);
     }
 
     function buildMessageNode(msg, prev) {
@@ -9818,14 +9846,14 @@ void main() {
         if ((msg.type === 'image' || msg.type === 'gif') && msg.media_url) {
           if (msg.type === 'gif') {
             const faved = favGifs.some(f => f.url === msg.media_url);
-            bodyHtml += `<div class="msg-media gif-wrap"><img src="${esc(msg.media_url)}" alt="Shared gif" loading="lazy" data-lightbox><button class="gif-fav-msg ${faved ? 'faved' : ''}" data-fav-gif="${esc(msg.media_url)}" title="${faved ? 'Unfavorite GIF' : 'Favorite GIF'}">${faved ? '★' : '☆'}</button></div>`;
+            bodyHtml += `<div class="msg-media gif-wrap"><img src="${esc(msg.media_url)}" alt="Shared gif" loading="lazy" decoding="async" data-size-key="${esc(sourceMessage.media_url)}"${mediaBoxStyle(sourceMessage.media_url, 380, 320)} data-lightbox><button class="gif-fav-msg ${faved ? 'faved' : ''}" data-fav-gif="${esc(msg.media_url)}" title="${faved ? 'Unfavorite GIF' : 'Favorite GIF'}">${faved ? '★' : '☆'}</button></div>`;
           } else {
-            bodyHtml += `<div class="msg-media"><img src="${esc(msg.media_url)}" alt="Shared image" loading="lazy" data-lightbox></div>`;
+            bodyHtml += `<div class="msg-media"><img src="${esc(msg.media_url)}" alt="Shared image" loading="lazy" decoding="async" data-size-key="${esc(sourceMessage.media_url)}"${mediaBoxStyle(sourceMessage.media_url, 380, 320)} data-lightbox></div>`;
           }
         } else if (msg.type === 'file' && msg.media_url) {
           bodyHtml += renderFileCardHtml(msg.media_url);
         } else if (msg.type === 'sticker' && msg.media_url) {
-          bodyHtml += `<div class="msg-media sticker"><img src="${esc(msg.media_url)}" alt="Sticker" loading="lazy" data-lightbox></div>`;
+          bodyHtml += `<div class="msg-media sticker"><img src="${esc(msg.media_url)}" alt="Sticker" loading="lazy" decoding="async" data-size-key="${esc(sourceMessage.media_url)}"${mediaBoxStyle(sourceMessage.media_url, 280, 280)} data-lightbox></div>`;
         }
         bodyHtml += '<div class="msg-cards"></div>';
         node._urls = urls;
@@ -10339,7 +10367,7 @@ void main() {
     const LIVE_MESSAGE_SLACK = 50;
     function trimLiveCache(key) {
       const cache = msgCache.get(key);
-      const cap = isLiteMode() ? Math.round(LIVE_MESSAGE_CAP / 2) : LIVE_MESSAGE_CAP;
+      const cap = LIVE_MESSAGE_CAP;
       if (!cache || cache.length <= cap + LIVE_MESSAGE_SLACK) return false;
       const history = historyContexts.get(key)?.rows || [];
       const historyById = new Map(history.map(message => [message.id, message]));
@@ -10378,6 +10406,20 @@ void main() {
         }
       });
       $('load-older').hidden = !hasMoreMap.get(viewKey(currentView));
+    }
+
+    // Realtime and catch-up can deliver a row after a newer one was committed.
+    // Moves it back among delivered rows; pending sends stay below. Returns true if moved.
+    function placeByTime(cache, msg) {
+      const at = cache.lastIndexOf(msg);
+      const stamp = String(msg.created_at || '');
+      const delivered = row => !row.pending && !row.failed;
+      let index = at;
+      while (index > 0 && !(delivered(cache[index - 1]) && String(cache[index - 1].created_at) <= stamp)) index--;
+      if (at < 0 || index === at || !cache.slice(index, at).some(delivered)) return false;
+      cache.splice(at, 1);
+      cache.splice(index, 0, msg);
+      return true;
     }
 
     function appendToTimeline(msg) {
@@ -10563,7 +10605,7 @@ void main() {
       if (result.error) {
         if (pending.confirmed) { void requestNoelleReply(pending.confirmedMessage, kind); return true; }
         console.error(result.error);
-        failPendingSend(pending, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '');
+        failPendingSend(pending, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
         return 'kept';
       }
       lastSuccessfulSendAt = Date.now();
@@ -10649,17 +10691,48 @@ void main() {
       return entry;
     }
 
-    function failPendingSend(entry, reason = '') {
+    // Network failures carry no PostgREST code. Server refusals (permissions,
+    // filters, blocks) do, and are never retried automatically.
+    function isTransientSendError(error) {
+      if (navigator.onLine === false) return true;
+      const text = `${error?.name || ''} ${error?.message || ''}`;
+      return !error?.code && /fetch|network|timeout|abort|load failed/i.test(text);
+    }
+    function failPendingSend(entry, reason = '', error = null) {
       if (!entry) return;
       const i = pendingSends.indexOf(entry);
       if (i >= 0) pendingSends.splice(i, 1);
+      const transient = !reason && isTransientSendError(error);
       if (entry.placeholder) {
         entry.placeholder.pending = false;
         entry.placeholder.failed = true;
+        entry.placeholder.autoRetry = transient && (entry.placeholder.autoRetries || 0) < AUTO_RETRY_LIMIT;
       }
       if (entry.key === viewKey(currentView) && entry.placeholder) updateMessageNode(entry.placeholder);
-      toast({ type: 'error', text: reason || 'Message failed to send. Retry it from the bubble.' });
+      if (entry.placeholder?.autoRetry && navigator.onLine === false) {
+        toast({ type: 'warning', text: "You're offline. Unsent messages will send when you reconnect." });
+      } else {
+        toast({ type: 'error', text: reason || 'Message failed to send. Retry it from the bubble.' });
+      }
     }
+
+    const AUTO_RETRY_LIMIT = 3;
+    let autoRetryRunning = false;
+    async function retryTransientFailures() {
+      if (!me || autoRetryRunning || navigator.onLine === false) return;
+      autoRetryRunning = true;
+      try {
+        // Oldest first, one at a time, so a conversation keeps its order.
+        const failed = [...msgCache.values()].flat().filter(m => m.failed && m.autoRetry)
+          .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+        for (const msg of failed) {
+          if (!me || navigator.onLine === false) break;
+          msg.autoRetries = (msg.autoRetries || 0) + 1;
+          await retryFailedSend(msg);
+        }
+      } finally { autoRetryRunning = false; }
+    }
+    addEventListener('online', () => setTimeout(retryTransientFailures, 1500));
 
     function discardFailedSend(msg) {
       if (!msg?.failed) return;
@@ -10706,7 +10779,7 @@ void main() {
       if (result.error) {
         if (entry.confirmed) { void requestNoelleReply(entry.confirmedMessage, kind); return; }
         console.error(result.error);
-        failPendingSend(entry, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '');
+        failPendingSend(entry, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
         return;
       }
       lastSuccessfulSendAt = Date.now();
@@ -10983,9 +11056,12 @@ void main() {
         return;
       }
 
+      let reordered = false;
       if (msgCache.has(key)) {
-        msgCache.get(key).push(m);
+        const cache = msgCache.get(key);
+        cache.push(m);
         indexMessage(m);
+        reordered = placeByTime(cache, m);
       }
       const isCurrent = key === viewKey(currentView);
       let readingContext = isCurrent && historyContexts.has(key);
@@ -11008,7 +11084,8 @@ void main() {
         if ((mine || wasNear) && trimLiveCache(key)) {
           trimTimelineToCache();
         }
-        appendToTimeline(m);
+        if (reordered) renderTimeline({ preserve: true });
+        else appendToTimeline(m);
         if (mine || wasNear) { scrollToBottom(); markViewRead(key); }
         else bumpNewBadge();
       } else if (!mine) {
@@ -11026,7 +11103,7 @@ void main() {
 
       if (kind === 'dm') {
         const dm = dms.find(d => d.id === m.dm_id);
-        if (dm) { dm.lastMsg = m; sortDms(); }
+        if (dm && (!dm.lastMsg || String(dm.lastMsg.created_at) <= String(m.created_at))) { dm.lastMsg = m; sortDms(); }
         renderDmList();
         if (!mine && isCurrent && !readingContext) markDmRead(currentView);
         if (!mine && !isCurrent) {
@@ -13618,7 +13695,7 @@ void main() {
           queueConversationRefresh();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_group_invites' }, () => queueConversationRefresh())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleProfileChange)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onProfileRealtime)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_subroles' }, () => reloadSubroleCatalog())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, handleSettingsChange)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, handleChannelChange)
@@ -13643,7 +13720,7 @@ void main() {
       eventsChannel = sb.channel('liminal-presence')
         .on('broadcast', { event: 'typing' }, ({ payload }) => onTypingBroadcast(payload))
         .on('broadcast', { event: 'moderation' }, ({ payload }) => onModerationBroadcast(payload))
-        .on('broadcast', { event: 'profile_updated' }, ({ payload }) => refreshProfile(payload && payload.username))
+        .on('broadcast', { event: 'profile_updated' }, ({ payload }) => scheduleProfileRefresh(payload && payload.username))
         .on('broadcast', { event: 'channel_purged' }, ({ payload }) => onChannelPurged(payload))
         .on('broadcast', { event: 'app_update' }, ({ payload }) => onAppUpdateBroadcast(payload))
         .subscribe((status) => {
@@ -13967,6 +14044,7 @@ void main() {
         scheduleRenderMembers();
         patchPresenceDots();
         renderSelf();
+        void retryTransientFailures();
       } catch (err) {
         console.warn('[liminal] wake sync failed', err);
       } finally {
@@ -14199,6 +14277,25 @@ void main() {
       });
     }
 
+    // profile_updated is a fallback for a missed row change. Every client hears it,
+    // so only fetch when Realtime did not deliver that profile around the same time.
+    const PROFILE_REFRESH_GRACE_MS = 2000;
+    const profileRealtimeAt = new Map(), profileRefreshTimers = new Map();
+    function onProfileRealtime(payload) {
+      const username = payload?.new?.username || payload?.old?.username;
+      if (username) profileRealtimeAt.set(username, Date.now());
+      handleProfileChange(payload);
+    }
+    function scheduleProfileRefresh(username) {
+      if (!username || profileRefreshTimers.has(username)) return;
+      const heardAt = Date.now();
+      profileRefreshTimers.set(username, setTimeout(() => {
+        profileRefreshTimers.delete(username);
+        if ((profileRealtimeAt.get(username) || 0) >= heardAt - 3000) return;
+        void refreshProfile(username);
+      }, PROFILE_REFRESH_GRACE_MS));
+    }
+
     async function refreshProfile(username) {
       if (!username) return;
       let { data, error } = await sb.from('profiles').select(PROFILE_COLUMNS).eq('username', username).maybeSingle();
@@ -14333,6 +14430,7 @@ void main() {
     }
 
     /* ============================= 19. TYPING ============================= */
+    const TYPING_TTL_MS = 4000;
     let lastTypingSent = 0;
     function sendTypingState(active) {
       if (!eventsChannel) return;
@@ -14341,13 +14439,14 @@ void main() {
       if (active && now - lastTypingSent < 2000) return;
       lastTypingSent = active ? now : 0;
       try {
-        eventsChannel.send({ type: 'broadcast', event: 'typing', payload: { user: me.username, view: viewKey(currentView), active, until: now + 4000 } });
+        eventsChannel.send({ type: 'broadcast', event: 'typing', payload: { user: me.username, view: viewKey(currentView), active, until: now + TYPING_TTL_MS } });
       } catch {}
     }
     function onTypingBroadcast(payload) {
       if (!payload || payload.user === me.username) return;
       if (String(payload.view || '').startsWith('dm:') && dmBlockedUsers.has(payload.user)) return;
-      if (payload.active) typingUsers.set(payload.user, { view: payload.view, until: payload.until });
+      // Expire on this device's clock; the sender's clock may disagree with ours.
+      if (payload.active) typingUsers.set(payload.user, { view: payload.view, until: Date.now() + TYPING_TTL_MS });
       else typingUsers.delete(payload.user);
       renderTyping();
     }
@@ -14442,11 +14541,22 @@ void main() {
           const cache = msgCache.get(key) || [];
           const real = cache.filter(m => !m.pending && !m.failed && !(typeof m.id === 'string' && m.id.startsWith('pending:')));
           const since = real.length ? real[real.length - 1].created_at : null;
+          // A row committed just after a newer one can miss Realtime and sort before
+          // `since`. Re-read a short window (at most 50 known rows) to recover it; the
+          // limit grows by the known rows so new rows are never crowded out.
+          let from = since, known = 0;
+          if (since) {
+            const windowStart = Date.parse(since) - CATCH_UP_OVERLAP_MS;
+            const floor = real[Math.max(0, real.length - 50)].created_at;
+            if (Date.parse(floor) < windowStart) from = new Date(windowStart).toISOString();
+            else from = floor;
+            known = real.filter(m => Date.parse(m.created_at) >= Date.parse(from)).length;
+          }
           let query = view.type === 'channel'
             ? sb.from('messages').select(MESSAGE_COLUMNS).eq('channel_id', view.id)
             : sb.from('dm_messages').select(DM_MESSAGE_COLUMNS).eq('dm_id', view.id);
-          if (since) query = query.gte('created_at', since);
-          const { data } = await query.order('created_at', { ascending: true }).limit(isLiteMode() ? 25 : 50);
+          if (from) query = query.gte('created_at', from);
+          const { data } = await query.order('created_at', { ascending: true }).limit(50 + known);
           if (presenceStopped || presenceLeft) return;
           (data || []).forEach(m => ingestMessage(m, view.type === 'dm' ? 'dm' : 'channel'));
         } catch {}
@@ -19164,7 +19274,7 @@ void main() {
     const HISTORY_MESSAGE_CAP = 200;
     let messageJumpRequest = 0;
     function capHistoryContext(context, direction) {
-      const cap = isLiteMode() ? 120 : HISTORY_MESSAGE_CAP;
+      const cap = HISTORY_MESSAGE_CAP;
       if (context.rows.length <= cap) return;
       const excess = context.rows.length - cap;
       const dropped = direction === 'older' ? context.rows.splice(cap) : context.rows.splice(0, excess);
@@ -19586,6 +19696,7 @@ void main() {
         const spoiler = e.target.closest('[data-spoiler]');
         if (spoiler) spoiler.classList.add('revealed');
       });
+      $('message-list').addEventListener('load', rememberMediaSize, true);
       $('message-list').addEventListener('keydown', (e) => {
         const spoiler = e.target.closest('[data-spoiler]');
         if (spoiler && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); spoiler.classList.add('revealed'); }
@@ -20037,9 +20148,8 @@ void main() {
       gl.uniform1f(u.iFalloff, opts.falloff);
       gl.uniform1f(u.iOpacity, opts.opacity);
 
-      const isLite = () => document.documentElement.getAttribute('data-lite') === 'true'
-        || /\bCrOS\b/.test(navigator.userAgent);
-      const targetDpr = () => Math.min(window.devicePixelRatio || 1, isLite() ? 0.75 : 1.5);
+      const isChromebook = () => /\bCrOS\b/.test(navigator.userAgent);
+      const targetDpr = () => Math.min(window.devicePixelRatio || 1, isChromebook() ? 0.75 : 1.5);
 
       const resize = () => {
         const dpr = targetDpr();
@@ -20063,7 +20173,7 @@ void main() {
       };
       const start = () => {
         if (rafId != null) return;
-        if (reduceMotion.matches || isLite()) { drawStatic(); return; }
+        if (reduceMotion.matches || isChromebook()) { drawStatic(); return; }
         resize();
         rafId = requestAnimationFrame(loop);
       };
