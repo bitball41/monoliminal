@@ -163,6 +163,26 @@ await phase('history',quick?4000:10000,async()=>{for(let i=0;i<3;i++){await page
 await phase('typing',quick?3500:6000,()=>page.evaluate(()=>{window.fixtureTypingTimer=setInterval(()=>{const ta=$('message-input');ta.value+='typing ';ta.dispatchEvent(new Event('input',{bubbles:true}));if(ta.value.length>120)clearInterval(fixtureTypingTimer)},120)}));
 await phase('presence',quick?1500:4000,()=>page.evaluate(()=>{for(let i=0;i<71;i++)fixtureEmit('profiles','UPDATE',{...profiles.get(`member_${i}`),last_seen:new Date().toISOString()});window.dispatchEvent(new Event('focus'))}));
 await phase('return-latest',quick?1500:4000,()=>page.evaluate(()=>scrollToBottom(true)));
+// Wheel scrolling with the pointer over messages, as a mouse user would.
+// Hover suppression and name pausing must stay on single elements, not
+// restyle the whole timeline.
+await page.mouse.move(700,350);
+if(verify)await page.evaluate(()=>{const n=[...$('message-list').querySelectorAll('.display-name[data-media-visible="true"]')].at(-1);n.classList.add('name-effect-fade');window.fixtureScrollName=n});
+await phase('scroll',quick?300:1000,async()=>{
+ const wheel=async(dy,ms)=>{const end=Date.now()+ms;while(Date.now()<end){await page.mouse.wheel(0,dy);await host.waitForTimeout(16)}};
+ await wheel(-100,quick?1500:3000);
+ if(verify){
+  const during=await page.evaluate(()=>({flag:qs('#timeline .timeline-inner').hasAttribute('data-scrolling'),pointer:getComputedStyle($('message-list').querySelector('.msg')).pointerEvents,name:fixtureScrollName.hasAttribute('data-scroll-paused'),play:getComputedStyle(fixtureScrollName).animationPlayState}));
+  assert.deepEqual(during,{flag:true,pointer:'none',name:true,play:'paused'},'scrolling suppresses hover and pauses on-screen animated names');
+ }
+ await wheel(100,quick?1500:3000);
+});
+if(verify){
+ await page.waitForFunction(()=>!qs('#timeline .timeline-inner').hasAttribute('data-scrolling'));
+ assert.deepEqual(await page.evaluate(()=>({pointer:getComputedStyle($('message-list').querySelector('.msg')).pointerEvents,name:fixtureScrollName.hasAttribute('data-scroll-paused'),scrolling:$('timeline').classList.contains('is-scrolling')})),{pointer:'auto',name:false,scrolling:false},'settled scroll restores hover and name animation');
+ assert(results.scroll.longTasks.length<=results.scroll.frames/10,`scrolling keeps long tasks rare: ${results.scroll.longTasks.length}/${results.scroll.frames}`);
+ await page.evaluate(()=>{fixtureScrollName.classList.remove('name-effect-fade');scrollToBottom(true)});
+}
 if(verify){
  await phase('long-session',quick?2500:60000,()=>page.evaluate(()=>{let next=1000;window.fixtureBurstTimer=setInterval(()=>{for(let batch=0;batch<25;batch++){const row={...fixtureRow(next++),type:'text',media_url:'',sender:'member_1'};fixtureMessages.push(row);fixtureEmit('messages','INSERT',row)}if(next>=2000)clearInterval(fixtureBurstTimer)},40)}));
  const bounds=await page.evaluate(()=>({live:msgCache.get(viewKey(currentView)).length,history:historyContexts.get(viewKey(currentView)).rows.length,mounted:$('message-list').querySelectorAll('.msg').length}));

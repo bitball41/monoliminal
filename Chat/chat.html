@@ -443,7 +443,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     @keyframes name-gradient-shift { to { background-position: 200% 0; } }
     html[data-ring-visibility] .display-name:not([data-media-visible="true"]),
     html[data-ring-paused] .display-name,
-    .timeline.is-scrolling .display-name { animation-play-state: paused; }
+    .display-name[data-scroll-paused] { animation-play-state: paused; }
     :root[data-dyslexic="true"] .display-name { font-family: var(--font-ui); font-style: normal; }
     @media (prefers-reduced-motion: reduce) { .display-name { animation: none !important; } }
     @media (forced-colors: active) { .display-name { background: none; color: CanvasText; animation: none !important; } }
@@ -873,8 +873,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     /* ============================= TIMELINE ============================= */
     .timeline-wrap { position: relative; min-height: 0; }
     .timeline { height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; overflow-anchor: none; }
-    
-    .timeline.is-scrolling .msg { pointer-events: none; }
+    /* Keep .is-scrolling free of descendant rules: one such rule makes every
+       class toggle restyle the whole timeline (~900 elements) mid-gesture.
+       Hover suppression instead sets the inherited pointer-events on the one
+       content wrapper; messages passing under the cursor would otherwise
+       reveal action bars (layout, paint and layer rebuilds) every frame. */
+    .timeline-inner[data-scrolling] { pointer-events: none; }
     .timeline-inner { max-width: 1060px; margin: 0 auto; padding: 18px 18px 8px; }
     .load-older-wrap { display: flex; justify-content: center; padding: 6px 0 14px; }
 
@@ -5185,7 +5189,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.27.0";
+    const APP_VERSION = "2.27.1";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -10332,7 +10336,8 @@ void main() {
     function updateViewingOlder(nearBottom) {
       const near = nearBottom === undefined ? (stickyToBottom || isNearBottom()) : nearBottom;
       const inHistory = historyContexts.has(viewKey(currentView));
-      $('new-msgs-badge').hidden = pendingNewCount === 0;
+      const badge = $('new-msgs-badge');
+      if (badge.hidden !== (pendingNewCount === 0)) badge.hidden = pendingNewCount === 0;
       const show = pendingNewCount === 0 && (inHistory || (!stickyToBottom && !near));
       if (show === viewingOlderShown) return;
       viewingOlderShown = show;
@@ -19612,8 +19617,10 @@ void main() {
 
       $('load-older').addEventListener('click', loadOlder);
       const timelineElRef = $('timeline');
+      const timelineInnerRef = timelineElRef.querySelector('.timeline-inner');
       let scrollFrame = 0;
       let scrollSettle = 0;
+      let scrollPausedNames = null;
       let lastTouchY = 0;
       const endScrollbarPointer = () => { scrollbarPointer = false; };
       window.addEventListener('pointerup', endScrollbarPointer);
@@ -19663,9 +19670,21 @@ void main() {
             const near = applyingPin ? true : isNearBottom();
             if (scrollbarPointer && movedUp && !near) releaseBottomPin();
             updateTimelineReadState(near, movedDown);
-            timelineElRef.classList.add('is-scrolling');
+            if (!scrollPausedNames) {
+              // Pause only the animated names already on screen. Attributes on
+              // those few elements avoid restyling the rest of the timeline.
+              timelineElRef.classList.add('is-scrolling');
+              timelineInnerRef.setAttribute('data-scrolling', '');
+              scrollPausedNames = qsa('.display-name.name-effect-fade[data-media-visible="true"], .display-name.name-effect-shift[data-media-visible="true"]', timelineElRef);
+              scrollPausedNames.forEach(el => el.setAttribute('data-scroll-paused', ''));
+            }
             clearTimeout(scrollSettle);
-            scrollSettle = setTimeout(() => timelineElRef.classList.remove('is-scrolling'), 120);
+            scrollSettle = setTimeout(() => {
+              timelineElRef.classList.remove('is-scrolling');
+              timelineInnerRef.removeAttribute('data-scrolling');
+              (scrollPausedNames || []).forEach(el => el.removeAttribute('data-scroll-paused'));
+              scrollPausedNames = null;
+            }, 150);
           });
         }
       }, { passive: true });

@@ -1,5 +1,29 @@
 # Liminal Chat
 
+## Smoother scrolling (2.27.1)
+
+Scrolling the timeline with the pointer over messages dropped frames. Two
+causes were measured in the offline harness (4× CPU throttle, software GL,
+pointer over the timeline, wheel scrolling up through unseen messages):
+
+- The 2.27 scroll class on `.timeline` had descendant rules (`.msg` pointer
+  events, `.display-name` animation pause). Each toggle restyled ~900 elements
+  (30–40 ms per toggle under throttling), and slow frames let the 120 ms settle
+  timer toggle it again mid-gesture. The class now only styles the scrollbar.
+  Visible animated names get `data-scroll-paused` individually.
+- Without hover suppression, each message passing under the cursor revealed
+  its action bar (layout, paint and layer rebuilds). Hover is now suppressed
+  by `pointer-events: none` on the single `.timeline-inner` wrapper, an
+  inherited property that does not restyle the subtree.
+
+The new-messages badge's `hidden` attribute is no longer rewritten on every
+scroll frame. Over two A/B runs of the first scroll up: 73–81 → 108–144 frames
+in the window, long tasks 19–22 → 5–8, style recalc ~800 ms → ~300 ms, p95
+117 ms → 67 ms. Remaining cost is painting animated GIFs/rings, unchanged.
+
+No backend change. `scripts/chat-scroll-rendering.test.mjs` and the new
+`scroll` phase of `chat-runtime.browser.mjs --verify` cover this.
+
 ## Smoothness and delivery fixes (2.27)
 
 **Lite mode removed.** It had no setting; Chat silently switched it on for
