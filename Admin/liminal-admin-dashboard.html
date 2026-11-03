@@ -247,6 +247,26 @@
     .message-item { grid-template-columns: minmax(140px, 0.7fr) minmax(0, 2fr) auto; }
     .message-copy { overflow-wrap: anywhere; color: var(--soft); }
     .message-copy.deleted { color: var(--muted); font-style: italic; }
+    .nav-count { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 800; text-align: center; }
+    .dm-report { display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    .dm-report:last-child { border-bottom: 0; }
+    .dm-report-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .dm-report-head strong { font-size: 14px; }
+    .dm-quote { padding: 10px 12px; border-radius: 12px; background: var(--inset, var(--panel-2)); border: 1px solid var(--line); color: var(--soft); overflow-wrap: anywhere; white-space: pre-wrap; }
+    .dm-report-meta { color: var(--muted); font-size: 12px; }
+    .dm-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .dm-row:last-child { border-bottom: 0; }
+    .dm-row p { margin: 3px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+    .dm-thread { display: grid; gap: 2px; max-height: min(70vh, 900px); overflow-y: auto; overscroll-behavior: contain; }
+    .dm-msg { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 10px; border-radius: 12px; border: 1px solid transparent; }
+    .dm-msg.reported { border-color: rgba(251, 113, 133, 0.5); background: rgba(251, 113, 133, 0.08); }
+    .dm-msg-meta { font-size: 12px; color: var(--muted); }
+    .dm-msg-meta strong { color: var(--text); margin-right: 6px; }
+    .dm-msg-body { grid-column: 1; overflow-wrap: anywhere; white-space: pre-wrap; color: var(--soft); }
+    .dm-msg.deleted .dm-msg-body { color: var(--muted); }
+    .dm-msg-actions { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 6px; align-items: start; }
+    .dm-msg-actions button, .dm-report .actions button, .dm-row button { min-height: 30px; padding: 4px 9px; font-size: 12px; }
+    .dm-media img, .dm-media video { display: block; max-width: min(100%, 360px); max-height: 320px; margin-top: 6px; border-radius: 10px; }
     .channel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .channel-item { padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); border-bottom: 1px solid var(--line); }
     .channel-metrics { display: flex; gap: 12px; margin-top: 10px; color: var(--soft); font-size: 12px; }
@@ -400,6 +420,7 @@
         <button class="nav-btn owner-only" data-view="games-page" type="button"><svg class="icon"><use href="#i-devtools"/></svg>Games page</button>
         <div class="nav-label">People</div>
         <button class="nav-btn" data-view="moderation" type="button"><svg class="icon"><use href="#i-moderation"/></svg>Moderation</button>
+        <button class="nav-btn owner-only" data-view="dms" type="button"><svg class="icon"><use href="#i-dm"/></svg>DM safety<span class="nav-count" id="dm-report-count" hidden></span></button>
         <button class="nav-btn" data-view="content" type="button"><svg class="icon"><use href="#i-content"/></svg>Messages</button>
         <button class="nav-btn" data-view="channels" type="button"><svg class="icon"><use href="#i-channels"/></svg>Channels</button>
         <button class="nav-btn" data-view="words" type="button"><svg class="icon"><use href="#i-words"/></svg>Banned words</button>
@@ -568,6 +589,60 @@
         </article>
       </section>
 
+      <section data-page="dms" hidden>
+        <div class="notice" style="margin-bottom:16px">Owner / PRESTON only. Admins and mods cannot open this page or read DMs. Opening a conversation, loading older messages, viewing a report, searching and removing messages are each recorded in the audit log. Entries name the people involved and search terms, never message text.</div>
+        <div class="filter-pills" id="dm-tabs" style="margin-bottom:16px" role="tablist">
+          <button class="filter-pill active" data-dm-tab="reports" type="button" role="tab" aria-selected="true">Reports <span id="dm-tab-report-count"></span></button>
+          <button class="filter-pill" data-dm-tab="conversations" type="button" role="tab" aria-selected="false">Conversations</button>
+          <button class="filter-pill" data-dm-tab="search" type="button" role="tab" aria-selected="false">Search</button>
+        </div>
+
+        <article class="card pad" data-dm-panel="reports">
+          <div class="section-title"><div><h3>Reported messages</h3><p>Members report messages they received. The original text is kept even if it is later deleted.</p></div><button class="secondary" id="dm-reports-refresh" type="button">Refresh</button></div>
+          <div class="filter-pills" id="dm-report-status" style="margin-bottom:14px">
+            <button class="filter-pill active" data-report-status="open" type="button">Open</button>
+            <button class="filter-pill" data-report-status="actioned" type="button">Actioned</button>
+            <button class="filter-pill" data-report-status="dismissed" type="button">Dismissed</button>
+            <button class="filter-pill" data-report-status="all" type="button">All</button>
+          </div>
+          <div id="dm-report-list"><div class="empty">Loading reports…</div></div>
+        </article>
+
+        <article class="card pad" data-dm-panel="conversations" hidden>
+          <div class="section-title"><div><h3>Conversations</h3><p>DMs and private groups, most recent first.</p></div></div>
+          <form class="toolbar" id="dm-conversation-form" style="margin-bottom:14px">
+            <input id="dm-conversation-query" type="search" maxlength="60" placeholder="Filter by username or group name">
+            <button class="secondary" type="submit">Filter</button>
+          </form>
+          <div id="dm-conversation-list"></div>
+          <div class="toolbar" id="dm-conversation-pager" style="margin-top:12px" hidden>
+            <button class="ghost" id="dm-conversation-prev" type="button">Newer</button>
+            <span class="dm-report-meta" id="dm-conversation-range"></span>
+            <button class="ghost" id="dm-conversation-next" type="button">Older</button>
+          </div>
+        </article>
+
+        <article class="card pad" data-dm-panel="search" hidden>
+          <div class="section-title"><div><h3>Search messages</h3><p>Matches text in every DM and private group. Searches are logged with their terms.</p></div></div>
+          <form class="toolbar" id="dm-search-form" style="margin-bottom:14px">
+            <input id="dm-search-query" type="search" maxlength="100" placeholder="Text (2+ characters)">
+            <input id="dm-search-sender" type="search" maxlength="60" placeholder="Sender (optional)">
+            <button class="primary" type="submit">Search</button>
+          </form>
+          <div id="dm-search-results"><div class="empty">Enter text or a sender to search.</div></div>
+        </article>
+
+        <article class="card pad" id="dm-viewer" style="margin-top:16px" hidden>
+          <div class="section-title">
+            <div><h3 id="dm-viewer-title">Conversation</h3><p id="dm-viewer-subtitle"></p></div>
+            <button class="ghost" id="dm-viewer-close" type="button">Close</button>
+          </div>
+          <div class="actions" id="dm-viewer-people" style="margin-bottom:12px"></div>
+          <button class="ghost" id="dm-viewer-older" type="button" hidden>Load older messages</button>
+          <div id="dm-viewer-messages" class="dm-thread"></div>
+        </article>
+      </section>
+
       <section data-page="content" hidden>
         <article class="card pad">
           <div class="section-title"><div><h3>Recent messages</h3><p>Public channels only. Direct messages stay out of here.</p></div></div>
@@ -700,6 +775,7 @@
     let dashboardOpen = false;
     let activeView = "overview";
     let activeUserFilter = "all";
+    const OWNER_VIEWS = ["broadcast", "games-page", "dms", "deploys", "devtools"];
     const DEPLOY_APPS = {
       chat: { label: "Liminal Chat", file: "chat.html" },
       games: { label: "Liminal Games", file: "games.html" }
@@ -935,6 +1011,7 @@
       admin = null;
       state = null;
       gamesPageDraft = null; gamesPageDirty = false; gamesPageSaving = false;
+      resetDmSafety();
       $("games-page-save-status").textContent = "";
       qsa("[data-broadcast-dirty]").forEach((el) => { delete el.dataset.broadcastDirty; });
       writeAdminCache(null);
@@ -956,7 +1033,8 @@
       $("aside-user").textContent = "@" + admin.username;
       $("aside-role").textContent = admin.is_owner ? "Owner" : "Administrator";
       qsa(".owner-only").forEach((el) => { el.hidden = !admin.is_owner; });
-      if (!admin.is_owner && ["broadcast", "games-page", "deploys", "devtools"].includes(activeView)) showView("overview");
+      if (!admin.is_owner && OWNER_VIEWS.includes(activeView)) showView("overview");
+      if (admin.is_owner) loadDmReports({ quiet: true });
       await refreshState();
       startAutoRefresh();
     }
@@ -1083,7 +1161,7 @@
     window.addEventListener("pageshow", catchUpDashboard);
     document.addEventListener("visibilitychange", catchUpDashboard);
     function showView(view) {
-      if (["broadcast", "games-page", "deploys", "devtools"].includes(view) && !admin?.is_owner) return;
+      if (OWNER_VIEWS.includes(view) && !admin?.is_owner) return;
       activeView = view;
       const copy = {
         overview: ["Overview", "Live health and community activity."],
@@ -1091,6 +1169,7 @@
         broadcast: ["Announcements", "Messages the whole community sees."],
         "games-page": ["Games page", "Announcements and links above the game catalog."],
         moderation: ["Moderation", "Bans, timeouts, and account access."],
+        dms: ["DM safety", "Reports and owner review of private conversations."],
         content: ["Messages", "Recent public channel posts."],
         channels: ["Channels", "Where the room has been talking."],
         words: ["Banned words", "Phrases the database refuses."],
@@ -1102,6 +1181,7 @@
       $("page-subtitle").textContent = copy[1];
       qsa("[data-page]").forEach((page) => { page.hidden = page.dataset.page !== view; });
       qsa(".nav-btn").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+      if (view === "dms") onDmViewShown();
     }
     function renderAll() {
       renderOverview();
@@ -1779,6 +1859,320 @@
       const button = event.target.closest("[data-devtest-delete]");
       if (button) deleteDevSession(button.dataset.devtestDelete);
     });
+
+    /* DM_SAFETY_UI_START */
+    const DM_REPORT_REASONS = { sexual: "Sexual content", harassment: "Harassment", spam: "Spam", self_harm: "Self-harm", other: "Other" };
+    const DM_PAGE_SIZE = 50;
+    const GROUP_MEDIA_BUCKET = "liminal-group-media";
+    let dmState = null;
+    function freshDmState() {
+      return { tab: "reports", reportStatus: "open", reports: null, counts: null, conversations: null, conversationTotal: 0,
+        conversationQuery: "", conversationOffset: 0, search: null, viewer: null, generation: 0 };
+    }
+    dmState = freshDmState();
+    function resetDmSafety() {
+      dmState = { ...freshDmState(), generation: (dmState?.generation || 0) + 1 };
+      for (const id of ["dm-report-list", "dm-conversation-list", "dm-search-results", "dm-viewer-messages", "dm-viewer-people"]) { const el = $(id); if (el) el.innerHTML = ""; }
+      if ($("dm-viewer")) $("dm-viewer").hidden = true;
+      setDmReportCount(0);
+    }
+    function dmCurrent(generation) { return generation === dmState.generation && admin?.is_owner && dashboardOpen; }
+    function setDmReportCount(count) {
+      const n = Number(count || 0);
+      $("dm-report-count").hidden = n < 1;
+      $("dm-report-count").textContent = n > 99 ? "99+" : String(n);
+      $("dm-tab-report-count").textContent = n ? "(" + n + ")" : "";
+    }
+    function dmConversationLabel(conversation) {
+      if (!conversation) return "Deleted conversation";
+      const people = (conversation.participants || []).map((name) => "@" + name).join(", ");
+      return conversation.is_group ? (conversation.title || "Private group") + " · " + people : people;
+    }
+    function dmSafeUrl(value) {
+      try { const url = new URL(value); return url.protocol === "https:" || url.protocol === "http:" ? url.href : ""; } catch { return ""; }
+    }
+    async function dmMediaUrl(value) {
+      const raw = String(value || "");
+      if (raw.startsWith("group-media:")) {
+        const { data, error } = await sb.storage.from(GROUP_MEDIA_BUCKET).createSignedUrl(raw.slice(12), 600);
+        if (error || !data?.signedUrl) throw error || new Error("Attachment unavailable");
+        return data.signedUrl;
+      }
+      const url = dmSafeUrl(raw);
+      if (!url) throw new Error("Attachment link is not a web address");
+      return url;
+    }
+    function dmMessageBody(message) {
+      const text = message.content || (message.media_url ? "" : "[" + (message.type || "empty") + " message]");
+      const media = message.media_url ? `<div class="dm-media"><button class="ghost" type="button" data-dm-media="${esc(message.media_url)}" data-dm-media-type="${esc(message.type || "")}">Show ${esc(message.type || "attachment")}</button></div>` : "";
+      return `${text ? esc(text) : ""}${media}`;
+    }
+    function dmMessageHtml(message, { conversation = null, removable = true } = {}) {
+      const tags = [
+        message.is_reported ? '<span class="badge bad">Reported</span>' : "",
+        message.report_count && !message.is_reported ? `<span class="badge warn">${message.report_count} report${message.report_count === 1 ? "" : "s"}</span>` : "",
+        message.deleted ? `<span class="badge">Deleted${message.deleted_by ? " by @" + esc(message.deleted_by) : ""}</span>` : "",
+        message.edited ? '<span class="badge">Edited</span>' : ""
+      ].join(" ");
+      const where = conversation ? ` · <button class="ghost" type="button" data-dm-open="${esc(conversation.id)}">${esc(dmConversationLabel(conversation))}</button>` : "";
+      const remove = removable && !message.deleted ? `<button class="danger" type="button" data-dm-remove="${esc(message.id)}" data-dm-sender="${esc(message.sender)}">Remove</button>` : "";
+      return `<div class="dm-msg${message.is_reported ? " reported" : ""}${message.deleted ? " deleted" : ""}" data-dm-message="${esc(message.id)}">
+        <div class="dm-msg-meta"><strong>@${esc(message.sender)}</strong>${esc(fmtDate(message.created_at))} ${tags}${where}</div>
+        <div class="dm-msg-actions">${remove}</div>
+        <div class="dm-msg-body">${dmMessageBody(message)}</div>
+      </div>`;
+    }
+    function renderDmTabs() {
+      qsa("[data-dm-tab]").forEach((button) => {
+        const active = button.dataset.dmTab === dmState.tab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      qsa("[data-dm-panel]").forEach((panel) => { panel.hidden = panel.dataset.dmPanel !== dmState.tab; });
+      qsa("[data-report-status]").forEach((button) => button.classList.toggle("active", button.dataset.reportStatus === dmState.reportStatus));
+    }
+    function renderDmReports() {
+      const list = $("dm-report-list");
+      if (!dmState.reports) { list.innerHTML = '<div class="empty">Loading reports…</div>'; return; }
+      list.innerHTML = dmState.reports.map((report) => {
+        const status = report.status === "open" ? '<span class="badge bad">Open</span>' : report.status === "actioned" ? '<span class="badge good">Actioned</span>' : '<span class="badge">Dismissed</span>';
+        const messageState = !report.message_exists ? "Message no longer exists" : report.message_deleted ? "Message deleted" : "Message still visible";
+        const snapshot = { content: report.message_content, media_url: report.message_media_url, type: report.message_type };
+        const resolved = report.status !== "open" ? `<div class="dm-report-meta">${esc(report.status === "actioned" ? "Actioned" : "Dismissed")} by @${esc(report.resolved_by || "?")} · ${esc(fmtDate(report.resolved_at))}${report.resolution_note ? " · " + esc(report.resolution_note) : ""}</div>` : "";
+        const actions = [
+          report.conversation_exists ? `<button class="secondary" type="button" data-report-context="${esc(report.id)}">View conversation</button>` : "",
+          report.status === "open" && report.message_exists && !report.message_deleted ? `<button class="danger" type="button" data-report-action="remove" data-report-id="${esc(report.id)}">Remove message</button>` : "",
+          report.status === "open" ? `<button class="secondary" type="button" data-report-action="actioned" data-report-id="${esc(report.id)}">Mark actioned</button>` : "",
+          report.status === "open" ? `<button class="ghost" type="button" data-report-action="dismissed" data-report-id="${esc(report.id)}">Dismiss</button>` : `<button class="ghost" type="button" data-report-action="open" data-report-id="${esc(report.id)}">Reopen</button>`,
+          `<button class="ghost" type="button" data-user-action="timeout" data-username="${esc(report.reported_user)}">Timeout @${esc(report.reported_user)}</button>`,
+          report.reported_user_banned ? '<span class="badge bad">Banned</span>' : `<button class="danger" type="button" data-user-action="ban" data-username="${esc(report.reported_user)}">Ban @${esc(report.reported_user)}</button>`
+        ].join("");
+        return `<div class="dm-report">
+          <div class="dm-report-head">${status}<span class="badge warn">${esc(DM_REPORT_REASONS[report.reason] || report.reason)}</span><strong>@${esc(report.reporter)} reported @${esc(report.reported_user)}</strong></div>
+          <div class="dm-report-meta">${esc(report.is_group ? (report.conversation_title || "Private group") + " · " : "")}${esc((report.participants || []).map((name) => "@" + name).join(", "))} · reported ${esc(fmtDate(report.created_at))} · sent ${esc(fmtDate(report.message_created_at))}</div>
+          <div class="dm-quote">${dmMessageBody(snapshot)}</div>
+          ${report.details ? `<div class="dm-report-meta">Reporter's note: ${esc(report.details)}</div>` : ""}
+          <div class="dm-report-meta">${esc(messageState)} · ${report.message_report_count} report${report.message_report_count === 1 ? "" : "s"} on this message · @${esc(report.reported_user)} has ${report.reported_user_open_reports} open / ${report.reported_user_total_reports} total</div>
+          ${resolved}
+          <div class="actions">${actions}</div>
+        </div>`;
+      }).join("") || `<div class="empty">No ${dmState.reportStatus === "all" ? "" : esc(dmState.reportStatus) + " "}reports.</div>`;
+    }
+    async function loadDmReports({ quiet = false } = {}) {
+      if (!admin?.is_owner) return;
+      const generation = dmState.generation, status = dmState.reportStatus;
+      try {
+        const result = await rpc("admin_dashboard_list_dm_reports", { p_admin_token: admin.token, p_status: status, p_limit: 100 });
+        if (!dmCurrent(generation) || status !== dmState.reportStatus) return;
+        dmState.reports = result?.reports || [];
+        dmState.counts = result?.counts || {};
+        setDmReportCount(dmState.counts.open);
+        renderDmReports();
+      } catch (error) {
+        console.error(error);
+        if (!dmCurrent(generation)) return;
+        if (!quiet || activeView === "dms") $("dm-report-list").innerHTML = `<div class="empty">${esc(dmMissingMessage(error, "Could not load reports."))}</div>`;
+        if (!quiet) toast(dmMissingMessage(error, "Could not load reports."), true);
+      }
+    }
+    function dmMissingMessage(error, fallback) {
+      return /could not find the function|does not exist/i.test(error?.message || "") ? "DM safety needs the 20261103180000_dm_reports SQL migration." : (error?.message || fallback);
+    }
+    function renderDmConversations() {
+      const list = $("dm-conversation-list");
+      if (!dmState.conversations) { list.innerHTML = '<div class="empty">Loading conversations…</div>'; $("dm-conversation-pager").hidden = true; return; }
+      list.innerHTML = dmState.conversations.map((conversation) => `<div class="dm-row">
+          <div><strong>${esc(dmConversationLabel(conversation))}</strong>
+          <p>${conversation.is_group ? "Private group · " : "DM · "}${conversation.message_count} message${conversation.message_count === 1 ? "" : "s"} · last ${esc(conversation.last_message_at ? fmtRelative(conversation.last_message_at) + " by @" + conversation.last_sender : "never")}${conversation.open_reports ? ` · <span class="badge bad">${conversation.open_reports} open report${conversation.open_reports === 1 ? "" : "s"}</span>` : ""}</p></div>
+          <button class="secondary" type="button" data-dm-open="${esc(conversation.id)}">Open</button>
+        </div>`).join("") || '<div class="empty">No matching conversations.</div>';
+      const start = dmState.conversationOffset, end = start + dmState.conversations.length;
+      $("dm-conversation-pager").hidden = dmState.conversationTotal <= DM_PAGE_SIZE;
+      $("dm-conversation-range").textContent = dmState.conversations.length ? (start + 1) + "–" + end + " of " + dmState.conversationTotal : "";
+      $("dm-conversation-prev").disabled = start === 0;
+      $("dm-conversation-next").disabled = end >= dmState.conversationTotal;
+    }
+    async function loadDmConversations() {
+      const generation = dmState.generation, query = dmState.conversationQuery, offset = dmState.conversationOffset;
+      dmState.conversations = null; renderDmConversations();
+      try {
+        const result = await rpc("admin_dashboard_list_dm_conversations", { p_admin_token: admin.token, p_query: query, p_limit: DM_PAGE_SIZE, p_offset: offset });
+        if (!dmCurrent(generation) || query !== dmState.conversationQuery || offset !== dmState.conversationOffset) return;
+        dmState.conversations = result?.conversations || [];
+        dmState.conversationTotal = Number(result?.total || 0);
+        renderDmConversations();
+      } catch (error) {
+        console.error(error);
+        if (!dmCurrent(generation)) return;
+        dmState.conversations = [];
+        $("dm-conversation-list").innerHTML = `<div class="empty">${esc(dmMissingMessage(error, "Could not load conversations."))}</div>`;
+      }
+    }
+    async function runDmSearch() {
+      const query = $("dm-search-query").value.trim(), sender = $("dm-search-sender").value.trim();
+      if (query.length < 2 && !sender) return toast("Enter at least 2 characters or a sender.", true);
+      const generation = dmState.generation;
+      $("dm-search-results").innerHTML = '<div class="empty">Searching…</div>';
+      try {
+        const result = await rpc("admin_dashboard_search_dm_messages", { p_admin_token: admin.token, p_query: query, p_sender: sender, p_limit: 100 });
+        if (!dmCurrent(generation)) return;
+        const messages = result?.messages || [];
+        dmState.search = messages;
+        $("dm-search-results").innerHTML = messages.map((message) => dmMessageHtml(message, { conversation: message.conversation })).join("")
+          + (messages.length >= (result?.limit || 100) ? `<div class="empty">Showing the newest ${messages.length}. Narrow the search to see older matches.</div>` : "")
+          || '<div class="empty">No matching messages.</div>';
+      } catch (error) {
+        console.error(error);
+        if (dmCurrent(generation)) $("dm-search-results").innerHTML = `<div class="empty">${esc(dmMissingMessage(error, "Search failed."))}</div>`;
+      }
+    }
+    function renderDmViewer() {
+      const viewer = dmState.viewer;
+      $("dm-viewer").hidden = !viewer;
+      if (!viewer) return;
+      $("dm-viewer-title").textContent = viewer.conversation ? dmConversationLabel(viewer.conversation) : "Conversation";
+      $("dm-viewer-subtitle").textContent = viewer.mode === "report"
+        ? "Reported message with up to " + viewer.radius + " messages before and after it."
+        : (viewer.conversation?.is_group ? "Private group" : "Direct message") + " · " + viewer.messages.length + " loaded";
+      $("dm-viewer-people").innerHTML = (viewer.conversation?.participants || []).map((name) =>
+        `<button class="ghost" type="button" data-user-action="timeout" data-username="${esc(name)}">Timeout @${esc(name)}</button><button class="danger" type="button" data-user-action="ban" data-username="${esc(name)}">Ban @${esc(name)}</button>`).join("");
+      $("dm-viewer-older").hidden = viewer.mode !== "conversation" || !viewer.hasMore;
+      $("dm-viewer-messages").innerHTML = viewer.messages.map((message) => dmMessageHtml(message)).join("") || '<div class="empty">No messages in this conversation.</div>';
+    }
+    async function openDmConversation(dmId, { older = false } = {}) {
+      const generation = dmState.generation;
+      const current = dmState.viewer?.mode === "conversation" && dmState.viewer.conversation?.id === dmId ? dmState.viewer : null;
+      const first = older && current ? current.messages[0] : null;
+      try {
+        const result = await rpc("admin_dashboard_get_dm_messages", { p_admin_token: admin.token, p_dm_id: dmId,
+          p_before: first?.created_at || null, p_before_id: first?.id || null, p_limit: DM_PAGE_SIZE });
+        if (!dmCurrent(generation)) return;
+        const page = result?.messages || [];
+        dmState.viewer = { mode: "conversation", conversation: result.conversation,
+          messages: first ? page.concat(current.messages) : page, hasMore: !!result.has_more };
+        renderDmViewer();
+        const thread = $("dm-viewer-messages");
+        if (!first) { thread.scrollTop = thread.scrollHeight; $("dm-viewer").scrollIntoView({ block: "start" }); }
+      } catch (error) {
+        console.error(error);
+        if (dmCurrent(generation)) toast(dmMissingMessage(error, "Could not open the conversation."), true);
+      }
+    }
+    async function openDmReportContext(reportId) {
+      const generation = dmState.generation;
+      try {
+        const result = await rpc("admin_dashboard_get_dm_report_context", { p_admin_token: admin.token, p_report_id: reportId, p_radius: 15 });
+        if (!dmCurrent(generation)) return;
+        const report = result.report;
+        dmState.viewer = { mode: "report", radius: result.radius, reportId,
+          conversation: { id: report.dm_id, is_group: report.is_group, title: report.conversation_title, participants: report.participants },
+          messages: result.messages || [], hasMore: false };
+        renderDmViewer();
+        $("dm-viewer").scrollIntoView({ block: "start" });
+        $("dm-viewer-messages").querySelector(".dm-msg.reported")?.scrollIntoView({ block: "center" });
+      } catch (error) {
+        console.error(error);
+        if (dmCurrent(generation)) toast(dmMissingMessage(error, "Could not open the report."), true);
+      }
+    }
+    async function resolveDmReport(reportId, action) {
+      const report = (dmState.reports || []).find((item) => item.id === reportId);
+      const remove = action === "remove";
+      const status = remove ? "actioned" : action;
+      let note = "";
+      if (status !== "open") {
+        note = await dialog({
+          title: remove ? "Remove reported message" : status === "actioned" ? "Mark report actioned" : "Dismiss report",
+          message: remove ? "Hides the message from the conversation for everyone. The original stays in the moderation archive and this report keeps its copy." : "Optional note for your records.",
+          input: "Note (optional)", okLabel: remove ? "Remove message" : status === "actioned" ? "Mark actioned" : "Dismiss", danger: remove
+        });
+        if (note === null) return;
+      }
+      try {
+        await rpc("admin_dashboard_resolve_dm_report", { p_admin_token: admin.token, p_report_id: reportId, p_status: status, p_note: note.trim().slice(0, 500), p_remove_message: remove });
+        toast(remove ? "Message removed." : status === "open" ? "Report reopened." : "Report updated.");
+        await loadDmReports();
+        if (dmState.viewer?.reportId === reportId) await openDmReportContext(reportId);
+        else if (remove && report && dmState.viewer?.conversation?.id === report.dm_id) await openDmConversation(report.dm_id);
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not update the report.", true);
+      }
+    }
+    async function removeDmMessage(messageId, sender) {
+      const note = await dialog({ title: "Remove message from @" + sender, message: "Hides it from the conversation for everyone and settles open reports on it. The original stays in the moderation archive.", input: "Note (optional)", okLabel: "Remove message", danger: true });
+      if (note === null) return;
+      try {
+        const removed = await rpc("admin_dashboard_remove_dm_message", { p_admin_token: admin.token, p_message_id: messageId, p_note: note.trim().slice(0, 500) });
+        toast(removed ? "Message removed." : "That message was already removed.");
+        const markDeleted = (list) => (list || []).forEach((message) => { if (message.id === messageId) { message.deleted = true; message.deleted_by = admin.username; } });
+        markDeleted(dmState.viewer?.messages); markDeleted(dmState.search);
+        renderDmViewer();
+        if (dmState.search) $("dm-search-results").innerHTML = dmState.search.map((message) => dmMessageHtml(message, { conversation: message.conversation })).join("");
+        void loadDmReports({ quiet: true });
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Could not remove the message.", true);
+      }
+    }
+    async function showDmMedia(button) {
+      button.disabled = true;
+      try {
+        const url = await dmMediaUrl(button.dataset.dmMedia);
+        const type = button.dataset.dmMediaType;
+        const holder = button.parentElement;
+        if (/^(image|gif|sticker)$/.test(type)) holder.innerHTML = `<img alt="Attachment" src="${esc(url)}" referrerpolicy="no-referrer">`;
+        else if (/^video$/.test(type)) holder.innerHTML = `<video controls preload="metadata" src="${esc(url)}"></video>`;
+        else holder.innerHTML = `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`;
+      } catch (error) {
+        console.error(error);
+        button.disabled = false;
+        toast(error.message || "Attachment unavailable.", true);
+      }
+    }
+    function onDmViewShown() {
+      renderDmTabs();
+      if (dmState.tab === "reports") void loadDmReports();
+      else if (dmState.tab === "conversations" && !dmState.conversations) void loadDmConversations();
+    }
+    $("dm-tabs").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-dm-tab]");
+      if (!button) return;
+      dmState.tab = button.dataset.dmTab;
+      onDmViewShown();
+    });
+    $("dm-report-status").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-report-status]");
+      if (!button || button.dataset.reportStatus === dmState.reportStatus) return;
+      dmState.reportStatus = button.dataset.reportStatus;
+      dmState.reports = null;
+      renderDmTabs(); renderDmReports();
+      void loadDmReports();
+    });
+    $("dm-reports-refresh").addEventListener("click", () => loadDmReports());
+    $("dm-conversation-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      dmState.conversationQuery = $("dm-conversation-query").value.trim();
+      dmState.conversationOffset = 0;
+      void loadDmConversations();
+    });
+    $("dm-conversation-prev").addEventListener("click", () => { dmState.conversationOffset = Math.max(0, dmState.conversationOffset - DM_PAGE_SIZE); void loadDmConversations(); });
+    $("dm-conversation-next").addEventListener("click", () => { dmState.conversationOffset += DM_PAGE_SIZE; void loadDmConversations(); });
+    $("dm-search-form").addEventListener("submit", (event) => { event.preventDefault(); void runDmSearch(); });
+    $("dm-viewer-close").addEventListener("click", () => { dmState.viewer = null; $("dm-viewer-messages").innerHTML = ""; renderDmViewer(); });
+    $("dm-viewer-older").addEventListener("click", () => { if (dmState.viewer?.conversation) void openDmConversation(dmState.viewer.conversation.id, { older: true }); });
+    $("dashboard").addEventListener("click", (event) => {
+      if (activeView !== "dms") return;
+      const target = event.target.closest("[data-dm-open],[data-report-context],[data-report-action],[data-dm-remove],[data-dm-media],[data-user-action]");
+      if (!target || !$("dashboard").querySelector('[data-page="dms"]').contains(target)) return;
+      if (target.dataset.dmOpen) void openDmConversation(target.dataset.dmOpen);
+      else if (target.dataset.reportContext) void openDmReportContext(target.dataset.reportContext);
+      else if (target.dataset.reportAction) void resolveDmReport(target.dataset.reportId, target.dataset.reportAction);
+      else if (target.dataset.dmRemove) void removeDmMessage(target.dataset.dmRemove, target.dataset.dmSender);
+      else if (target.dataset.dmMedia) void showDmMedia(target);
+      else if (target.dataset.userAction) void userAction(target.dataset.userAction, target.dataset.username).then(() => loadDmReports({ quiet: true }));
+    });
+    /* DM_SAFETY_UI_END */
 
     restoreSession();
   </script>
