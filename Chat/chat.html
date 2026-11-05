@@ -5189,7 +5189,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.27.1";
+    const APP_VERSION = "2.27.2";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -10344,13 +10344,52 @@ void main() {
       $('viewing-older').hidden = !show;
     }
 
+    // A history page that reaches rows the live cache already holds rejoins live
+    // mode locally: merge, keep the mounted nodes, pin. Staying in history mode
+    // at the bottom hid new messages behind the badge, withheld DM read marks,
+    // and made the next send or Latest click refetch and rebuild every row.
+    function rejoinLiveFromHistory(key = viewKey(currentView)) {
+      const context = historyContexts.get(key);
+      if (!context || context.busy || viewKey(currentView) !== key) return false;
+      const live = msgCache.get(key) || [];
+      const delivered = row => !row.pending && !row.failed;
+      const newest = context.rows.at(-1), oldestLive = live.find(delivered);
+      // Every row after the page being read must already be in the live cache.
+      if (newest && (oldestLive
+        ? String(oldestLive.created_at) > String(newest.created_at) && !live.some(row => row.id === newest.id)
+        : context.hasNewer)) return false;
+      const byId = new Map();
+      context.rows.forEach(row => byId.set(row.id, row));
+      live.forEach(row => byId.set(row.id, row));
+      const rows = [...byId.values()];
+      const merged = rows.filter(delivered)
+        .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)))
+        .concat(rows.filter(row => !delivered(row)));
+      const startsAtPage = !!context.rows[0] && merged[0]?.id === context.rows[0].id;
+      const hasOlder = startsAtPage ? !!context.hasOlder : !!hasMoreMap.get(key);
+      clearHistoryContexts();
+      setViewMessages(key, merged);
+      hasMoreMap.set(key, hasOlder);
+      trimLiveCache(key);
+      renderTimeline({ preserve: true });
+      timelineHoldUntil = 0;
+      scrollToBottom();
+      hideNewBadge();
+      markViewRead(key);
+      if (currentView.type === 'dm') void markDmRead(currentView);
+      return true;
+    }
+
     function updateTimelineReadState(near, movedDown) {
       const context = historyContexts.get(viewKey(currentView));
       if (context) {
         // The end of a historical page is not the end of the live conversation.
         releaseBottomPin();
         updateViewingOlder(false);
-        if (near && movedDown && context.hasNewer && !context.busy) loadHistoryPage('newer');
+        if (near && movedDown && !context.busy) {
+          if (!timelineHeld() && rejoinLiveFromHistory()) return;
+          if (context.hasNewer) loadHistoryPage('newer');
+        }
       } else if (timelineHeld()) {
         stickyToBottom = false;
         updateViewingOlder(false);
@@ -11081,7 +11120,11 @@ void main() {
         readingContext = true;
       }
       const forumBoardId = kind !== 'dm' ? forumBoardIdFromChannelId(m.channel_id) : null;
-      if (readingContext) {
+      // A member already back at the bottom of a history page sees the message
+      // live instead of a badge.
+      if (readingContext && isNearBottom() && !timelineHeld() && rejoinLiveFromHistory(key)) {
+        readingContext = false;
+      } else if (readingContext) {
         historyContexts.get(key).hasNewer = true;
         trimLiveCache(key);
         bumpNewBadge();
@@ -19355,12 +19398,16 @@ void main() {
         if (fresh && top !== undefined) timelineEl().scrollTop += fresh.getBoundingClientRect().top - top;
       } catch { toast({type:'error',text:'Could not load more history. Try again.'}); }
       finally { context.busy = false; if (button) button.disabled = false; }
+      // A newer page that ends at the live cache, with the reader at the bottom.
+      if (!older && historyContexts.get(key) === context && viewKey(currentView) === key && isNearBottom()) rejoinLiveFromHistory(key);
     }
     async function returnToLatest() {
       timelineHoldUntil = 0; // An explicit navigation overrides a history anchor hold.
       const view = {...currentView}, key = viewKey(view), context = historyContexts.get(key);
       const request = ++messageJumpRequest;
       if (!context) { scrollToBottom(true); hideNewBadge(); markViewRead(key); return true; }
+      // The live cache already continues this page: no refetch or full rebuild.
+      if (rejoinLiveFromHistory(key)) return true;
       const buttons = [$('jump-present-btn'), $('new-msgs-badge')];
       buttons.forEach(button => { button.disabled = true; });
       try {

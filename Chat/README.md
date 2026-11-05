@@ -1,5 +1,64 @@
 # Liminal Chat
 
+## Messages stay live after scrolling (2.27.2)
+
+If a message arrived while the timeline was scrolled even slightly above the
+bottom, Chat switched into history mode, and scrolling back down did not
+switch it back. Sitting at the very bottom:
+
+- new messages waited behind the "new messages" badge instead of appearing;
+- every small scroll near the bottom requested another page from the server;
+- DM read marks were withheld, so the other person saw the DM as unread;
+- tapping the badge, or sending a message, first refetched the latest page
+  and rebuilt every mounted row and its images before continuing.
+
+Once the page being read reaches rows the live cache already holds, Chat now
+rejoins live mode locally. It merges the page with the live cache (late rows
+by time, unsent rows last), reconciles the rows already on screen, pins to the
+bottom and marks the conversation read. This happens on scrolling back down,
+when a message arrives at the bottom, after a newer page ends there, and on
+Jump to present or send. A page that ends before the live cache, in deeper
+history, still loads newer rows from the server as before, and an anchored
+jump that is still settling is not pulled to the bottom.
+
+Offline harness, about 210 mounted rows, 4× CPU throttle: the old full rebuild
+took 84–139 ms of script and 145–232 ms to the next frame. The in-place
+reconcile took 3–6 ms.
+
+`scripts/chat-new-messages.test.mjs` covers rejoining, ordering, staying in
+history and Jump to present. Four of its new tests fail on 2.27.1.
+
+### Long-session soak
+
+`scripts/chat-soak.browser.mjs` runs the full app offline for many minutes
+with real timers and Realtime callbacks, plus simulated messages, typing,
+presence, profile edits, focus/wake and scrolling. `--busy` adds DM traffic,
+animated names and channel switches, and `--blip` drops the Realtime socket
+every five minutes. It samples heap, DOM, listeners and attributed main-thread
+work, and counts samples where the timeline is at the bottom but not live.
+
+A 25-minute run of 2.27.1 found no leak or growth over time: heap stayed at
+3–5 MB, long frames fell after startup, and DOM growth followed the message
+caps. The stuck history mode above was the defect it surfaced. In 12-minute
+`--busy --blip` runs (a message every 3 s, reading a little above the bottom
+once a minute, tapping the badge whenever it showed at the bottom):
+
+| | 2.27.1 | 2.27.2 |
+| --- | --- | --- |
+| Samples at the bottom but not live | 7 | 0 |
+| Samples with delivered messages not shown | 10 of 47 | 0 of 48 |
+| Badge taps that rebuilt the timeline | 7 (35–96 ms each) | 0 |
+| Top-level `renderTimeline` time | 1,055 ms | 52 ms |
+| `messages` reads | 28 | 9 |
+
+The two runs shared one machine, so their frame intervals are not compared.
+With `--verify`, a 3.5-minute run fails on 2.27.1 and passes on 2.27.2.
+
+```sh
+CHAT_MEDIA_DIR=/path/to/gif-test-assets SOAK_MIN=25 \
+node scripts/chat-soak.browser.mjs Chat/chat.html soak --busy --blip --verify
+```
+
 ## Smoother scrolling (2.27.1)
 
 Scrolling the timeline with the pointer over messages dropped frames. Two
