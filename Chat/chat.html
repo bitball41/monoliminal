@@ -426,26 +426,17 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .name-font-script { font-family: "Pacifico", "Brush Script MT", cursive; font-weight: 400; }
     .name-font-display { font-family: "Syne", "Trebuchet MS", sans-serif; font-style: italic; font-weight: 800; }
     .name-effect-solid, .name-effect-gradient, .name-effect-shift, .name-effect-fade { color: var(--name-from); }
-    /* Clipped-text gradients repaint every animation frame. About 20 discrete
-       updates per second (30 for Fast) keep the motion fluid at a third of the paint work. */
-    .name-effect-fade { animation: name-color-fade var(--name-speed, 6s) steps(var(--name-steps, 120)) infinite; }
+    /* Fade and Shift move on one shared ~20 Hz clock (tickNameEffects), which
+       writes --name-mix/--name-pos on visible names only. A CSS animation made
+       Chrome restyle, paint and commit the whole page every display frame,
+       even with steps(): 9 visible names kept an idle Chat 30% busy. */
+    .name-effect-fade { color: color-mix(in srgb, var(--name-to) var(--name-mix, 0%), var(--name-from)); }
     @supports ((background-clip: text) or (-webkit-background-clip: text)) {
       .name-effect-gradient, .name-effect-shift { background-image: linear-gradient(90deg, var(--name-from), var(--name-to), var(--name-from)); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; }
-      .name-effect-shift { animation: name-gradient-shift var(--name-speed, 6s) steps(var(--name-steps, 120)) infinite; }
+      .name-effect-shift { background-position: var(--name-pos, 0%) 0; }
     }
-    @keyframes name-color-fade {
-      0%, 100% { color: var(--name-from); }
-      12.5%, 87.5% { color: color-mix(in srgb, var(--name-to) 12%, var(--name-from)); }
-      25%, 75% { color: color-mix(in srgb, var(--name-to) 50%, var(--name-from)); }
-      37.5%, 62.5% { color: color-mix(in srgb, var(--name-to) 88%, var(--name-from)); }
-      50% { color: var(--name-to); }
-    }
-    @keyframes name-gradient-shift { to { background-position: 200% 0; } }
-    html[data-ring-visibility] .display-name:not([data-media-visible="true"]),
-    html[data-ring-paused] .display-name,
-    .display-name[data-scroll-paused] { animation-play-state: paused; }
     :root[data-dyslexic="true"] .display-name { font-family: var(--font-ui); font-style: normal; }
-    @media (prefers-reduced-motion: reduce) { .display-name { animation: none !important; } }
+    @media (prefers-reduced-motion: reduce) { .display-name { --name-mix: 0% !important; --name-pos: 0% !important; } }
     @media (forced-colors: active) { .display-name { background: none; color: CanvasText; animation: none !important; } }
     @media (max-width: 420px) { .name-style-grid { grid-template-columns: 1fr; gap: 0; } }
     .pw-wrap { position: relative; }
@@ -5189,7 +5180,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.27.2";
+    const APP_VERSION = "2.27.3";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -5552,10 +5543,14 @@ void main() {
             avatarFailures.set(url, Date.now() + 300000); avatarLoads.delete(url);
             const failed = avatarBlobUrls.get(url); if (failed) URL.revokeObjectURL(failed);
             avatarBlobUrls.delete(url); delete img.dataset.avatarLoaded; img.removeAttribute('src');
+            if (img.isConnected && tracked.has(img)) observer?.observe(img);
             try { void caches.open(AVATAR_CACHE).then(cache => cache.delete(url)).catch(() => {}); } catch {}
           };
           if (img.getAttribute('src') !== source) img.src = source;
           img.dataset.avatarLoaded = url;
+          // Loaded avatars need no further intersection work on every frame;
+          // a new data-avatar-src or a failed load observes them again.
+          observer?.unobserve(img);
         } catch { /* Initials remain visible; retry on a later visibility change. */ }
         finally { if (img.dataset.avatarLoading === url) delete img.dataset.avatarLoading; }
       }
@@ -5577,10 +5572,13 @@ void main() {
       mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-avatar-src'] });
       track(document.body);
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) tracked.forEach(img => { if (observer) { observer.unobserve(img); observer.observe(img); } else void load(img); });
+        if (!document.hidden) tracked.forEach(img => {
+          if (img.dataset.avatarLoaded && img.dataset.avatarLoaded === img.dataset.avatarSrc) return;
+          if (observer) { observer.unobserve(img); observer.observe(img); } else void load(img);
+        });
       });
       window.addEventListener('pagehide', () => { observer?.disconnect(); mutations.disconnect(); }, { once: true });
-      window.addEventListener('pageshow', event => { if (event.persisted) { mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-avatar-src'] }); tracked.forEach(img => observer?.observe(img)); } });
+      window.addEventListener('pageshow', event => { if (event.persisted) { mutations.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-avatar-src'] }); tracked.forEach(img => { if (img.dataset.avatarLoaded !== img.dataset.avatarSrc) observer?.observe(img); }); } });
     }
 
     function avatarHtml(profile, sizeClass, withDot) {
@@ -7660,7 +7658,8 @@ void main() {
       if (ringVisibilityController || typeof IntersectionObserver !== 'function') return ringVisibilityController;
       const root = document.documentElement;
       const tracked = new Set();
-      const selector = '.avatar, .msg, .display-name';
+      // Only Fade/Shift names animate, so other names need no per-frame intersection work.
+      const selector = '.avatar, .msg, .display-name.name-effect-fade, .display-name.name-effect-shift';
       const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           const el = entry.target;
@@ -7715,6 +7714,41 @@ void main() {
         ringVisibilityController = null;
       } };
       return ringVisibilityController;
+    }
+
+    // One clock moves every visible Fade/Shift name in phase, ~20 times a second,
+    // writing only names whose value changed. Offscreen, scroll-paused and
+    // hidden-tab names stay still, and reduced motion keeps them static.
+    const NAME_EFFECT_TICK_MS = 50;
+    const NAME_FADE_STOPS = [0, 12, 50, 88, 100, 88, 50, 12, 0]; // % of --name-to, eighths of a cycle
+    let nameEffectTimer = 0, nameEffectsBound = false;
+    const nameMotionQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    function nameEffectValues(el, now) {
+      const seconds = parseFloat(el.style.getPropertyValue('--name-speed')) || 6;
+      const phase = (now / (seconds * 1000)) % 1;
+      if (el.classList.contains('name-effect-shift')) return ['--name-pos', `${(Math.floor(phase * 2000) / 10)}%`];
+      const at = phase * 8, i = Math.min(7, Math.floor(at));
+      return ['--name-mix', `${Math.round(NAME_FADE_STOPS[i] + (NAME_FADE_STOPS[i + 1] - NAME_FADE_STOPS[i]) * (at - i))}%`];
+    }
+    function tickNameEffects(now = performance.now()) {
+      const visible = ringVisibilityController ? '[data-media-visible="true"]' : '';
+      qsa(`.display-name.name-effect-fade${visible}:not([data-scroll-paused]), .display-name.name-effect-shift${visible}:not([data-scroll-paused])`).forEach(el => {
+        const [property, value] = nameEffectValues(el, now);
+        if (el.style.getPropertyValue(property) !== value) el.style.setProperty(property, value);
+      });
+    }
+    function syncNameEffects() {
+      const run = !document.hidden && !nameMotionQuery?.matches;
+      if (run && !nameEffectTimer) nameEffectTimer = setInterval(tickNameEffects, NAME_EFFECT_TICK_MS);
+      else if (!run && nameEffectTimer) { clearInterval(nameEffectTimer); nameEffectTimer = 0; }
+    }
+    function initNameEffects() {
+      if (!nameEffectsBound) {
+        nameEffectsBound = true;
+        document.addEventListener('visibilitychange', syncNameEffects);
+        nameMotionQuery?.addEventListener?.('change', syncNameEffects);
+      }
+      syncNameEffects();
     }
 
     function effectiveMyStatus() {
@@ -7794,7 +7828,6 @@ void main() {
     const NAME_FONTS = Object.freeze(['default', 'rounded', 'mono', 'serif', 'script', 'display']);
     const NAME_EFFECTS = Object.freeze(['default', 'solid', 'gradient', 'fade', 'shift']);
     const NAME_SPEEDS = Object.freeze({ slow: '10s', normal: '6s', fast: '3s' });
-    const NAME_STEPS = Object.freeze({ slow: 200, normal: 120, fast: 90 });
     function normalizeNameStyle(raw) {
       let value = raw;
       if (typeof value === 'string') { try { value = JSON.parse(value); } catch { value = null; } }
@@ -7810,7 +7843,12 @@ void main() {
     function displayNameHtml(profileOrUsername) {
       const profile = typeof profileOrUsername === 'string' ? profileOf(profileOrUsername) : profileOrUsername;
       const style = normalizeNameStyle(profile?.name_style);
-      return `<span class="display-name name-font-${style.font} name-effect-${style.effect}" data-name-user="${esc(profile?.username || '')}" style="--name-from:${style.from};--name-to:${style.to};--name-speed:${NAME_SPEEDS[style.speed]};--name-steps:${NAME_STEPS[style.speed]}">${esc(displayNameOf(profile))}</span>`;
+      return `<span class="display-name name-font-${style.font} name-effect-${style.effect}" data-name-user="${esc(profile?.username || '')}" style="--name-from:${style.from};--name-to:${style.to};--name-speed:${NAME_SPEEDS[style.speed]}">${esc(displayNameOf(profile))}</span>`;
+    }
+    // Same name and style, ignoring the clock's --name-mix/--name-pos.
+    function sameDisplayName(a, b) {
+      return a.className === b.className && a.textContent === b.textContent
+        && ['--name-from', '--name-to', '--name-speed'].every(key => a.style.getPropertyValue(key) === b.style.getPropertyValue(key));
     }
     function refreshStyledNames(username) {
       const profile = profileOf(username);
@@ -7818,9 +7856,9 @@ void main() {
       template.innerHTML = displayNameHtml(profile);
       qsa('.display-name[data-name-user]').forEach(el => {
         if (el.dataset.nameUser !== username || el.closest('#name-style-preview')) return;
-        // Preserve animation phase when the style and label did not change.
+        // Keep the node when the style and label did not change.
         const next = template.content.firstElementChild;
-        if (el.className === next.className && el.getAttribute('style') === next.getAttribute('style') && el.textContent === next.textContent) return;
+        if (sameDisplayName(el, next)) return;
         el.replaceWith(next.cloneNode(true));
       });
     }
@@ -8893,8 +8931,7 @@ void main() {
               const names = qsa('.display-name', node), nextNames = qsa('.display-name', fresh);
               names.forEach((name, i) => {
                 const next = nextNames[i];
-                if (next && name.dataset.nameUser === next.dataset.nameUser && name.className === next.className
-                    && name.getAttribute('style') === next.getAttribute('style') && name.textContent === next.textContent) next.replaceWith(name);
+                if (next && name.dataset.nameUser === next.dataset.nameUser && sameDisplayName(name, next)) next.replaceWith(name);
               });
               node.replaceChildren(...fresh.childNodes);
             } else node = fresh;
@@ -19427,6 +19464,7 @@ void main() {
     function wireStaticEvents() {
       initWorkspaceLayout();
       initRingVisibility();
+      initNameEffects();
       wireVoiceEvents();
       $('auth-tab-login').addEventListener('click', () => {
         $('auth-tab-login').setAttribute('aria-selected', 'true');

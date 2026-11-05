@@ -18,6 +18,11 @@ await fs.mkdir(output,{recursive:true});
 try {
   const page = await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'no-preference'});
   const errors = [];
+  // True when the shared name clock changes this property within ~half a second.
+  const moves=(selector,property)=>page.evaluate(async([selector,property])=>{
+    const el=document.querySelector(selector), read=()=>el.style.getPropertyValue(property);
+    const first=read(); await new Promise(resolve=>setTimeout(resolve,450)); return read()!==first;
+  },[selector,property]);
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',route=>route.request().url()==='https://liminal.test/'
     ? route.fulfill({contentType:'text/html',body:html}):route.abort());
@@ -62,20 +67,27 @@ try {
   assert.equal(await page.locator('#set-username-handle').innerText(),'@tester');
   assert.equal(await page.locator('.msg[data-sender="tester"] .display-name').innerText(),'Connor');
   assert.match(await page.locator('.msg[data-sender="tester"] .display-name').getAttribute('class'),/name-effect-shift/);
-  assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('#name-style-preview .display-name')).animationDuration),'10s');
+  assert.equal(await page.evaluate(()=>document.querySelector('#name-style-preview .display-name').style.getPropertyValue('--name-speed')),'10s');
+  assert(await moves('#name-style-preview .display-name','--name-pos'),'the shared clock moves a visible Shift name');
   await page.screenshot({path:path.join(output,'settings-desktop.png')});
   await page.locator('[data-close-dialog="settings-dialog"]').click();
   await page.evaluate(()=>openSettings('profile'));
   assert.equal(await page.locator('#set-name-effect').inputValue(),'shift','saved style survives reopening');
   await page.locator('#set-name-effect').selectOption('fade');
   await page.waitForFunction(()=>me.name_style.effect==='fade');
-  assert.equal(await preview.evaluate(el=>getComputedStyle(el).animationName),'name-color-fade');
+  await preview.scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>document.querySelector('#name-style-preview .display-name').dataset.mediaVisible==='true');
+  assert(await moves('#name-style-preview .display-name','--name-mix'),'the shared clock moves a visible Fade name');
+  assert.equal(await preview.evaluate(el=>getComputedStyle(el).animationName),'none','names are not CSS animations');
   await page.emulateMedia({reducedMotion:'reduce'});
-  assert.equal(await preview.evaluate(el=>getComputedStyle(el).animationName),'none');
+  await page.waitForFunction(()=>nameEffectTimer===0,null,{timeout:3000}); // reduced motion stops the clock
+  assert.equal(await preview.evaluate(el=>getComputedStyle(el).getPropertyValue('--name-mix').trim()),'0%','reduced motion shows the base color');
   await page.emulateMedia({reducedMotion:'no-preference'});
-  await page.evaluate(()=>document.documentElement.setAttribute('data-ring-paused',''));
-  assert.equal(await preview.evaluate(el=>getComputedStyle(el).animationPlayState),'paused');
-  await page.evaluate(()=>document.documentElement.removeAttribute('data-ring-paused'));
+  await page.waitForFunction(()=>nameEffectTimer!==0,null,{timeout:3000});
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'))});
+  assert.equal(await page.evaluate(()=>nameEffectTimer),0,'a hidden tab stops the clock');
+  await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'))});
+  assert.notEqual(await page.evaluate(()=>nameEffectTimer),0);
   await page.locator('#set-name-font').selectOption('mono');
   await page.waitForFunction(()=>me.name_style.font==='mono');
   await page.evaluate(()=>applyDyslexic(true));
@@ -100,7 +112,7 @@ try {
     el.innerHTML=displayNameHtml({...profiles.get('alice'),name_style:{effect:'fade'}});document.body.append(el);
   });
   await page.waitForFunction(()=>document.querySelector('#offscreen-name .display-name').dataset.mediaVisible==='false');
-  assert.equal(await page.locator('#offscreen-name .display-name').evaluate(el=>getComputedStyle(el).animationPlayState),'paused');
+  assert.equal(await moves('#offscreen-name .display-name','--name-mix'),false,'offscreen names stay still');
   await page.evaluate(()=>document.querySelector('#offscreen-name').remove());
   await page.screenshot({path:path.join(output,'conversation-desktop.png')});
   await page.setViewportSize({width:320,height:740});
@@ -115,5 +127,5 @@ try {
   assert(bounds.x>=0 && bounds.x+bounds.width<=320,'controls fit a narrow screen');
   await page.screenshot({path:path.join(output,'settings-mobile-light.png')});
   assert.deepEqual(errors,[]);
-  console.log('Name styles browser checks passed: preview, autosave, persistence, failure/reset, cross-user updates, animation speed, reduced motion, offscreen/hidden pause, dyslexic override, escaped names and mobile/light layout. Screenshots:',output);
+  console.log('Name styles browser checks passed: preview, autosave, persistence, failure/reset, cross-user updates, shared clock speed, reduced motion, offscreen/hidden stop, dyslexic override, escaped names and mobile/light layout. Screenshots:',output);
 } finally {await browser.close();}

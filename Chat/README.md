@@ -1,5 +1,47 @@
 # Liminal Chat
 
+## Idle Chat stops repainting every frame (2.27.3)
+
+Chat dropped frames and lagged typing even when nobody scrolled and the
+background was Off. The cause was the Fade and Shift name styles. Chrome
+services a running CSS animation on every display frame, even one with
+`steps()`, so each visible animated name made it restyle, paint and commit
+the whole page continuously. The 2.27 step change reduced paint per change,
+not those frames. The fade's `steps()` also applied per keyframe segment, so
+it changed on almost every frame anyway.
+
+Fade and Shift now move on one shared clock about 20 times a second. It writes
+`--name-mix` (fade) or `--name-pos` (shift) only on visible, unpaused names
+whose value changed, so page updates are capped at about 20 per second however
+many names are on screen. Between ticks nothing runs. All names stay in phase,
+keep their speeds and fade shape, stop in a hidden tab, offscreen or while the
+timeline scrolls, and stay static under reduced motion. Name identity checks
+ignore the clock's properties. Intersection tracking now covers only Fade and
+Shift names rather than every name, and loaded avatars stop being observed.
+
+Offline harness, idle, backgrounds Off, 4× CPU throttle, no frame counter:
+
+| Idle scene | 2.27.2 | 2.27.3 |
+| --- | --- | --- |
+| 9 animated names: main thread busy | 252 ms/s | 165 ms/s |
+| 9 animated names: page updates | 32/s | 20/s |
+| 15 animated names: main thread busy | 251 ms/s | 195 ms/s |
+| 15 animated names: key event duration, median / p95 | 120 / 200 ms | 32 / 48 ms |
+| Same, inside the v4 launcher | 251.5 ms/s | 165.6 ms/s |
+
+With animated names paused, an idle 2.27.2 used about 2 ms/s, so the rings,
+avatars and the launcher were not the idle cost. Rings spin on the compositor.
+Removing avatar layer promotion cut layers from 76 to 44 but saved no main
+thread time, so it is unchanged. The launcher adds no measurable idle work.
+
+`scripts/chat-name-effects.test.mjs` covers the clock (in phase, visible-only,
+scroll pause, unchanged values, hidden tab, reduced motion) and fails on 2.27.2.
+`chat-name-styles.browser.mjs`, `chat-runtime.browser.mjs --verify`,
+`chat-media-visibility.browser.mjs`, `chat-diagnostics.browser.mjs` and a busy
+`chat-soak.browser.mjs --verify` pass. The runtime harness now scrolls to the
+top before its long-session burst, so that phase still reads history after
+2.27.2 made the bottom rejoin live mode.
+
 ## Messages stay live after scrolling (2.27.2)
 
 If a message arrived while the timeline was scrolled even slightly above the
