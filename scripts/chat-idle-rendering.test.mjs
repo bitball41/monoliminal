@@ -42,8 +42,9 @@ function rings(supported = true) {
     constructor(callback) { this.callback = callback; mutations.push(this); }
     observe() {} disconnect() { this.disconnected = true; }
   }
-  const context = vm.createContext({ document, IntersectionObserver: supported ? Intersections : undefined, MutationObserver: Mutations });
-  vm.runInContext(section('    let ringVisibilityController =', '    function effectiveMyStatus('), context);
+  const context = vm.createContext({ document, IntersectionObserver: supported ? Intersections : undefined, MutationObserver: Mutations,
+    qsa: selector => body.querySelectorAll(selector) });
+  vm.runInContext(section('    function alignRingSpin(avatar)', '    function effectiveMyStatus('), context);
   const controller = context.initRingVisibility();
   return { Node, context, controller, document, visible, hidden, ordinary, attributes, listeners, intersections, mutations,
     intersect: entries => intersections[0].callback(entries.map(([target, active]) => ({ target, isIntersecting: active, intersectionRatio: active ? 1 : 0 }))),

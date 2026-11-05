@@ -1,5 +1,47 @@
 # Liminal Chat
 
+## Rings and typing dots stop redrawing every frame (2.27.4)
+
+The lag predates name styles, and main-thread profiling never found it, because
+it ran on the compositor and GPU side. Any animated ring on screen made Chrome
+redraw the whole window 60 times a second for as long as it stayed visible.
+The rings had a smooth spin, so the compositor produced a new frame every
+vsync. The typing indicator animated `content`, which only the main thread can
+animate, so Chat ran a full page update every frame while anyone was typing.
+On a Chromebook that is sustained GPU load: dropped frames, delayed input and
+eventual thermal throttling. It depends on who is on screen and typing, and
+on-device reports showed long frames with no script in them.
+
+- Rings now spin in 70 steps per turn (20 per second, 5° each), still on the
+  compositor. Every running ring is put on one timeline phase (`startTime 0`)
+  when it comes into view, restarts or the tab returns, so all rings step in
+  the same frame. CSS still controls pause and resume.
+- The name clock ticks on the same 50 ms timeline grid, so a ring step and a
+  name change share one redraw.
+- Typing dots are three dots with stepped `opacity` animations: compositor
+  only, redrawn only when a dot changes.
+
+Offline harness, idle, static avatars, rings restarted at random times,
+backgrounds Off, no CPU throttle. GPU work is SwiftShader, so it stands in for a
+weak or software-composited GPU:
+
+| Idle scene | 2.27.1 | 2.27.4 |
+| --- | --- | --- |
+| Rings + someone typing, no name styles: window redraws | 60/s | 21/s |
+| Same: GPU process CPU | 284% of a core | 42% |
+| Same: page updates | 60/s | 0.1/s |
+| Rings + typing + 9 animated names: GPU process CPU | 305% | 154% |
+| Rings + typing + 9 animated names: window redraws | 46/s (saturated) | 21/s |
+
+Animated GIF messages and stickers still redraw at their own frame rate while
+visible. They already pause offscreen.
+
+`scripts/chat-name-effects.test.mjs` covers the stepped, aligned rings, the
+grid-aligned name clock and the opacity dots. `chat-idle-rendering.test.mjs`
+and `chat-media-visibility.browser.mjs` load the new helper. Name-style,
+media-visibility, diagnostics, runtime `--verify`, `--media-regression` in the
+launcher, and a busy `chat-soak --verify` all pass.
+
 ## Idle Chat stops repainting every frame (2.27.3)
 
 Chat dropped frames and lagged typing even when nobody scrolled and the

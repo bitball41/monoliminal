@@ -506,7 +506,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
     }
-    .avatar.has-ring.ring-anim::before { animation: ring-spin 3.5s linear infinite; }
+    /* A smooth spin made the compositor redraw the whole window 60 times a
+       second while any ring was on screen, even with an idle main thread.
+       70 steps per turn is 20 redraws a second; alignRingSpin puts every ring
+       on one timeline phase so they all step in the same frame. */
+    .avatar.has-ring.ring-anim::before { animation: ring-spin 3.5s steps(70) infinite; }
     /* Keep image identity and geometry while stopping animation/texture work
        outside the viewport. Native lazy loading alone also loads nearby GIFs. */
     html[data-ring-visibility] .avatar[data-media-visible="false"] img,
@@ -1471,9 +1475,14 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .typing-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
     
+    /* Opacity runs on the compositor and, stepped, redraws only when a dot
+       changes. Animating `content` re-ran the page update on every frame. */
     .typing-text .dots { display: inline-block; width: 1.1em; text-align: left; }
-    .typing-text .dots::after { content: "…"; animation: typing-dots 1.4s steps(1, end) infinite; }
-    @keyframes typing-dots { 0% { content: "."; } 33% { content: ".."; } 66% { content: "..."; } }
+    .typing-text .dots i { font-style: normal; animation: 1.4s steps(1, end) infinite; }
+    .typing-text .dots i:nth-child(2) { animation-name: typing-dot-2; }
+    .typing-text .dots i:nth-child(3) { animation-name: typing-dot-3; }
+    @keyframes typing-dot-2 { 0% { opacity: 0; } 33% { opacity: 1; } }
+    @keyframes typing-dot-3 { 0% { opacity: 0; } 66% { opacity: 1; } }
     .cooldown-note { color: var(--warning); font-weight: 700; }
 
     .drop-overlay {
@@ -5180,7 +5189,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.27.3";
+    const APP_VERSION = "2.27.4";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -7653,6 +7662,18 @@ void main() {
       if (r) el.style.setProperty('--ring-bg', r.css); else el.style.removeProperty('--ring-bg');
     }
 
+    // Every running ring spins on the document timeline's phase, so stepped
+    // rings change in the same frame. Resuming from a pause would otherwise
+    // keep each ring's own phase. Only running animations are moved, so CSS
+    // keeps controlling pause and resume.
+    function alignRingSpin(avatar) {
+      if (!avatar?.classList?.contains('ring-anim') || typeof avatar.getAnimations !== 'function') return;
+      for (const animation of avatar.getAnimations({ subtree: true })) {
+        if (animation.animationName === 'ring-spin' && animation.playState === 'running' && animation.startTime !== 0) {
+          try { animation.startTime = 0; } catch {}
+        }
+      }
+    }
     let ringVisibilityController = null;
     function initRingVisibility() {
       if (ringVisibilityController || typeof IntersectionObserver !== 'function') return ringVisibilityController;
@@ -7667,6 +7688,7 @@ void main() {
           const visible = String(entry.isIntersecting && entry.intersectionRatio > 0);
           if (el.dataset.mediaVisible !== visible) el.dataset.mediaVisible = visible;
           if (el.classList.contains('ring-anim') && el.dataset.ringVisible !== visible) el.dataset.ringVisible = visible;
+          if (visible === 'true') alignRingSpin(el);
         });
       }, { rootMargin: '32px' });
       const forget = el => {
@@ -7692,6 +7714,7 @@ void main() {
         records.forEach(record => {
           if (record.type === 'attributes') {
             if (tracked.has(record.target) || record.target.matches(selector)) track(record.target);
+            if (record.target.dataset.ringVisible === 'true') alignRingSpin(record.target);
             return;
           }
           if (record.target?.matches?.('.avatar')) track(record.target);
@@ -7699,7 +7722,10 @@ void main() {
           record.addedNodes.forEach(node => scan(node, track));
         });
       });
-      const sync = () => root.toggleAttribute('data-ring-paused', document.hidden);
+      const sync = () => {
+        root.toggleAttribute('data-ring-paused', document.hidden);
+        if (!document.hidden) qsa('.avatar.ring-anim[data-ring-visible="true"]').forEach(alignRingSpin);
+      };
       root.setAttribute('data-ring-visibility', '');
       sync();
       scan(document.body, track);
@@ -7737,10 +7763,16 @@ void main() {
         if (el.style.getPropertyValue(property) !== value) el.style.setProperty(property, value);
       });
     }
+    // Ticks land on the same 50 ms timeline grid as stepped rings, so a ring
+    // step and a name change share one redraw instead of two.
+    function scheduleNameEffects() {
+      nameEffectTimer = setTimeout(() => { tickNameEffects(); scheduleNameEffects(); },
+        NAME_EFFECT_TICK_MS - (performance.now() % NAME_EFFECT_TICK_MS) + 1);
+    }
     function syncNameEffects() {
       const run = !document.hidden && !nameMotionQuery?.matches;
-      if (run && !nameEffectTimer) nameEffectTimer = setInterval(tickNameEffects, NAME_EFFECT_TICK_MS);
-      else if (!run && nameEffectTimer) { clearInterval(nameEffectTimer); nameEffectTimer = 0; }
+      if (run && !nameEffectTimer) scheduleNameEffects();
+      else if (!run && nameEffectTimer) { clearTimeout(nameEffectTimer); nameEffectTimer = 0; }
     }
     function initNameEffects() {
       if (!nameEffectsBound) {
@@ -14561,10 +14593,10 @@ void main() {
       let markup = '';
       if (names.length) {
         markup = names.length === 1
-          ? `<strong>${esc(names[0])}</strong> is typing<span class="dots"></span>`
+          ? `<strong>${esc(names[0])}</strong> is typing<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>`
           : names.length === 2
-            ? `<strong>${esc(names[0])}</strong> and <strong>${esc(names[1])}</strong> are typing<span class="dots"></span>`
-            : 'Several people are typing<span class="dots"></span>';
+            ? `<strong>${esc(names[0])}</strong> and <strong>${esc(names[1])}</strong> are typing<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>`
+            : 'Several people are typing<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span>';
       }
       const signature = `${key}\u0000${markup}`;
       if (signature !== typingRenderSignature) {

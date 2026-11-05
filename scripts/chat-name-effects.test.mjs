@@ -22,7 +22,7 @@ function clock({ hidden = false, reduced = false, controller = true } = {}) {
     ringVisibilityController: controller ? {} : null, performance: { now: () => 0 },
     document: { hidden, addEventListener: (type, fn) => { listeners[type] = fn; } },
     matchMedia: () => ({ matches: reduced, addEventListener: (type, fn) => { listeners.motion = fn; } }),
-    setInterval: fn => { const id = { fn }; timers.add(id); return id; }, clearInterval: id => timers.delete(id),
+    setTimeout: (fn, ms) => { const id = { fn, ms }; timers.add(id); return id; }, clearTimeout: id => timers.delete(id),
     qsa: selector => { c.selectors.push(selector); return c.names; }, selectors: [], names: [],
   });
   vm.runInContext(section('    const NAME_EFFECT_TICK_MS', '    function effectiveMyStatus()'), c);
@@ -72,7 +72,12 @@ test('the clock runs only while the tab is visible and motion is allowed', () =>
   assert.equal(visible.timers.size, 1);
   visible.c.initNameEffects();
   assert.equal(visible.timers.size, 1, 'never two clocks');
-  assert.equal([...visible.timers][0].fn, visible.c.tickNameEffects);
+  // Each tick lands just after the next 50 ms timeline boundary, like stepped rings.
+  vm.runInContext('performance.now = () => 1234', visible.c);
+  const first = [...visible.timers][0]; visible.timers.delete(first); first.fn();
+  const next = [...visible.timers][0];
+  assert.equal(visible.timers.size, 1, 'a tick schedules exactly one next tick');
+  assert.equal(next.ms, 50 - 34 + 1);
   for (const options of [{ hidden: true }, { reduced: true }]) {
     const stopped = clock(options); stopped.c.initNameEffects();
     assert.equal(stopped.timers.size, 0, JSON.stringify(options));
@@ -84,4 +89,31 @@ test('the clock’s values do not make names look changed or need intersection w
   assert.doesNotMatch(chat, /name\.getAttribute\('style'\) === next\.getAttribute\('style'\)|el\.getAttribute\('style'\) === next\.getAttribute\('style'\)/);
   assert.match(chat, /const selector = '\.avatar, \.msg, \.display-name\.name-effect-fade, \.display-name\.name-effect-shift';/);
   assert.match(section('    function wireStaticEvents()', '      wireVoiceEvents();'), /initRingVisibility\(\);\s*initNameEffects\(\);/);
+});
+
+test('rings step 20 times a second on one shared timeline phase', () => {
+  assert.match(css, /\.avatar\.has-ring\.ring-anim::before\s*\{\s*animation:\s*ring-spin 3\.5s steps\(70\) infinite;/);
+  const c = vm.createContext({});
+  vm.runInContext(section('    function alignRingSpin(avatar)', '    let ringVisibilityController = null;'), c);
+  const anim = (animationName, playState, startTime) => ({ animationName, playState, startTime });
+  const running = anim('ring-spin', 'running', 1234), paused = anim('ring-spin', 'paused', null), other = anim('pop-in', 'running', 99);
+  const avatar = { classList: { contains: name => name === 'ring-anim' }, getAnimations: options => { assert.equal(options?.subtree, true); return [running, paused, other]; } };
+  c.alignRingSpin(avatar);
+  assert.equal(running.startTime, 0, 'a running ring joins the shared phase');
+  assert.equal(paused.startTime, null, 'a paused ring is left to CSS, which still controls pause and resume');
+  assert.equal(other.startTime, 99);
+  assert.doesNotThrow(() => c.alignRingSpin({ classList: { contains: () => false } }));
+  const controller = section('    function initRingVisibility()', '    // One clock moves every visible Fade/Shift name');
+  assert.match(controller, /if \(visible === 'true'\) alignRingSpin\(el\);/, 'rings that come into view are aligned');
+  assert.match(controller, /if \(!document\.hidden\) qsa\('\.avatar\.ring-anim\[data-ring-visible="true"\]'\)\.forEach\(alignRingSpin\);/, 'a returning tab realigns visible rings');
+  assert.match(controller, /if \(record\.target\.dataset\.ringVisible === 'true'\) alignRingSpin\(record\.target\);/, 'a restarted ring animation is realigned');
+});
+
+test('typing dots animate opacity on the compositor, not content on every frame', () => {
+  assert.doesNotMatch(css, /@keyframes typing-dots|content:\s*"\.\."/);
+  assert.match(css, /@keyframes typing-dot-2\s*\{\s*0%\s*\{\s*opacity:\s*0;\s*\}\s*33%\s*\{\s*opacity:\s*1;\s*\}\s*\}/);
+  assert.match(css, /@keyframes typing-dot-3\s*\{\s*0%\s*\{\s*opacity:\s*0;\s*\}\s*66%\s*\{\s*opacity:\s*1;\s*\}\s*\}/);
+  const markup = section('    function renderTyping()', '      const signature =');
+  assert.equal((markup.match(/<span class="dots" aria-hidden="true"><i>\.<\/i><i>\.<\/i><i>\.<\/i><\/span>/g) || []).length, 3);
+  assert.doesNotMatch(markup, /<span class="dots"><\/span>/);
 });
