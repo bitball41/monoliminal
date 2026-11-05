@@ -1,5 +1,41 @@
 # Supabase usage controls
 
+## November 5 follow-up
+
+Saved evidence: [supabase-usage-followup-2026-11-05.json](supabase-usage-followup-2026-11-05.json).
+Meters from the supplied screenshot: **Log Ingestion 1.089 / 1 GB (109%)**,
+Log Query 97.0 / 100 GB, Cached Egress 4.86 / 5 GB, Egress 1.89 / 5 GB,
+Realtime messages 880k / 2M. No log scans were used: only read-only statement
+and table counters.
+
+Log Ingestion grows with requests: each PostgREST, Storage, Auth and Realtime
+request writes a log line. Since the October 20 counter reset, PostgREST served
+about 220k requests (about 14k a day). Message sends are real traffic. The
+largest avoidable Chat sources were:
+
+- message catch-up on every focus/visibility wake, even with a healthy socket
+  (21.9k channel catch-up reads since the reset, shared with the periodic and
+  recovery reconciles);
+- conversation list, group invites and subrole catalog read at boot and again
+  on every Realtime SUBSCRIBED (15.4k, 15.7k and 4.4k), although those tables
+  changed only a few hundred times in total;
+- a DM catch-up straight after loading the same DM page.
+
+Chat 2.27.5 removes those duplicates (see [Chat/README.md](../Chat/README.md)).
+Activity tracking (`chat_record_activity`, which feeds the five-minute
+foreground count) and the private-call access check (authorization) are
+unchanged on purpose. Single-key `app_settings` reads (13.7k) come from the
+launcher, Games, AI and Movies, not `chat.html`. Older Chat clients still
+account for the legacy unread queries until they reload.
+
+The v5 launcher is published (`liminal-chat-launcher.html`, October 30) and
+`min_chat_launcher_version` is `5`, so the October Cached Egress fix is live.
+Each Chat deployment still makes every launcher download Chat once
+(about 635 KB brotli), so batching Chat releases also saves Cached Egress.
+
+Measure the effect with a later counter snapshot after publication, compared
+against these cumulative values with the same reset marker, not a log scan.
+
 ## October 30 follow-up
 
 Saved evidence: [supabase-usage-followup-2026-10-30.json](supabase-usage-followup-2026-10-30.json).

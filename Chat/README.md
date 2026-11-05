@@ -1,5 +1,49 @@
 # Liminal Chat
 
+## Fewer duplicate background reads, plus timeline fixes (2.27.5)
+
+Log Ingestion passed its 1 GB allowance on November 5. Every PostgREST
+request writes a log line, and Chat sends most of them. Read-only statement
+counters (no log scans, saved in
+[supabase-usage-followup-2026-11-05.json](../docs/supabase-usage-followup-2026-11-05.json))
+pointed at three avoidable patterns:
+
+- **Wake catch-up.** Every `focus`, `visibilitychange` or `pageshow` more
+  than 4 seconds apart re-read the open conversation, even with a healthy
+  Realtime socket that had already delivered those messages. Chromebook users
+  switch windows constantly. A wake now re-reads immediately only after a real
+  absence: hidden for 30 seconds or more, frozen, page hidden, or offline.
+  Otherwise the existing reconcile interval (5 minutes, 20 seconds for DMs)
+  decides. Unhealthy Realtime still recovers and catches up as before.
+- **SUBSCRIBED re-reads.** Each Realtime join reloaded the subrole catalog,
+  conversation list and group invites. Boot and recovery already start those
+  reads alongside the join, so each boot read them twice. SUBSCRIBED now
+  reloads only a list that has not been read since that join (or the last
+  channel error) began. A rejoin after an error still reconciles everything.
+- **First DM open.** Opening an uncached DM fetched its page, then
+  immediately ran a catch-up over the same rows. Only a cached DM reconciles on
+  reopen now.
+
+`scripts/chat-request-dedupe.test.mjs` counts the requests: 20 focus wakes in
+five minutes now make one message read instead of 20, and boot makes one read
+of each list instead of up to two. These are request-count results, not a measured
+billing change. Message delivery, access-revocation checks, activity
+tracking and the periodic reconcile intervals are unchanged.
+
+Fixes found in the same pass:
+
+- A banner saved without a crop position rendered at `NaN%` and fell back to
+  the top-left corner. It is centred now.
+- A confirmed send replaced its bubble without marking it as part of the
+  timeline tail, so the newest message briefly used offscreen containment.
+- A message dropped by the slur filter was put back into the composer.
+- Deleting a message used the open view's table instead of the message's own.
+- Leaving a conversation while "Load older" was in flight could hide that
+  button for the conversation's live window.
+- Subrole badge colours are cached instead of recomputed for every message
+  header, and the avatar loader only scans for detached images when nodes were
+  removed.
+
 ## Rings and typing dots stop redrawing every frame (2.27.4)
 
 The lag predates name styles, and main-thread profiling never found it, because

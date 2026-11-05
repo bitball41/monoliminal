@@ -127,7 +127,7 @@ test('voice is inserted when the database has no voice channel', async () => {
 });
 
 test('opening voice is no longer bounced away, and calls are not relay-only', () => {
-  const openView = section(chat, '    async function openView(view) {', '    async function fetchMessages(view, beforeIso) {');
+  const openView = section(chat, '    async function openView(view) {', '    async function fetchMessages(view, beforeIso');
   assert.match(openView, /hiddenChannelId === FOLLOWING_CHANNEL/);
   assert.doesNotMatch(openView, /hiddenChannelId === VOICE_CHANNEL_ID/);
   assert.match(openView, /view\.id === VOICE_CHANNEL_ID \|\| \(fch && fch\.kind === 'voice'\)\) return openVoiceRoom\(view\)/);
