@@ -22,12 +22,17 @@ function fixture() {
     markViewRead(key) { c.reads.push(key); }, reads: [],
     scrollToBottom() { vm.runInContext('stickyToBottom = true', c); },
     fetchMessages: async () => [], clearHistoryContexts() { c.historyContexts.clear(); },
-    setViewMessages(key, rows) { c.msgCache.set(key, rows); }, renderTimeline() {}, markDmRead() {},
+    setViewMessages(key, rows) { c.msgCache.set(key, rows); }, markDmRead() {},
+    renderTimeline(options) { c.renders.push(options?.preserve ? 'preserve' : 'rebuild'); }, renders: [],
+    hasMoreMap: new Map(), trimLiveCache() { return false; },
   });
   vm.runInContext('let pendingNewCount = 0, stickyToBottom = false, applyingPin = false, timelineHoldUntil = 0, messageJumpRequest = 0;\n' +
     section('    function hideNewBadge()', '    // Long-lived tabs otherwise keep every live message') + '\n' +
     section('    async function returnToLatest()', '    /* ============================= 38. EVENT WIRING'), c);
-  return { c, nodes, history() { c.historyContexts.set('c:general', { hasNewer: true, busy: false }); } };
+  // By default the page being read ends before anything the live cache holds.
+  return { c, nodes, history(rows = [{ id: 'h', created_at: '2026-10-21T11:00:00Z' }], extra = {}) {
+    c.historyContexts.set('c:general', { rows, hasOlder: true, hasNewer: true, busy: false, ...extra });
+  } };
 }
 
 test('scrolling and incoming messages share mutually exclusive existing indicators', () => {
@@ -95,6 +100,70 @@ test('return to latest merges arrivals during the fetch and clears the history i
   assert.deepEqual(Array.from(c.msgCache.get('c:general'), row => row.id), ['a', 'b']);
   assert.equal(nodes.get('viewing-older').hidden, true);
   assert.equal(nodes.get('new-msgs-badge').hidden, true);
+});
+
+const row = (id, minute, extra = {}) => ({ id, created_at: `2026-10-21T12:${String(minute).padStart(2, '0')}:00Z`, ...extra });
+
+test('scrolling back to a page the live cache continues rejoins live mode without a fetch or rebuild', () => {
+  const { c, nodes, history } = fixture();
+  history([row('a', 0), row('b', 1)]);
+  c.msgCache.set('c:general', [row('b', 1), row('c', 2)]);
+  c.bumpNewBadge(); c.near = true;
+  c.updateTimelineReadState(true, true);
+  assert.equal(c.historyContexts.size, 0);
+  assert.deepEqual(Array.from(c.msgCache.get('c:general'), m => m.id), ['a', 'b', 'c']);
+  assert.deepEqual(c.pages, [], 'no network page for rows the live cache already has');
+  assert.deepEqual(c.renders, ['preserve'], 'mounted rows are reconciled, not rebuilt');
+  assert.equal(vm.runInContext('stickyToBottom', c), true);
+  assert.deepEqual(c.reads, ['c:general']);
+  assert.equal(nodes.get('new-msgs-badge').hidden, true);
+  assert.equal(nodes.get('viewing-older').hidden, true);
+  assert.equal(c.hasMoreMap.get('c:general'), true, 'older history stays reachable');
+});
+
+test('rejoining keeps late rows in time order and unsent rows last', () => {
+  const { c, history } = fixture();
+  history([row('a', 0), row('c', 2)], { hasOlder: false });
+  c.msgCache.set('c:general', [row('c', 2), row('d', 3), row('p', 9, { pending: true }), row('late', 1)]);
+  c.near = true;
+  c.updateTimelineReadState(true, true);
+  assert.deepEqual(Array.from(c.msgCache.get('c:general'), m => m.id), ['a', 'late', 'c', 'd', 'p']);
+  assert.equal(c.hasMoreMap.get('c:general'), false);
+});
+
+test('a page that ends before the live cache, a busy page, or a held timeline stays in history', () => {
+  const { c, history } = fixture();
+  history([row('a', 0)]);
+  c.msgCache.set('c:general', [row('x', 30), row('y', 31)]);
+  c.near = true;
+  c.updateTimelineReadState(true, true);
+  assert(c.historyContexts.has('c:general'));
+  assert.deepEqual(c.pages, ['newer']);
+  c.msgCache.set('c:general', [row('a', 0), row('b', 1)]);
+  c.historyContexts.get('c:general').busy = true;
+  c.updateTimelineReadState(true, true);
+  c.historyContexts.get('c:general').busy = false;
+  c.timelineHeld = () => true;
+  c.updateTimelineReadState(true, true);
+  assert(c.historyContexts.has('c:general'), 'an anchored jump is not pulled to the bottom');
+});
+
+test('jump to present reuses a live cache that continues the page instead of refetching', async () => {
+  const { c, history } = fixture();
+  history([row('a', 0), row('b', 1)]);
+  c.msgCache.set('c:general', [row('b', 1), row('c', 2)]);
+  c.fetchMessages = async () => { throw Error('should not refetch'); };
+  assert.equal(await c.returnToLatest(), true);
+  assert.equal(c.historyContexts.size, 0);
+  assert.deepEqual(Array.from(c.msgCache.get('c:general'), m => m.id), ['a', 'b', 'c']);
+  assert.deepEqual(c.renders, ['preserve']);
+});
+
+test('an incoming message at the bottom of a history page rejoins instead of badging', () => {
+  const source = section('    function ingestMessage(m, kind)', "      if (kind !== 'dm' && m.type === 'poll'");
+  assert.match(source, /if \(readingContext && isNearBottom\(\) && !timelineHeld\(\) && rejoinLiveFromHistory\(key\)\) \{\s*readingContext = false;/);
+  const page = section('    async function loadHistoryPage(direction)', '    async function returnToLatest()');
+  assert.match(page, /if \(!older && historyContexts\.get\(key\) === context && viewKey\(currentView\) === key && isNearBottom\(\)\) rejoinLiveFromHistory\(key\);/);
 });
 
 test('duplicate history controls are absent and both existing buttons return to latest', () => {

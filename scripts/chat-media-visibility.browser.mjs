@@ -33,6 +33,7 @@ const fixture = `<!doctype html><html><head><style>${styles}</style><style>
     <button class="yt-thumb"><img id="youtube-image" src="https://media.test/youtube.gif" alt="Video preview"></button>
   </div><div id="ring-holder"></div>
 </div><script>
+  const qsa = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const esc = value => String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
   ${ringCode}
   const profile = {ring: JSON.stringify({type:'image',url:'https://media.test/ring.gif',anim:true})};

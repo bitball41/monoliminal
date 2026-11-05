@@ -26,8 +26,8 @@ test('untrusted profile styling cannot inject markup, CSS, URLs or prototype key
   }
   const html = n.displayNameHtml({username:'alice',display_name:'Alice',name_style:style});
   assert.match(html,/name-font-mono name-effect-shift/);
-  assert.match(html,/--name-speed:10s;--name-steps:200/);
-  assert.match(n.displayNameHtml({username:'bob',name_style:{effect:'fade',speed:'fast'}}),/--name-speed:3s;--name-steps:90/);
+  assert.match(html,/--name-speed:10s">/);
+  assert.match(n.displayNameHtml({username:'bob',name_style:{effect:'fade',speed:'fast'}}),/--name-speed:3s">/);
 });
 
 test('equivalent JSON profiles do not rebuild timelines or restart name animations', () => {

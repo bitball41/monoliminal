@@ -1,5 +1,148 @@
 # Liminal Chat
 
+## Rings and typing dots stop redrawing every frame (2.27.4)
+
+The lag predates name styles, and main-thread profiling never found it, because
+it ran on the compositor and GPU side. Any animated ring on screen made Chrome
+redraw the whole window 60 times a second for as long as it stayed visible.
+The rings had a smooth spin, so the compositor produced a new frame every
+vsync. The typing indicator animated `content`, which only the main thread can
+animate, so Chat ran a full page update every frame while anyone was typing.
+On a Chromebook that is sustained GPU load: dropped frames, delayed input and
+eventual thermal throttling. It depends on who is on screen and typing, and
+on-device reports showed long frames with no script in them.
+
+- Rings now spin in 70 steps per turn (20 per second, 5° each), still on the
+  compositor. Every running ring is put on one timeline phase (`startTime 0`)
+  when it comes into view, restarts or the tab returns, so all rings step in
+  the same frame. CSS still controls pause and resume.
+- The name clock ticks on the same 50 ms timeline grid, so a ring step and a
+  name change share one redraw.
+- Typing dots are three dots with stepped `opacity` animations: compositor
+  only, redrawn only when a dot changes.
+
+Offline harness, idle, static avatars, rings restarted at random times,
+backgrounds Off, no CPU throttle. GPU work is SwiftShader, so it stands in for a
+weak or software-composited GPU:
+
+| Idle scene | 2.27.1 | 2.27.4 |
+| --- | --- | --- |
+| Rings + someone typing, no name styles: window redraws | 60/s | 21/s |
+| Same: GPU process CPU | 284% of a core | 42% |
+| Same: page updates | 60/s | 0.1/s |
+| Rings + typing + 9 animated names: GPU process CPU | 305% | 154% |
+| Rings + typing + 9 animated names: window redraws | 46/s (saturated) | 21/s |
+
+Animated GIF messages and stickers still redraw at their own frame rate while
+visible. They already pause offscreen.
+
+`scripts/chat-name-effects.test.mjs` covers the stepped, aligned rings, the
+grid-aligned name clock and the opacity dots. `chat-idle-rendering.test.mjs`
+and `chat-media-visibility.browser.mjs` load the new helper. Name-style,
+media-visibility, diagnostics, runtime `--verify`, `--media-regression` in the
+launcher, and a busy `chat-soak --verify` all pass.
+
+## Idle Chat stops repainting every frame (2.27.3)
+
+Chat dropped frames and lagged typing even when nobody scrolled and the
+background was Off. The cause was the Fade and Shift name styles. Chrome
+services a running CSS animation on every display frame, even one with
+`steps()`, so each visible animated name made it restyle, paint and commit
+the whole page continuously. The 2.27 step change reduced paint per change,
+not those frames. The fade's `steps()` also applied per keyframe segment, so
+it changed on almost every frame anyway.
+
+Fade and Shift now move on one shared clock about 20 times a second. It writes
+`--name-mix` (fade) or `--name-pos` (shift) only on visible, unpaused names
+whose value changed, so page updates are capped at about 20 per second however
+many names are on screen. Between ticks nothing runs. All names stay in phase,
+keep their speeds and fade shape, stop in a hidden tab, offscreen or while the
+timeline scrolls, and stay static under reduced motion. Name identity checks
+ignore the clock's properties. Intersection tracking now covers only Fade and
+Shift names rather than every name, and loaded avatars stop being observed.
+
+Offline harness, idle, backgrounds Off, 4× CPU throttle, no frame counter:
+
+| Idle scene | 2.27.2 | 2.27.3 |
+| --- | --- | --- |
+| 9 animated names: main thread busy | 252 ms/s | 165 ms/s |
+| 9 animated names: page updates | 32/s | 20/s |
+| 15 animated names: main thread busy | 251 ms/s | 195 ms/s |
+| 15 animated names: key event duration, median / p95 | 120 / 200 ms | 32 / 48 ms |
+| Same, inside the v4 launcher | 251.5 ms/s | 165.6 ms/s |
+
+With animated names paused, an idle 2.27.2 used about 2 ms/s, so the rings,
+avatars and the launcher were not the idle cost. Rings spin on the compositor.
+Removing avatar layer promotion cut layers from 76 to 44 but saved no main
+thread time, so it is unchanged. The launcher adds no measurable idle work.
+
+`scripts/chat-name-effects.test.mjs` covers the clock (in phase, visible-only,
+scroll pause, unchanged values, hidden tab, reduced motion) and fails on 2.27.2.
+`chat-name-styles.browser.mjs`, `chat-runtime.browser.mjs --verify`,
+`chat-media-visibility.browser.mjs`, `chat-diagnostics.browser.mjs` and a busy
+`chat-soak.browser.mjs --verify` pass. The runtime harness now scrolls to the
+top before its long-session burst, so that phase still reads history after
+2.27.2 made the bottom rejoin live mode.
+
+## Messages stay live after scrolling (2.27.2)
+
+If a message arrived while the timeline was scrolled even slightly above the
+bottom, Chat switched into history mode, and scrolling back down did not
+switch it back. Sitting at the very bottom:
+
+- new messages waited behind the "new messages" badge instead of appearing;
+- every small scroll near the bottom requested another page from the server;
+- DM read marks were withheld, so the other person saw the DM as unread;
+- tapping the badge, or sending a message, first refetched the latest page
+  and rebuilt every mounted row and its images before continuing.
+
+Once the page being read reaches rows the live cache already holds, Chat now
+rejoins live mode locally. It merges the page with the live cache (late rows
+by time, unsent rows last), reconciles the rows already on screen, pins to the
+bottom and marks the conversation read. This happens on scrolling back down,
+when a message arrives at the bottom, after a newer page ends there, and on
+Jump to present or send. A page that ends before the live cache, in deeper
+history, still loads newer rows from the server as before, and an anchored
+jump that is still settling is not pulled to the bottom.
+
+Offline harness, about 210 mounted rows, 4× CPU throttle: the old full rebuild
+took 84–139 ms of script and 145–232 ms to the next frame. The in-place
+reconcile took 3–6 ms.
+
+`scripts/chat-new-messages.test.mjs` covers rejoining, ordering, staying in
+history and Jump to present. Four of its new tests fail on 2.27.1.
+
+### Long-session soak
+
+`scripts/chat-soak.browser.mjs` runs the full app offline for many minutes
+with real timers and Realtime callbacks, plus simulated messages, typing,
+presence, profile edits, focus/wake and scrolling. `--busy` adds DM traffic,
+animated names and channel switches, and `--blip` drops the Realtime socket
+every five minutes. It samples heap, DOM, listeners and attributed main-thread
+work, and counts samples where the timeline is at the bottom but not live.
+
+A 25-minute run of 2.27.1 found no leak or growth over time: heap stayed at
+3–5 MB, long frames fell after startup, and DOM growth followed the message
+caps. The stuck history mode above was the defect it surfaced. In 12-minute
+`--busy --blip` runs (a message every 3 s, reading a little above the bottom
+once a minute, tapping the badge whenever it showed at the bottom):
+
+| | 2.27.1 | 2.27.2 |
+| --- | --- | --- |
+| Samples at the bottom but not live | 7 | 0 |
+| Samples with delivered messages not shown | 10 of 47 | 0 of 48 |
+| Badge taps that rebuilt the timeline | 7 (35–96 ms each) | 0 |
+| Top-level `renderTimeline` time | 1,055 ms | 52 ms |
+| `messages` reads | 28 | 9 |
+
+The two runs shared one machine, so their frame intervals are not compared.
+With `--verify`, a 3.5-minute run fails on 2.27.1 and passes on 2.27.2.
+
+```sh
+CHAT_MEDIA_DIR=/path/to/gif-test-assets SOAK_MIN=25 \
+node scripts/chat-soak.browser.mjs Chat/chat.html soak --busy --blip --verify
+```
+
 ## Smoother scrolling (2.27.1)
 
 Scrolling the timeline with the pointer over messages dropped frames. Two

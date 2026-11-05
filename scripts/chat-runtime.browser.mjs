@@ -167,13 +167,16 @@ await phase('return-latest',quick?1500:4000,()=>page.evaluate(()=>scrollToBottom
 // Hover suppression and name pausing must stay on single elements, not
 // restyle the whole timeline.
 await page.mouse.move(700,350);
-if(verify)await page.evaluate(()=>{const n=[...$('message-list').querySelectorAll('.display-name[data-media-visible="true"]')].at(-1);n.classList.add('name-effect-fade');window.fixtureScrollName=n});
+if(verify){
+ await page.evaluate(()=>{const n=[...$('message-list').querySelectorAll('.msg[data-media-visible="true"] .display-name')].at(-1);n.classList.add('name-effect-fade');window.fixtureScrollName=n});
+ await page.waitForFunction(()=>fixtureScrollName.dataset.mediaVisible==='true');
+}
 await phase('scroll',quick?300:1000,async()=>{
  const wheel=async(dy,ms)=>{const end=Date.now()+ms;while(Date.now()<end){await page.mouse.wheel(0,dy);await host.waitForTimeout(16)}};
  await wheel(-100,quick?1500:3000);
  if(verify){
-  const during=await page.evaluate(()=>({flag:qs('#timeline .timeline-inner').hasAttribute('data-scrolling'),pointer:getComputedStyle($('message-list').querySelector('.msg')).pointerEvents,name:fixtureScrollName.hasAttribute('data-scroll-paused'),play:getComputedStyle(fixtureScrollName).animationPlayState}));
-  assert.deepEqual(during,{flag:true,pointer:'none',name:true,play:'paused'},'scrolling suppresses hover and pauses on-screen animated names');
+  const during=await page.evaluate(()=>({flag:qs('#timeline .timeline-inner').hasAttribute('data-scrolling'),pointer:getComputedStyle($('message-list').querySelector('.msg')).pointerEvents,name:fixtureScrollName.hasAttribute('data-scroll-paused')}));
+  assert.deepEqual(during,{flag:true,pointer:'none',name:true},'scrolling suppresses hover and pauses on-screen animated names');
  }
  await wheel(100,quick?1500:3000);
 });
@@ -184,6 +187,8 @@ if(verify){
  await page.evaluate(()=>{fixtureScrollName.classList.remove('name-effect-fade');scrollToBottom(true)});
 }
 if(verify){
+ // Read well above the bottom, so new rows go to the live cache, not the page.
+ await page.evaluate(()=>{releaseBottomPin();$('timeline').scrollTop=0});await page.waitForTimeout(100);
  await phase('long-session',quick?2500:60000,()=>page.evaluate(()=>{let next=1000;window.fixtureBurstTimer=setInterval(()=>{for(let batch=0;batch<25;batch++){const row={...fixtureRow(next++),type:'text',media_url:'',sender:'member_1'};fixtureMessages.push(row);fixtureEmit('messages','INSERT',row)}if(next>=2000)clearInterval(fixtureBurstTimer)},40)}));
  const bounds=await page.evaluate(()=>({live:msgCache.get(viewKey(currentView)).length,history:historyContexts.get(viewKey(currentView)).rows.length,mounted:$('message-list').querySelectorAll('.msg').length}));
  assert(bounds.live<=250&&bounds.history<=200&&bounds.mounted<=200,JSON.stringify(bounds));
