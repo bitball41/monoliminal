@@ -1,0 +1,48 @@
+{
+  "captured_at": "2026-11-05T16:27:49Z",
+  "project": "trsirhyucncmyyfyiuje",
+  "log_scans_used": [],
+  "method": "Read-only extensions.pg_stat_statements and pg_stat_user_tables. No row contents, identifiers or log queries.",
+  "screenshot_meters": {
+    "log_ingestion_gb": 1.089,
+    "log_query_gb": 97.001,
+    "cached_egress_gb": 4.863,
+    "egress_gb": 1.892,
+    "storage_gb": 0.567,
+    "database_gb": 0.164,
+    "realtime_messages": 880133,
+    "realtime_peak_connections": 38,
+    "mau": 88,
+    "note": "Billing-cycle totals from the user's screenshot; no capture timestamp."
+  },
+  "statement_stats_reset": "2026-10-20T22:39:39Z",
+  "elapsed_days_since_reset": 15.7,
+  "postgrest_requests_approx": {
+    "note": "Request-setup statements, one per PostgREST call, cumulative since reset.",
+    "calls": 220345
+  },
+  "top_postgrest_shapes_cumulative": [
+    { "shape": "messages INSERT (client id) RETURNING", "calls": 22857, "source": "message sends" },
+    { "shape": "messages SELECT channel_id= AND created_at>= ORDER asc", "calls": 21866, "source": "catchUpPoll (wake, periodic, recovery)" },
+    { "shape": "rpc chat_record_activity", "calls": 17253, "source": "analytics, 2-minute foreground cadence (unchanged: feeds foreground_5m)" },
+    { "shape": "rpc chat_list_group_invites", "calls": 15662, "source": "boot, SUBSCRIBED, refreshConversations" },
+    { "shape": "rpc chat_list_conversations", "calls": 15370, "source": "boot, SUBSCRIBED, refreshConversations" },
+    { "shape": "app_settings value WHERE key=", "calls": 13655, "source": "launcher force_refresh_at, Games content, AI, Movies (not chat.html)" },
+    { "shape": "rpc chat_private_voice_room", "calls": 10344, "source": "private-call access check every 30 s (authorization, unchanged)" },
+    { "shape": "messages id WHERE sender<> (legacy unread counts)", "calls": 15918, "source": "older Chat clients' unread fallback" },
+    { "shape": "dm_blocks blocked", "calls": 7845, "source": "boot and list refresh" },
+    { "shape": "forum_threads unread", "calls": 7273, "source": "older Chat clients' unread fallback" },
+    { "shape": "rpc games_get_usage", "calls": 6252, "source": "Games" },
+    { "shape": "rpc chat_unread_counts", "calls": 5001, "mean_ms": 562.9, "source": "boot and 5-minute list refresh" },
+    { "shape": "chat_subroles catalog", "calls": 4352, "source": "boot and SUBSCRIBED" },
+    { "shape": "dm_messages SELECT dm_id= AND created_at>=", "calls": 3457, "source": "DM catch-up (older column list)" }
+  ],
+  "table_writes_since_reset": {
+    "messages": { "inserts": 85329, "updates": 16004 },
+    "dm_messages": { "inserts": 10743, "updates": 1729 },
+    "dms": { "inserts": 207, "updates": 13 },
+    "chat_group_invites": { "inserts": 10, "deletes": 9 },
+    "chat_subroles": { "inserts": 24, "updates": 2, "deletes": 8 }
+  },
+  "conclusion": "Conversation, invite and subrole lists change rarely, but were read at every boot and every Realtime join, twice per boot. Message catch-up ran on every focus wake. Chat 2.27.5 removes those duplicates; measure the effect with a later counter snapshot after publication, not a log scan."
+}
