@@ -6,6 +6,7 @@ One cloud development folder for the Liminal ecosystem. Edit here from GitHub or
 
 | App | Canonical source | Supabase Storage object |
 | --- | --- | --- |
+| Hub | [`Hub/liminal.html`](Hub/liminal.html) | Downloadable HTML |
 | Chat | [`Chat/chat.html`](Chat/chat.html) | `chat.html` |
 | Chat launcher | [`Chat/liminal-chat-launcher.html`](Chat/liminal-chat-launcher.html) | `liminal-chat-launcher.html` |
 | Player | [`Player/liminalplayer.html`](Player/liminalplayer.html) | `liminalplayer.html` |
@@ -15,7 +16,7 @@ One cloud development folder for the Liminal ecosystem. Edit here from GitHub or
 | Movies | [`Movies/movies.htm`](Movies/movies.htm) | `movies.htm` |
 | Admin dashboard | [`Admin/liminal-admin-dashboard.html`](Admin/liminal-admin-dashboard.html) | `liminal-admin-dashboard.html` |
 
-All seven existing app files were moved into these folders without changing their contents. Download suffixes such as `(27)` were removed. The production object names above match the existing `liminal-apps` bucket.
+All seven existing app files were moved into these folders without changing their contents. Download suffixes such as `(27)` were removed. The production object names above match the existing `liminal-apps` bucket. Download and open `Hub/liminal.html` in Chromium to use the integrated hub.
 
 ## Other folders
 
