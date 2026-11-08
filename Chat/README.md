@@ -30,8 +30,9 @@ access and the launcher protocol are unchanged.
   reserved usernames alongside `liminal`.
 - **Launcher v6.** Restyled and renamed in its visible text. The message
   protocol is unchanged; the version moves from 5 to 6 so Chat can require
-  the Corazon launcher. The Hub opens Chat as a launcher too, so its
-  handshake version (`protocol` in `Hub/liminal.html`) also moves to 6.
+  the Corazon launcher. The Hub (not released yet) opens Chat as a launcher
+  too, so its handshake version (`protocol` in `Hub/liminal.html`) also
+  moves to 6; otherwise it would be blocked from Chat once it ships.
   Launcher v6 downloads Chat once more after the update, because its
   IndexedDB cache is keyed by launcher version.
 
@@ -44,10 +45,8 @@ out, because the replacement they download would be v5 and blocked too.
    `liminal-apps/liminal-chat-launcher.html` and confirm the delivered file
    contains `LAUNCHER_VERSION=6` (the link in `launcher_download_url`).
 2. Publish `Chat/chat.html`.
-3. Hand out the updated `Hub/liminal.html` to anyone who opens Chat from the
-   Hub. Older Hub copies report version 5 and get the download screen.
-4. Then set `app_settings.min_chat_launcher_version` to `6`. Anyone on a v5
-   (or older) launcher or Hub sees "This launcher is out of date" with a
+3. Then set `app_settings.min_chat_launcher_version` to `6`. Anyone on a v5
+   (or older) launcher sees "This launcher is out of date" with a
    download button for `corazon-chat-launcher.html`. Their account, messages
    and saved settings are unchanged.
 

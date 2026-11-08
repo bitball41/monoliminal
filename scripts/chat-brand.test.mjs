@@ -124,7 +124,7 @@ test('raising min_chat_launcher_version to 6 sends v5 launchers to the Corazon d
   const hubVersion = Number(hub.match(/^const protocol = (\d+);$/m)?.[1]);
   const launcherVersion = Number(launcher.match(/^const LAUNCHER_VERSION=(\d+);$/m)?.[1]);
   assert.equal(launcherVersion, 6);
-  assert.equal(hubVersion, launcherVersion, 'the Hub opens Chat as a launcher and must pass the same gate');
+  assert.equal(hubVersion, launcherVersion, 'the unreleased Hub opens Chat as a launcher and must pass the same gate when it ships');
 
   const context = vm.createContext({ appSettings: {}, launcherVersion: 0 });
   vm.runInContext(section(chat, '    const LAUNCHER_PROTOCOL = ', '\n'), context);
