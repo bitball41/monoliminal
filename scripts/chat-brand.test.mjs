@@ -45,7 +45,7 @@ test('compatibility identifiers are unchanged', () => {
     assert(chat.includes(id), `Chat keeps ${id}`);
   }
   for (const id of ['"liminal:chat:ready"', '"liminal:launcher:hello"', '"liminal-launcher-controls"', "'liminal-launcher-cache'",
-    '/liminal-apps/chat.html', 'const LAUNCHER_VERSION=5;']) {
+    '/liminal-apps/chat.html', 'const LAUNCHER_VERSION=6;']) {
     assert(launcher.includes(id), `launcher keeps ${id}`);
   }
   assert.match(chat, /const RESERVED_NAMES = \[[^\]]*'liminal'[^\]]*'corazon'[^\]]*\]/);
@@ -117,4 +117,25 @@ test('applyTheme sets Corazon tokens and falls back to Corazon for unknown theme
   context.applyTheme('removed-theme');
   assert.equal(stored.get('lc_theme'), 'corazon');
   assert.equal(root.dataset.theme, 'corazon');
+});
+
+test('raising min_chat_launcher_version to 6 sends v5 launchers to the Corazon download', async () => {
+  const hub = await readFile(new URL('../Hub/liminal.html', import.meta.url), 'utf8');
+  const hubVersion = Number(hub.match(/^const protocol = (\d+);$/m)?.[1]);
+  const launcherVersion = Number(launcher.match(/^const LAUNCHER_VERSION=(\d+);$/m)?.[1]);
+  assert.equal(launcherVersion, 6);
+  assert.equal(hubVersion, launcherVersion, 'the Hub opens Chat as a launcher and must pass the same gate');
+
+  const context = vm.createContext({ appSettings: {}, launcherVersion: 0 });
+  vm.runInContext(section(chat, '    const LAUNCHER_PROTOCOL = ', '\n'), context);
+  vm.runInContext(section(chat, '    function requiredLauncherVersion() {', '    function showLauncherMigrate() {')
+    .replace(/launcherVersion >=/, 'globalThis.launcherVersion >='), context);
+  const current = (min, version) => {
+    context.appSettings.min_chat_launcher_version = min;
+    context.launcherVersion = version;
+    return context.launcherIsCurrent();
+  };
+  assert.equal(current('5', 5), true, 'today: v5 launchers and Hubs still open');
+  assert.equal(current('6', 5), false, 'after the switch: v5 launchers see the download screen');
+  assert.equal(current('6', 6), true, 'the Corazon launcher and updated Hub open');
 });
