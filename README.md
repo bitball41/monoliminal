@@ -7,14 +7,16 @@ One cloud development folder for the Liminal ecosystem. Edit here from GitHub or
 | App | Canonical source | Supabase Storage object |
 | --- | --- | --- |
 | Hub | [`Hub/liminal.html`](Hub/liminal.html) | Downloadable HTML |
-| Chat | [`Chat/chat.html`](Chat/chat.html) | `chat.html` |
-| Chat launcher | [`Chat/liminal-chat-launcher.html`](Chat/liminal-chat-launcher.html) | `liminal-chat-launcher.html` |
+| Chat (Corazon Chat) | [`Chat/chat.html`](Chat/chat.html) | `chat.html` |
+| Chat launcher (Corazon Chat) | [`Chat/liminal-chat-launcher.html`](Chat/liminal-chat-launcher.html) | `liminal-chat-launcher.html` |
 | Player | [`Player/liminalplayer.html`](Player/liminalplayer.html) | `liminalplayer.html` |
 | AI | [`AI/luna.html`](AI/luna.html) | `luna.html` |
 | Drive | [`Drive/Liminal-Drive.html`](Drive/Liminal-Drive.html) | `Liminal-Drive.html` |
 | Games | [`Games/games.html`](Games/games.html) | `games.html` |
 | Movies | [`Movies/movies.htm`](Movies/movies.htm) | `movies.htm` |
 | Admin dashboard | [`Admin/liminal-admin-dashboard.html`](Admin/liminal-admin-dashboard.html) | `liminal-admin-dashboard.html` |
+
+Chat is branded Corazon Chat, part of the Corazon platform by Crimson Heart. Its source and Storage object names keep their earlier names so existing launchers and links keep working.
 
 All seven existing app files were moved into these folders without changing their contents. Download suffixes such as `(27)` were removed. The production object names above match the existing `liminal-apps` bucket. Download and open `Hub/liminal.html` in Chromium to use the integrated hub.
 

@@ -3,37 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Liminal Chat</title>
+<meta name="theme-color" content="#390606">
+<meta name="application-name" content="Corazon Chat">
+<meta name="description" content="Corazon Chat launcher, part of the Corazon platform by Crimson Heart.">
+<title>Corazon Chat</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Courgette&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #09003d; color: #c8d6f0; font: 14px Montserrat, system-ui, sans-serif; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: #390606; color: #fff1f0; font: 14px Montserrat, system-ui, sans-serif; }
 .loader { width: min(100%, 390px); text-align: center; }
-.logo { margin: 0 0 20px; color: #fff; font: 400 34px/1.24 Pacifico, cursive; }
-.track { width: 220px; height: 3px; margin: auto; overflow: hidden; border-radius: 9px; background: #ffffff12; }
-.bar { width: 15%; height: 100%; border-radius: 9px; background: #a78bfa; animation: load 1.2s ease-in-out infinite; }
-.status { margin: 16px 0; color: #c8d6f0aa; font-size: 11px; letter-spacing: .06em; }
-.error { margin: 16px 0 0; color: #fca5a5; line-height: 1.6; }
-.error-code { display: block; margin-top: 10px; color: #c8d6f099; font: 11px/1.5 ui-monospace, monospace; }
-button { padding: 9px 16px; border: 1px solid #a78bfa59; border-radius: 8px; background: #a78bfa22; color: #e1d6ff; font: inherit; font-size: 12px; cursor: pointer; }
+.logo { margin: 0 0 20px; color: #fff1f0; font: 400 36px/1.24 Courgette, cursive; letter-spacing: 0; }
+.track { width: 220px; height: 3px; margin: auto; overflow: hidden; border-radius: 9px; background: #fff1f01a; }
+.bar { width: 15%; height: 100%; border-radius: 9px; background: #fff1f0; animation: load 1.2s ease-in-out infinite; }
+.status { margin: 16px 0; color: #fff1f08c; font-size: 11px; letter-spacing: .06em; }
+.error { margin: 16px 0 0; color: #ffc9c4; line-height: 1.6; }
+.error-code { display: block; margin-top: 10px; color: #fff1f099; font: 11px/1.5 ui-monospace, monospace; }
+button { padding: 9px 16px; border: 1px solid #fff1f0; border-radius: 999px; background: #fff1f0; color: #230404; font-weight: 700; font: inherit; font-size: 12px; cursor: pointer; }
 button:disabled { opacity: .6; cursor: wait; }
-button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 4px; }
+button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid #f4a6a1; outline-offset: 4px; }
 .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-.secondary { border-color: #ffffff22; background: transparent; color: #c8d6f0; }
-.help { margin-top: 24px; text-align: left; font-size: 12px; line-height: 1.65; color: #c8d6f0b3; }
-.help summary { width: fit-content; margin: auto; cursor: pointer; font-size: 11px; color: #b9abde; }
-.help-content { margin-top: 16px; padding: 16px; border: 1px solid #ffffff14; border-radius: 12px; background: #ffffff05; }
+.secondary { border-color: #fff1f033; background: transparent; color: #fff1f0; font-weight: 600; }
+.help { margin-top: 24px; text-align: left; font-size: 12px; line-height: 1.65; color: #fff1f0b3; }
+.help summary { width: fit-content; margin: auto; cursor: pointer; font-size: 11px; color: #fff1f0a6; }
+.help-content { margin-top: 16px; padding: 16px; border: 1px solid #fff1f01a; border-radius: 12px; background: #230404; }
 .help p { margin: 0 0 10px; }
 .help ul { margin: 0 0 14px; padding-left: 18px; }
 .help li + li { margin-top: 8px; }
-.help a { color: #c4b5fd; }
+.help a { color: #f4a6a1; }
 #connection-result { display: block; margin: 10px 0 0; overflow-wrap: anywhere; }
-#media-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: #09003df2; }
+#media-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: #390606f5; }
 .media-card { text-align: center; max-width: 380px; }
-.media-card p { margin: 0 0 16px; color: #c8d6f0cc; line-height: 1.5; }
+.media-card p { margin: 0 0 16px; color: #fff1f0cc; line-height: 1.5; }
 #media-skip { margin-left: 8px; }
 @keyframes load { 50% { width: 85%; } 100% { width: 15%; transform: translateX(185px); } }
 @media (prefers-reduced-motion: reduce) { .bar { animation: none; width: 65%; } }
@@ -41,7 +45,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 </head>
 <body>
 <main class="loader" id="loader">
-  <h1 class="logo">Liminal Chat</h1>
+  <h1 class="logo">Corazon Chat</h1>
   <div class="track" id="progress" aria-hidden="true"><div class="bar"></div></div>
   <p class="status" role="status" aria-live="polite">Starting launcher…</p>
   <p class="error" id="launch-error" role="alert" hidden></p>
@@ -51,13 +55,13 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
     <button id="show-chat" class="secondary" type="button" hidden>Show Chat</button>
   </div>
   <details class="help" id="connection-help">
-    <summary>Why is my Liminal Chat not connecting?</summary>
+    <summary>Why is my Corazon Chat not connecting?</summary>
     <div class="help-content">
       <p>Check:</p>
       <ul>
         <li>Your device is connected to the internet. If Wi-Fi requires a sign-in page, finish signing in first.</li>
-        <li>The Liminal database is up and running. An owner can check whether the project is paused or has reached a usage limit.</li>
-        <li>Your network or a browser extension is allowing Liminal’s connection. A blocked request can look like an outage.</li>
+        <li>The Corazon database is up and running. An owner can check whether the project is paused or has reached a usage limit.</li>
+        <li>Your network or a browser extension is allowing Corazon’s connection. A blocked request can look like an outage.</li>
         <li>You’re using the latest launcher file. Older files still point to the retired database.</li>
         <li>The latest Chat version has been published. A missing or outdated copy needs an owner to update it.</li>
       </ul>
@@ -71,7 +75,7 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 <iframe id="chat-frame" allow="camera *; microphone *; display-capture *; autoplay *; fullscreen *" style="position:fixed;inset:0;visibility:hidden;width:100%;height:100%;border:none;"></iframe>
 <div id="media-gate" hidden>
   <div class="media-card">
-    <div class="logo">Liminal Chat</div>
+    <div class="logo">Corazon Chat</div>
     <p id="media-copy">Voice Chat needs this file to use your microphone. Chrome will not ask inside the chat window — it has to ask here, on the file you opened.</p>
     <button id="media-allow" type="button">Allow microphone</button>
     <button id="media-skip" type="button">Not now</button>
@@ -108,7 +112,7 @@ const CDN="https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/lim
 const SUPABASE_URL="https://trsirhyucncmyyfyiuje.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG";
 const LAUNCHER_VERSION=5;
-const STAGES={connecting:"Connecting to Liminal…",downloading:"Downloading Chat…",opening:"Starting Chat…",ready:"Connected",error:"Connection interrupted"};
+const STAGES={connecting:"Connecting to Corazon…",downloading:"Downloading Chat…",opening:"Starting Chat…",ready:"Connected",error:"Connection interrupted"};
 // Startup state. Each retry cancels the previous attempt, including body downloads.
 const REQUEST_TIMEOUT_MS=20000;
 const STARTUP_TIMEOUT_MS=25000;
@@ -154,8 +158,8 @@ class LaunchError extends Error{
 function responseError(status){
   if(status===404)return new LaunchError("LC_NOT_FOUND","The Chat file is missing. Ask an owner to publish the latest version.",status);
   if(status===401||status===403)return new LaunchError("LC_ACCESS","The server refused access to Chat. Ask an owner to check the published file’s access settings.",status);
-  if(status===429)return new LaunchError("LC_RATE_LIMIT","Liminal is receiving too many requests. Wait a moment before retrying.",status);
-  if(status>=500)return new LaunchError("LC_SERVICE","Liminal’s server is temporarily unavailable. Try again shortly.",status);
+  if(status===429)return new LaunchError("LC_RATE_LIMIT","Corazon is receiving too many requests. Wait a moment before retrying.",status);
+  if(status>=500)return new LaunchError("LC_SERVICE","Corazon’s server is temporarily unavailable. Try again shortly.",status);
   return new LaunchError("LC_HTTP","The server could not deliver Chat. Send an owner the error code below.",status);
 }
 function connectionError(error){
@@ -256,7 +260,7 @@ async function checkConnection(){
   if(button.disabled)return;
   if(navigator.onLine===false){result.textContent="LC_OFFLINE · Your device reports no internet connection.";return;}
   button.disabled=true;
-  result.textContent="Checking Liminal’s database…";
+  result.textContent="Checking Corazon’s database…";
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),8000);
   try{
@@ -265,7 +269,7 @@ async function checkConnection(){
     if(!response.ok)throw responseError(response.status);
     const data=await response.json();
     if(!Array.isArray(data))throw new LaunchError("LC_BAD_RESPONSE","The connection returned an unexpected response.");
-    result.textContent="Liminal’s database responded. If Chat still fails, retry the latest version and send an owner the launch error code.";
+    result.textContent="Corazon’s database responded. If Chat still fails, retry the latest version and send an owner the launch error code.";
   }catch(error){const problem=connectionError(error);result.textContent=problem.code+(problem.status?" · HTTP "+problem.status:"")+" · "+problem.message;}
   finally{clearTimeout(timer);button.disabled=false;}
 }
