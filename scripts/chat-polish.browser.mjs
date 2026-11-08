@@ -57,7 +57,7 @@ await page.evaluate(()=>{
 const capture=async name=>{await page.screenshot({path:path.join(screenshots,name+'.png')});};
 const fit=async selector=>page.locator(selector).evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth,rect:el.getBoundingClientRect().toJSON()}));
 // Every header state uses the same action geometry, including Block DMs.
-for(const [theme,width,height] of [['midnight',1440,1000],['midnight',1024,768],['midnight',768,1024],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]){
+for(const [theme,width,height] of [['corazon',1440,1000],['corazon',390,844],['midnight',1440,1000],['midnight',1024,768],['midnight',768,1024],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]){
   await page.setViewportSize({width,height});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await page.evaluate(theme=>applyTheme(theme),theme);
@@ -103,7 +103,7 @@ await page.evaluate(() => {
     {...base,id:'after-call',content:'I can walk you through it.'},
   ]);
 });
-for (const [theme,width,height] of [['midnight',1440,1000],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]) {
+for (const [theme,width,height] of [['corazon',1440,1000],['corazon',390,844],['midnight',1440,1000],['midnight',390,844],['midnight',320,720],['monolight',1440,1000],['monolight',390,844]]) {
   await page.setViewportSize({width,height});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await page.evaluate(async theme=>{applyTheme(theme);await openView(dmView(dms.find(dm=>dm.id==='dm-1')));},theme);
@@ -112,12 +112,12 @@ for (const [theme,width,height] of [['midnight',1440,1000],['midnight',390,844],
   assert.equal(await page.locator('[data-id="call-invite"] .msg-content').count(),0);
   assert.equal(await page.locator('[data-id="call-invite"] [data-act="edit"]').count(),0);
   assert.equal(await page.locator('[data-id="after-call"].grouped').count(),0);
-  assert.equal(await page.locator('.dm-receipt').count(),1); // the following typed message still has receipts
+  assert.equal(await page.locator('.dm-receipt').count(),0); // per-message receipts were retired in favour of read cursors
   const box=await fit('.call-invite');
   assert(box.rect.width>200 && box.rect.right<=width+1 && box.scroll<=box.width+1,`call card fits ${theme}/${width}`);
   assert.equal(await page.locator('[data-join-private-call]').isEnabled(),true);
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  assert.equal(await page.locator('.msg-content').first().evaluate(el=>getComputedStyle(el).color),theme==='midnight'?'rgb(244, 242, 255)':'rgb(32, 30, 27)');
+  assert.equal(await page.locator('.msg-content').first().evaluate(el=>getComputedStyle(el).color),({corazon:'rgb(255, 241, 240)',midnight:'rgb(244, 242, 255)',monolight:'rgb(32, 30, 27)'})[theme]);
   await capture(`call-event-${theme}-${width}`);
 }
 await page.evaluate(()=>{

@@ -1,4 +1,57 @@
-# Liminal Chat
+# Corazon Chat
+
+Corazon Chat is part of the Corazon platform by Crimson Heart. It was
+previously called Liminal Chat.
+
+## Corazon rebrand (2.28.0)
+
+A visual and naming rebrand. Accounts, messages, permissions, Supabase
+access and the launcher protocol are unchanged.
+
+- **Palette.** A new default theme, Corazon: background `#390606`, surfaces
+  `#230404`, text `#FFF1F0`, and one soft rose accent (`#F4A6A1`) for
+  selection, focus and primary buttons. The sidebar, member list, dialogs and
+  cards use the surface colour; the conversation uses the background. Its
+  overrides live in the `corazon-brand` style block and apply only while the
+  Corazon theme is active, so the other themes look as before.
+- **Type.** The logo and title (`Corazon Chat`) use Courgette. Body and UI
+  text keep Montserrat and the system font. Pacifico and Syne still load for
+  the name-style fonts members can pick.
+- **Default theme.** Midnight, the old default, is still offered. A device
+  that had Midnight saved moves to Corazon once (`lc_theme_brand` records
+  it); choosing Midnight again afterwards sticks. Every other saved theme is
+  kept.
+- **Copy and assets.** Title, metadata, favicon, notification icon, loading
+  screen, login, navigation, settings, rules, toasts, blocked and maintenance
+  screens, voice prompts and the owner console say Corazon. Downloads are
+  named `corazon-chat-launcher.html`, `corazon-chat-data-<date>.json` and
+  `corazon-performance-<version>.json`. `corazon` and `crimsonheart` are
+  reserved usernames alongside `liminal`.
+- **Launcher.** Same protocol and version (5), restyled and renamed in its
+  visible text. People keep using their current launcher file; the new look
+  appears after they download the launcher again.
+
+Kept on purpose, because changing them would break existing links, sessions
+or older clients:
+
+- Storage bucket and object names (`liminal-apps/chat.html`,
+  `liminal-apps/liminal-chat-launcher.html`) and the media buckets
+  (`liminal-media`, `liminal-pfp`, `liminal-stickers`, `liminal-group-media`).
+- The sign-in email domain (`@accounts.liminal.invalid`). Changing it would
+  lock every account out.
+- Realtime channel names (`liminal-online`, `liminal-presence`,
+  `liminal-voice-signal`, `liminal-launcher-controls`) and the `liminal:*`
+  postMessage types shared by the launcher, Hub and Chat.
+- `lc_*` local storage keys, window-name prefixes and the launcher cache
+  database, so saved sessions, drafts and settings carry over.
+- Server messages in applied migrations (for example `Liminal Chat is
+  currently disabled`). Chat checks the same setting before sending and shows
+  its own Corazon message, so a new migration was not needed.
+
+`scripts/chat-polish.browser.mjs` and `scripts/chat-layout.browser.mjs` now run
+their header, call-card and layout checks in Corazon as well as Midnight and
+Mono Light. The polish check also stopped expecting per-message DM receipts,
+which were retired in favour of read cursors in an earlier release.
 
 ## Fewer duplicate background reads, plus timeline fixes (2.27.5)
 
@@ -378,7 +431,7 @@ Playwright's cache. It checks layout changes across reloads, drafts, unreads,
 groups, inbox navigation, forums, voice, keyboard navigation, removed
 conversations, light themes, and 320–1440px viewports without production traffic.
 
-The standalone launcher is [liminal-chat-launcher.html](liminal-chat-launcher.html) and has its own deployment Action.
+The standalone launcher is [liminal-chat-launcher.html](liminal-chat-launcher.html) and has its own deployment Action. It is published under the same object name; people who download it get `corazon-chat-launcher.html`.
 
 Production Storage bucket: `liminal-apps`. Keep the production object name `chat.html` unchanged.
 

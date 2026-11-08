@@ -1,20 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="corazon">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#09003d">
+  <meta name="theme-color" content="#390606">
+  <meta name="application-name" content="Corazon Chat">
+  <meta name="description" content="Corazon Chat, part of the Corazon platform by Crimson Heart.">
   <meta
     http-equiv="Content-Security-Policy"
     content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src https: data: blob:; connect-src https://*.supabase.co wss://*.supabase.co https://api.microlink.io https://noembed.com https://static.klipy.com stun: turn: turns:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; worker-src blob:; base-uri 'none'"
   >
-  <title>Liminal Chat</title>
+  <title>Corazon Chat</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   
   <link rel="preconnect" href="https://trsirhyucncmyyfyiuje.supabase.co" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Pacifico&family=Syne:ital,wght@1,700;1,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Courgette&family=Pacifico&family=Syne:ital,wght@1,700;1,800&display=swap" rel="stylesheet">
   
   <script>
 /* @supabase/supabase-js 2.108.2, bundled locally.
@@ -180,10 +183,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     /* ============================= TOKENS ============================= */
     
-    @property --bg            { syntax: "<color>"; inherits: true; initial-value: #09003d; }
-    @property --accent        { syntax: "<color>"; inherits: true; initial-value: #a78bfa; }
-    @property --text          { syntax: "<color>"; inherits: true; initial-value: #f4f2ff; }
-    @property --on-accent     { syntax: "<color>"; inherits: true; initial-value: #120a2e; }
+    @property --bg            { syntax: "<color>"; inherits: true; initial-value: #390606; }
+    @property --accent        { syntax: "<color>"; inherits: true; initial-value: #f4a6a1; }
+    @property --text          { syntax: "<color>"; inherits: true; initial-value: #fff1f0; }
+    @property --on-accent     { syntax: "<color>"; inherits: true; initial-value: #230404; }
     @property --bg-2          { syntax: "<color>"; inherits: true; initial-value: #221a50; }
     @property --bg-3          { syntax: "<color>"; inherits: true; initial-value: #2e2660; }
     @property --bg-deep       { syntax: "<color>"; inherits: true; initial-value: #070031; }
@@ -205,10 +208,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     :root {
       
-      --bg: #09003d;
-      --accent: #a78bfa;
-      --text: #f4f2ff;
-      --on-accent: #120a2e;
+      --bg: #390606;
+      --accent: #f4a6a1;
+      --text: #fff1f0;
+      --on-accent: #230404;
 
       --bg-2: color-mix(in srgb, var(--bg) 90%, white);
       --bg-3: color-mix(in srgb, var(--bg) 82%, white);
@@ -555,32 +558,32 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .startup-screen {
       position: fixed; inset: 0; z-index: 1000;
       display: grid; place-items: center;
-      background: #09003d;
-      color: #c8d6f0;
+      background: #390606;
+      color: #fff1f0;
       font: 14px Montserrat, system-ui, sans-serif;
     }
     .startup-card { text-align: center; }
     .startup-logo {
       margin: 0 0 18px;
-      color: #fff;
-      font-family: Pacifico, cursive;
-      font-size: 34px;
+      color: #fff1f0;
+      font-family: Courgette, cursive;
+      font-size: 36px;
       font-weight: 400;
       line-height: 1.24;
       letter-spacing: 0;
     }
     .startup-track {
       width: 220px; height: 3px; overflow: hidden;
-      border-radius: 9px; background: #ffffff12;
+      border-radius: 9px; background: #fff1f01a;
     }
     .startup-bar {
       width: 15%; height: 100%; border-radius: 9px;
-      background: #a78bfa;
+      background: #fff1f0;
       animation: startup-load 1.2s ease-in-out infinite;
     }
     .startup-status {
       margin-top: 14px;
-      color: #c8d6f080;
+      color: #fff1f08c;
       font-size: 11px;
       letter-spacing: .08em;
       text-transform: uppercase;
@@ -710,7 +713,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .brand-copy { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
     .brand-title {
-      font-family: "Pacifico", cursive; font-size: 1.72rem; font-weight: 400;
+      font-family: "Courgette", cursive; font-size: 1.72rem; font-weight: 400;
       color: var(--text); line-height: 1;
     }
     .brand-subtitle {
@@ -2813,7 +2816,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
 </style>
 <style id="liminal-geometry-redesign">
-/* Liminal Chat — geometry-led interface system */
+/* Corazon Chat — geometry-led interface system */
 :root {
   --left-width: 264px;
   --right-width: 248px;
@@ -2852,7 +2855,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .brand-copy { align-items: baseline; gap: 7px; }
 .brand-title { font-size: 1.48rem; }
 .brand-subtitle { font-size: .95rem; letter-spacing: -.04em; }
-.brand .brand-subtitle { font-family: "Pacifico", cursive; font-weight: 400; font-style: normal; letter-spacing: 0; }
+.brand .brand-subtitle { font-family: "Courgette", cursive; font-weight: 400; font-style: normal; letter-spacing: 0; }
 .sidebar-scroll { padding: 12px 12px 20px; }
 .section-label {
   margin: 20px 10px 8px;
@@ -2994,7 +2997,7 @@ dialog, .dialog, .auth-card, .blocked-card { border-radius: 24px; }
 .auth-tabs { border: 0; border-radius: 999px; background: var(--surface-2); }
 .auth-tabs::before { border-radius: 999px; }
 .auth-tabs button { border-radius: 999px; }
-.startup-screen { background: var(--bg-deep); }
+.startup-screen { background: var(--bg); }
 .startup-track { height: 4px; border-radius: 999px; }
 
 /* Consistent hit targets without bloating their visible artwork. */
@@ -3398,13 +3401,39 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
 }
 
 </style>
+<style id="corazon-brand">
+/* Corazon Chat by Crimson Heart: heart-red canvas, darker red surfaces, soft white text.
+   One soft rose accent; surfaces carry the hierarchy. Other themes are unchanged. */
+html[data-theme="corazon"] {
+  --bg-deep: #230404;
+  --panel: #230404;
+  --panel-strong: #2a0505;
+  --glass: #2a0505;
+  --glass-strong: #2a0505;
+  --elevated: #3b0c0c;
+  --accent-strong: #f9c1bc;
+  --accent-soft: rgba(244, 166, 161, .13);
+  --accent-line: rgba(244, 166, 161, .3);
+  --accent-glow: rgba(244, 166, 161, .16);
+  --scrim-color: rgba(20, 2, 2, .62);
+  --shadow: 0 20px 56px rgba(12, 0, 0, .42);
+  --shadow-soft: 0 10px 30px rgba(12, 0, 0, .26);
+  --inner-highlight: inset 0 1px rgba(255, 241, 240, .03);
+}
+html[data-theme="corazon"] .sidebar,
+html[data-theme="corazon"] .member-panel { background: var(--panel); }
+html[data-theme="corazon"] .brand .brand-subtitle { color: var(--muted); }
+html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-strong); }
+.startup-logo, .brand-title { letter-spacing: 0; }
+.brand-subtitle, .auth-brand .brand-subtitle { font-family: "Courgette", cursive; font-style: normal; font-weight: 400; letter-spacing: 0; text-transform: none; }
+</style>
 </head>
 <body>
   <a class="skip-link" href="#message-input">Skip to message composer</a>
 
-  <div class="startup-screen" id="startup-screen" role="status" aria-label="Opening Liminal Chat">
+  <div class="startup-screen" id="startup-screen" role="status" aria-label="Opening Corazon Chat">
     <div class="startup-card">
-      <div class="startup-logo">Liminal Chat</div>
+      <div class="startup-logo">Corazon Chat</div>
       <div class="startup-track" aria-hidden="true"><div class="startup-bar"></div></div>
       <div class="startup-status">Starting launcher...</div>
     </div>
@@ -3416,7 +3445,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
     <div class="auth-card">
       <div class="auth-brand">
         <div class="brand-copy">
-          <div class="brand-title">Liminal</div>
+          <div class="brand-title">Corazon</div>
           <div class="brand-subtitle">Chat</div>
           <p>Talk with your community.</p>
         </div>
@@ -3477,7 +3506,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
       </form>
 
       <div class="auth-footer">
-        Liminal Chat · <button type="button" id="open-dev-config">Developer settings</button>
+        Corazon Chat by Crimson Heart · <button type="button" id="open-dev-config">Developer settings</button>
       </div>
     </div>
   </div>
@@ -3488,7 +3517,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
       <div class="big-icon" id="blocked-icon">🚧</div>
       <h1 id="blocked-title">Unavailable</h1>
       <p id="blocked-text"></p>
-      <a class="secondary-button" id="blocked-launcher-download" hidden download="liminal-chat-launcher.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;">Download new launcher</a>
+      <a class="secondary-button" id="blocked-launcher-download" hidden download="corazon-chat-launcher.html" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;">Download new launcher</a>
       <button class="secondary-button" id="blocked-logout" type="button">Sign out</button>
     </div>
   </div>
@@ -3502,7 +3531,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
     <aside class="sidebar" id="sidebar" aria-label="Channels and direct messages">
       <div class="brand">
         <div class="brand-copy">
-          <div class="brand-title">Liminal</div>
+          <div class="brand-title">Corazon</div>
           <div class="brand-subtitle">Chat</div>
         </div>
       </div>
@@ -3765,7 +3794,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
 
     <section class="vc-chat-popup vc-chat-hidden" id="vc-chat-popup" hidden aria-label="Voice room chat">
       <header class="vc-chat-header" id="vc-chat-header">
-        <div><strong>Room Chat</strong><span>Saved in Liminal</span></div>
+        <div><strong>Room Chat</strong><span>Saved in Corazon</span></div>
         <button class="vc-chat-close" id="vc-chat-close" type="button" aria-label="Close room chat">×</button>
       </header>
       <div class="vc-chat-messages scroll-thin" id="vc-chat-messages" aria-live="polite"></div>
@@ -3986,7 +4015,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
         </div>
         <div class="settings-section-title">Accessibility</div>
         <div class="toggle-row">
-          <div class="toggle-copy"><div class="toggle-title">Dyslexia-friendly font</div><div class="toggle-sub">Use OpenDyslexic throughout Liminal.</div></div>
+          <div class="toggle-copy"><div class="toggle-title">Dyslexia-friendly font</div><div class="toggle-sub">Use OpenDyslexic throughout Corazon.</div></div>
           <button class="switch" id="set-dyslexic" type="button" role="switch" aria-checked="false" aria-label="Dyslexia-friendly font"></button>
         </div>
       </section>
@@ -4009,7 +4038,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
         <div class="toggle-row">
           <div class="toggle-copy">
             <div class="toggle-title">Desktop notifications</div>
-            <div class="toggle-sub" id="ntf-desktop-sub">Notify me when Liminal is in the background.</div>
+            <div class="toggle-sub" id="ntf-desktop-sub">Notify me when Corazon is in the background.</div>
           </div>
           <button class="switch" id="ntf-desktop" type="button" role="switch" aria-checked="false" aria-label="Desktop notifications"></button>
         </div>
@@ -4114,7 +4143,7 @@ html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"])
 
   <dialog id="rules-dialog" aria-labelledby="rules-title">
     <div class="dialog-header">
-      <h2 id="rules-title">Liminal Rules</h2>
+      <h2 id="rules-title">Corazon Rules</h2>
       <button class="icon-button" type="button" data-close-dialog="rules-dialog" aria-label="Close rules">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg>
       </button>
@@ -5189,7 +5218,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.27.5";
+    const APP_VERSION = "2.28.0";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -5274,7 +5303,7 @@ void main() {
         iceCandidatePoolSize: 2,
       };
     }
-    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'admin', 'luna', 'noelleai'];
+    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'corazon', 'crimsonheart', 'admin', 'luna', 'noelleai'];
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
     const GROUP_WINDOW_MS = 5 * 60 * 1000;
     const FORUM_PREFIX = 'forum:';
@@ -5290,6 +5319,7 @@ void main() {
     const DM_MESSAGE_COLUMNS = 'id,dm_id,sender,content,type,media_url,reply_to,reactions,deleted,edited,created_at';
 
     const THEMES = {
+      corazon:   { name: 'Corazon',    bg: '#390606', accent: '#f4a6a1', text: '#fff1f0', onAccent: '#230404' },
       midnight:  { name: 'Midnight',   bg: '#09003d', accent: '#a78bfa' },
       ocean:     { name: 'Ocean',      bg: '#001f3f', accent: '#38bdf8' },
       forest:    { name: 'Forest',     bg: '#0a1f0a', accent: '#4ade80' },
@@ -5311,6 +5341,16 @@ void main() {
       meadow:    { name: 'Meadow',     bg: '#f7faf7', accent: '#187342', light: true, text: '#21382a' },
       skylight:  { name: 'Sky',        bg: '#f5fafd', accent: '#086a9c', light: true, text: '#1b3442' },
     };
+
+    // Corazon replaced Midnight as the default theme. A saved Midnight moves once;
+    // choosing Midnight again afterwards sticks.
+    const DEFAULT_THEME = 'corazon';
+    function initialTheme() {
+      const saved = LS.get('lc_theme', DEFAULT_THEME);
+      if (LS.get('lc_theme_brand', '') === DEFAULT_THEME) return saved;
+      LS.set('lc_theme_brand', DEFAULT_THEME);
+      return saved === 'midnight' ? DEFAULT_THEME : saved;
+    }
 
     const STATUS_META = {
       online: { label: 'Online',         color: '#4ade80', desc: 'Available to chat' },
@@ -5801,7 +5841,7 @@ void main() {
     const TOAST_ICONS = { default: '💬', success: '✅', error: '⚠️', warning: '⏰', mention: '🔔', dm: '✉️', support: '💜' };
 
     const BASE_TITLE = document.title;
-    const NOTIFY_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237c6bfa'/%3E%3Cpath d='M20 25h24M20 34h17' stroke='white' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E";
+    const NOTIFY_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E";
     const notifySupported = () => typeof window.Notification === 'function';
     const notifyPermission = () => (notifySupported() ? Notification.permission : 'unsupported');
 
@@ -5849,7 +5889,7 @@ void main() {
         ? 'This browser does not support desktop notifications.'
         : perm === 'denied'
           ? 'Blocked by your browser — re-allow notifications for this site to use this.'
-          : "Notify me when Liminal is in the background.";
+          : "Notify me when Corazon is in the background.";
     }
 
     function totalUnread() {
@@ -5913,12 +5953,14 @@ void main() {
       return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     }
     function applyTheme(key) {
-      const theme = THEMES[key] || THEMES.midnight;
+      if (!THEMES[key]) key = DEFAULT_THEME;
+      const theme = THEMES[key];
       const root = document.documentElement;
       root.style.setProperty('--bg', theme.bg);
       root.style.setProperty('--accent', theme.accent);
-      root.style.setProperty('--text', theme.light ? (theme.text || '#1c1924') : '#f4f2ff');
-      root.style.setProperty('--on-accent', luminance(theme.accent) > 0.55 ? '#10101a' : '#ffffff');
+      root.style.setProperty('--text', theme.text || (theme.light ? '#1c1924' : '#f4f2ff'));
+      root.style.setProperty('--on-accent', theme.onAccent || (luminance(theme.accent) > 0.55 ? '#10101a' : '#ffffff'));
+      root.dataset.theme = key;
       if (theme.light) root.setAttribute('data-light', 'true');
       else root.removeAttribute('data-light');
       settings.theme = key;
@@ -5993,7 +6035,7 @@ void main() {
        Original components by David Haz / contributors. See the upstream LICENSE.md.
        Shader text stays inert in the HTML until a signed-in user opts in. */
     const CHAT_BACKGROUNDS = {
-      off: { name: 'Off', detail: 'The regular Liminal background.' },
+      off: { name: 'Off', detail: 'The regular Corazon background.' },
       softAurora: { name: 'Soft Aurora', detail: 'Slow, diffused violet light.', fps: 30, scale: 0.75 },
       threads: { name: 'Threads', detail: 'Fine, flowing lines.', fps: 30, scale: 0.7 },
       particles: { name: 'Particles', detail: 'Floating points of light.', fps: 30, scale: 0.9 },
@@ -6139,7 +6181,7 @@ void main() {
         .map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
     }
     function backgroundPalette() {
-      const theme = THEMES[settings.theme] || THEMES.midnight;
+      const theme = THEMES[settings.theme] || THEMES[DEFAULT_THEME];
       const primary = theme.light ? mixBackgroundHex(theme.accent, '#000000', .12) : theme.accent;
       return {
         primary, bg: theme.bg, light: !!theme.light,
@@ -6733,7 +6775,7 @@ void main() {
       stopFrameCapture('download');
       const blob = new Blob([JSON.stringify(performanceReport(), null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `liminal-performance-${APP_VERSION}.json`; link.click();
+      link.href = url; link.download = `corazon-performance-${APP_VERSION}.json`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     const profiles = new Map();
@@ -6764,14 +6806,14 @@ void main() {
       max_message_length: '2000',
       announcement: '',
       whats_new: '',
-      maintenance_message: 'Liminal Chat is temporarily disabled while we work on things. Check back soon!',
+      maintenance_message: 'Corazon Chat is temporarily disabled while we work on things. Check back soon!',
       banned_words: '[]',
       co_owners: '[]',
       force_refresh_at: '1970-01-01T00:00:00.000Z',
       turn_servers: '',
       min_chat_launcher_version: '2',
       launcher_download_url: 'https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/liminal-apps/liminal-chat-launcher.html',
-      launcher_migrate_message: 'This Liminal Chat file is out of date and can no longer sign in.\n\nDownload the new launcher, replace this file, and open that instead. Your account and messages are unchanged.',
+      launcher_migrate_message: 'This Corazon Chat file is out of date and can no longer sign in.\n\nDownload the new launcher, replace this file, and open that instead. Your account and messages are unchanged.',
     };
     let bannedWords = [];
     let replyTarget = null;
@@ -6909,7 +6951,7 @@ void main() {
     let followRefreshTimer = null;
 
     const settings = {
-      theme: LS.get('lc_theme', 'midnight'),
+      theme: initialTheme(),
       density: LS.get('lc_density', 'comfortable'),
       fontsize: LS.get('lc_fontsize', 'medium'),
       dyslexic: LS.get('lc_dyslexic', false),
@@ -7012,8 +7054,8 @@ void main() {
       $('workspace-home-btn').innerHTML = WORKSPACE_HOME_ICON;
       const nav = $('workspace-nav');
       nav.append(qs('.header-actions'));
-      qs('#sidebar .brand-title').textContent = 'L';
-      qs('#sidebar .brand').setAttribute('aria-label', 'Liminal Chat');
+      qs('#sidebar .brand-title').textContent = 'C';
+      qs('#sidebar .brand').setAttribute('aria-label', 'Corazon Chat');
       $('vc-dock-open').title = 'Open connected voice call';
       $('workspace-home-btn').addEventListener('click', () => {
         const home = workspaceTabs.find(tab => !tab.view);
@@ -7162,7 +7204,7 @@ void main() {
       $('workspace-bio').textContent = me.bio || '';
       $('workspace-bio').hidden = !me.bio;
       const items = inbox.filter(inboxItemVisible).slice(0, 3);
-      const html = items.length ? items.map(item => `<button class="workspace-inbox-item ${item.read ? '' : 'unread'}" type="button" data-workspace-inbox="${esc(item.id)}">${esc(item.from === 'system' ? 'Liminal' : displayNameOf(item.from))} · ${esc(item.text || inboxLocation(item))}</button>`).join('') : '<p class="workspace-inbox-empty">No notifications yet.</p>';
+      const html = items.length ? items.map(item => `<button class="workspace-inbox-item ${item.read ? '' : 'unread'}" type="button" data-workspace-inbox="${esc(item.id)}">${esc(item.from === 'system' ? 'Corazon' : displayNameOf(item.from))} · ${esc(item.text || inboxLocation(item))}</button>`).join('') : '<p class="workspace-inbox-empty">No notifications yet.</p>';
       const preview = $('workspace-inbox-preview');
       if (preview._previewHtml !== html) { preview.innerHTML = html; preview._previewHtml = html; }
     }
@@ -8060,7 +8102,7 @@ void main() {
       try {
         const url = new URL(String(appSettings.launcher_download_url || '').trim());
         if (url.protocol !== 'https:' || url.username || url.password) return;
-        url.searchParams.set('download', 'liminal-chat-launcher.html');
+        url.searchParams.set('download', 'corazon-chat-launcher.html');
         url.searchParams.set('refresh', String(Date.now()));
         link.href = url.href;
         link.hidden = false;
@@ -8157,14 +8199,14 @@ void main() {
       signOutLocked = true;
       $('blocked-logout').hidden = true;
       const reason = profile.ban_reason ? `Reason: ${profile.ban_reason}` : 'No reason was given.';
-      showBlocked('🔨', 'You are banned', `Your account has been permanently banned from Liminal Chat.\n${reason}`);
+      showBlocked('🔨', 'You are banned', `Your account has been permanently banned from Corazon Chat.\n${reason}`);
     }
 
     function showDeviceBanned(ban) {
       signOutLocked = true;
       $('blocked-logout').hidden = true;
       const reason = ban && ban.reason ? `Reason: ${ban.reason}` : 'No reason was given.';
-      showBlocked('!', 'This device is banned', `This browser device has been permanently banned from Liminal Chat.\n${reason}`);
+      showBlocked('!', 'This device is banned', `This browser device has been permanently banned from Corazon Chat.\n${reason}`);
     }
 
     async function enforceDeviceBan() {
@@ -8236,7 +8278,7 @@ void main() {
       try { leaveVoiceRoom({ quiet: true }); } catch {}
       signOutLocked = false;
       $('blocked-logout').hidden = false;
-      showBlocked('🚧', 'Down for maintenance', appSettings.maintenance_message || 'Liminal Chat is temporarily disabled while we work on things.\nCheck back soon!');
+      showBlocked('🚧', 'Down for maintenance', appSettings.maintenance_message || 'Corazon Chat is temporarily disabled while we work on things.\nCheck back soon!');
       try {
         sb.channel('maintenance-watch')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, (payload) => {
@@ -8329,7 +8371,7 @@ void main() {
         LS.set('lc_user', data.username);
         LS.set('lc_tour_pending', data.username);
         if (created.first_user) toast({ type: 'success', title: 'Welcome, owner!', text: 'Your account has owner access.' });
-        else toast({ type: 'success', title: `Welcome to Liminal, ${displayName}!`, text: 'A quick tour will show you around.' });
+        else toast({ type: 'success', title: `Welcome to Corazon, ${displayName}!`, text: 'A quick tour will show you around.' });
         await bootApp(data, { newUser: true });
       } catch (err) {
         console.error(err);
@@ -8362,7 +8404,7 @@ void main() {
         const { data, error } = await sb.rpc('chat_get_my_profile');
         if (error || !data) {
           await sb.auth.signOut({ scope: 'local' });
-          errEl.textContent = `No Liminal profile exists for "${username}".`;
+          errEl.textContent = `No Corazon profile exists for "${username}".`;
           return;
         }
         if (data.is_banned) { showBanned(data); return; }
@@ -8612,7 +8654,7 @@ void main() {
       if (!voiceRow) {
         voiceRow = {
           id: VOICE_CHANNEL_ID, label: 'Voice Chat', icon: '🎥', position: 4,
-          topic: 'One room for the whole Liminal community.', is_system: true,
+          topic: 'One room for the whole Corazon community.', is_system: true,
           kind: 'voice', category: 'Voice', forum_tags: [],
         };
         channels.push(voiceRow);
@@ -10658,7 +10700,7 @@ void main() {
         return false;
       }
       if (appSettings.app_enabled === 'false' && !isOwner()) {
-        toast({ type: 'warning', text: 'Liminal Chat is currently disabled.' });
+        toast({ type: 'warning', text: 'Corazon Chat is currently disabled.' });
         return false;
       }
       if (appSettings.messages_enabled === 'false' && !isAdmin()) {
@@ -12246,14 +12288,14 @@ void main() {
         const timer = setTimeout(() => {
           fail(Object.assign(new Error(
             gotAck
-              ? 'Click Allow on the Liminal file that opened this chat, then try Join Voice again.'
-              : 'This launcher file is too old to ask for the microphone. Download a new Liminal Chat launcher and open that file.'
+              ? 'Click Allow on the Corazon file that opened this chat, then try Join Voice again.'
+              : 'This launcher file is too old to ask for the microphone. Download a new Corazon Chat launcher and open that file.'
           ), { name: 'NotAllowedError' }));
         }, 60000);
         const ackTimer = setTimeout(() => {
           if (gotAck) return;
           fail(Object.assign(new Error(
-            'This launcher file is too old to ask for the microphone. Download a new Liminal Chat launcher and open that file.'
+            'This launcher file is too old to ask for the microphone. Download a new Corazon Chat launcher and open that file.'
           ), { name: 'NotAllowedError' }));
         }, 2000);
         hostMediaWaiter = {
@@ -12278,7 +12320,7 @@ void main() {
             video: !!video,
           }, '*');
         } catch (error) {
-          fail(error instanceof Error ? error : new Error('Could not reach the Liminal file for microphone access.'));
+          fail(error instanceof Error ? error : new Error('Could not reach the Corazon file for microphone access.'));
         }
       });
     }
@@ -12578,7 +12620,7 @@ void main() {
       closeDrawers();
       finishViewSwitch(view, switched);
       setMainMode('voice');
-      const ch = channelById(view.id) || { label: 'Voice Chat', icon: '🎥', topic: 'One room for the whole Liminal community.' };
+      const ch = channelById(view.id) || { label: 'Voice Chat', icon: '🎥', topic: 'One room for the whole Corazon community.' };
       $('channel-icon').textContent = ch.icon || '🎥';
       $('channel-title').textContent = ch.label;
       $('channel-topic').textContent = ch.topic || 'Global voice room';
@@ -12625,7 +12667,7 @@ void main() {
         }
         if (error?.name === 'NotAllowedError') {
           const err = new Error(hostNeedsMediaPrompt()
-            ? 'Allow the microphone on the Liminal file you opened, then click Join Voice.'
+            ? 'Allow the microphone on the Corazon file you opened, then click Join Voice.'
             : 'This Chromebook blocked the microphone. Allow mic access for this site, or ask your school admin.');
           err.name = 'NotAllowedError';
           throw err;
@@ -12659,7 +12701,7 @@ void main() {
 
     function connectVoiceBroker() {
       return new Promise((resolve, reject) => {
-        if (!sb) { reject(new Error('Not connected to Liminal.')); return; }
+        if (!sb) { reject(new Error('Not connected to Corazon.')); return; }
         let settled = false;
         try {
           if (voice.client?.channel) sb.removeChannel(voice.client.channel);
@@ -12802,7 +12844,7 @@ void main() {
         const denied = error?.name === 'NotAllowedError';
         const text = denied
           ? (error?.message || (hostNeedsMediaPrompt()
-            ? 'Allow the microphone on the Liminal file you opened, then click Join Voice.'
+            ? 'Allow the microphone on the Corazon file you opened, then click Join Voice.'
             : 'This Chromebook blocked the microphone. Allow mic access for this site, or ask your school admin.'))
           : (error?.message || 'Could not join Voice Chat.');
         setVoiceStatus(text);
@@ -12862,7 +12904,7 @@ void main() {
     function updatePeerTileIdentity(peer) {
       if (!peer.tile) return;
       const account = peer.account || {};
-      const label = account.displayName || account.username || 'Liminal user';
+      const label = account.displayName || account.username || 'Corazon user';
       const avatar = qs('.vc-tile-placeholder .avatar', peer.tile);
       const name = qs('.vc-tile-label > span', peer.tile);
       if (name) name.textContent = label;
@@ -13382,7 +13424,7 @@ void main() {
           type: 'error',
           text: error?.name === 'NotAllowedError'
             ? (hostNeedsMediaPrompt()
-              ? 'Allow the camera on the Liminal file you opened, then try Start Video again.'
+              ? 'Allow the camera on the Corazon file you opened, then try Start Video again.'
               : 'Camera permission was denied. You can stay in the call with mic only.')
             : (error?.message || 'Could not start the camera.'),
         });
@@ -14533,7 +14575,7 @@ void main() {
       } catch (error) {
         forceRefreshInProgress = false;
         console.error('[liminal] deployment refresh failed', error);
-        toast({ type: 'error', title: 'Update failed', text: 'Could not load the new Liminal Chat build.' });
+        toast({ type: 'error', title: 'Update failed', text: 'Could not load the new Corazon Chat build.' });
       }
     }
 
@@ -17747,13 +17789,13 @@ void main() {
       const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `liminal-chat-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `corazon-chat-data-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 0);
     }
     function importLocalData(file) {
       if (!file || file.size > 1024 * 1024) {
-        toast({ type: 'error', text: 'Choose a Liminal data file smaller than 1 MB.' });
+        toast({ type: 'error', text: 'Choose a Corazon data file smaller than 1 MB.' });
         return;
       }
       const reader = new FileReader();
@@ -17768,7 +17810,7 @@ void main() {
           });
           toast({ type: 'success', text: 'Data imported — reloading…' });
           setTimeout(() => location.reload(), 900);
-        } catch { toast({ type: 'error', text: 'That file is not valid Liminal data.' }); }
+        } catch { toast({ type: 'error', text: 'That file is not valid Corazon data.' }); }
       };
       reader.readAsText(file);
     }
@@ -17895,7 +17937,7 @@ void main() {
     }
     function consoleShell(scope, title, description, stats, panels, selected) {
       if (!panels.some(panel => panel.id === selected)) selected = panels[0].id;
-      return `<div class="console-shell"><header class="console-heading"><div><span class="console-eyebrow">Liminal / ${scope === 'owner' ? 'Owner' : 'Staff'}</span><h2>${esc(title)}</h2><p>${esc(description)}</p></div><span class="console-rank">${esc(STAFF_ROLE_META[myStaffRole()]?.label || 'Staff')}</span></header>
+      return `<div class="console-shell"><header class="console-heading"><div><span class="console-eyebrow">Corazon / ${scope === 'owner' ? 'Owner' : 'Staff'}</span><h2>${esc(title)}</h2><p>${esc(description)}</p></div><span class="console-rank">${esc(STAFF_ROLE_META[myStaffRole()]?.label || 'Staff')}</span></header>
         <div class="console-stats">${stats.map(stat => `<div><strong ${stat.key ? `data-console-metric="${esc(stat.key)}"` : ''}>${esc(stat.value)}</strong><span>${esc(stat.label)}</span></div>`).join('')}</div>
         <div class="console-nav" role="tablist" aria-label="${scope === 'owner' ? 'Owner' : 'Staff'} sections">${panels.map(panel => `<button id="${scope}-nav-${panel.id}" type="button" role="tab" data-console-panel="${panel.id}" aria-controls="${scope}-panel-${panel.id}" aria-selected="${panel.id === selected}" tabindex="${panel.id === selected ? '0' : '-1'}">${esc(panel.label)}</button>`).join('')}</div>
         ${panels.map(panel => `<section id="${scope}-panel-${panel.id}" class="console-panel" role="tabpanel" tabindex="0" data-console-body="${panel.id}" aria-labelledby="${scope}-nav-${panel.id}" ${panel.id === selected ? '' : 'hidden'}>${panel.html}</section>`).join('')}
@@ -18474,7 +18516,7 @@ void main() {
     }
     function openInbox() { renderInbox(); if (!$('inbox-dialog').open) $('inbox-dialog').showModal(); hydrateInbox(true); }
     function inboxLocation(item) {
-      if (!item.view) return 'Liminal';
+      if (!item.view) return 'Corazon';
       if (item.view.startsWith('dm:')) { const dm = dms.find(dm => `dm:${dm.id}` === item.view); return dm?.is_group ? `Private group · ${conversationTitle(dm)}` : 'Direct message'; }
       const id = item.view.slice(2);
       if (id.startsWith(FORUM_PREFIX)) return 'Forum post';
@@ -18514,7 +18556,7 @@ void main() {
       const items = inbox.filter(i => inboxItemVisible(i) && (inboxTab === 'all' || (inboxTab === 'unread' ? !i.read : i.kind === inboxTab)));
       const list = $('inbox-list');
       if (!items.length) { list.innerHTML = toolEmpty('dm', inboxTab === 'unread' ? 'All caught up' : 'No messages here yet', inboxTab === 'dm' ? 'Your direct message notifications appear here.' : inboxTab === 'mention' ? 'Messages that mention you appear here.' : 'Mentions and direct messages will appear here.'); return; }
-      list.innerHTML = items.map(i => `<button class="inbox-item ${i.read ? '' : 'unread'}" type="button" data-inbox-id="${esc(i.id)}"><span class="inbox-icon">${toolIcon(i.kind)}</span><span class="inbox-text"><strong>${esc(i.from === 'system' ? 'Liminal' : displayNameOf(i.from))}</strong> ${i.from === 'system' ? '' : i.kind === 'mention' ? 'mentioned you' : i.kind === 'dm' ? 'sent a message' : ''}<span class="inbox-snippet">${esc(i.text || '')}</span><span class="inbox-location">${esc(inboxLocation(i))}</span></span><span class="inbox-end"><time class="inbox-time" datetime="${esc(i.ts)}">${esc(relTime(i.ts))}</time>${i.read ? '' : '<span class="inbox-unread-dot" aria-label="Unread"></span>'}</span></button>`).join('');
+      list.innerHTML = items.map(i => `<button class="inbox-item ${i.read ? '' : 'unread'}" type="button" data-inbox-id="${esc(i.id)}"><span class="inbox-icon">${toolIcon(i.kind)}</span><span class="inbox-text"><strong>${esc(i.from === 'system' ? 'Corazon' : displayNameOf(i.from))}</strong> ${i.from === 'system' ? '' : i.kind === 'mention' ? 'mentioned you' : i.kind === 'dm' ? 'sent a message' : ''}<span class="inbox-snippet">${esc(i.text || '')}</span><span class="inbox-location">${esc(inboxLocation(i))}</span></span><span class="inbox-end"><time class="inbox-time" datetime="${esc(i.ts)}">${esc(relTime(i.ts))}</time>${i.read ? '' : '<span class="inbox-unread-dot" aria-label="Unread"></span>'}</span></button>`).join('');
       qsa('[data-inbox-id]', list).forEach(button => button.addEventListener('click', () => { const item = inbox.find(i => i.id === button.dataset.inboxId); if (item) openInboxItem(item, button); }));
     }
 
@@ -20182,8 +20224,8 @@ void main() {
 
       const opts = {
         speed: 2.5,
-        rayColor1: '#EAB308',
-        rayColor2: '#96c8ff',
+        rayColor1: '#fff1f0',
+        rayColor2: '#f4a6a1',
         intensity: 2,
         spread: 2,
         origin: 'top-right',
@@ -20385,9 +20427,9 @@ void main() {
       const card = qs('.startup-card');
       if (!card) return;
       card.innerHTML = `
-        <div class="startup-title">Liminal Chat could not start</div>
+        <div class="startup-title">Corazon Chat could not start</div>
         <p style="margin:10px 0 0;font-size:0.78rem;line-height:1.55;color:var(--text-soft);">
-          A required part of Liminal Chat did not start. Reload to try again.
+          A required part of Corazon Chat did not start. Reload to try again.
           If this keeps happening, contact the owner.
         </p>
         <button class="secondary-button" type="button" style="margin-top:14px;" onclick="location.reload()">Reload</button>`;

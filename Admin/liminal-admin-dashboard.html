@@ -672,7 +672,7 @@
 
       <section data-page="deploys" hidden>
         <div class="filter-pills" id="deploy-apps" style="margin-bottom:16px">
-          <button class="filter-pill active" data-deploy-app="chat" type="button">Liminal Chat</button>
+          <button class="filter-pill active" data-deploy-app="chat" type="button">Corazon Chat</button>
           <button class="filter-pill" data-deploy-app="games" type="button">Liminal Games</button>
         </div>
         <div class="grid two">
@@ -680,7 +680,7 @@
             <div class="section-title"><div><h3 id="deploy-target-title">Publish chat.html</h3><p>Owner only. The current file is archived first.</p></div></div>
             <div class="field"><label for="deploy-version">Version</label><input id="deploy-version" maxlength="80" placeholder="2026.10.15-1"></div>
             <div class="field"><label for="deploy-notes">Release notes</label><textarea id="deploy-notes" maxlength="2000"></textarea></div>
-            <label class="deploy-drop" for="deploy-file"><div><strong id="deploy-drop-title">Select the new Liminal Chat build</strong><span>HTML only, up to 5 MB</span></div><input id="deploy-file" type="file" accept=".html,text/html"></label>
+            <label class="deploy-drop" for="deploy-file"><div><strong id="deploy-drop-title">Select the new Corazon Chat build</strong><span>HTML only, up to 5 MB</span></div><input id="deploy-file" type="file" accept=".html,text/html"></label>
             <button class="primary" id="deploy-button" type="button" style="margin-top:14px;width:100%">Publish deployment</button>
           </article>
           <article class="card pad">
@@ -777,7 +777,7 @@
     let activeUserFilter = "all";
     const OWNER_VIEWS = ["broadcast", "games-page", "dms", "deploys", "devtools"];
     const DEPLOY_APPS = {
-      chat: { label: "Liminal Chat", file: "chat.html" },
+      chat: { label: "Corazon Chat", file: "chat.html" },
       games: { label: "Liminal Games", file: "games.html" }
     };
     let activeDeployApp = "chat";

@@ -131,7 +131,7 @@ try {
   await page.locator('[data-workspace-inbox="notice"]').click();
   assert.equal(await page.locator('#channel-title').innerText(),'general');
   await page.locator('#workspace-new-tab').click();
-  for (const [theme,width,height] of [['midnight',1440,900],['monolight',1440,900],['midnight',1024,768],['midnight',768,900],['monolight',390,844],['midnight',320,720]]) {
+  for (const [theme,width,height] of [['corazon',1440,900],['corazon',390,844],['midnight',1440,900],['monolight',1440,900],['midnight',1024,768],['midnight',768,900],['monolight',390,844],['midnight',320,720]]) {
     await page.setViewportSize({width,height}); await page.evaluate(theme => applyTheme(theme),theme);
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const selectedTab = await page.locator('[data-workspace-tab][aria-selected="true"]').boundingBox();
