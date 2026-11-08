@@ -73,9 +73,13 @@ test('the old Midnight default moves to Corazon once and later choices stick', (
   const chosenAgain = themeContext({ lc_theme: 'midnight', lc_theme_brand: 'corazon' });
   assert.equal(chosenAgain.context.initialTheme(), 'midnight');
 
-  for (const theme of ['ocean', 'monolight', 'crimson']) {
+  for (const theme of ['ocean', 'monolight', 'ember']) {
     assert.equal(themeContext({ lc_theme: theme }).context.initialTheme(), theme);
   }
+
+  // Crimson was retired for Corazon, before and after the one-time Midnight move.
+  assert.equal(themeContext({ lc_theme: 'crimson' }).context.initialTheme(), 'corazon');
+  assert.equal(themeContext({ lc_theme: 'crimson', lc_theme_brand: 'corazon' }).context.initialTheme(), 'corazon');
 });
 
 test('applyTheme sets Corazon tokens and falls back to Corazon for unknown themes', () => {
@@ -105,6 +109,10 @@ test('applyTheme sets Corazon tokens and falls back to Corazon for unknown theme
   assert.equal(props.get('--bg'), '#09003d');
   assert.equal(props.get('--text'), '#f4f2ff');
   assert.equal(root.dataset.theme, 'midnight');
+
+  assert.equal(vm.runInContext("'crimson' in THEMES", context), false);
+  context.applyTheme('crimson');
+  assert.equal(root.dataset.theme, 'corazon');
 
   context.applyTheme('removed-theme');
   assert.equal(stored.get('lc_theme'), 'corazon');

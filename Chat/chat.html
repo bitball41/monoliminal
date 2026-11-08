@@ -5326,7 +5326,6 @@ void main() {
       ember:     { name: 'Ember',      bg: '#1a0a00', accent: '#fb923c' },
       rose:      { name: 'Rose',       bg: '#1a000a', accent: '#f472b6' },
       slate:     { name: 'Slate',      bg: '#0f172a', accent: '#94a3b8' },
-      crimson:   { name: 'Crimson',    bg: '#1a0000', accent: '#ef4444' },
       aurora:    { name: 'Aurora',     bg: '#000a1a', accent: '#34d399' },
       monodark:  { name: 'Mono Dark',  bg: '#111111', accent: '#ffffff' },
       monolight: { name: 'Mono Light', bg: '#f7f6f3', accent: '#26231f', light: true, text: '#201e1b' },
@@ -5343,10 +5342,12 @@ void main() {
     };
 
     // Corazon replaced Midnight as the default theme. A saved Midnight moves once;
-    // choosing Midnight again afterwards sticks.
+    // choosing Midnight again afterwards sticks. Crimson was retired for Corazon.
     const DEFAULT_THEME = 'corazon';
+    const RETIRED_THEMES = { crimson: DEFAULT_THEME };
     function initialTheme() {
-      const saved = LS.get('lc_theme', DEFAULT_THEME);
+      const stored = LS.get('lc_theme', DEFAULT_THEME);
+      const saved = Object.hasOwn(RETIRED_THEMES, stored) ? RETIRED_THEMES[stored] : stored;
       if (LS.get('lc_theme_brand', '') === DEFAULT_THEME) return saved;
       LS.set('lc_theme_brand', DEFAULT_THEME);
       return saved === 'midnight' ? DEFAULT_THEME : saved;
