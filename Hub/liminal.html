@@ -613,7 +613,7 @@ const storageRoot = project + '/storage/v1/object/public/liminal-apps/';
 const sessionKey = 'sb-trsirhyucncmyyfyiuje-auth-token';
 const localMode = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
   && new URLSearchParams(location.search).get('source') === 'local';
-const protocol = 5;
+const protocol = 6;
 const localFile = location.protocol === 'file:';
 const apps = {
   Games: { file: 'games.html', marker: 'liminal:games:ready', kind: 'games' },
