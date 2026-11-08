@@ -19,8 +19,9 @@ access and the launcher protocol are unchanged.
   the name-style fonts members can pick.
 - **Default theme.** Midnight, the old default, is still offered. A device
   that had Midnight saved moves to Corazon once (`lc_theme_brand` records
-  it); choosing Midnight again afterwards sticks. Every other saved theme is
-  kept.
+  it); choosing Midnight again afterwards sticks. The Crimson theme is
+  retired now that Corazon covers it; a device with Crimson saved opens in
+  Corazon. Every other saved theme is kept.
 - **Copy and assets.** Title, metadata, favicon, notification icon, loading
   screen, login, navigation, settings, rules, toasts, blocked and maintenance
   screens, voice prompts and the owner console say Corazon. Downloads are
