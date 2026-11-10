@@ -74,6 +74,7 @@ test('one unread request covers all channels, coalesces refreshes and preserves 
       return new Promise(resolve => { release = () => resolve({ data: c.channels.map(ch => ({ channel_id: ch.id, unread_count: ch.id === '2' ? 5 : 100, thread_ids: [] })) }); });
     } },
   });
+  vm.runInContext(section('    function timestampMicros(', '    // Unread counts compare against server timestamps'), c);
   vm.runInContext(section('    let unreadHydration =', '    async function hydrateChannelUnreadsLegacy('), c);
   const work = c.hydrateChannelUnreads(), duplicate = c.hydrateChannelUnreads();
   assert.equal(calls, 1);

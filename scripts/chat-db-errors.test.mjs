@@ -148,3 +148,42 @@ test('Realtime recovery is jittered, keeps its backoff until stable, and throttl
   assert.match(recover, /if \(!await refreshSessionQuiet\(\)\)/);
   assert.doesNotMatch(section('    function setupRealtime()', '    function setupLivePresence('), /realtimeRecoverAttempt = 0/);
 });
+
+function readContext(cache = [], lastReadAt = {}) {
+  const c = vm.createContext({ Date, Number, String, msgCache: new Map([['c:general', cache]]), lastReadAt,
+    inbox: [], unreadCounts: new Map(), me: { username: 'alice' }, saves: 0 });
+  vm.runInContext(section('    function timestampMicros(', '    let lastReadSave = null;'), c);
+  vm.runInContext(`function saveLastReadSoon() { saves++; } function saveInbox() {} function patchChannelUnread() {} function renderDmList() {} function updateTabBadge() {}`, c);
+  vm.runInContext(section('    function markViewRead(', '    /* ============================= 11. CONTENT RENDERING'), c);
+  return c;
+}
+
+test('read cursors keep microseconds, so the last message read is not counted as unread', () => {
+  const c = readContext();
+  const last = '2026-11-10T22:26:05.123456+00:00';
+  assert.equal(c.readAfter(last, last), false, 'a message is not newer than its own cursor');
+  assert.equal(c.readAfter('2026-11-10T22:26:05.123457+00:00', last), true, 'one microsecond later is newer');
+  assert.equal(c.readAfter('2026-11-10T22:26:05.123+00:00', last), false);
+  assert.equal(c.readAfter(last, null), true, 'no cursor: unread');
+  const hydrate = section('    let unreadHydration =', '    async function hydrateChannelUnreadsLegacy(');
+  assert.doesNotMatch(hydrate, /new Date\(readAt\)\.toISOString\(\)/, 'the server receives the stored cursor unchanged');
+  assert.match(hydrate, /String\(readAt\)/);
+});
+
+test('a read cursor only moves forward and never falls back to this device clock', () => {
+  const newer = '2026-11-10T22:26:05.123456+00:00', older = '2026-11-10T22:20:00.000001+00:00';
+  const c = readContext([{ id: 'old', created_at: older }], { 'c:general': newer });
+  c.markViewRead('c:general');
+  assert.equal(c.lastReadAt['c:general'], newer, 'an older page does not unread newer messages');
+  const empty = readContext([], { 'c:general': newer });
+  assert.equal(empty.readStampFor('c:general'), newer, 'no loaded rows: keep the cursor');
+  const forward = readContext([{ id: 'new', created_at: '2026-11-10T22:30:00.000001+00:00' }], { 'c:general': newer });
+  forward.markViewRead('c:general');
+  assert.equal(forward.lastReadAt['c:general'], '2026-11-10T22:30:00.000001+00:00');
+});
+
+test('a live delivery of an already read message does not add an unread badge', () => {
+  const ingest = section('    function ingestMessage(', '    function autogrow(');
+  assert.match(ingest, /readAfter\(m\.created_at, lastReadAt\[unreadKey\]\)/);
+  assert.match(section('    async function loadFreshViewMessages(', '    function ingestMessage('), /readAfter\(row\.created_at, lastReadAt\[key\]\)/);
+});

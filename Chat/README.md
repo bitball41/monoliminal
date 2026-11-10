@@ -57,6 +57,19 @@ on `dm_messages` and `dm_blocks`. Read-only counters are saved in
     reconciliation for 30 s, doubling to 5 minutes. Opening a conversation,
     loading history and sending still go through.
   No index or function change was needed for the unread lookup.
+- **Phantom unread badges.** Channels showed 1 (sometimes 2) unread
+  messages that had already been read. Message timestamps carry microseconds
+  (all of the latest 1,000 do), but Chat rounded the read cursor to
+  milliseconds before asking `chat_unread_counts`, so the server saw the last
+  message read as newer than the cursor. This hit every channel whose latest
+  message was from someone else, at each recount (boot, reconnect, every five
+  minutes). Chat now sends the stored server timestamp unchanged and compares
+  at microsecond precision. Two smaller causes are fixed too: a cursor only
+  moves forward (an older page or a trimmed cache no longer marks newer
+  messages unread), it never falls back to this device's clock when nothing
+  is loaded, and a late or repeated delivery of something already read does
+  not add a badge. Read state stays local to the device, as before; there is
+  no new database write.
 - **Analytics removed** at the owner's request. Every message insert ran an
   analytics trigger (two lookups and a write to a three-index fact table),
   each open Chat called `chat_record_activity` once a minute, and Control and
