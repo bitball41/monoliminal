@@ -40,5 +40,5 @@
     "public.admin_dashboard_get_state(text) (embeds the summary)",
     "index messages_analytics_visible_sender_idx"
   ],
-  "changes_applied_to_database": "None. Migration 20261110120000_remove_chat_analytics.sql is committed but not applied."
+  "changes_applied_to_database": "Migration remove_chat_analytics applied 2026-11-10 (ledger version 20261110222605) at the owner's request. Verified afterwards: no analytics triggers, functions, tables or index remain; admin_dashboard_get_state keeps its grants (authenticated, service_role, postgres) and has no analytics; messages triggers, chat table policies and message rows are unchanged."
 }

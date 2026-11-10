@@ -17,7 +17,7 @@ Read-only catalog and statement counters only; no log scans.
   background reconciliation after a 5xx). It also stops anonymous requests
   after a lost session and duplicate-key inserts from send retries and DM
   creation. See [Chat/README.md](../Chat/README.md).
-- Analytics are removed: `20261110120000_remove_chat_analytics.sql` drops the
+- Analytics are removed: `20261110222605_remove_chat_analytics.sql` drops the
   per-insert analytics trigger, `chat_record_activity` (22k calls, 1,604 s),
   `chat_get_analytics` (mean 1.8 s) and their tables. This supersedes the
   instruction above to keep account activity tracking unchanged.

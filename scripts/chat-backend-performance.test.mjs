@@ -8,7 +8,7 @@ const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const repairs = ['20261022163655_index_owner_preview_message_lookups.sql', '20261022163658_reduce_chat_query_work.sql'];
 // Applied last: the earlier repairs are checked against the analytics they
 // preserved, then the 6.1 removal must leave every visible row unchanged.
-const analyticsRemoval = '20261110120000_remove_chat_analytics.sql';
+const analyticsRemoval = '20261110222605_remove_chat_analytics.sql';
 
 test('backend repairs preserve visibility, inboxes, privileges and every analytics field', async () => {
   const db = new PGlite({ extensions: { pgcrypto } });

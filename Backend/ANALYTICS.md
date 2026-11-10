@@ -2,7 +2,7 @@
 
 Chat analytics were removed in Chat 6.1 at the owner's request, to take work
 off every message send. Apply
-[`migrations/20261110120000_remove_chat_analytics.sql`](migrations/20261110120000_remove_chat_analytics.sql)
+[`migrations/20261110222605_remove_chat_analytics.sql`](migrations/20261110222605_remove_chat_analytics.sql)
 to drop:
 
 - the `chat_analytics_message_insert`, `chat_analytics_dm_insert` and

@@ -65,7 +65,7 @@ on `dm_messages` and `dm_blocks`. Read-only counters are saved in
   lose their Analytics tab and show member, staff and channel counts from data
   already loaded. Control drops the analytics section, message-volume tiles and
   per-user/channel message counts.
-  [`20261110120000_remove_chat_analytics.sql`](../Backend/migrations/20261110120000_remove_chat_analytics.sql)
+  [`20261110222605_remove_chat_analytics.sql`](../Backend/migrations/20261110222605_remove_chat_analytics.sql)
   drops the triggers, RPCs, private fact tables and the analytics-only index,
   and rewrites `admin_dashboard_get_state` without them. Message data,
   permissions, RLS, the device moderation registry and deployment history are
@@ -73,8 +73,9 @@ on `dm_messages` and `dm_blocks`. Read-only counters are saved in
 
 ### Rollout
 
-1. Apply `20261110120000_remove_chat_analytics.sql` (two-second lock
-   timeout; run it at a quiet time). Older Chat clients get "function not
+1. Apply `20261110222605_remove_chat_analytics.sql` (two-second lock
+   timeout; run it at a quiet time). **Done 2026-11-10** (ledger version
+   `20261110222605`), verified with read-only catalog checks. Older Chat clients get "function not
    found" from PostgREST for `chat_record_activity` without reaching Postgres,
    and back off to every 5 minutes until they reload.
 2. Publish `Chat/chat.html` and `Admin/liminal-admin-dashboard.html`.
