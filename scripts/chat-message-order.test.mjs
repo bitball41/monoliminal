@@ -56,7 +56,7 @@ test('typing indicators expire on the receiving clock', () => {
 test('read marks use the newest delivered server timestamp', () => {
   const context = vm.createContext({
     msgCache: new Map([['c:general', [row('a', 1), row('b', 3), row('pending:1', 59, { pending: true })]]]),
-    Date, LS: { set() {} }, addEventListener() {},
+    Date, LS: { set() {} }, addEventListener() {}, lastReadAt: {},
   });
   vm.runInContext(section('    function readStampFor(', '    function markViewRead('), context);
   assert.equal(context.readStampFor('c:general'), row('b', 3).created_at);

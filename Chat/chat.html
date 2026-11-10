@@ -8726,7 +8726,9 @@ void main() {
       const cursors = {};
       channels.filter(ch => ['chat', 'forum'].includes(ch.kind || 'chat') && channelIsVisible(ch)).forEach(ch => {
         const readAt = lastReadAt[`c:${ch.id}`];
-        cursors[ch.id] = readAt && Number.isFinite(Date.parse(readAt)) ? new Date(readAt).toISOString() : null;
+        // Send the stored server timestamp unchanged: toISOString() would drop
+        // its microseconds and count the last message read as unread.
+        cursors[ch.id] = readAt && Number.isFinite(timestampMicros(readAt)) ? String(readAt) : null;
       });
       const starts = new Map(Object.keys(cursors).map(id => [id, { readAt: lastReadAt[`c:${id}`], count: unreadCounts.get(`c:${id}`) || 0 }]));
       const request = {};
@@ -9355,6 +9357,20 @@ void main() {
       } finally { btn.disabled = false; }
     }
 
+    // Server timestamps carry microseconds; JavaScript dates keep milliseconds.
+    // Compare read cursors at full precision, or the last message read sorts
+    // after its own cursor and shows as 1 unread. NaN when unparseable.
+    function timestampMicros(value) {
+      const text = String(value || '');
+      const ms = Date.parse(text);
+      if (!Number.isFinite(ms)) return NaN;
+      const fraction = /\.(\d+)/.exec(text);
+      return ms * 1000 + (fraction ? Number((fraction[1] + '000000').slice(3, 6)) : 0);
+    }
+    function readAfter(createdAt, readAt) {
+      const created = timestampMicros(createdAt), read = timestampMicros(readAt);
+      return !Number.isFinite(read) || !Number.isFinite(created) || created > read;
+    }
     // Unread counts compare against server timestamps, so a read mark uses the
     // newest delivered row rather than this device's clock, which may be skewed.
     function readStampFor(key) {
@@ -9363,7 +9379,8 @@ void main() {
         const row = rows[i];
         if (!row.pending && !row.failed && row.created_at) return String(row.created_at);
       }
-      return new Date().toISOString();
+      // Nothing loaded yet: keep the existing cursor instead of this device's clock.
+      return lastReadAt[key] || new Date().toISOString();
     }
     let lastReadSave = null;
     function flushLastRead() {
@@ -9381,8 +9398,13 @@ void main() {
     addEventListener('pagehide', flushLastRead);
 
     function markViewRead(key) {
-      lastReadAt[key] = readStampFor(key);
-      saveLastReadSoon();
+      // A read cursor only moves forward (an older page or trimmed cache must
+      // not mark newer, already read messages unread again).
+      const stamp = readStampFor(key), previous = lastReadAt[key];
+      if (!previous || readAfter(stamp, previous)) {
+        lastReadAt[key] = stamp;
+        saveLastReadSoon();
+      }
       if (inbox.some(item => item.view === key && !item.read)) { inbox.forEach(item => { if (item.view === key) item.read = true; }); saveInbox(); }
       if (unreadCounts.has(key)) {
         unreadCounts.delete(key);
@@ -11235,6 +11257,7 @@ void main() {
         if (viewKey(currentView) !== key && heldIds.size) {
           cache.forEach(row => {
             if (!heldIds.has(row.id) || !me || row.sender === me.username || row.deleted) return;
+            if (!readAfter(row.created_at, lastReadAt[key])) return;
             unreadCounts.set(key, (unreadCounts.get(key) || 0) + 1);
           });
           if (key.startsWith('dm:')) renderDmList();
@@ -11337,7 +11360,8 @@ void main() {
       } else if (!mine) {
         trimLiveCache(key);
         const unreadKey = forumBoardId ? `c:${forumBoardId}` : key;
-        if (!(forumBoardId && isLookingAtForumBoard(forumBoardId))) {
+        // A late or repeated delivery of something already read is not new.
+        if (!(forumBoardId && isLookingAtForumBoard(forumBoardId)) && readAfter(m.created_at, lastReadAt[unreadKey])) {
           unreadCounts.set(unreadKey, (unreadCounts.get(unreadKey) || 0) + 1);
         }
       }
