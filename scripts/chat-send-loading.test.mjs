@@ -49,7 +49,7 @@ test('settings loads share one request across launcher, session restore and app 
 
 test('message reads time out, preserve an existing cancellation, and leave mutations to their own handler', async () => {
   const requests = [];
-  const c = vm.createContext({ URL, AbortSignal, performance, fetch: async (input, options) => { requests.push({ input, options }); return {}; } });
+  const c = vm.createContext({ me: null, URL, Headers, AbortSignal, performance, fetch: async (input, options) => { requests.push({ input, options }); return {}; } });
   vm.runInContext(section('    const CHAT_READ_TIMEOUT_MS =', '    function missingSchema('), c);
   const cancel = new AbortController();
   await c.chatFetch('https://fixture.invalid/rest/v1/messages', { method: 'GET', signal: cancel.signal });
@@ -67,6 +67,7 @@ test('one unread request covers all channels, coalesces refreshes and preserves 
     channels: Array.from({ length: 8 }, (_, n) => ({ id: String(n), kind: 'chat' })),
     channelIsVisible: () => true, lastReadAt: {}, unreadCounts: new Map([['c:2', 5]]), updateTabBadge() {},
     forumThreadBoard: new Map(), realtimeHealthy: () => true, LIST_RECONCILE_MS: 300000,
+    RECOVERY_LIST_MIN_MS: 60000, dbUnderPressure: () => false,
     missingSchema: () => false, logChatWarning() {},
     sb: { rpc(name, args) {
       assert.equal(name, 'chat_unread_counts'); assert.equal(Object.keys(args.p_read_cursors).length, 8); calls++;
@@ -84,22 +85,97 @@ test('one unread request covers all channels, coalesces refreshes and preserves 
   now += 300001; const later = c.hydrateChannelUnreads(); assert.equal(calls, 2); release(); await later;
 });
 
-test('ambiguous writes and duplicate retry IDs recover the committed row instead of sending another message', async () => {
-  for (const error of [{ code: '', message: 'timeout' }, { code: '23505' }]) {
-    const inserted = [], lookedUp = [];
-    const row = { id: 'same-message-id', content: 'hello' };
-    const c = vm.createContext({ AbortSignal, sb: { from() {
-      let writing = false;
-      const q = { insert(value) { inserted.push(value); writing = true; return q; }, select() { return q; },
-        single() { return q; }, abortSignal(signal) { assert(signal); return Promise.resolve({ error, status: 0 }); },
-        eq(key, value) { assert(!writing); assert.equal(key, 'id'); lookedUp.push(value); return q; },
-        maybeSingle() { return q; }, retry: () => Promise.resolve({ data: row }) };
-      return q;
-    } } });
-    vm.runInContext(section('    async function insertChatMessage(', '    async function sendMessage('), c);
-    assert.equal((await c.insertChatMessage('messages', row, 'id')).data, row);
-    assert.equal(inserted.length, 1); assert.deepEqual(lookedUp, [row.id]);
+// A fake PostgREST table: inserts commit (optionally losing the response),
+// lookups by ID read what is stored. Nothing is ever overwritten.
+function messageTable({ commitThenFail = null, refuse = null, stored = [] } = {}) {
+  const rows = new Map(stored.map(row => [row.id, row])), log = [];
+  const from = () => {
+    let op = null, value = null, id = null;
+    const run = () => {
+      if (op === 'insert') {
+        log.push(['insert', value.id]);
+        if (refuse) return { error: refuse };
+        if (rows.has(value.id)) return { error: { code: '23505', message: 'duplicate key value violates unique constraint "messages_pkey"' } };
+        rows.set(value.id, { ...value });
+        if (commitThenFail) { const error = commitThenFail; commitThenFail = null; return { error }; }
+        return { data: rows.get(value.id) };
+      }
+      log.push(['lookup', id]);
+      return { data: rows.get(id) || null };
+    };
+    const q = {
+      insert(v) { op = 'insert'; value = v; return q; }, select() { return q; }, single() { return q; },
+      abortSignal(signal) { assert(signal); return Promise.resolve(run()); },
+      eq(key, v) { assert.equal(key, 'id'); op = op || 'lookup'; id = v; return q; },
+      maybeSingle() { return q; }, retry(flag) { assert.equal(flag, false); return Promise.resolve(run()); },
+    };
+    return q;
+  };
+  return { sb: { from }, rows, log };
+}
+function sendContext(table, ids = ['fresh-id']) {
+  const c = vm.createContext({ AbortSignal, sb: table.sb, crypto: { randomUUID: () => ids.shift() } });
+  vm.runInContext(section('    const SEND_TIMEOUT_MS =', '    async function sendMessage('), c);
+  return c;
+}
+
+test('a lost response recovers the committed row with one lookup, never a second insert', async () => {
+  const table = messageTable({ commitThenFail: { code: '', message: 'TimeoutError: signal timed out' } });
+  const row = { id: 'm1', sender: 'alice', channel_id: 'general', content: 'hello' };
+  const result = await sendContext(table).insertChatMessage('messages', row, 'id');
+  assert.equal(result.data.id, 'm1');
+  assert.deepEqual(table.log, [['insert', 'm1'], ['lookup', 'm1']]);
+});
+
+test('a retry of a committed send finds it first and does not hit the primary key', async () => {
+  const table = messageTable({ stored: [{ id: 'm1', sender: 'alice', channel_id: 'general', content: 'hello' }] });
+  const row = { id: 'm1', sender: 'alice', channel_id: 'general', content: 'hello' };
+  const result = await sendContext(table).insertChatMessage('messages', row, 'id', { retry: true });
+  assert.equal(result.data.id, 'm1');
+  assert.deepEqual(table.log, [['lookup', 'm1']], 'no insert, so no messages_pkey error');
+});
+
+test('a retry of a send that never arrived inserts it once under the same ID', async () => {
+  const table = messageTable();
+  const row = { id: 'm1', sender: 'alice', dm_id: 'dm-1', content: 'hello' };
+  const result = await sendContext(table).insertChatMessage('dm_messages', row, 'id', { retry: true });
+  assert.equal(result.data.id, 'm1');
+  assert.deepEqual(table.log, [['lookup', 'm1'], ['insert', 'm1']]);
+  assert.equal(table.rows.size, 1);
+});
+
+test('an ID owned by someone else is never overwritten; the message gets a fresh ID', async () => {
+  const other = { id: 'm1', sender: 'bob', channel_id: 'general', content: 'theirs' };
+  for (const retry of [false, true]) {
+    const table = messageTable({ stored: [{ ...other }] }), renamed = [];
+    const row = { id: 'm1', sender: 'alice', channel_id: 'general', content: 'mine' };
+    const result = await sendContext(table, ['m2']).insertChatMessage('messages', row, 'id', { retry, onNewId: id => renamed.push(id) });
+    assert.equal(result.data.id, 'm2'); assert.equal(result.data.sender, 'alice');
+    assert.deepEqual(renamed, ['m2']);
+    assert.deepEqual(table.rows.get('m1'), other, 'the existing row is unchanged');
   }
+});
+
+test('a server refusal is returned without a follow-up lookup', async () => {
+  const refuse = { code: '42501', message: 'new row violates row-level security policy' };
+  const table = messageTable({ refuse });
+  const result = await sendContext(table).insertChatMessage('dm_messages', { id: 'm1', sender: 'alice', dm_id: 'd' }, 'id');
+  assert.equal(result.error, refuse);
+  assert.deepEqual(table.log, [['insert', 'm1']]);
+});
+
+test('an unknown outcome is flagged so the retry waits for the first attempt to settle', async () => {
+  const table = messageTable({ refuse: null });
+  const failing = { sb: { from: () => {
+    const q = { insert() { return q; }, select() { return q; }, single() { return q; }, eq() { return q; }, maybeSingle() { return q; },
+      abortSignal() { return Promise.reject(Object.assign(new Error('signal timed out'), { name: 'TimeoutError' })); },
+      retry() { return Promise.resolve({ data: null }); } };
+    return q;
+  } } };
+  const result = await sendContext(failing).insertChatMessage('messages', { id: 'm1', sender: 'alice', channel_id: 'general' }, 'id');
+  assert.equal(result.error.outcomeUnknown, true);
+  assert.equal(table.rows.size, 0);
+  assert(/SEND_SETTLE_MS - \(Date\.now\(\) - priorAttemptAt\)/.test(chat), 'retryFailedSend waits out the previous attempt');
 });
 
 test('equal messages arriving out of order resolve their own placeholders; late success repairs a failed bubble', () => {

@@ -1,5 +1,30 @@
 # Supabase usage controls
 
+## November 10 follow-up (Chat 6.1)
+
+Saved evidence: [supabase-usage-followup-2026-11-10.json](supabase-usage-followup-2026-11-10.json).
+Read-only catalog and statement counters only; no log scans.
+
+- The largest database consumer since October 20 is Realtime's WAL polling
+  (`list_changes`, 23,358 s total, max 14.7 s), ahead of every app query.
+- `chat_unread_counts` takes 6 to 20 ms alone but averages 704 ms, and
+  unrelated statements reach the 8 s `authenticated` timeout, so timeouts are
+  contention, not that function's plan. No database index or function change
+  was made for it.
+- Chat 6.1 stops the client from adding load during those bursts (jittered
+  rejoins, backoff that resets only after 60 s of stability, list and unread
+  re-reads at most once a minute during recovery, and a 30 s to 5 min pause of
+  background reconciliation after a 5xx). It also stops anonymous requests
+  after a lost session and duplicate-key inserts from send retries and DM
+  creation. See [Chat/README.md](../Chat/README.md).
+- Analytics are removed: `20261110120000_remove_chat_analytics.sql` drops the
+  per-insert analytics trigger, `chat_record_activity` (22k calls, 1,604 s),
+  `chat_get_analytics` (mean 1.8 s) and their tables. This supersedes the
+  instruction above to keep account activity tracking unchanged.
+
+Not yet measured: compare a later counter snapshot (same reset marker) after
+the migration is applied and Chat 6.1 is published.
+
 ## November 5 follow-up
 
 Saved evidence: [supabase-usage-followup-2026-11-05.json](supabase-usage-followup-2026-11-05.json).

@@ -123,7 +123,7 @@ function chatPresence() {
     currentView: { type: 'channel', id: 'general' },
     snapshotComposer: view => wakeJobs.push(`snapshot:${view.id}`),
     notePerformanceWork() {},
-    refreshSessionQuiet: async () => { wakeJobs.push('session'); },
+    refreshSessionQuiet: async () => { wakeJobs.push('session'); return true; }, dbUnderPressure: () => false,
     catchUpPoll: async () => { wakeJobs.push('messages'); },
     refreshListsQuiet: async () => { wakeJobs.push('lists'); },
     realtimeHealthy: () => true,

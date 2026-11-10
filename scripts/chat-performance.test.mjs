@@ -11,7 +11,7 @@ function section(start, end) {
 }
 
 function messages() {
-  const context = vm.createContext({
+  const context = vm.createContext({ dbUnderPressure: () => false,
     msgCache: new Map(), msgById: new Map(), pollCache: new Map(), pollBusy: new Set(),
     historyContexts: new Map(),
     hasMoreMap: new Map(), viewKey: view => view.key,
@@ -92,7 +92,7 @@ test('legacy receipt payloads do not rebuild bubbles or render receipt UI', () =
 
 function conversations() {
   let now = 1_000_000, requests = 0, accessReads = 0;
-  const c = vm.createContext({
+  const c = vm.createContext({ dbUnderPressure: () => false,
     console, Date: { now: () => now }, me: {}, sb: {},
     presenceStopped: false, presenceLeft: false,
     document: { visibilityState: 'visible' }, navigator: { onLine: true },
@@ -182,7 +182,7 @@ test('Dot Field sleeps when settled, resumes for input and themes, and releases 
     constructor(callback) { this.callback = callback; observers.push(this); }
     observe() {} disconnect() { this.disconnected = true; }
   }
-  const c = vm.createContext({
+  const c = vm.createContext({ dbUnderPressure: () => false,
     document, ResizeObserver: Observer, MutationObserver: Observer, devicePixelRatio: 1,
     $: id => id === 'chat-background-stage' ? stage : id === 'timeline' ? timeline : pointer,
     me: { username: 'alice' }, chatBackgroundChoice: 'dotField', chatBackgroundOwner: 'alice',

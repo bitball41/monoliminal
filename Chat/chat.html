@@ -2786,33 +2786,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .console-person > .danger-button { margin-left: auto; }
     }
 
-/* CHAT_ANALYTICS_CSS_START */
-.analytics-view { font-family:var(--font-ui); color: var(--text, #f5f3ff); margin: 18px 0; }
-.analytics-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-.analytics-kpi, .analytics-card { border:1px solid var(--line, #ffffff20); border-radius:14px; padding:16px; background:var(--surface, #ffffff06); min-width:0; }
-.analytics-kpi strong { display:block; font-size:26px; font-weight:750; letter-spacing:-.025em; line-height:1.4; font-variant-numeric:tabular-nums; }
-.analytics-kpi span, .analytics-note, .analytics-kpi small { color:var(--muted, #b8b3d3); font-size:12px; line-height:1.6; }
-.analytics-kpi small { display:block; }
-.analytics-card { margin-top:12px; }
-.analytics-card h3 { margin:0 0 10px; font-size:15px; }
-.analytics-toolbar { display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px; }
-.analytics-toolbar button, .analytics-toolbar select { font:inherit; font-size:12px; color:inherit; background:var(--surface, #ffffff08); border:1px solid var(--line, #ffffff20); border-radius:8px; padding:8px 12px; cursor:pointer; }
-.analytics-chart svg { display:block; width:100%; height:auto; max-height:200px; }
-.analytics-chart rect:focus, .analytics-chart rect:hover { fill:var(--accent-strong,#a78bfa); stroke:var(--text,#fff); stroke-width:1; outline:none; }
-.analytics-inspector { display:block; min-height:24px; margin:6px 0 0; font-size:12px; color:var(--text-soft,#d7d3e8); font-variant-numeric:tabular-nums; }
-.analytics-view [aria-busy="true"] { opacity:.65; }
-.analytics-table caption { text-align:left; padding:8px; color:var(--muted,#b8b3d3); font-size:12px; }
-.analytics-chart text { fill:var(--muted, #b8b3d3); font-size:11px; }
-.analytics-chart .analytics-missing { fill:#77738a; opacity:.5; }
-.analytics-scroll { overflow-x:auto; }
-.analytics-table { width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
-.analytics-table th, .analytics-table td { text-align:right; padding:9px 8px; border-bottom:1px solid var(--line, #ffffff16); white-space:nowrap; }
-.analytics-table th:first-child, .analytics-table td:first-child { text-align:left; }
-.analytics-table th { color:var(--muted, #b8b3d3); font-weight:500; }
-.analytics-note { margin:10px 0; }
-.analytics-view details summary { cursor:pointer; font-size:13px; padding:8px 0; }
-@media(max-width:600px) { .analytics-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .analytics-kpi { padding:12px; } }
-/* CHAT_ANALYTICS_CSS_END */
 
 </style>
 <style id="liminal-geometry-redesign">
@@ -5218,7 +5191,7 @@ void main() {
     "use strict";
 
     /* ============================= 1. CONFIG ============================= */
-    const APP_VERSION = "2.28.0";
+    const APP_VERSION = "6.1";
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
@@ -6880,6 +6853,9 @@ void main() {
     let lastListRefreshAt = 0;
     let lastConversationRefreshAt = 0;
     const LIST_RECONCILE_MS = 5 * 60000;
+    const RECOVERY_LIST_MIN_MS = 60000;
+    // Backoff resets only after the connection stays up this long.
+    const REALTIME_STABLE_MS = 60000;
     const MESSAGE_RECONCILE_MS = 5 * 60000;
     const CATCH_UP_OVERLAP_MS = 60000;
     const MESSAGE_FALLBACK_POLL_MS = 20000;
@@ -7970,11 +7946,64 @@ void main() {
       chatWarningTimes.set(code, now);
       console.warn('[liminal]', code, /^[a-z0-9_-]{1,40}$/i.test(error?.code || '') ? error.code : 'unavailable');
     }
+    // Signed-in Chat never talks to the database as `anon`, which has no
+    // privileges on chat tables. When the session cannot be refreshed,
+    // supabase-js falls back to the publishable key; stop such requests here
+    // (they would only fail with "permission denied") and recover the session.
+    let sessionRefreshAt = 0, sessionRefreshing = null, sessionEnding = false, signingOut = false;
+    function requestUsesSession(input, options) {
+      const headers = new Headers(options.headers || (typeof input === 'object' && input?.headers) || undefined);
+      const auth = headers.get('Authorization') || '';
+      return !!auth && auth !== `Bearer ${runtimeSupabaseKey}` && auth !== `Bearer ${headers.get('apikey') || ''}`;
+    }
+    function recoverMissingSession() {
+      if (!me || !sb || sessionEnding || sessionRefreshing || Date.now() - sessionRefreshAt < 30000) return;
+      sessionRefreshAt = Date.now();
+      // A refresh the server rejects signs the client out, which ends the session below.
+      sessionRefreshing = Promise.resolve().then(() => sb.auth.refreshSession())
+        .catch(error => logChatWarning('session-refresh', error))
+        .finally(() => { sessionRefreshing = null; });
+    }
+    function endExpiredSession() {
+      if (!me || sessionEnding || signingOut) return;
+      sessionEnding = true;
+      try { if (currentView) snapshotComposer(currentView); } catch {}
+      try { stopChatBackground(); } catch {}
+      try { leaveVoiceRoom({ quiet: true }); } catch {}
+      presenceLeft = true; presenceStopped = true;
+      try { stopLivePresence(); } catch {}
+      LS.del('lc_user');
+      // Reloading shows sign-in; drafts are kept, unsent bubbles are not.
+      location.reload();
+    }
+    function watchSession(client) {
+      client.auth.onAuthStateChange(event => {
+        // Never call back into auth synchronously from this callback.
+        if (event === 'SIGNED_OUT' && me) setTimeout(() => { if (sb === client) endExpiredSession(); }, 0);
+      });
+    }
+    // Statement timeouts and gateway errors mean the database is saturated.
+    // Background reconciliation then pauses (30 s, doubling to 5 min) so every
+    // open client does not add retries to the overload; opening a conversation
+    // and sending still go through.
+    let dbPressureUntil = 0, dbPressureLevel = 0;
+    function noteDbResponse(status) {
+      if (status >= 500) {
+        dbPressureLevel = Math.min(dbPressureLevel + 1, 4);
+        dbPressureUntil = Date.now() + Math.min(300000, 30000 * 2 ** (dbPressureLevel - 1));
+      } else if (status < 400 && dbPressureLevel && Date.now() >= dbPressureUntil) dbPressureLevel = 0;
+    }
+    function dbUnderPressure() { return Date.now() < dbPressureUntil; }
     async function chatFetch(input, options = {}) {
       const url = new URL(typeof input === 'string' ? input : input.url || String(input));
       const method = String(options.method || 'GET').toUpperCase();
       const read = ['GET', 'HEAD'].includes(method) || CHAT_READ_RPCS.has(url.pathname.split('/').pop());
       if (!url.pathname.startsWith('/rest/v1/')) return fetch(input, options);
+      if (me && !requestUsesSession(input, options)) {
+        recoverMissingSession();
+        // A network-style error: sends stay queued for automatic retry.
+        throw new TypeError('Failed to fetch: Corazon session unavailable');
+      }
       const timeout = read ? AbortSignal.timeout(CHAT_READ_TIMEOUT_MS) : null;
       const signal = timeout ? (options.signal ? AbortSignal.any([options.signal, timeout]) : timeout) : options.signal;
       const started = performance.now(), kind = url.pathname.split('/').pop();
@@ -7983,6 +8012,7 @@ void main() {
       try {
         const response = await fetch(input, { ...options, signal });
         if (!response.ok) metric.failures++;
+        noteDbResponse(response.status);
         return response;
       } catch (error) { metric.failures++; throw error; }
       finally { metric.totalMs += Math.round(performance.now() - started); }
@@ -7993,7 +8023,7 @@ void main() {
     function makeClient(url, key) {
       runtimeSupabaseUrl = url;
       runtimeSupabaseKey = key;
-      return window.supabase.createClient(url, key, {
+      const client = window.supabase.createClient(url, key, {
         global: { fetch: chatFetch },
         auth: {
           persistSession: true,
@@ -8009,6 +8039,8 @@ void main() {
           worker: typeof Worker === 'function',
         },
       });
+      watchSession(client);
+      return client;
     }
 
     function getDevConfig() { return LS.get('lc_dev_cfg', null); }
@@ -8233,48 +8265,6 @@ void main() {
       if (error || data !== true) console.error('[liminal] device registration failed', error || data);
     }
 
-    // Foreground activity, independent of cosmetic Realtime Presence. Daily
-    // deduplication and timestamps belong to the database, never local counters.
-    let analyticsInteractionAt = 0, analyticsAttemptAt = 0, analyticsInFlight = false;
-    let analyticsListenersBound = false, analyticsRetryMs = 120000;
-    async function recordChatActivity() {
-      const now = Date.now();
-      if (!me || me.is_banned || me.is_test_account || isHiddenBot(me.username)
-          || presenceLeft || presenceStopped || document.visibilityState !== 'visible'
-          || navigator.onLine === false || now - analyticsInteractionAt > 300000
-          || analyticsInFlight || now - analyticsAttemptAt < analyticsRetryMs) return;
-      analyticsInFlight = true;
-      analyticsAttemptAt = now;
-      try {
-        const { error } = await sb.rpc('chat_record_activity', { p_device_id: await getDeviceId() });
-        if (error) throw error;
-        analyticsRetryMs = 120000;
-      } catch (error) {
-        analyticsRetryMs = Math.min(300000, analyticsRetryMs * 2);
-        if (!recordChatActivity.warnedAt || now - recordChatActivity.warnedAt >= 300000) {
-          recordChatActivity.warnedAt = now;
-          console.warn('[liminal] activity tracking unavailable', error?.code || 'unavailable');
-        }
-      } finally { analyticsInFlight = false; }
-    }
-    function startChatActivity() {
-      analyticsInteractionAt = Date.now();
-      if (!analyticsListenersBound) {
-        analyticsListenersBound = true;
-        const interact = () => {
-          analyticsInteractionAt = Date.now();
-          void recordChatActivity();
-        };
-        ['pointerdown','keydown','scroll','touchstart'].forEach(type =>
-          document.addEventListener(type, interact, { passive: true, capture: true }));
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') interact();
-        });
-        window.addEventListener('online', () => { void recordChatActivity(); });
-      }
-      void recordChatActivity();
-    }
-
     function showMaintenance() {
       try { leaveVoiceRoom({ quiet: true }); } catch {}
       signOutLocked = false;
@@ -8421,6 +8411,7 @@ void main() {
 
     async function signOut() {
       if (signOutLocked || (me && me.is_banned)) return;
+      signingOut = true;
       stopChatBackground();
       leaveVoiceRoom({ quiet: true });
       presenceLeft = true;
@@ -8475,7 +8466,6 @@ void main() {
 
       void loadChatExtras(profile);
       startTimers();
-      startChatActivity();
       updateTimeoutUi();
       const shouldTour = options.newUser || LS.get('lc_tour_pending', '') === me.username;
       if (shouldTour) setTimeout(startProductTour, 350);
@@ -8726,7 +8716,13 @@ void main() {
       if (!me) return;
       const actor = me.username;
       if (unreadHydration?.actor === actor) return unreadHydration.promise;
-      if (!force && unreadHydratedActor === actor && realtimeHealthy() && Date.now() - unreadHydratedAt < LIST_RECONCILE_MS) return;
+      if (!force && unreadHydratedActor === actor) {
+        const age = Date.now() - unreadHydratedAt;
+        // Realtime keeps counts current. Without it, recoveries can repeat every
+        // few seconds; re-count at most once a minute, and not while the
+        // database is overloaded.
+        if (age < (realtimeHealthy() ? LIST_RECONCILE_MS : RECOVERY_LIST_MIN_MS) || dbUnderPressure()) return;
+      }
       const cursors = {};
       channels.filter(ch => ['chat', 'forum'].includes(ch.kind || 'chat') && channelIsVisible(ch)).forEach(ch => {
         const readAt = lastReadAt[`c:${ch.id}`];
@@ -10678,21 +10674,63 @@ void main() {
     }
 
     /* ============================= 15. SENDING ============================= */
-    async function insertChatMessage(table, row, columns) {
-      let result;
+    // Each new message gets one client ID (crypto.randomUUID) that every retry
+    // of that message reuses, so a write that committed after its response was
+    // lost is found again instead of sent twice. Retries look the ID up before
+    // inserting, which keeps them from hitting the primary key. Never upsert:
+    // an existing row is only accepted when it is this sender's message in this
+    // conversation, and is never overwritten.
+    const SEND_TIMEOUT_MS = 20000;
+    // A request aborted on the client can still finish on the server (queueing
+    // plus the 8 s statement limit). Retries of such a send wait this long from
+    // the previous attempt's start before looking the ID up.
+    const SEND_SETTLE_MS = 30000;
+    function sameSendAttempt(existing, row) {
+      return !!existing && existing.sender === row.sender
+        && (row.channel_id ? existing.channel_id === row.channel_id : existing.dm_id === row.dm_id);
+    }
+    function sendOutcomeUnknown(error) {
+      // No PostgREST code: the request was aborted or the response was lost.
+      return !!error && !error.code;
+    }
+    async function findSentMessage(table, row, columns) {
       try {
-        result = await sb.from(table).insert(row).select(columns).single()
-          .abortSignal(AbortSignal.timeout(20000));
-      } catch (error) { result = { error }; }
-      // A lost response or a retry may refer to a write already committed.
-      // Check the same ID; never generate a second message for that attempt.
-      if (result.error) {
-        try {
-          const existing = await sb.from(table).select(columns).eq('id', row.id).maybeSingle().retry(false);
-          if (existing.data) return existing;
-        } catch {}
+        const found = await sb.from(table).select(columns).eq('id', row.id).maybeSingle().retry(false);
+        if (found.error) return { error: found.error };
+        return { data: found.data || null };
+      } catch (error) { return { error }; }
+    }
+    async function insertChatMessage(table, row, columns, { retry = false, onNewId = null } = {}) {
+      const freshId = () => {
+        row.id = crypto.randomUUID();
+        if (onNewId) onNewId(row.id);
+      };
+      if (retry) {
+        const found = await findSentMessage(table, row, columns);
+        // Unknown state: stay failed rather than risk a second copy.
+        if (found.error) return { error: found.error };
+        if (found.data) {
+          if (sameSendAttempt(found.data, row)) return { data: found.data };
+          freshId();
+        }
       }
-      return result;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let result;
+        try {
+          result = await sb.from(table).insert(row).select(columns).single()
+            .abortSignal(AbortSignal.timeout(SEND_TIMEOUT_MS));
+        } catch (error) { result = { error }; }
+        if (!result.error) return result;
+        // A server refusal (permissions, filters, blocks) committed nothing.
+        if (result.error.code && result.error.code !== '23505') return result;
+        const found = await findSentMessage(table, row, columns);
+        if (found.data && sameSendAttempt(found.data, row)) return { data: found.data };
+        // Another row owns this ID: send this message under a new one, once.
+        if (found.data && result.error.code === '23505' && attempt === 0) { freshId(); continue; }
+        if (sendOutcomeUnknown(result.error)) result.error.outcomeUnknown = true;
+        return result;
+      }
+      return { error: { code: '23505', message: 'Message ID conflict' } };
     }
     async function sendMessage({ content = '', type = 'text', media_url = '', batch = false }) {
       if (!me || currentView.type === 'home') return false;
@@ -10784,10 +10822,14 @@ void main() {
 
       const table = kind === 'channel' ? 'messages' : 'dm_messages';
       const columns = kind === 'channel' ? MESSAGE_COLUMNS : DM_MESSAGE_COLUMNS;
-      const result = await insertChatMessage(table, row, columns);
+      pending.placeholder.sendStartedAt = Date.now();
+      const result = await insertChatMessage(table, row, columns, { onNewId: id => {
+        pending.serverId = id; pending.placeholder.clientMessageId = id;
+      } });
 
       if (result.error) {
         if (pending.confirmed) { void requestNoelleReply(pending.confirmedMessage, kind); return true; }
+        pending.placeholder.outcomeUnknown = !!result.error.outcomeUnknown;
         console.error(result.error);
         failPendingSend(pending, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
         return 'kept';
@@ -10946,6 +10988,13 @@ void main() {
       pendingSends.push(entry);
       if (key === viewKey(currentView)) updateMessageNode(msg);
 
+      // The previous attempt may still commit on the server; let it settle so
+      // the lookup below sees it.
+      const priorAttemptAt = msg.outcomeUnknown ? Number(msg.sendStartedAt) || 0 : 0;
+      const settleMs = priorAttemptAt ? SEND_SETTLE_MS - (Date.now() - priorAttemptAt) : 0;
+      if (settleMs > 0) await new Promise(resolve => setTimeout(resolve, Math.min(settleMs, SEND_SETTLE_MS)));
+      if (!me || !pendingSends.includes(entry)) return;
+
       const table = kind === 'channel' ? 'messages' : 'dm_messages';
       const columns = kind === 'channel' ? MESSAGE_COLUMNS : DM_MESSAGE_COLUMNS;
       const row = {
@@ -10959,9 +11008,14 @@ void main() {
       if (kind === 'channel') row.channel_id = msg.channel_id;
       else { row.dm_id = msg.dm_id; }
 
-      const result = await insertChatMessage(table, row, columns);
+      msg.sendStartedAt = Date.now();
+      // An earlier attempt of this message may own the ID: look it up first.
+      const result = await insertChatMessage(table, row, columns, { retry: true, onNewId: id => {
+        entry.serverId = id; msg.clientMessageId = id;
+      } });
       if (result.error) {
         if (entry.confirmed) { void requestNoelleReply(entry.confirmedMessage, kind); return; }
+        msg.outcomeUnknown = !!result.error.outcomeUnknown;
         console.error(result.error);
         failPendingSend(entry, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
         return;
@@ -13885,6 +13939,15 @@ void main() {
       if (Math.min(dmListReadStartedAt, groupInviteReadStartedAt) < realtimeAttemptAt) queueConversationRefresh();
     }
 
+    let realtimeStableTimer = 0;
+    function noteRealtimeJoined() {
+      clearTimeout(realtimeStableTimer);
+      realtimeStableTimer = setTimeout(() => {
+        realtimeStableTimer = 0;
+        if (realtimeHealthy()) realtimeRecoverAttempt = 0;
+      }, REALTIME_STABLE_MS);
+    }
+
     function setupRealtime() {
       const gen = realtimeGen;
       realtimeAttemptAt = Date.now();
@@ -13912,7 +13975,7 @@ void main() {
           if (status === 'SUBSCRIBED') {
             realtimeReadyOnce = true;
             updateConnection('connected');
-            if (realtimeHealthy()) realtimeRecoverAttempt = 0;
+            noteRealtimeJoined();
             reconcileAfterSubscribe();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             // A later rejoin must cover the gap from here.
@@ -13934,7 +13997,7 @@ void main() {
           if (status === 'SUBSCRIBED') {
             realtimeReadyOnce = true;
             eventsChannelLive = true;
-            if (realtimeHealthy()) realtimeRecoverAttempt = 0;
+            noteRealtimeJoined();
           } else if (realtimeReadyOnce && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
             eventsChannelLive = false;
             scheduleRealtimeRecover();
@@ -14168,22 +14231,29 @@ void main() {
       const retryAfter = Math.min(60000, 2000 * 2 ** Math.min(realtimeRecoverAttempt, 5));
       if (Date.now() - lastRecoverAt < retryAfter) return;
       clearTimeout(realtimeRecoverTimer);
+      // Every client loses the socket at the same moment when Realtime stalls;
+      // spread the rejoins (and their catch-up reads) instead of synchronizing them.
       realtimeRecoverTimer = setTimeout(() => {
         realtimeRecoverTimer = 0;
         if (realtimeRecovering) return;
         if (Date.now() - lastRecoverAt < 8000 && realtimeHealthy()) return;
         recoverRealtime();
-      }, 700);
+      }, 700 + Math.round(Math.random() * Math.min(15000, 1000 * 2 ** Math.min(realtimeRecoverAttempt, 4))));
     }
+    // Returns false while no signed-in session is available, so background
+    // reads wait for one instead of being sent (and refused) as `anon`.
     async function refreshSessionQuiet() {
       try {
         const { data, error } = await sb.auth.getSession();
         const exp = data?.session?.expires_at ? data.session.expires_at * 1000 : 0;
         if (error || !data?.session || (exp && exp - Date.now() < 90000)) {
-          await sb.auth.refreshSession();
+          const refreshed = await sb.auth.refreshSession();
+          return !!refreshed?.data?.session || (!!data?.session && exp > Date.now());
         }
+        return true;
       } catch (err) {
         console.warn('[liminal] session refresh failed', err);
+        return false;
       }
     }
     async function refreshListsQuiet() {
@@ -14206,7 +14276,7 @@ void main() {
       eventsChannelLive = false;
       updateConnection('connecting');
       try {
-        await refreshSessionQuiet();
+        if (!await refreshSessionQuiet()) { updateConnection('error'); return; }
         const oldDb = dbChannel;
         const oldEvents = eventsChannel;
         stopLivePresence();
@@ -14216,8 +14286,13 @@ void main() {
         if (oldEvents) { try { await sb.removeChannel(oldEvents); } catch {} }
         if (gen !== realtimeGen || presenceStopped || presenceLeft) return;
         setupRealtime();
-        lastListRefreshAt = Date.now();
-        await Promise.all([catchUpPoll(), refreshListsQuiet()]);
+        const jobs = [catchUpPoll()];
+        // A flapping socket must not re-read every list on each rejoin.
+        if (Date.now() - lastListRefreshAt >= RECOVERY_LIST_MIN_MS && !dbUnderPressure()) {
+          lastListRefreshAt = Date.now();
+          jobs.push(refreshListsQuiet());
+        }
+        await Promise.all(jobs);
         scheduleRenderMembers();
         patchPresenceDots();
       } catch (err) {
@@ -14240,9 +14315,9 @@ void main() {
       const awayMs = pageAwaySince ? now - pageAwaySince : 0;
       if (visible) pageAwaySince = 0;
       try {
-        await refreshSessionQuiet();
+        if (!await refreshSessionQuiet()) return;
         if (presenceStopped || presenceLeft) return;
-        const refreshLists = Date.now() - lastListRefreshAt >= LIST_RECONCILE_MS;
+        const refreshLists = Date.now() - lastListRefreshAt >= LIST_RECONCILE_MS && !dbUnderPressure();
         if (!realtimeHealthy()) await recoverRealtime();
         else {
           const jobs = [catchUpPoll({ periodic: visible && awayMs < WAKE_CATCH_UP_AWAY_MS })];
@@ -14707,7 +14782,6 @@ void main() {
     function startTimers() {
       pendingTimers.forEach(clearInterval);
       pendingTimers = [
-        setInterval(recordChatActivity, 60000),
         setInterval(() => catchUpPoll({ periodic: true }), MESSAGE_FALLBACK_POLL_MS),
         setInterval(refreshPollTimers, 30000),
         setInterval(() => refreshConversations({ periodic: true }), 30000),
@@ -14738,7 +14812,7 @@ void main() {
         return onVoice && voiceReady ? reconcileVoiceChat({ periodic }) : Promise.resolve();
       }
       if (periodic) {
-        if (document.visibilityState !== 'visible' || navigator.onLine === false) return Promise.resolve();
+        if (document.visibilityState !== 'visible' || navigator.onLine === false || dbUnderPressure()) return Promise.resolve();
         // Realtime delivers new messages immediately. HTTP only reconciles missed
         // events occasionally, or provides a fast fallback while disconnected.
         const interval = realtimeHealthy()
@@ -16838,26 +16912,54 @@ void main() {
       }
     }
 
+    // One ordinary DM per pair (dms_non_luna_participants_unique_idx). Look it
+    // up first, share one request per person between repeated clicks, and only
+    // insert after a successful lookup found nothing. A concurrent create by
+    // the other person surfaces as 23505 and is resolved by reading theirs.
+    const dmOpenRequests = new Map();
+    async function findDirectDm(parts) {
+      const { data, error } = await sb.from('dms').select('*').eq('is_group', false)
+        .contains('participants', parts).containedBy('participants', parts)
+        .order('created_at', { ascending: true }).limit(1);
+      return { data: data?.[0] || null, error };
+    }
+    function ensureDirectDm(username) {
+      const actor = me.username;
+      const key = `${actor}\n${username}`;
+      if (dmOpenRequests.has(key)) return dmOpenRequests.get(key);
+      const request = (async () => {
+        const parts = [actor, username].sort();
+        const found = await findDirectDm(parts);
+        if (found.error) return { error: found.error };
+        if (found.data) return found;
+        const ins = await sb.from('dms').insert({ participants: parts }).select().single();
+        if (!ins.error) return ins;
+        if (ins.error.code !== '23505' && ins.error.code) return { error: ins.error };
+        const again = await findDirectDm(parts);
+        return again.data ? again : { error: ins.error };
+      })().finally(() => dmOpenRequests.delete(key));
+      dmOpenRequests.set(key, request);
+      return request;
+    }
     async function openDmWith(username) {
-      if (!username || username === me.username || isHiddenBot(username)) return;
+      if (!me || !username || username === me.username || isHiddenBot(username)) return;
       let dm = dms.find(d => !d.is_group && d.other === username);
       if (!dm) {
         if (dmBlockedUsers.has(username)) { toast({ type: 'warning', text: 'Unblock this person to start a conversation.' }); return; }
-        const parts = [me.username, username].sort();
-        let { data } = await sb.from('dms').select('*')
-          .contains('participants', parts).containedBy('participants', parts).maybeSingle();
+        const actor = me.username;
+        const { data, error } = await ensureDirectDm(username);
+        if (me?.username !== actor) return;
         if (!data) {
-          const ins = await sb.from('dms').insert({ participants: parts }).select().single();
-          if (ins.error) {
-            const retry = await sb.from('dms').select('*').contains('participants', parts).containedBy('participants', parts).maybeSingle();
-            data = retry.data;
-            if (!data) { toast({ type: 'error', text: isDmBlockedError(ins.error) ? 'Direct messages are unavailable for this conversation.' : 'Could not open that conversation.' }); return; }
-          } else data = ins.data;
+          toast({ type: 'error', text: isDmBlockedError(error) ? 'Direct messages are unavailable for this conversation.' : 'Could not open that conversation.' });
+          return;
         }
-        dm = { ...data, other: username, lastMsg: null };
-        dms.push(dm);
-        sortDms();
-        renderDmList();
+        dm = dms.find(d => d.id === data.id);
+        if (!dm) {
+          dm = { ...data, other: username, lastMsg: null };
+          dms.push(dm);
+          sortDms();
+          renderDmList();
+        }
       }
       await openView({ type: 'dm', id: dm.id, other: username });
     }
@@ -17105,7 +17207,7 @@ void main() {
     async function refreshConversations({ periodic = false } = {}) {
       if (!me || !sb) return;
       if (periodic) {
-        if (presenceStopped || presenceLeft || document.visibilityState !== 'visible' || navigator.onLine === false) return;
+        if (presenceStopped || presenceLeft || document.visibilityState !== 'visible' || navigator.onLine === false || dbUnderPressure()) return;
         // Revoked group rows no longer reach Realtime. Check only the open
         // conversation ID, rather than redownloading every preview and invite.
         await reconcileOpenDmAccess();
@@ -17829,6 +17931,7 @@ void main() {
             });
             if (verifyError) { toast({ type: 'error', text: 'Wrong password.' }); return; }
             await callChatAuth({ action: 'delete_account' });
+            signingOut = true;
             try { await sb.auth.signOut({ scope: 'local' }); } catch {}
             for (let i = __lcStore.length - 1; i >= 0; i--) {
               const key = __lcStore.key(i);
@@ -17870,66 +17973,6 @@ void main() {
     let ownerPanel = 'overview';
 
 
-    /* CHAT_ANALYTICS_UI_START */
-    function analyticsNumber(value) {
-      return value == null ? '—' : Number(value).toLocaleString();
-    }
-    function analyticsChart(summary, key = 'messages') {
-      const daily = summary.daily || [], max = Math.max(1, ...daily.map(row => Number(row[key] || 0)));
-      const labels = { messages: 'Public messages', accounts: 'Active accounts', browsers: 'Browser IDs', dms: 'Private messages' };
-      return '<svg viewBox="0 0 720 180" role="img" aria-label="' + esc(labels[key]) + ' by day; exact values in the daily table">'
-        + '<text x="0" y="13">' + analyticsNumber(max) + '</text>'
-        + daily.map((row, i) => {
-          const missing = row[key] == null, height = missing ? 3 : Math.max(1, Number(row[key]) / max * 125);
-          const title = row.day + ': ' + (missing ? 'not tracked' : analyticsNumber(row[key]) + ' ' + labels[key].toLowerCase());
-          return '<rect data-analytics-bar tabindex="0" x="' + (i * 23 + 22) + '" y="' + (150 - height) + '" width="17" height="' + height + '" rx="3" fill="#8b72eb" class="' + (missing ? 'analytics-missing' : '') + '" aria-label="' + esc(title) + '"><title>' + esc(title) + '</title></rect>';
-        }).join('') + '<text x="22" y="175">' + esc(daily[0]?.day || '') + '</text><text x="716" y="175" text-anchor="end">' + esc(daily.at(-1)?.day || '') + '</text></svg>';
-    }
-    function analyticsMarkup(summary) {
-      if (!summary || !Array.isArray(summary.daily)) return '<p class="analytics-note" role="status">Analytics unavailable. Refresh to retry.</p>';
-      const age = Date.parse(summary.generated_at) - Date.parse(summary.activity_since);
-      const current = Number(summary.messages_24h || 0), previous = Number(summary.messages_previous_24h || 0);
-      const change = previous ? (current > previous ? '+' : '') + ((current - previous) / previous * 100).toFixed(1) + '% vs prior 24h' : 'Prior 24h: ' + analyticsNumber(previous);
-      const cards = [
-        ['Active today',summary.dau,'Distinct signed-in accounts'],
-        ['Active · 7 days',summary.wau,age < 7*86400000 ? 'Collecting first 7 days' : '7 calendar days, including today'],
-        ['Active · 30 days',summary.mau,age < 30*86400000 ? 'Collecting first 30 days' : '30 calendar days, including today'],
-        ['Browser IDs today',summary.browsers_today,'Shared across accounts on this browser'],
-        ['Returning today',summary.returning_today,'Also observed on an earlier day'],
-        ['Public messages · 24h',summary.messages_24h,change],
-      ];
-      const since = new Date(summary.activity_since).toLocaleString([], {timeZone:'America/Chicago'});
-      const durable = new Date(summary.durable_messages_since).toLocaleString([], {timeZone:'America/Chicago'});
-      const updated = new Date(summary.generated_at).toLocaleString([], {timeZone:'America/Chicago'});
-      return '<div class="analytics-view"><div class="analytics-kpis">' + cards.map(([label,value,note]) => '<div class="analytics-kpi"><span>' + esc(label) + '</span><strong>' + analyticsNumber(value) + '</strong><small>' + esc(note) + '</small></div>').join('')
-        + '</div><p class="analytics-note">Foreground in last 5m: ' + analyticsNumber(summary.foreground_5m) + ' accounts · Public senders in 7d: ' + analyticsNumber(summary.active_senders_7d) + ' · Signups in 7d: ' + analyticsNumber(summary.signups_7d) + '<br>Tracked public messages: ' + analyticsNumber(summary.messages_total) + ' · Currently visible: ' + analyticsNumber(summary.visible_messages) + ' · Private messages in 24h: ' + analyticsNumber(summary.dm_messages_24h) + '</p>'
-        + '<section class="analytics-card"><div class="analytics-toolbar"><h3>Last 30 calendar days</h3><label>Show <select data-analytics-series aria-label="Chart metric"><option value="messages">Public messages</option><option value="accounts">Active accounts</option><option value="browsers">Browser IDs</option><option value="dms">Private messages</option></select></label></div><div class="analytics-chart">' + analyticsChart(summary) + '</div><output class="analytics-inspector" aria-live="polite">Hover or focus a bar for its exact count.</output>'
-        + '<details><summary>Daily values</summary><div class="analytics-scroll"><table class="analytics-table"><caption>Daily activity · America/Chicago</caption><thead><tr><th scope="col">Chicago date</th><th scope="col">Accounts</th><th scope="col">Browsers</th><th scope="col">Public messages</th><th scope="col">Private messages</th><th scope="col">Signups</th></tr></thead><tbody>'
-        + [...summary.daily].reverse().map(row => '<tr><th scope="row">' + esc(row.day) + '</th>' + ['accounts','browsers','messages','dms','signups'].map(key => '<td>' + analyticsNumber(row[key]) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div></details></section>'
-        + '<section class="analytics-card"><h3>Busiest public channels · rolling 7 days</h3><div class="analytics-scroll"><table class="analytics-table"><thead><tr><th scope="col">Channel</th><th scope="col">Messages</th><th scope="col">Senders</th></tr></thead><tbody>'
-        + ((summary.top_channels || []).length ? summary.top_channels.map(row => '<tr><th scope="row">' + esc(row.label) + '</th><td>' + analyticsNumber(row.messages) + '</td><td>' + analyticsNumber(row.senders) + '</td></tr>').join('') : '<tr><td colspan="3">No public messages in the last 7 days.</td></tr>') + '</tbody></table></div></section>'
-        + '<details class="analytics-card"><summary>Definitions & coverage</summary><p class="analytics-note">Active = chat was visible with interaction in the last 5 minutes. Refreshes and extra tabs do not add accounts. Browser IDs identify browser storage, not people or physical devices; clearing storage creates another ID. Bots and test accounts are excluded from engagement. Private conversations contribute counts only.</p>'
-        + '<p class="analytics-note">Activity collection began ' + esc(since) + ' CT; its first day and today are partial. Older activity is unknown (—). Returning counts use only collected activity. The 7/30-day totals are observed counts until enough history accumulates. Calendar dates use America/Chicago, including daylight saving time; 24h and channel rankings use rolling windows.</p>'
-        + '<p class="analytics-note">Message and signup history before ' + esc(durable) + ' CT comes from surviving database rows. Earlier hard-deleted records are unavailable. Future message deletions preserve sent totals; visible messages are counted separately. Historical exclusions use account classification when recorded. Updated ' + esc(updated) + ' CT.</p></details></div>';
-    }
-    function bindAnalyticsChart(root, summary) {
-      const showValue = event => {
-        const bar = event.target.closest?.('[data-analytics-bar]');
-        const inspector = root.querySelector('.analytics-inspector');
-        if (bar && inspector) inspector.textContent = bar.getAttribute('aria-label');
-      };
-      root.querySelector('.analytics-chart')?.addEventListener('pointerover', showValue);
-      root.querySelector('.analytics-chart')?.addEventListener('focusin', showValue);
-      root.querySelector('[data-analytics-series]')?.addEventListener('change', event => {
-        const key = event.target.value;
-        if (['messages','accounts','browsers','dms'].includes(key)) {
-          root.querySelector('.analytics-chart').innerHTML = analyticsChart(summary,key);
-          const inspector = root.querySelector('.analytics-inspector');
-          if (inspector) inspector.textContent = 'Hover or focus a bar for its exact count.';
-        }
-      });
-    }
-    /* CHAT_ANALYTICS_UI_END */
 
     let staffPanel = 'members';
     let staffRenderGeneration = 0;
@@ -17978,48 +18021,13 @@ void main() {
         ${canModerateUser(p) ? `<select data-staff-action="${esc(p.username)}" aria-label="Moderate ${esc(displayNameOf(p))}"><option value="">Actions…</option><option value="timeout">Timeout 10 minutes</option>${isStaff() ? '<option value="kick">Kick</option>' : ''}${canBanUsers() ? '<option value="ban">Ban</option>' : ''}</select>` : '<span class="console-protected">Protected</span>'}
       </div>`).join('');
     }
-    function consoleAnalyticsPanel() {
-      return consoleCard('Community analytics', 'Account activity, browser IDs, and message volume from the database.', '<div class="analytics-toolbar"><button type="button" class="secondary-button" data-analytics-refresh>Refresh analytics</button><span data-analytics-status role="status"></span></div><div data-analytics-content><p class="analytics-note">Loading analytics…</p></div>');
-    }
-    const consoleAnalyticsRequests = new WeakMap();
-    function loadConsoleAnalytics(root) {
-      const content = root.querySelector('[data-analytics-content]');
-      if (!content || !isStaff()) return Promise.resolve();
-      if (consoleAnalyticsRequests.has(content)) return consoleAnalyticsRequests.get(content);
-      const job = (async () => {
-        const button = root.querySelector('[data-analytics-refresh]');
-        const status = root.querySelector('[data-analytics-status]');
-        if (!content || !isStaff()) return;
-        button.disabled = true;
-        status.textContent = 'Updating…';
-        content.setAttribute('aria-busy', 'true');
-        try {
-          const { data, error } = await sb.rpc('chat_get_analytics');
-          if (error) throw error;
-          if (!data || !Array.isArray(data.daily)) throw new Error('Invalid analytics response');
-          if (!content.isConnected || !isStaff()) return;
-          content.dataset.loaded = 'true';
-          content.innerHTML = analyticsMarkup(data);
-          bindAnalyticsChart(content,data);
-          root.querySelectorAll('[data-console-metric]').forEach(node => {
-            node.textContent = analyticsNumber(data?.[node.dataset.consoleMetric]);
-          });
-          status.textContent = 'Updated ' + new Date(data.generated_at).toLocaleTimeString();
-        } catch (error) {
-          if (!content.isConnected) return;
-          if (content.dataset.loaded !== 'true') {
-            content.innerHTML = '<div class="console-empty" role="status"><strong>Analytics couldn’t load.</strong><p>Check your connection and refresh to try again.</p></div>';
-            root.querySelectorAll('[data-console-metric]').forEach(node => { node.textContent = '—'; });
-          }
-          status.textContent = content.dataset.loaded === 'true' ? 'Showing previous results · refresh to retry' : 'Could not update';
-        } finally { button.disabled = false; content.setAttribute('aria-busy', 'false'); }
-      })().finally(() => consoleAnalyticsRequests.delete(content));
-      consoleAnalyticsRequests.set(content,job);
-      return job;
-    }
-    function bindConsoleAnalytics(root) {
-      root.querySelector('[data-analytics-refresh]')?.addEventListener('click', () => { void loadConsoleAnalytics(root); });
-      void loadConsoleAnalytics(root);
+    function consoleCommunityStats() {
+      const members = [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username));
+      return [
+        { value: String(members.length), label: 'Members' },
+        { value: String(members.filter(p => staffRankOf(p) >= 2).length), label: 'Staff' },
+        { value: String(channels.filter(ch => ['chat', 'forum'].includes(ch.kind || 'chat')).length), label: 'Channels' },
+      ];
     }
     async function renderAdminTab() {
       const el = $('tab-admin');
@@ -18031,19 +18039,17 @@ void main() {
         if (request !== staffRenderGeneration || !isStaff()) return;
         if (error) throw error;
         const banned = data?.banned || [], timeouts = data?.timed_out || [];
-        const memberCount = [...profiles.values()].filter(p => !p.is_banned && !isHiddenBot(p.username)).length;
         const moderation = consoleCard('Member directory', 'Find a member and choose an action. Your role limits who you can moderate.', `<div class="field"><label for="staff-member-search">Find a member</label><input id="staff-member-search" type="search" placeholder="Name, username, or staff role"></div><div class="console-member-list">${staffMemberRows()}</div><p id="staff-member-empty" class="field-help" hidden>No matching members.</p>`)
           + consoleCard('Active timeouts', 'Temporary restrictions currently in effect.', `<div class="console-list">${timeouts.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>Until ${esc(new Date(u.timeout_until).toLocaleString())} · by @${esc(u.timeout_by || '?')}</small></div>${canModerateUser(u.username) ? `<button class="secondary-button" type="button" data-clear-timeout="${esc(u.username)}">Clear timeout</button>` : ''}</div>`).join('') || '<p class="console-empty">No active timeouts.</p>'}</div>`)
           + (canBanUsers() ? consoleCard('Banned accounts', 'Review a ban or allow an account to return.', `<div class="console-list">${banned.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>${esc(u.ban_reason || 'No reason provided')} · by @${esc(u.banned_by || '?')}</small></div><button class="secondary-button" type="button" data-unban="${esc(u.username)}">Unban</button></div>`).join('') || '<p class="console-empty">No banned accounts.</p>'}</div>`) : '');
-        const panels = [{ id: 'analytics', label: 'Analytics', html: consoleAnalyticsPanel() }, { id: 'members', label: 'Members', html: moderation },
+        const panels = [{ id: 'members', label: 'Members', html: moderation },
           { id: 'badges', label: 'Badges & roles', html: consoleCard('Member badges', 'Cosmetic badges are separate from staff permissions.', subRoleManagerHtml()) + (canManageStaffRoles() && !isOwner() ? consoleCard('Staff hierarchy', 'Manage roles below your own rank.', `<div class="admin-list">${staffRoleRowsHtml()}</div>`) : '') }];
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
-        el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', [{value:'—',label:'Members',key:'members_total'},{value:'—',label:'Active today',key:'dau'},{value:'—',label:'Public messages · 24h',key:'messages_24h'}], panels, staffPanel);
-        bindConsoleAnalytics(el);
+        el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', consoleCommunityStats(), panels, staffPanel);
         const loadPanel = id => { if (id === 'activity') loadAdminLogs(); if (id === 'archive') loadDeletedMessages(); };
         bindConsoleNavigation(el, 'staff', loadPanel); bindStaffRoleControls(el, renderAdminTab); bindSubRoleControls(el);
         $('staff-member-search').addEventListener('input', event => { const q = event.target.value.trim().replace(/^@/,'').toLowerCase(); let visible = 0; qsa('[data-staff-search]', el).forEach(row => { row.hidden = !!q && !row.dataset.staffSearch.includes(q); if (!row.hidden) visible++; }); $('staff-member-empty').hidden = visible > 0; });
@@ -18100,7 +18106,6 @@ void main() {
       const featureRows = features.map(([key,label,description]) => `<div class="console-feature"><div><strong>${esc(label)}</strong><p>${esc(description)}</p></div><button class="switch" type="button" role="switch" data-owner-feature="${key}" aria-label="${esc(label)}" aria-checked="${appSettings[key] !== 'false'}"></button></div>`).join('');
       const testAccount = lastDevSession ? `<div class="console-test-account"><strong>@${esc(lastDevSession.username)}</strong><div class="field-help">Temporary test account</div><div class="console-credentials"><div><span>Username</span><code>${esc(lastDevSession.username)}</code></div><div><span>Password</span><code>${esc(lastDevSession.password)}</code></div></div><div class="group-actions"><button id="owner-dev-copy-un" class="secondary-button" type="button">Copy username</button><button id="owner-dev-copy-pw" class="secondary-button" type="button">Copy password</button><button id="owner-dev-reopen" class="secondary-button" type="button">Open session</button><button id="owner-dev-delete" class="danger-button" type="button">Delete session</button></div></div>` : '<div class="console-inline-form"><label class="sr-only" for="owner-dev-name">Test account name</label><input id="owner-dev-name" maxlength="40" value="Dev Tester" placeholder="Display name"><button class="secondary-button" id="owner-dev-create" type="button">Create test account</button></div>';
       const panels = [
-        {id:'analytics',label:'Analytics',html:consoleAnalyticsPanel()},
         {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
@@ -18108,9 +18113,8 @@ void main() {
         {id:'noelle',label:'Noelle AI',html:consoleCard('Noelle AI','Owner preview. Prompts and replies are visible to owners only.',`<p class="field-help" id="owner-noelle-status" role="status">Loading settings…</p><form id="owner-noelle-form" hidden><div class="console-form-grid"><div class="field"><label for="owner-noelle-enabled">Replies</label><select id="owner-noelle-enabled"><option value="true">On</option><option value="false">Off</option></select></div><div class="field"><label for="owner-noelle-budget">Daily budget (USD cents)</label><input id="owner-noelle-budget" type="number" min="1" max="10000" required></div><div class="field"><label for="owner-noelle-limit">Replies per person per day</label><input id="owner-noelle-limit" type="number" min="1" max="500" required></div></div><button class="primary-button" type="submit">Save settings</button></form>`)},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
-      el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',[{value:'—',label:'Members',key:'members_total'},{value:'—',label:'Active today',key:'dau'},{value:'—',label:'Public messages · 24h',key:'messages_24h'}],panels,ownerPanel);
+      el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',consoleCommunityStats(),panels,ownerPanel);
       void loadNoelleOwnerSettings();
-      bindConsoleAnalytics(el);
       bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindSubRoleControls(el);
       $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
       $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});

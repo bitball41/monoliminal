@@ -209,7 +209,8 @@ test('SQL enforces source identity, live corpus exclusions, idempotency, limits 
     await assert.rejects(db.query('update public.messages set owner_preview=false where id=$1',[source]),/visibility is assigned/);
     await actor('Noelle');await assert.rejects(db.query("insert into public.messages(sender,channel_id,content,reply_to) values('Noelle','general','leak',$1::jsonb)",[JSON.stringify({id:finished.response_message_id})]),/owners only/);
     await db.exec('reset role');
-    assert.equal((await db.query('select excluded from private.chat_message_facts where message_id=$1',[finished.response_message_id])).rows[0].excluded,true);
+    // Chat 6.1 removed analytics: replies no longer write a message fact.
+    assert.equal((await db.query("select to_regclass('private.chat_message_facts') t")).rows[0].t,null);
     await service();
     assert.equal((await db.query('select public.chat_noelle_finish($1,$2,$3,100) data',[source,ids.alice,'duplicate'])).rows[0].data.duplicate,true);
     for(const invalid of ['no mention','@NoelleAI_extra','a@NoelleAI']){

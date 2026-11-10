@@ -15,7 +15,7 @@ function section(source, start, end) {
 function chatPolling() {
   let now = 1_000_000;
   const requests = [], received = [];
-  const context = vm.createContext({
+  const context = vm.createContext({ dbUnderPressure: () => false,
     Date: class extends Date { static now() { return now; } },
     document: { visibilityState: 'visible' }, navigator: { onLine: true },
     me: { username: 'fixture' }, presenceStopped: false, presenceLeft: false,
@@ -146,7 +146,7 @@ test('catch-up re-reads a bounded window so a late-committed row is recovered', 
 function liveLoadHelpers() {
   const msgCache = new Map();
   const seen = [];
-  const context = vm.createContext({
+  const context = vm.createContext({ dbUnderPressure: () => false,
     msgCache,
     rememberId: id => seen.push(id),
     resolvePendingSend() {},
@@ -201,7 +201,7 @@ function launcherPolling() {
       };
     },
   };
-  const context = vm.createContext({
+  const context = vm.createContext({ dbUnderPressure: () => false,
     Date: class extends Date { static now() { return now; } },
     document: { visibilityState: 'visible', addEventListener: (type, fn) => listeners.set(type, fn) },
     navigator: { onLine: true },
