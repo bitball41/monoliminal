@@ -2,7 +2,7 @@
 
 This folder tracks new changes to the existing Liminal database. It does not recreate the older production schema.
 
-`20261016011605_chat_analytics.sql` adds private, server-validated foreground activity and durable message/signup facts, corrects distinct-browser counting, and gives Control and Chat the same analytics summary. Apply it before deploying either HTML update. See [analytics definitions and coverage](../ANALYTICS.md).
+`20261016011605_chat_analytics.sql` added private analytics. `20261110222605_remove_chat_analytics.sql` (Chat 6.1) removes it again: it drops the analytics triggers on `messages`, `dm_messages` and `profiles`, the analytics RPCs, the private fact tables and `messages_analytics_visible_sender_idx`, and rewrites `admin_dashboard_get_state` without the analytics section. It changes no grants, policies or message data. Apply it before or with the 6.1 Chat and Control HTML. See [analytics removal](../ANALYTICS.md).
 
 Generate migrations with `supabase migration new`. Keep filenames aligned with the linked project's migration ledger. Apply database changes through Supabase; GitHub's HTML deployment Actions do not apply migrations.
 

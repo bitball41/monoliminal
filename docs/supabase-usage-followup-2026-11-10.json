@@ -1,0 +1,44 @@
+{
+  "captured_at": "2026-11-10",
+  "project": "trsirhyucncmyyfyiuje",
+  "method": "Read-only catalog and pg_stat_statements queries. No Logs Explorer, MCP log query or logs API scans.",
+  "pg_stat_statements_reset": "2026-10-20T22:39:39Z",
+  "statement_timeout": { "authenticated": "8s" },
+  "top_statements_by_total_time": [
+    { "role": "supabase_admin", "statement": "Realtime WAL list_changes (postgres_changes)", "calls": 2681962, "mean_ms": 8.7, "max_ms": 14731, "total_s": 23358 },
+    { "role": "authenticated", "statement": "rpc chat_unread_counts", "calls": 7454, "mean_ms": 704.4, "max_ms": 7668, "total_s": 5251 },
+    { "role": "authenticated", "statement": "insert messages (client id)", "calls": 33714, "mean_ms": 89.4, "max_ms": 6990, "total_s": 3014 },
+    { "role": "authenticated", "statement": "rpc chat_list_conversations", "calls": 19819, "mean_ms": 86.4, "max_ms": 7501, "total_s": 1713 },
+    { "role": "authenticated", "statement": "rpc chat_record_activity (analytics)", "calls": 22373, "mean_ms": 71.7, "max_ms": 7719, "total_s": 1604 },
+    { "role": "supabase_admin", "statement": "realtime.authorize", "calls": 13841, "mean_ms": 94.7, "max_ms": 7912, "total_s": 1311 },
+    { "role": "authenticated", "statement": "rpc chat_get_analytics (analytics)", "calls": 422, "mean_ms": 1805.5, "max_ms": 7836, "total_s": 762 }
+  ],
+  "chat_unread_counts_isolated": {
+    "note": "EXPLAIN ANALYZE as an authenticated member, 12 channel cursors, warm cache.",
+    "null_cursors_ms": 20.5,
+    "old_cursors_ms": 5.8
+  },
+  "interpretation": [
+    "chat_unread_counts runs in 6-20 ms alone but averages 704 ms in production, and many unrelated statements reach the 8 s timeout (max 6.9-7.9 s). The function plan is not the bottleneck; the database is saturated in bursts.",
+    "Realtime's WAL polling is the largest database consumer (23,358 s, max 14.7 s). When it stalls, every client's socket drops at once and each recovery re-read lists and unread counts, adding load during the overload.",
+    "Each message insert also ran the analytics fact trigger; chat_record_activity ran every minute per open client."
+  ],
+  "table_counts": { "messages": 98241, "dm_messages": 11180, "dms": 222, "channels": 12, "forum_threads": 128 },
+  "grants": {
+    "anon": "no privileges on messages, dm_messages, dm_blocks or dms",
+    "authenticated": { "dm_blocks": "SELECT, INSERT, DELETE", "dm_messages": "SELECT, INSERT, UPDATE, DELETE" },
+    "conclusion": "'permission denied' on dm_messages/dm_blocks means requests reached PostgREST without a user JWT (supabase-js falls back to the publishable key when a session cannot be refreshed). RLS and grants are correct and unchanged."
+  },
+  "dm_uniqueness": "dms_non_luna_participants_unique_idx is UNIQUE (participants) WHERE NOT is_group AND NOT 'Luna' = ANY(participants). The old client lookup did not filter is_group, so a 2-person group with the same members made maybeSingle fail and fell through to an insert.",
+  "analytics_objects_live": [
+    "trigger chat_analytics_message_insert ON messages",
+    "trigger chat_analytics_dm_insert ON dm_messages",
+    "trigger chat_analytics_signup_insert ON profiles",
+    "public.chat_get_analytics()", "private.chat_get_analytics()", "private.chat_analytics_summary()",
+    "public.chat_record_activity(text)", "private.chat_record_activity(text)",
+    "private.chat_capture_message_fact()", "private.chat_capture_signup_fact()",
+    "public.admin_dashboard_get_state(text) (embeds the summary)",
+    "index messages_analytics_visible_sender_idx"
+  ],
+  "changes_applied_to_database": "Migration remove_chat_analytics applied 2026-11-10 (ledger version 20261110222605) at the owner's request. Verified afterwards: no analytics triggers, functions, tables or index remain; admin_dashboard_get_state keeps its grants (authenticated, service_role, postgres) and has no analytics; messages triggers, chat table policies and message rows are unchanged."
+}

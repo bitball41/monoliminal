@@ -27,7 +27,7 @@ function wakeFixture() {
     MESSAGE_COLUMNS: 'id,created_at', DM_MESSAGE_COLUMNS: 'id,created_at',
     msgCache: new Map(), viewKey: view => `c:${view.id}`, healthy: true,
     realtimeHealthy: () => c.healthy, ingestMessage() {}, notePerformanceWork() {},
-    refreshSessionQuiet: async () => {}, recoverRealtime: async () => { reads.push('recover'); },
+    refreshSessionQuiet: async () => true, dbUnderPressure: () => false, recoverRealtime: async () => { reads.push('recover'); },
     ensureLivePresence() {}, refreshListsQuiet: async () => {}, scheduleRenderMembers() {},
     patchPresenceDots() {}, renderSelf() {}, retryTransientFailures: async () => {},
     snapshotComposer() {}, stopLivePresence() {}, stopPresenceFallback() {},

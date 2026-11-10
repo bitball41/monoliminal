@@ -3,6 +3,92 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Chat 6.1, part 1: database errors and analytics removal
+
+Versioning now follows the launcher generation: this update (three parts) is
+**6.1**, and smaller follow-ups are 6.1.1 to 6.1.5. `APP_VERSION` is `6.1`.
+
+Production Postgres showed bursts of statement timeouts (89 in 23 minutes, 39
+in 5 minutes), `messages_pkey` / `dm_messages_pkey` duplicates,
+one `dms_non_luna_participants_unique_idx` duplicate, and `permission denied`
+on `dm_messages` and `dm_blocks`. Read-only counters are saved in
+[supabase-usage-followup-2026-11-10.json](../docs/supabase-usage-followup-2026-11-10.json).
+
+- **Duplicate message IDs.** Every new message still gets one fresh
+  `crypto.randomUUID()`, reused by its retries so a lost response cannot send
+  it twice. The duplicates came from retries: an insert aborted on the client
+  after 20 s could still commit, and the retry re-inserted the same ID. A retry
+  now looks the ID up first and only inserts when it is absent; after an
+  aborted attempt it waits until 30 s after that attempt started, so a write
+  still in flight is seen. A server refusal (permission, filter, block) is
+  returned without an extra lookup. A row with the same ID is only accepted
+  when it is this sender's message in the same conversation; it is never
+  overwritten (no upsert). If another row owned the ID, the message is sent
+  once under a new ID.
+- **Duplicate DM threads.** Opening a DM looks for an ordinary DM
+  (`is_group = false`) with exactly the pair. The old lookup also matched a
+  two-person group with the same members, so `maybeSingle` failed and Chat
+  inserted a DM that already existed. Repeated clicks share one request, a
+  failed lookup no longer falls through to an insert, and a DM created by the
+  other person at the same moment is adopted after the unique conflict.
+- **Permission denied.** `anon` has no privileges on chat tables (checked
+  live; grants and RLS are unchanged). The errors were requests sent with the
+  publishable key after a session could not be refreshed: supabase-js falls
+  back to the key, and wake/recovery kept reading lists and retrying sends.
+  While signed in, Chat now stops any `/rest/v1/` request without a user token
+  before it leaves the browser, refreshes the session once (at most every
+  30 s), and treats the request as a network failure so unsent messages stay
+  queued. If Auth reports the session ended (`SIGNED_OUT`), Chat stops its
+  background work and reloads to sign-in; drafts are kept. Wake and Realtime
+  recovery skip their reads until a session is available.
+- **Timeouts.** `chat_unread_counts` takes 6 to 20 ms alone but averaged
+  704 ms in production, and unrelated statements also reached the 8 s limit,
+  so its plan is not the bottleneck: the database saturates in bursts. The
+  largest consumer is Realtime's WAL polling (23,358 s since Oct 20, max
+  14.7 s). When it stalls, every client loses its socket together, and each
+  recovery re-read the conversation list, invites, DM blocks and unread counts
+  every few seconds. Now:
+  - Rejoins are jittered (up to 15 s) instead of all firing after 0.7 s.
+  - The recovery backoff resets only after the connection has stayed up for
+    60 s, so a flapping socket keeps backing off.
+  - Recovery re-reads lists at most once a minute; unread counts are reused
+    for a minute even without Realtime.
+  - A 5xx response (statement timeout, gateway) pauses background
+    reconciliation for 30 s, doubling to 5 minutes. Opening a conversation,
+    loading history and sending still go through.
+  No index or function change was needed for the unread lookup.
+- **Analytics removed** at the owner's request. Every message insert ran an
+  analytics trigger (two lookups and a write to a three-index fact table),
+  each open Chat called `chat_record_activity` once a minute, and Control and
+  the staff console recomputed a 30-day summary. Chat no longer sends
+  `chat_record_activity` or `chat_get_analytics`; the staff and owner consoles
+  lose their Analytics tab and show member, staff and channel counts from data
+  already loaded. Control drops the analytics section, message-volume tiles and
+  per-user/channel message counts.
+  [`20261110222605_remove_chat_analytics.sql`](../Backend/migrations/20261110222605_remove_chat_analytics.sql)
+  drops the triggers, RPCs, private fact tables and the analytics-only index,
+  and rewrites `admin_dashboard_get_state` without them. Message data,
+  permissions, RLS, the device moderation registry and deployment history are
+  untouched. The dropped analytics history cannot be restored.
+
+### Rollout
+
+1. Apply `20261110222605_remove_chat_analytics.sql` (two-second lock
+   timeout; run it at a quiet time). **Done 2026-11-10** (ledger version
+   `20261110222605`), verified with read-only catalog checks. Older Chat clients get "function not
+   found" from PostgREST for `chat_record_activity` without reaching Postgres,
+   and back off to every 5 minutes until they reload.
+2. Publish `Chat/chat.html` and `Admin/liminal-admin-dashboard.html`.
+   An older Control copy shows "Analytics unavailable" after step 1 and works
+   otherwise.
+
+Tests: `scripts/chat-db-errors.test.mjs` (DM dedupe, anon gate, pressure
+cooldown, recovery), the send idempotency cases in
+`scripts/chat-send-loading.test.mjs`, and the removal checks in
+`scripts/chat-backend-performance.test.mjs`, which apply the migration in
+PGlite and confirm every account sees the same rows, policies are unchanged,
+members can still send and banned accounts still cannot.
+
 ## Corazon rebrand (2.28.0)
 
 A visual and naming rebrand. Accounts, messages, permissions, Supabase

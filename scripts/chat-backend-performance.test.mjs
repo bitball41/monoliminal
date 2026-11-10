@@ -6,6 +6,9 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 
 const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const repairs = ['20261022163655_index_owner_preview_message_lookups.sql', '20261022163658_reduce_chat_query_work.sql'];
+// Applied last: the earlier repairs are checked against the analytics they
+// preserved, then the 6.1 removal must leave every visible row unchanged.
+const analyticsRemoval = '20261110222605_remove_chat_analytics.sql';
 
 test('backend repairs preserve visibility, inboxes, privileges and every analytics field', async () => {
   const db = new PGlite({ extensions: { pgcrypto } });
@@ -29,7 +32,7 @@ test('backend repairs preserve visibility, inboxes, privileges and every analyti
   try {
     await db.exec(await file('Backend/tests/authorization-fixture.sql'));
     const migrations = (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(x => x.endsWith('.sql')).sort();
-    for (const name of migrations.filter(x => !repairs.includes(x))) await db.exec(await file('Backend/migrations/' + name));
+    for (const name of migrations.filter(x => !repairs.includes(x) && x < analyticsRemoval)) await db.exec(await file('Backend/migrations/' + name));
     for (const name of names) {
       await db.query('insert into auth.users(id) values($1)', [ids[name]]);
       await db.query('insert into public.profiles(username,display_name,user_id,staff_role,is_banned,is_test_account) values($1,$1,$2,$3,$4,$5)', [name, ids[name], name === 'owner' ? 'owner' : 'member', name === 'banned', name === 'tester']);
@@ -69,6 +72,29 @@ test('backend repairs preserve visibility, inboxes, privileges and every analyti
     const once = await query("select tablename,policyname,qual,with_check from pg_policies where schemaname='public' order by tablename,policyname");
     await db.exec(await file('Backend/migrations/' + repairs[1]));
     assert.deepEqual(await query("select tablename,policyname,qual,with_check from pg_policies where schemaname='public' order by tablename,policyname"), once);
+    // Removing analytics changes no visibility, privilege or policy.
+    const beforeRemoval = new Map();
+    for (const name of [...names, null]) beforeRemoval.set(name, await snapshot(name));
+    await db.exec('reset role');
+    for (const name of migrations.filter(x => x >= analyticsRemoval)) await db.exec(await file('Backend/migrations/' + name));
+    for (const name of [...names, null]) assert.deepEqual(await snapshot(name), beforeRemoval.get(name), 'same visible rows after removal for ' + name);
+    await db.exec('reset role');
+    assert.deepEqual(await query("select tablename,policyname,qual,with_check from pg_policies where schemaname='public' order by tablename,policyname"), once);
+    assert.deepEqual(await query("select tgname from pg_trigger where tgname like 'chat_analytics_%'"), []);
+    assert.deepEqual(await query(`select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','private') and p.proname in ('chat_get_analytics','chat_analytics_summary','chat_record_activity','chat_capture_message_fact','chat_capture_signup_fact')`), []);
+    assert.deepEqual(await query(`select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where (n.nspname='private' and c.relname in ('chat_message_facts','chat_activity_days','chat_signup_facts','chat_analytics_meta'))
+         or (n.nspname='public' and c.relname='messages_analytics_visible_sender_idx')`), []);
+    const state = (await query("select pg_get_functiondef('public.admin_dashboard_get_state(text)'::regprocedure) d"))[0].d;
+    assert.match(state, /require_chat_admin\(p_admin_token\)/, 'Control still validates its token');
+    assert.doesNotMatch(state, /analytics|chat_message_facts/);
+    // Sending still works for members, and is still refused for banned accounts.
+    await actor('alice');
+    await query("insert into public.messages(channel_id,sender,content) values('general','alice','after removal')");
+    await actor('banned');
+    await assert.rejects(db.query("insert into public.messages(channel_id,sender,content) values('general','banned','blocked')"));
+    await db.exec('reset role');
   } finally { await db.close(); }
 });
 
