@@ -5,10 +5,14 @@ previously called Liminal Chat.
 
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
 
-Needs [`20261111200000_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111200000_chat_custom_roles_rules_stickers.sql).
-Until it is applied, Chat keeps the built-in roles and default rules, keeps
-sticker favorites in the browser and greys out profile extras, so the HTML can
-be published first.
+Needs [`20261111194810_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111194810_chat_custom_roles_rules_stickers.sql)
+(**applied 2026-11-11**, ledger version `20261111194810`; verified live with
+read-only checks: nine built-in roles at their previous levels with the three
+admin roles tied, no legacy flag changes, RLS on both new tables, no signed-out
+access, broadcast trigger on the catalog). Without it, Chat keeps the built-in
+roles and default rules, keeps sticker favorites in the browser and greys out
+profile extras. The updated `chat-auth` Edge Function is not deployed yet; the
+database re-checks every password reset in the meantime.
 
 - **Custom staff roles on one ladder.** Roles live in `public.chat_staff_roles`
   instead of being hard-coded. Each role has two independent settings:
