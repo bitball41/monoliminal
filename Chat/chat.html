@@ -240,15 +240,15 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       --warning: #f3bd66;
       --success: #58d39b;
 
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 20px;
-      --left-width: 268px;
-      --right-width: 268px;
-      --header-height: 54px;
+
+
+
+
+
+
       --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent);
       --shadow: 0 20px 56px rgba(0, 0, 0, 0.34);
-      --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.2);
+
       --inner-highlight: inset 0 1px rgba(255, 255, 255, 0.035);
       --scrim-color: rgba(2, 0, 14, 0.6);
 
@@ -257,8 +257,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       --ease-slide: cubic-bezier(0.32, 0.72, 0, 1);
 
       --font-flags: "Liminal Native Flags";
-      --font-ui: var(--font-flags), "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
-      --font-body: var(--font-flags), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+
       
       --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
       --msg-pad: 5px;
@@ -267,20 +267,20 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
 
     :root[data-light="true"] {
-      --accent-strong: color-mix(in srgb, var(--accent) 72%, #1a1520);
-      --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
-      --accent-line: color-mix(in srgb, var(--accent) 32%, transparent);
-      --accent-glow: color-mix(in srgb, var(--accent) 28%, transparent);
-      --text-soft: color-mix(in srgb, var(--text) 72%, #6b6578);
-      --muted: color-mix(in srgb, var(--text) 48%, #8a8498);
-      --panel: color-mix(in srgb, #ffffff 88%, var(--bg));
-      --panel-strong: color-mix(in srgb, #ffffff 94%, var(--bg));
-      --surface: color-mix(in srgb, var(--text) 4.5%, transparent);
-      --surface-2: color-mix(in srgb, var(--text) 7%, transparent);
-      --line: color-mix(in srgb, var(--text) 12%, transparent);
-      --shadow: 0 18px 48px rgba(28, 24, 40, 0.12);
-      --shadow-soft: 0 8px 24px rgba(28, 24, 40, 0.08);
-      --scrim-color: rgba(32, 28, 44, 0.38);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       --ok: #15803d;
       --idle: #a16207;
       --dnd: #b91c1c;
@@ -369,14 +369,14 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     /* ============================= GENERIC UI ============================= */
     .icon-button {
       display: grid; place-items: center;
-      width: 36px; height: 36px; flex: 0 0 auto;
+ flex: 0 0 auto;
       border: 1px solid transparent; border-radius: 10px;
       color: var(--text-soft); background: transparent;
       transition: background 130ms ease, color 130ms ease, border-color 130ms ease, transform 120ms ease;
     }
-    .icon-button:hover { color: var(--text); background: var(--surface-2); }
+    .icon-button:hover { color: var(--text); }
     .icon-button:active { transform: scale(0.92); }
-    .icon-button.active { color: var(--accent-strong); background: var(--accent-soft); border-color: var(--accent-line); }
+    .icon-button.active { color: var(--accent-strong); background: var(--accent-soft); }
     .icon-button svg { width: 19px; height: 19px; }
 
     .primary-button, .secondary-button, .danger-button, .ghost-button {
@@ -386,8 +386,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       font-family: var(--font-ui); font-weight: 700; font-size: 0.82rem;
       transition: filter 130ms ease, background 130ms ease, transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
     }
-    .primary-button { color: var(--on-accent); background: linear-gradient(140deg, var(--accent-strong), var(--accent)); }
-    .primary-button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 18px var(--accent-glow); }
+    .primary-button { color: var(--on-accent); }
+    .primary-button:hover:not(:disabled) { filter: brightness(1.08); }
     .primary-button:active { transform: translateY(1px); box-shadow: none; }
     .secondary-button { border-color: var(--line-strong); color: var(--text); background: var(--surface); }
     .secondary-button:hover:not(:disabled) { background: var(--surface-2); }
@@ -406,7 +406,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .field label { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-soft); }
     .field input, .field textarea, .field select {
       width: 100%; padding: 11px 13px;
-      border: 1px solid var(--line-strong); border-radius: 11px;
+      border: 1px solid var(--line-strong);
       color: var(--text); background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
       text-transform: none; letter-spacing: normal;
       transition: border-color 130ms ease;
@@ -561,7 +561,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .startup-screen {
       position: fixed; inset: 0; z-index: 1000;
       display: grid; place-items: center;
-      background: #390606;
+
       color: #fff1f0;
       font: 14px Montserrat, system-ui, sans-serif;
     }
@@ -576,8 +576,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       letter-spacing: 0;
     }
     .startup-track {
-      width: 220px; height: 3px; overflow: hidden;
-      border-radius: 9px; background: #fff1f01a;
+      width: 220px; overflow: hidden;
+ background: #fff1f01a;
     }
     .startup-bar {
       width: 15%; height: 100%; border-radius: 9px;
@@ -598,7 +598,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       position: fixed; inset: 0; z-index: 900;
       display: grid; place-items: center; overflow: auto;
       padding: 24px;
-      background: var(--bg);
+
       animation: fade-in 250ms ease;
     }
     
@@ -613,44 +613,30 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .auth-rays canvas { width: 100%; height: 100%; display: block; }
     .auth-screen > .auth-card { position: relative; z-index: 1; }
     .auth-card {
-      width: min(420px, 100%);
-      padding: 34px 30px 26px;
+
+
       border: 1px solid var(--line); border-radius: var(--radius-lg);
-      background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
+
+ -webkit-backdrop-filter: blur(10px);
+
       animation: pop-in 300ms ease;
       overflow: hidden;
     }
-    .auth-brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; text-align: center; }
+    .auth-brand { display: flex; flex-direction: column; align-items: center; text-align: center; }
     .auth-brand h1 { margin: 0; font-size: 1.45rem; font-weight: 800; letter-spacing: 0.01em; }
     .auth-brand p { margin: 0; color: var(--muted); font-size: 0.78rem; }
     .auth-brand .brand-copy { flex-direction: column; align-items: center; gap: 5px; overflow: visible; }
-    .auth-brand .brand-title { font-size: 2.25rem; }
     .auth-brand .brand-subtitle { font-size: 1.35rem; }
-    .brand-mark {
-      display: grid; place-items: center; flex: 0 0 auto;
-      width: 40px; height: 40px;
-      border: 1px solid var(--accent-line); border-radius: 13px;
-      color: var(--accent-strong);
-      background:
-        radial-gradient(circle at 32% 28%, rgba(255,255,255,0.22), transparent 24%),
-        linear-gradient(145deg, var(--accent-soft), color-mix(in srgb, var(--accent) 6%, transparent));
-      box-shadow: inset 0 1px rgba(255,255,255,0.12), 0 10px 32px var(--accent-glow);
-    }
-    .brand-mark svg { width: 22px; height: 22px; }
-    .auth-brand .brand-mark { width: 56px; height: 56px; border-radius: 18px; }
-    .auth-brand .brand-mark svg { width: 30px; height: 30px; }
 
     .auth-tabs {
       position: relative;
       display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
       padding: 4px; margin-bottom: 22px;
-      border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+
     }
     .auth-tabs::before {
       content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px;
-      width: calc(50% - 6px); border-radius: 9px;
+      width: calc(50% - 6px);
       background: var(--accent-strong);
       transition: transform 340ms var(--ease-slide);
     }
@@ -658,7 +644,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .auth-tabs:has(#auth-tab-signup[aria-selected="true"])::before { transform: translateX(calc(100% + 4px)); }
     .auth-tabs button {
       position: relative; z-index: 1;
-      min-height: 36px; border: none; border-radius: 9px;
+      min-height: 36px; border: none;
       background: transparent; color: var(--muted);
       font-family: var(--font-ui); font-weight: 750; font-size: 0.8rem;
       transition: color 200ms ease;
@@ -702,7 +688,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       min-height: 0; min-width: 0;
       overflow: hidden;
       border: 1px solid var(--line); border-radius: var(--radius-lg);
-      background: var(--panel);
+
       box-shadow: var(--shadow-soft), var(--inner-highlight);
     }
     .sidebar { display: flex; flex-direction: column; }
@@ -710,63 +696,51 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     .brand {
       position: relative; display: flex; align-items: center; overflow: hidden;
-      min-height: var(--header-height); padding: 12px 16px;
-      border-bottom: 1px solid var(--line);
-      background: var(--panel-strong);
+
+
+
     }
-    .brand-copy { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+    .brand-copy { display: flex; min-width: 0; white-space: nowrap; }
     .brand-title {
-      font-family: "Courgette", cursive; font-size: 1.72rem; font-weight: 400;
+      font-family: "Courgette", cursive; font-weight: 400;
       color: var(--text); line-height: 1;
     }
     .brand-subtitle {
       color: var(--accent-strong);
       font-family: "Syne", var(--font-ui);
-      font-size: 1.22rem; font-weight: 800; font-style: italic;
-      letter-spacing: -0.05em; line-height: 1; text-transform: lowercase;
+ font-weight: 800; font-style: italic;
+ line-height: 1; text-transform: lowercase;
     }
 
-    .sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 16px 10px 10px; }
-    .sidebar-indicator {
-      position: absolute; z-index: 0; opacity: 0; pointer-events: none;
-      border: 1px solid var(--accent-line); border-radius: 10px;
-      background: linear-gradient(90deg, var(--accent-soft), color-mix(in srgb, var(--accent) 5%, transparent));
-      box-shadow: inset 3px 0 var(--accent-strong), var(--inner-highlight);
-      transition: top 320ms var(--ease-slide), height 320ms var(--ease-slide),
-                  left 320ms var(--ease-slide), width 320ms var(--ease-slide), opacity 150ms ease;
-    }
+    .sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 
+    /* Sidebar lists (6.1 compact): one definition per rule, 32 px channel rows
+       and 38 px conversation rows. */
     .section-label {
       display: flex; align-items: center; justify-content: space-between;
-      margin: 0 8px 9px; color: var(--muted);
-      font-family: var(--font-ui); font-size: 0.65rem; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase;
+      margin: 14px 10px 5px; color: var(--muted);
+      font-family: var(--font-ui); font-size: 0.64rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase;
     }
+    .sidebar-scroll > .section-label:first-child { margin-top: 4px; }
     .section-label > span { display: inline-flex; align-items: center; gap: 7px; }
-    .section-label > span::before {
-      width: 14px; height: 2px; border-radius: 99px; content: "";
-      background: var(--accent-strong); box-shadow: 0 0 12px var(--accent-glow);
-    }
     .section-label .mini-icon-btn {
       display: grid; place-items: center; width: 22px; height: 22px;
-      border: none; border-radius: 7px; background: transparent; color: var(--muted);
+      border: none; border-radius: 50%; background: transparent; color: var(--muted);
     }
     .section-label .mini-icon-btn:hover { color: var(--accent-strong); background: var(--accent-soft); }
     .section-label .mini-icon-btn svg { width: 14px; height: 14px; }
 
-    .channel-list, .dm-list { display: grid; gap: 3px; margin-bottom: 20px; }
+    .channel-list, .dm-list { display: grid; gap: 1px; margin-bottom: 12px; }
 
-    .channel-button {
-      position: relative;
-      display: grid; grid-template-columns: 22px minmax(0, 1fr) auto;
-      align-items: center; gap: 7px;
-      width: 100%; min-height: 38px; padding: 7px 9px;
-      border: 1px solid transparent; border-radius: 10px;
+    .channel-button, .dm-button {
+      position: relative; display: grid; align-items: center;
+      width: 100%; border: 0; border-radius: 9px;
       color: var(--text-soft); background: transparent; text-align: left;
-      transition: color 130ms ease, background 130ms ease, border-color 130ms ease, transform 180ms var(--ease-out);
+      transition: background 180ms ease, color 180ms ease;
     }
-    .channel-button:hover { color: var(--text); background: var(--surface); transform: translateX(2px); }
-    .channel-button.active { transform: none; }
-    .channel-button.active { color: var(--text); }
+    .channel-button { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 7px; min-height: 32px; padding: 4px 10px; }
+    .channel-button:hover, .dm-button:hover { color: var(--text); background: var(--surface-2); }
+    .channel-button.active, .dm-button.active { color: var(--text); background: var(--accent-soft); }
     .channel-button.dragging { opacity: 0.4; }
     .channel-button.drag-over { border-top: 2px solid var(--accent-strong); }
     .channel-hash { color: var(--muted); font-size: 1.02rem; text-align: center; }
@@ -783,34 +757,24 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       font-family: var(--font-ui); font-size: 0.62rem; font-weight: 800; text-align: center;
     }
 
-    .dm-button {
-      display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
-      align-items: center; gap: 9px;
-      width: 100%; min-height: 46px; padding: 6px 8px;
-      border: 1px solid transparent; border-radius: 11px;
-      color: var(--text-soft); background: transparent; text-align: left;
-      transition: color 130ms ease, background 130ms ease, transform 180ms var(--ease-out);
-    }
-    .dm-button:hover { color: var(--text); background: var(--surface); transform: translateX(2px); }
-    .dm-button.active { transform: none; }
-    .dm-button.active { color: var(--text); }
+    .dm-button { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 9px; min-height: 38px; padding: 4px 8px; }
+    .dm-button > .avatar-sm { width: 28px; height: 28px; font-size: 0.6rem; }
     .dm-copy { min-width: 0; }
     .dm-name { display: block; overflow: hidden; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
     .dm-preview { display: block; overflow: hidden; margin-top: 1px; color: var(--muted); font-size: 0.68rem; text-overflow: ellipsis; white-space: nowrap; }
     .dm-unread-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-strong); }
     .dm-empty { margin: 2px 8px 8px; color: var(--muted); font-size: 0.7rem; line-height: 1.5; }
-    .dm-section-label { margin: 12px 8px 5px; color: var(--muted); font-family: var(--font-ui); font-size: 0.65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 
-    .sidebar-footer { padding: 10px; border-top: 1px solid var(--line); }
+    .sidebar-footer { border-top: 1px solid var(--line); }
     .self-card {
       display: grid; grid-template-columns: 38px minmax(0, 1fr) auto auto;
       align-items: center; gap: 9px;
-      width: 100%; padding: 7px 8px;
-      border: 1px solid var(--line); border-radius: 14px;
-      color: inherit; background: linear-gradient(135deg, var(--surface-2), var(--surface)); text-align: left;
-      box-shadow: var(--inner-highlight);
+      width: 100%;
+
+      color: inherit; text-align: left;
+
     }
-    .self-card:hover { border-color: var(--line); background: var(--surface-2); }
+    .self-card:hover { border-color: var(--line); }
     .self-copy { min-width: 0; }
     .self-name { display: flex; align-items: center; gap: 6px; overflow: hidden; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 750; white-space: nowrap; }
     .self-name .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -823,20 +787,20 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       grid-template-rows: var(--header-height) auto minmax(0, 1fr) auto;
       overflow: hidden;
       border: 1px solid var(--line); border-radius: var(--radius-lg);
-      background: color-mix(in srgb, var(--bg-deep) 94%, var(--bg-2));
+
       box-shadow: var(--shadow-soft), var(--inner-highlight);
     }
     .channel-header {
-      position: relative; display: flex; align-items: center; gap: 10px;
-      padding: 0 12px; border-bottom: 1px solid var(--line);
-      background: var(--panel-strong);
+      position: relative; display: flex; align-items: center;
+ border-bottom: 1px solid var(--line);
+
     }
     .channel-heading { min-width: 0; flex: 1; }
-    .channel-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .header-hash { color: var(--accent-strong); font-size: 1.2rem; font-weight: 600; }
-    .channel-title { margin: 0; overflow: hidden; font-size: 0.92rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-    .channel-topic { margin: 0; overflow: hidden; color: var(--muted); font-size: 0.65rem; text-overflow: ellipsis; white-space: nowrap; }
-    .header-actions { display: flex; align-items: center; gap: 6px; }
+    .channel-title-row { display: flex; align-items: center; min-width: 0; }
+    .header-hash { color: var(--accent-strong); font-weight: 600; }
+    .channel-title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-topic { margin: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; }
 
     .inbox-btn { position: relative; }
     .inbox-count {
@@ -847,12 +811,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .member-toggle-btn {
       display: inline-flex; align-items: center; gap: 7px;
-      min-height: 36px; padding: 0 12px;
-      border: 1px solid transparent; border-radius: 10px;
+
+      border: 1px solid transparent;
       color: var(--text-soft); background: transparent;
       font-family: var(--font-ui); font-size: 0.72rem; font-weight: 750;
     }
-    .member-toggle-btn:hover { color: var(--text); background: var(--surface-2); }
+    .member-toggle-btn:hover { color: var(--text); }
     .member-toggle-btn svg { width: 17px; height: 17px; }
     /* ============================= BANNERS ============================= */
     .banner-zone { display: grid; }
@@ -880,24 +844,23 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
        content wrapper; messages passing under the cursor would otherwise
        reveal action bars (layout, paint and layer rebuilds) every frame. */
     .timeline-inner[data-scrolling] { pointer-events: none; }
-    .timeline-inner { max-width: 1060px; margin: 0 auto; padding: 18px 18px 8px; }
+    .timeline-inner { margin: 0 auto; }
     .load-older-wrap { display: flex; justify-content: center; padding: 6px 0 14px; }
 
-    .date-sep { display: flex; align-items: center; gap: 12px; margin: 18px 0 10px; }
+    .date-sep { display: flex; align-items: center; gap: 12px; }
     .date-sep::before, .date-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-    .date-sep span { color: var(--muted); font-family: var(--font-ui); font-size: 0.66rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    .date-sep span { color: var(--muted); font-family: var(--font-ui); font-size: 0.66rem; font-weight: 750; text-transform: uppercase; }
 
     .msg {
       position: relative;
       display: grid; grid-template-columns: 40px minmax(0, 1fr);
       gap: 0 12px;
-      padding: var(--msg-pad) 10px;
-      margin-top: var(--msg-gap);
-      border: 1px solid transparent; border-radius: 13px;
+
+
+
       scroll-margin-block: 72px;
       transition: background 100ms ease, border-color 100ms ease;
     }
-    .msg:hover { border-color: var(--line); background: linear-gradient(90deg, var(--surface), transparent); }
     
     .msg:hover, .msg:focus-within { overflow: visible; z-index: 5; }
     .msg.msg-tail {
@@ -905,7 +868,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       contain: none;
       contain-intrinsic-size: auto;
     }
-    .msg.grouped { margin-top: 1px; }
     
     .msg.pending .msg-content,
     .msg.pending .msg-media { opacity: 0.6; }
@@ -999,7 +961,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: color-mix(in srgb, var(--subrole) 16%, var(--surface));
     }
     html[data-light="true"] .subrole-header-btn[data-set="true"] { color: var(--subrole-text-light, color-mix(in srgb, var(--subrole) 78%, #111)); }
-    .subrole-preview { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+    .subrole-preview { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; border: 1px solid var(--line); }
     .subrole-preview-name { font-weight: 750; overflow-wrap: anywhere; }
     .subrole-preview-caption { flex-basis: 100%; color: var(--muted); font-size: .72rem; }
     .subrole-search { margin-bottom: 12px; }
@@ -1008,13 +970,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .subrole-option-row { display: flex; align-items: center; gap: 6px; }
     .subrole-option {
       display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
-      min-height: 42px; padding: 8px 10px; text-align: left;
-      border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+ padding: 8px 10px; text-align: left;
+ border: 1px solid var(--line); background: var(--surface);
       color: var(--text); font-family: var(--font-ui); font-size: 0.8rem; font-weight: 750; cursor: pointer;
-    }
-    .subrole-option[aria-pressed="true"] {
-      border-color: var(--subrole, var(--accent-line));
-      background: color-mix(in srgb, var(--subrole, var(--accent)) 16%, var(--surface));
     }
     .subrole-option:hover:not(:disabled) { border-color: var(--subrole, var(--accent-line)); background: var(--surface-2); }
     .subrole-option:focus-visible, .subrole-tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -1024,7 +982,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .subrole-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--subrole, var(--muted)); flex: 0 0 auto; }
     .subrole-option-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .subrole-tools { display: none; gap: 2px; }
-    .subrole-tools button { width: 30px; min-height: 32px; padding: 6px; border-radius: 8px; }
+    .subrole-tools button { min-height: 32px; }
     .subrole-tools svg { width: 16px; height: 16px; display: block; }
     #subrole-dialog[data-managing="true"] .subrole-picker { grid-template-columns: 1fr; }
     #subrole-dialog[data-managing="true"] .subrole-tools { display: flex; }
@@ -1074,16 +1032,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: linear-gradient(135deg, #f59e0b, #dc2626 65%, #991b1b);
       box-shadow: 0 0 10px rgba(220, 38, 38, 0.45);
     }
-    .owner-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
-    .owner-nav button {
-      min-height: 32px; padding: 0 11px; border-radius: 999px;
-      border: 1px solid var(--line); background: var(--surface);
-      color: var(--muted); font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700; cursor: pointer;
-    }
-    .owner-nav button[aria-selected="true"] {
-      border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-strong);
-    }
-    .owner-panel[hidden] { display: none !important; }
     .owner-role-select {
       width: 100%; min-width: 0; max-width: 100%; min-height: 36px;
       border-radius: 10px; border: 1px solid var(--line-strong);
@@ -1111,7 +1059,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-reply-ref .reply-author { color: var(--accent-strong); font-weight: 700; flex: 0 0 auto; }
     .msg-reply-ref .reply-snippet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
-    .msg-content { color: var(--text); font-size: 0.875rem; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .msg-content { color: var(--text); font-size: 0.875rem; overflow-wrap: anywhere; white-space: pre-wrap; }
     .msg-content.jumbo { font-size: 2.4rem; line-height: 1.25; }
     .msg-content a { text-decoration-thickness: 1px; }
     .msg-content.deleted { color: var(--muted); font-style: italic; }
@@ -1206,10 +1154,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .hl-str { color: color-mix(in srgb, #45c07a 68%, var(--text)); }
     .hl-num { color: color-mix(in srgb, #f0883e 70%, var(--text)); }
     .hl-key { color: color-mix(in srgb, #ff6b62 72%, var(--text)); font-weight: 600; }
-    .hl-fn { color: color-mix(in srgb, #c07cff 70%, var(--text)); }
     .hl-tag { color: color-mix(in srgb, #45c07a 68%, var(--text)); }
     .hl-attr { color: color-mix(in srgb, #3d9bff 68%, var(--text)); }
-    .hl-var { color: color-mix(in srgb, #3d9bff 68%, var(--text)); }
     .hl-lit { color: color-mix(in srgb, #3d9bff 72%, var(--text)); font-weight: 600; }
     .msg-content u { text-underline-offset: 2px; }
 
@@ -1255,7 +1201,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       color: var(--text); text-align: left;
       transition: border-color 130ms ease, transform 130ms ease, background 130ms ease;
     }
-    .poll-option:hover:not(:disabled) { border-color: var(--accent-line); transform: translateY(-1px); }
+    .poll-option:hover:not(:disabled) { border-color: var(--accent-line); }
     .poll-option.selected { border-color: var(--accent); background: var(--accent-soft); }
     .poll-option:disabled { opacity: 1; cursor: default; }
     .poll-option-bar {
@@ -1318,7 +1264,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       font-size: 0.78rem; color: var(--text-soft);
       transition: border-color 120ms ease, background 120ms ease, transform 140ms var(--ease-out);
     }
-    .reaction-chip:hover { border-color: var(--accent-line); transform: translateY(-1px); }
+    .reaction-chip:hover { border-color: var(--accent-line); }
     .reaction-chip:active { transform: scale(0.96); }
     .reaction-chip.mine { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-strong); }
     .reaction-chip .rcount { font-family: var(--font-ui); font-size: 0.66rem; font-weight: 750; }
@@ -1326,14 +1272,14 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-actions {
       position: absolute; top: -16px; right: 10px; z-index: 30;
       display: none; align-items: center;
-      border: 1px solid var(--line-strong); border-radius: 10px;
+      border: 1px solid var(--line-strong);
       
-      background: var(--glass-strong); box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+      background: var(--glass-strong);
     }
     .msg:hover .msg-actions, .msg:focus-within .msg-actions { display: inline-flex; animation: pop-in 130ms var(--ease-out); }
     .msg-actions button {
       display: grid; place-items: center; width: 32px; height: 30px;
-      border: none; background: none; color: var(--text-soft); border-radius: 8px;
+      border: none; background: none; color: var(--text-soft);
     }
     .msg-actions button:hover { color: var(--text); background: var(--surface-2); }
     .msg-actions button.danger:hover { color: var(--danger); }
@@ -1378,8 +1324,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .empty-state p { margin: 0; font-size: 0.78rem; }
 
     /* ============================= COMPOSER ============================= */
-    .composer-zone { position: relative; padding: 6px 18px calc(12px + env(safe-area-inset-bottom)); }
-    .composer-stack { position: relative; max-width: 1060px; margin: 0 auto; }
+    .composer-zone { position: relative; }
+    .composer-stack { position: relative; margin: 0 auto; }
 
     .context-bar {
       display: flex; align-items: center; gap: 10px;
@@ -1436,17 +1382,16 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-file-preview { max-width: min(560px, 100%); margin-top: 6px; }
 
     .composer {
-      display: flex; align-items: flex-end; gap: 4px;
-      padding: 8px;
-      border: 1px solid var(--line-strong); border-radius: 18px;
-      background: var(--panel-strong);
-      box-shadow: 0 10px 28px rgba(0,0,0,0.2), var(--inner-highlight);
+      display: flex;
+
+
+
+
       transition: border-color 150ms ease, box-shadow 150ms ease;
     }
-    .composer:focus-within { border-color: var(--accent-line); box-shadow: 0 16px 44px rgba(0,0,0,0.24), 0 0 0 3px var(--accent-soft); }
     .composer textarea {
       flex: 1 1 140px; min-width: 0; height: 38px; min-height: 38px; max-height: 9.5em; margin: 0;
-      padding: 8px 8px; border: none; background: transparent; resize: none;
+ border: none; background: transparent; resize: none;
       color: var(--text); line-height: 22px; font-size: 0.875rem;
     }
     @supports (field-sizing: content) {
@@ -1470,7 +1415,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       color: var(--on-accent); background: linear-gradient(140deg, var(--accent-strong), var(--accent));
       transition: filter 130ms ease, transform 160ms var(--ease-spring), box-shadow 160ms ease;
     }
-    .send-button:hover:not(:disabled) { filter: brightness(1.1); transform: scale(1.06); box-shadow: 0 4px 14px var(--accent-glow); }
+    .send-button:hover:not(:disabled) { filter: brightness(1.1); }
     .send-button:active { transform: scale(0.94); box-shadow: none; }
     .send-button svg { width: 18px; height: 18px; }
 
@@ -1479,7 +1424,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     #char-count { display: inline-block; width: 4ch; height: 1lh; contain: strict; text-align: right; vertical-align: bottom; font-variant-numeric: tabular-nums; }
     .composer-foot {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
-      min-height: 20px; margin-top: 5px; padding: 0 8px;
+      min-height: 20px;
       color: var(--muted); font-size: 0.66rem;
     }
     .typing-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
@@ -1506,43 +1451,41 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     /* ============================= MEMBER PANEL ============================= */
     .members-header {
-      display: flex; align-items: center; justify-content: space-between;
-      min-height: var(--header-height); padding: 12px 16px;
-      border-bottom: 1px solid var(--line);
-      background: var(--panel-strong);
+      display: flex;
+
+
+
     }
-    .members-title { font-family: var(--font-ui); font-size: 0.8rem; font-weight: 800; }
-    .member-count { color: var(--muted); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700; }
+    .members-title { font-family: var(--font-ui); font-weight: 800; }
+    .member-count { color: var(--muted); font-family: var(--font-ui); font-weight: 700; }
     .member-search {
-      position: relative; display: block; padding: 10px 10px 0;
-      background: var(--panel-strong);
+      position: relative; display: block;
+
     }
     .member-search svg {
-      position: absolute; top: 20px; left: 21px; width: 14px; height: 14px;
+      position: absolute;
       color: var(--muted); pointer-events: none;
     }
     .member-search input {
-      width: 100%; min-height: 34px; padding: 7px 10px 7px 32px;
-      border: 1px solid var(--line); border-radius: 9px;
-      color: var(--text); background: var(--surface);
+      width: 100%;
+
+      color: var(--text);
       font-family: var(--font-ui); font-size: 0.72rem;
       transition: border-color 130ms ease, background 130ms ease;
     }
     .member-search input::placeholder { color: var(--muted); }
-    .member-search input:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); background: var(--surface-2); }
-    .members-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 10px; }
+    .member-search input:focus { outline: none; box-shadow: var(--focus); }
+    .members-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 
     .member-list { display: grid; gap: 2px; margin-bottom: 18px; }
     .member-search-empty { margin: 4px 8px 16px; color: var(--muted); font-size: 0.72rem; text-align: center; }
     .member-row {
       display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px;
-      width: 100%; padding: 6px 8px;
-      border: none; border-radius: 10px; background: transparent;
+      width: 100%;
+      border: none; background: transparent;
       color: inherit; text-align: left;
       transition: background 120ms ease;
     }
-    .member-row:hover { background: var(--surface); }
-    .member-row.offline { opacity: 0.5; }
     .member-copy { min-width: 0; }
     .member-name { display: flex; align-items: center; gap: 6px; overflow: hidden; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
     .member-name .name-text { overflow: hidden; text-overflow: ellipsis; }
@@ -1557,12 +1500,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       animation: pop-in 170ms var(--ease-out);
     }
 
-    .hover-card { width: 290px; overflow: hidden; }
-    .hover-banner { height: 86px; background: linear-gradient(120deg, var(--accent-soft), var(--accent-glow)), var(--surface-2); background-size: cover; background-position: center; }
-    .hover-body { position: relative; padding: 0 16px 14px; }
-    .hover-avatar-ring { position: absolute; top: -38px; left: 14px; padding: 4px; border-radius: 50%; background: var(--glass-strong); }
-    .hover-names { padding-top: 46px; }
-    .hover-username { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-family: var(--font-ui); font-size: 1rem; font-weight: 800; }
+    .hover-card { overflow: hidden; }
+    .hover-banner { background: linear-gradient(120deg, var(--accent-soft), var(--accent-glow)), var(--surface-2); background-size: cover; background-position: center; }
+    .hover-body { position: relative; }
+    .hover-avatar-ring { position: absolute; top: -38px; padding: 4px; border-radius: 50%; background: var(--glass-strong); }
+    .hover-username { display: flex; font-family: var(--font-ui); font-size: 1rem; font-weight: 800; }
     .hover-handle { color: var(--muted); font-size: 0.7rem; margin-top: 1px; }
     .hover-role {
       margin-top: 4px; color: var(--accent-strong);
@@ -1571,15 +1513,15 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .hover-custom-status { margin-top: 0; font-size: 0.78rem; color: var(--text-soft); }
     .admin-log-action { font-weight: 750; }
     #tab-admin > .dialog-tabs { padding: 0 0 10px; margin: 0 0 14px; }
-    .hover-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .hover-section { border-top: 1px solid var(--line); }
     .hover-section-label { color: var(--muted); font-family: var(--font-ui); font-size: 0.6rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
-    .hover-bio { font-size: 0.76rem; line-height: 1.5; color: var(--text-soft); overflow-wrap: anywhere; }
+    .hover-bio { font-size: 0.76rem; color: var(--text-soft); overflow-wrap: anywhere; }
     .hover-joined { font-size: 0.7rem; color: var(--muted); }
-    .hover-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .hover-actions { flex-wrap: wrap; }
     .hover-actions .primary-button, .hover-actions .secondary-button, .hover-actions .danger-button { min-height: 32px; padding: 4px 12px; font-size: 0.7rem; flex: 1; }
-    .hover-mod-row { display: flex; gap: 6px; margin-top: 6px; width: 100%; }
+    .hover-mod-row { width: 100%; }
     .hover-mod-row .secondary-button, .hover-mod-row .danger-button { flex: 1; min-height: 30px; padding: 3px 8px; font-size: 0.64rem; }
-    .timeout-menu { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 6px; }
+    .timeout-menu { display: grid; gap: 4px; margin-top: 6px; }
     .timeout-menu button {
       min-height: 28px; border: 1px solid var(--line-strong); border-radius: 8px;
       background: var(--surface); color: var(--text-soft);
@@ -1656,7 +1598,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       box-shadow: var(--shadow);
     }
     dialog[open] { display: flex; flex-direction: column; animation: pop-in 220ms var(--ease-out); }
-    dialog::backdrop { background: var(--scrim-color); backdrop-filter: blur(7px); }
+    dialog::backdrop { background: var(--scrim-color); }
     .dialog-header {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       padding: 16px 20px; border-bottom: 1px solid var(--line); flex: 0 0 auto;
@@ -1697,7 +1639,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     @media (max-width: 560px) { .poll-form-row { grid-template-columns: 1fr; gap: 0; } }
 
     #settings-dialog {
-      width: min(680px, calc(100vw - 32px)); height: min(86dvh, 700px);
+
       margin: auto; background: var(--panel-strong);
     }
     #settings-dialog[open] { animation: fade-in 160ms ease; }
@@ -1705,12 +1647,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       backdrop-filter: none; -webkit-backdrop-filter: none;
       background: rgba(2, 0, 14, 0.72);
     }
-    #settings-dialog > .dialog-header { position: relative; justify-content: flex-end; }
+    #settings-dialog > .dialog-header { position: relative; }
     #settings-dialog > .dialog-header h2 {
-      position: absolute; left: 52px; right: 52px; margin: 0;
-      text-align: center; pointer-events: none;
+ left: 52px; right: 52px; margin: 0;
+
     }
-    #settings-dialog > .dialog-tabs { justify-content: safe center; }
     #settings-dialog .dialog-body {
       overflow-y: auto; overflow-x: hidden;
       overscroll-behavior: contain; overflow-anchor: none;
@@ -1722,7 +1663,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       caret-color: auto;
     }
     #settings-dialog .dialog-body > section {
-      width: min(100%, 560px);
+
       margin-inline: auto;
     }
     #settings-dialog .settings-section-title,
@@ -1733,7 +1674,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     #settings-dialog #tab-security > div[style*="display:flex"] { justify-content: center; }
     #settings-dialog #tab-status > div[style*="margin-top"] { display: flex; justify-content: center; }
     #settings-dialog #settings-status-options { display: grid; width: 100%; }
-    #settings-dialog .custom-status-row { width: min(100%, 420px); max-width: none !important; margin-inline: auto; }
+    #settings-dialog .custom-status-row { max-width: none !important; }
     #settings-dialog .field,
     #settings-dialog .toggle-row,
     #settings-dialog .field-help,
@@ -1747,7 +1688,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     #settings-dialog .dialog-body > section > .primary-button,
     #settings-dialog .dialog-body > section > .secondary-button,
-    #settings-dialog .dialog-body > section > .danger-button { display: flex; width: fit-content; margin-inline: auto; }
+    #settings-dialog .dialog-body > section > .danger-button { display: flex; width: fit-content; }
     .settings-section-title { margin: 20px 0 10px; font-family: var(--font-ui); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
     .settings-section-title:first-child { margin-top: 0; }
     .pfp-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
@@ -1818,7 +1759,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     
     .ring-fields { display: flex; flex-wrap: wrap; gap: 14px; margin: 10px 0 4px; }
     .ring-fields .color-row { gap: 8px; }
-    .theme-swatch { position: relative; }
     .forum-feed-intro { margin: 0 0 12px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text-soft); font-family: var(--font-ui); font-size: 0.76rem; font-weight: 600; line-height: 1.45; }
     .thread-feed-note { margin-top: 8px; color: var(--muted); font-family: var(--font-ui); font-size: 0.72rem; font-weight: 650; }
 
@@ -1829,7 +1769,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: var(--surface); text-align: center;
       transition: border-color 130ms ease, transform 160ms var(--ease-out);
     }
-    .theme-swatch:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+    .theme-swatch:hover { border-color: var(--line-strong); }
     .theme-swatch.active { border-color: var(--accent-strong); }
     .theme-swatch .swatch-preview { height: 44px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); position: relative; overflow: hidden; }
     .theme-swatch .swatch-preview::after { content: ""; position: absolute; right: 7px; bottom: 7px; width: 15px; height: 15px; border-radius: 50%; background: var(--swatch-accent); }
@@ -1874,8 +1814,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .word-chip button { display: grid; place-items: center; width: 17px; height: 17px; border: none; border-radius: 50%; background: var(--surface-2); color: var(--muted); font-size: 0.62rem; line-height: 1; }
     .word-chip button:hover { background: var(--danger); color: #fff; }
-    .add-word-row { display: flex; gap: 7px; margin-top: 10px; }
-    .add-word-row input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 0.78rem; }
 
     .picker-dialog {
       position: fixed; inset: auto; z-index: 120; display: none; flex-direction: column;
@@ -1935,7 +1873,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .gif-load-state { min-height: 28px; padding: 7px 4px 2px; color: var(--muted); font-size: .66rem; text-align: center; }
 
     #rules-dialog, #help-dialog { width: min(620px, calc(100vw - 24px)); max-height: min(84dvh, 720px); }
-    .rules-intro { margin: 0 0 14px; color: var(--text); font-family: var(--font-ui); font-size: .86rem; font-weight: 800; }
     .rules-list { display: grid; gap: 9px; }
     .rule-card { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
     .rule-card h3 { margin: 0 0 5px; color: var(--accent-strong); font-family: var(--font-ui); font-size: .76rem; }
@@ -1946,17 +1883,16 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .help-command span { color: var(--text-soft); font-size: .76rem; line-height: 1.4; }
 
     .inbox-item {
-      display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px;
-      width: 100%; padding: 9px 10px;
-      border: none; border-radius: 11px; background: transparent; color: inherit; text-align: left;
+      display: grid;
+
+ background: transparent; color: inherit;
     }
     .inbox-item:hover { background: var(--surface-2); }
-    .inbox-item.unread { background: var(--accent-soft); }
-    .inbox-item .inbox-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); font-size: 0.95rem; }
-    .inbox-text { min-width: 0; font-size: 0.76rem; color: var(--text-soft); }
+    .inbox-item .inbox-icon { display: grid; place-items: center; background: var(--surface-2); font-size: 0.95rem; }
+    .inbox-text { min-width: 0; color: var(--text-soft); }
     .inbox-text strong { color: var(--text); font-family: var(--font-ui); }
-    .inbox-text .inbox-snippet { display: block; overflow: hidden; margin-top: 1px; color: var(--muted); font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
-    .inbox-time { color: var(--muted); font-size: 0.62rem; }
+    .inbox-text .inbox-snippet { overflow: hidden; text-overflow: ellipsis; }
+    .inbox-time { color: var(--muted); }
 
     .lightbox {
       position: fixed; inset: 0; z-index: 3000;
@@ -1985,7 +1921,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       position: relative; overflow: hidden;
       display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
       padding: 12px 14px;
-      border: 1px solid var(--accent-line); border-radius: 13px;
+      border: 1px solid var(--accent-line);
       background: var(--panel-strong); box-shadow: var(--shadow);
       pointer-events: auto; cursor: default;
       animation: toast-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
@@ -2056,13 +1992,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
 
     /* ============================= CHANNEL CATEGORIES ============================= */
-    .channel-category { display: grid; gap: 3px; margin-bottom: 6px; }
+    .channel-category { display: grid; gap: 1px; margin-bottom: 8px; }
     .category-header {
       display: flex; align-items: center; gap: 5px;
-      width: 100%; margin: 0; padding: 4px 8px 4px 4px;
-      border: none; background: none; color: var(--muted); text-align: left;
+      width: 100%; min-height: 26px; margin: 0; padding: 3px 9px;
+      border: none; border-radius: 8px; background: none; color: var(--muted); text-align: left;
       font-family: var(--font-ui); font-size: 0.64rem; font-weight: 800;
-      letter-spacing: 0.12em; text-transform: uppercase;
+      letter-spacing: 0.09em; text-transform: uppercase;
       transition: color 130ms ease;
     }
     .category-header:hover { color: var(--text-soft); }
@@ -2074,18 +2010,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .category-header .cat-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .category-header .cat-add {
       margin-left: auto; display: grid; place-items: center;
-      width: 24px; height: 24px; border: none; border-radius: 7px;
+      width: 24px; height: 24px; border: none; border-radius: 50%;
       background: transparent; color: var(--muted);
     }
     .category-header .cat-add:hover { color: var(--accent-strong); background: var(--accent-soft); }
     .category-header .cat-add svg { width: 13px; height: 13px; }
-    .category-channels { display: grid; gap: 3px; overflow: hidden; }
+    .category-channels { display: grid; gap: 1px; overflow: hidden; }
     .category-channels[hidden] { display: none; }
-    .channel-button .channel-kind {
-      margin-left: auto; flex: 0 0 auto; color: var(--muted); opacity: 0.7;
-      font-size: 0.6rem; font-family: var(--font-ui); font-weight: 800;
-      letter-spacing: 0.06em; text-transform: uppercase;
-    }
 
     /* ============================= FORUM BOARD ============================= */
     .forum-board {
@@ -2137,17 +2068,16 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .forum-tag-filter.active { color: var(--text); border-color: var(--accent-line); background: var(--accent-soft); }
     .forum-tag-filter .ft-emoji { font-size: 0.85rem; }
 
-    .forum-thread-list { display: grid; gap: 12px; }
+    .forum-thread-list { display: grid; }
     .forum-thread-card {
       position: relative; display: block; width: 100%; text-align: left;
       padding: 15px 18px; cursor: pointer;
-      border: 1px solid var(--line); border-radius: 15px;
-      background: var(--surface); color: inherit;
-      box-shadow: var(--inner-highlight);
+
+ color: inherit;
+
       transition: border-color 150ms ease, background 150ms ease, transform 180ms var(--ease-out);
     }
-    .forum-thread-card:hover { border-color: var(--accent-line); background: var(--surface-2); transform: translateY(-1px); }
-    .forum-thread-card.pinned { border-color: var(--accent-line); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+    .forum-thread-card.pinned { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
     .ft-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
     .forum-tag-chip {
       display: inline-flex; align-items: center; gap: 5px;
@@ -2223,11 +2153,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
     /* ============================= FOLLOW / SOCIAL ============================= */
     .hover-stats {
-      display: flex; gap: 8px; margin: 12px 0 2px;
+      display: flex; margin: 12px 0 2px;
     }
     .hover-stat {
       flex: 1; display: grid; gap: 1px; padding: 8px 10px;
-      border: 1px solid var(--line); border-radius: 11px; background: var(--surface);
+      border: 1px solid var(--line); background: var(--surface);
       text-align: center; color: var(--text-soft);
     }
     .hover-stat:hover { border-color: var(--accent-line); color: var(--text); }
@@ -2288,28 +2218,23 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .pin-btn { position: relative; }
     .pinned-list { display: grid; gap: 10px; max-height: 60vh; overflow-y: auto; padding: 2px; }
     .pinned-item {
-      display: grid; gap: 6px; width: 100%; padding: 12px 14px; text-align: left;
-      border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: inherit;
+ gap: 6px; width: 100%; text-align: left;
+ border-radius: 13px; color: inherit;
     }
-    .pinned-item:hover { border-color: var(--accent-line); background: var(--surface-2); }
-    .pinned-item .pi-head { display: flex; align-items: center; gap: 8px; }
-    .pinned-item .pi-name { font-family: var(--font-ui); font-weight: 750; font-size: 0.78rem; }
-    .pinned-item .pi-time { margin-left: auto; color: var(--muted); font-size: 0.68rem; }
-    .pinned-item .pi-body { color: var(--text-soft); font-size: 0.83rem; line-height: 1.5; overflow-wrap: anywhere; }
-    .pinned-item .pi-unpin { justify-self: start; }
+    .pinned-item:hover { border-color: var(--accent-line); }
 
     /* ============================= GLOBAL VOICE CHAT ============================= */
     .vc-stage {
       height: 100%; min-height: 0; display: flex; flex-direction: column;
-      padding: 22px 22px 16px; background: var(--bg-deep);
+ background: var(--bg-deep);
     }
     .vc-shell {
-      flex: 1; min-height: 0; width: min(920px, 100%); margin: 0 auto;
-      display: flex; flex-direction: column; gap: 16px;
+ margin: 0 auto;
+
     }
     .vc-grid {
-      flex: 1; min-height: 0; overflow: auto;
-      display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 12px;
+ overflow: auto;
+      display: flex; flex-wrap: wrap; justify-content: center;
     }
     .vc-tile {
       position: relative; flex: 1 1 220px; width: min(280px, 100%); max-width: 280px; min-width: 0;
@@ -2323,7 +2248,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-tile video.vc-screen-share, .vc-tile.vc-screen video { transform: none; object-fit: contain; }
     .vc-tile-placeholder {
       position: absolute; inset: 0; display: grid; place-items: center;
-      background: color-mix(in srgb, var(--accent) 8%, #09090f);
+
     }
     .vc-tile-placeholder .avatar { width: 72px; height: 72px; font-size: 1.15rem; }
     .vc-tile.has-video .vc-tile-placeholder { display: none; }
@@ -2346,31 +2271,26 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     @keyframes vc-ping { to { width: 56px; height: 56px; opacity: 0; } }
     .vc-bar {
-      align-self: center; width: max-content; max-width: 100%;
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      padding: 10px 14px 12px; border: 1px solid var(--line); border-radius: 18px;
+ width: max-content;
+      display: flex; flex-direction: column; align-items: center;
+ border: 1px solid var(--line);
       background: var(--panel-strong);
     }
     .vc-status {
-      max-width: 100%; color: var(--muted); font-family: var(--font-ui); font-size: .7rem; font-weight: 650;
+ color: var(--muted); font-family: var(--font-ui); font-size: .7rem;
       text-align: center;
     }
-    .vc-controls { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .vc-controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; }
     .vc-control {
-      min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px;
-      background: var(--surface); color: var(--text); font-family: var(--font-ui); font-size: .72rem; font-weight: 750;
+ border: 1px solid var(--line);
+      background: var(--surface); color: var(--text); font-family: var(--font-ui);
     }
     .vc-control:hover:not(:disabled) { border-color: var(--accent-line); background: var(--surface-2); }
     .vc-control.primary { border-color: transparent; background: var(--accent-strong); color: var(--on-accent); }
     .vc-control.primary:hover:not(:disabled) { filter: brightness(1.06); }
     .vc-control.active { border-color: var(--accent-line); background: var(--accent-soft); color: var(--text); }
-    .vc-control.danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); background: color-mix(in srgb, var(--danger) 14%, var(--surface)); color: color-mix(in srgb, var(--danger) 72%, white); }
+    .vc-control.danger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); background: color-mix(in srgb, var(--danger) 14%, var(--surface)); }
     .vc-control:disabled { opacity: .46; cursor: not-allowed; }
-    .vc-clicks {
-      display: inline-flex; align-items: center; gap: 6px; margin-left: 2px;
-      color: var(--muted); font-family: var(--font-ui); font-size: .66rem; font-weight: 650;
-    }
-    .vc-clicks input { accent-color: var(--accent-strong); }
     .vc-chat-popup {
       position: fixed; right: 20px; bottom: 24px; left: auto; z-index: 710; display: flex; flex-direction: column;
       width: min(340px, calc(100vw - 24px)); height: min(410px, calc(100vh - 118px)); overflow: hidden;
@@ -2410,10 +2330,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-tile.audio-only { aspect-ratio: 1; max-width: 240px; }
     .vc-tile.vc-speaking {
       border-color: #3ba55d;
-      box-shadow: inset 0 0 0 1px #3ba55d, 0 0 0 1px #3ba55d, 0 0 22px rgba(59, 165, 93, .55);
+
       background: color-mix(in srgb, #3ba55d 16%, #09090f);
     }
-    .vc-tile.vc-speaking .avatar { box-shadow: 0 0 0 3px #3ba55d, 0 0 16px rgba(59, 165, 93, .65); }
     .vc-tile.vc-speaking .vc-tile-label::before {
       content: ""; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%;
       background: #3ba55d; box-shadow: 0 0 8px #3ba55d;
@@ -2423,7 +2342,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-tile.vc-server-muted { border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
     .vc-staff-mute {
       position: absolute; top: 8px; right: 8px; z-index: 6;
-      min-height: 28px; padding: 0 10px; border-radius: 999px;
+ padding: 0 10px;
       border: 1px solid var(--line-strong); background: rgba(8, 8, 14, .86); color: #fff;
       font: 750 .66rem var(--font-ui); opacity: 0;
     }
@@ -2435,7 +2354,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .vc-grid.vc-has-stage { align-content: stretch; }
     .vc-grid.vc-has-stage .vc-tile { flex: 1 1 160px; max-width: 200px; aspect-ratio: 1; }
     .vc-grid.vc-has-stage .vc-tile.vc-stage-main {
-      flex: 1 1 100%; width: 100%; max-width: none; aspect-ratio: 16 / 9; order: -1;
+      flex: 1 1 100%; aspect-ratio: 16 / 9; order: -1;
     }
     .vc-tile:fullscreen { width: 100%; height: 100%; max-width: none; aspect-ratio: auto; border-radius: 0; background: #000; }
     .vc-tile:fullscreen video { object-fit: contain; }
@@ -2453,7 +2372,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     html[data-light="true"] .vc-chat-form input { color-scheme: light; }
 
     /* ============================= MESSAGE SEARCH ============================= */
-    .search-toolbar { display: flex; gap: 8px; padding: 0 4px 6px; }
     .search-toolbar input { flex: 1; }
     .search-results { display: grid; gap: 6px; max-height: 58vh; overflow-y: auto; }
     .search-result {
@@ -2461,11 +2379,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: inherit;
     }
     .search-result:hover { border-color: var(--accent-line); background: var(--surface-2); }
-    .search-result .sr-head { display: flex; align-items: center; gap: 8px; }
-    .search-result .sr-name { font-family: var(--font-ui); font-weight: 700; font-size: 0.76rem; }
-    .search-result .sr-loc { color: var(--muted); font-size: 0.66rem; }
-    .search-result .sr-time { margin-left: auto; color: var(--muted); font-size: 0.66rem; }
-    .search-result .sr-body { color: var(--text-soft); font-size: 0.81rem; line-height: 1.45; overflow-wrap: anywhere; }
     .search-result mark { background: var(--accent-soft); color: var(--text); border-radius: 3px; padding: 0 2px; }
     .search-note { padding: 26px 16px; text-align: center; color: var(--muted); font-size: 0.82rem; }
 
@@ -2489,23 +2402,21 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     @media (max-width: 1020px) {
       .app-shell { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; }
       .app-shell.members-hidden { grid-template-columns: minmax(0, 1fr); }
-      .main-panel { border: none; border-radius: 0; }
       .mobile-only { display: grid !important; }
       .desktop-only { display: none !important; }
       .sidebar, .member-panel {
-        position: fixed; top: 8px; bottom: 8px; z-index: 600;
+        position: fixed; z-index: 600;
         width: min(310px, 86vw);
         transition: transform 230ms cubic-bezier(0.2, 0.8, 0.3, 1);
         background: var(--glass-strong);
       }
-      .sidebar { left: 0; transform: translateX(-105%); }
+      .sidebar { transform: translateX(-105%); }
       .sidebar.open { transform: none; box-shadow: var(--shadow); }
-      .member-panel { right: 0; transform: translateX(105%); display: flex !important; }
+      .member-panel { transform: translateX(105%); display: flex !important; }
       .member-panel.open { transform: none; box-shadow: var(--shadow); }
       .timeline-inner, .composer-stack { max-width: none; }
       .member-toggle-btn .toggle-count-label { display: none; }
       .msg-actions { right: 6px; }
-      :root { --header-height: 52px; }
       
       .section-label .mini-icon-btn { width: 32px; height: 32px; }
       .category-header .cat-add { width: 32px; height: 32px; }
@@ -2515,14 +2426,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
 
     @media (max-width: 680px) {
-      .channel-header { padding: 0 9px; gap: 6px; }
-      .header-actions { gap: 2px; }
       #gif-dialog, #sticker-dialog, #emoji-dialog { width: calc(100vw - 16px); height: min(54dvh, 430px); }
       .help-command { grid-template-columns: 1fr; gap: 4px; }
-      .timeline-inner { padding: 12px 6px 6px; }
-      .composer-zone { padding: 5px 8px calc(8px + env(safe-area-inset-bottom)); }
-      .composer { border-radius: 15px; flex-wrap: wrap; align-items: center; }
-      .composer textarea { order: -1; flex: 1 0 100%; }
+      .composer { flex-wrap: wrap; align-items: center; }
       .composer-foot > span:last-child { display: none; }
       #settings-dialog > .dialog-header h2 { left: 44px; right: 44px; }
       .forum-compose-row { flex-wrap: wrap; }
@@ -2665,41 +2571,36 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .group-avatar svg { width: 22px; height: 22px; }
     .group-invites-button { width: 100%; margin: 2px 0 8px; padding: 9px 10px; border: 1px solid var(--accent-line); border-radius: 10px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .72rem var(--font-ui); text-align: left; }
     .group-section-heading { margin: 20px 0 10px; font-size: .83rem; }
-    .group-candidates { max-height: 240px; overflow-y: auto; margin-top: 8px; }
-    .group-person { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-    .group-person > span:not(.avatar) { flex: 1; min-width: 0; }
+    .group-candidates { overflow-y: auto; margin-top: 8px; }
+    .group-person { display: flex; align-items: center; }
+    .group-person > span:not(.avatar) { flex: 1; }
     .group-person strong { display: block; font-size: .8rem; overflow-wrap: anywhere; }
     .group-person small { display: block; color: var(--muted); font-size: .68rem; }
     .group-person input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
     .group-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .group-actions button { font-size: .7rem; min-height: 32px; padding: 6px 10px; }
-    .group-footer { margin-top: 16px; }
     .group-pending-person { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; color: var(--muted); font-size: .72rem; }
-    .group-invite-card { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--surface); }
+    .group-invite-card { margin-top: 12px; border: 1px solid var(--line); background: var(--surface); }
     .group-invite-card > div:first-child { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
     .group-invite-card strong { display: block; font-size: .85rem; overflow-wrap: anywhere; }
     .group-invite-card span:not(.avatar) { color: var(--muted); font-size: .72rem; }
-    #settings-dialog[data-settings-tab="admin"], #settings-dialog[data-settings-tab="owner"] { width: min(960px, calc(100vw - 28px)); }
-    #settings-dialog .dialog-body > #tab-admin, #settings-dialog .dialog-body > #tab-owner { width: 100%; max-width: none; text-align: left; }
     .console-shell { width: 100%; min-width: 0; }
-    .console-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+    .console-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .console-heading > div { min-width: 0; flex: 1; }
     .console-eyebrow { color: var(--muted); font: 700 .62rem var(--font-ui); text-transform: uppercase; letter-spacing: .12em; }
-    .console-heading h2 { margin: 6px 0 8px; font-size: clamp(1.2rem, 3vw, 1.65rem); letter-spacing: -.04em; }
+    .console-heading h2 { margin: 6px 0 8px; }
     .console-heading p { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.5; max-width: 500px; }
     .console-rank { flex: 0 1 auto; max-width: min(220px, 46%); padding: 6px 9px; border: 1px solid var(--accent-line); border-radius: 99px; color: var(--accent-strong); background: var(--accent-soft); font: 700 .65rem var(--font-ui); line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
     .console-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
-    .console-stats > div { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--surface); }
+    .console-stats > div { border: 1px solid var(--line); padding: 14px 16px; background: var(--surface); }
     .console-stats strong { display: block; font: 800 1.35rem var(--font-ui); }
     .console-stats span { display: block; margin-top: 3px; color: var(--muted); font-size: .7rem; }
-    .console-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); min-width: 0; }
-    .console-nav button { padding: 9px 12px; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 700 .72rem var(--font-ui); }
-    .console-nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+    .console-nav { display: flex; flex-wrap: wrap; margin-bottom: 20px; border: 1px solid var(--line); min-width: 0; }
+    .console-nav button { border: 0; background: transparent; color: var(--muted); font: 700 .72rem var(--font-ui); }
     .console-nav button:hover { color: var(--text); }
     .console-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .console-panel { display: grid; gap: 16px; min-width: 0; }
-    .console-card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb, var(--bg-deep) 28%, var(--panel-strong)); min-width: 0; }
-    .console-card-head { margin-bottom: 16px; }
+    .console-card { border: 1px solid var(--line); min-width: 0; }
     .console-card h3 { margin: 0 0 5px; font: 750 .9rem var(--font-ui); }
     .console-card-head p { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.5; }
     .console-card .field:last-child { margin-bottom: 0; }
@@ -2735,7 +2636,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .console-person-name .subrole-badge { flex: 0 1 auto; max-width: 46%; overflow: hidden; text-overflow: ellipsis; }
     .console-card .admin-list-item:has(select) .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .console-member-list { max-height: min(300px, 42vh); }
-    .console-person { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; min-width: 0; }
+    .console-person { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; min-width: 0; }
     .console-person:last-child { border-bottom: none; }
     .console-person:hover { background: color-mix(in srgb, var(--text) 4%, transparent); border-radius: 10px; }
     .console-person .grow { flex: 1; min-width: 0; }
@@ -2755,7 +2656,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .console-inline-form { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
     .console-inline-form input { flex: 1; min-width: 130px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); padding: 10px; }
     .console-quick-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
-    .console-quick-grid button { text-align: left; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); }
+    .console-quick-grid button { text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
     .console-quick-grid button:hover { border-color: var(--accent-line); }
     .console-quick-grid strong { display: block; font-size: .81rem; }
     .console-quick-grid span { display: block; margin-top: 7px; color: var(--muted); font-size: .68rem; line-height: 1.5; }
@@ -2836,32 +2737,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .brand-subtitle { font-size: .95rem; letter-spacing: -.04em; }
 .brand .brand-subtitle { font-family: "Courgette", cursive; font-weight: 400; font-style: normal; letter-spacing: 0; }
 .sidebar-scroll { padding: 12px 12px 20px; }
-.section-label {
-  margin: 20px 10px 8px;
-  color: var(--muted);
-  font-size: .64rem;
-  letter-spacing: .11em;
-}
-.sidebar-scroll > .section-label:first-child { margin-top: 5px; }
-.section-label > span::before { display: none; }
-.section-label .mini-icon-btn, .category-header .cat-add { border-radius: 50%; }
-.channel-list, .dm-list { gap: 2px; margin-bottom: 17px; }
-.channel-category { margin-bottom: 14px; }
-.category-header { min-height: 32px; padding: 5px 9px; letter-spacing: .09em; }
-.category-channels { gap: 2px; }
-.channel-button, .dm-button {
-  border: 0;
-  border-radius: 14px;
-  transition: background 180ms ease, color 180ms ease, transform 180ms var(--ease-out);
-}
-.channel-button { min-height: 40px; padding: 7px 11px; }
-.dm-button { min-height: 48px; padding: 6px 10px; }
-.channel-button:hover, .dm-button:hover { transform: none; background: var(--surface-2); }
-.channel-button.active, .dm-button.active { background: var(--accent-soft); color: var(--text); }
-.dm-button { position: relative; }
-.sidebar-indicator { display: none; }
-.channel-button.active .channel-hash { color: var(--accent-strong); }
-.category-header { border-radius: 10px; }
 .sidebar-footer { padding: 8px 12px 11px; border-color: var(--line); }
 .self-card {
   padding: 7px 8px;
@@ -2916,7 +2791,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 .composer textarea { padding: 8px 10px; }
 .composer .icon-button, .composer .gif-text-btn { border-radius: 50%; }
 .composer .send-button { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-strong); box-shadow: none; }
-.composer .send-button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 4px 16px var(--accent-glow); }
 .composer-foot { margin-top: 6px; padding: 0 14px; }
 
 .members-header {
@@ -2948,7 +2822,6 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 /* Cards only where they group an actual action or object. */
 .primary-button, .secondary-button, .danger-button { border-radius: 999px; }
 .primary-button { background: var(--accent-strong); box-shadow: none; }
-.primary-button:hover:not(:disabled) { box-shadow: 0 6px 18px var(--accent-glow); }
 .field input, .field textarea, .field select { border-radius: 14px; }
 .text-button { border-color: transparent; }
 .poll-card, .forum-thread-card, .rule-card, .help-command { border-radius: 18px; }
@@ -3266,13 +3139,11 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       .console-card { padding: 16px; }
     }
     @media (max-width: 600px) {
-      .channel-header { padding-inline: 8px; }
       .channel-header .header-actions { gap: 2px; }
       .channel-header .header-action { width: 32px; height: 36px; min-width: 32px; min-height: 36px; border-radius: 8px; }
       .channel-header #subrole-btn { width: 32px; }
       .channel-header #member-toggle { min-width: 40px; padding-inline: 4px; gap: 4px; }
       .channel-header .channel-title-row { gap: 5px; }
-      .channel-header .channel-title { font-size: .85rem; }
       .channel-header .header-hash { font-size: 1.1rem; }
       #group-members .group-person { display: grid; grid-template-columns: 34px minmax(0, 1fr); }
       #group-members .group-person .group-actions { grid-column: 2; flex-basis: auto; justify-content: flex-start; }
@@ -5445,13 +5316,6 @@ void main() {
       return `${sec}s`;
     }
 
-    async function sha256Hex(text) {
-      if (crypto.subtle) {
-        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-      }
-      return sha256Fallback(unescape(encodeURIComponent(text)));
-    }
     function sha256Fallback(ascii) {
       const rr = (v, a) => (v >>> a) | (v << (32 - a));
       const maxWord = 2 ** 32;
@@ -5663,10 +5527,6 @@ void main() {
         if (o && o.v === 1 && typeof o.url === 'string' && o.url) return o;
       } catch {}
       return null;
-    }
-    function bannerDisplayUrl(raw) {
-      const meta = parseBannerMeta(raw);
-      return meta ? meta.url : (raw || '');
     }
     function applyBannerStyle(el, raw) {
       if (!el) return;
@@ -8241,14 +8101,6 @@ void main() {
       if (data.type === 'liminal:session') return;
     }
 
-    async function embeddedLogin(sessionToken) {
-      if (!launcherIsCurrent()) { showLauncherMigrate(); return; }
-      if (!sessionToken || sessionToken.split('.').length !== 3) {
-        showAuth();
-        return;
-      }
-      showAuth();
-    }
 
     function showAuth() {
       if (isEmbedded && !launcherIsCurrent()) { showLauncherMigrate(); return; }
@@ -13038,14 +12890,6 @@ void main() {
       syncStaffMuteButton(peer);
     }
 
-    function addVoiceRipple(tile, x, y) {
-      const ripple = document.createElement('span');
-      ripple.className = 'vc-ripple';
-      ripple.style.left = `${x * 100}%`;
-      ripple.style.top = `${y * 100}%`;
-      tile.append(ripple);
-      setTimeout(() => ripple.remove(), 850);
-    }
 
     function configureVoiceDataChannel(peer, channel) {
       peer.dc = channel;
@@ -14785,9 +14629,6 @@ void main() {
       }
     }
 
-    function forceRefreshClient(value) {
-      handleAppUpdateSignal(value);
-    }
 
     function onAppUpdateBroadcast(payload) {
       handleAppUpdateSignal(payload && (payload.marker || payload.version || payload.force_refresh_at));
@@ -15820,13 +15661,6 @@ void main() {
         const hasMore = gifTab === 'favs' ? gifFavoriteVisibleCount < favGifs.length : gifHasNext;
         if (hasMore && wrap.scrollHeight <= wrap.clientHeight + 12) loadMoreGifs();
       });
-    }
-    function applyGifToProfile(url, target) {
-      if (!url) return;
-      if (target === 'pfp') { pendingPfp = url; pendingPfpThumbnail = ''; refreshPfpPreview(); }
-      else { pendingBanner = url; refreshBannerPreview(); }
-      saveProfile();
-      toast({ type: 'success', text: target === 'pfp' ? 'GIF avatar set.' : 'GIF banner set.' });
     }
 
     /* ============================= 25. STICKERS & CUSTOM EMOJI ============================= */
@@ -16909,9 +16743,6 @@ void main() {
         }
       }));
     }
-    async function toggleAdmin(username, makeAdmin) {
-      await setStaffRole(username, makeAdmin ? 'admin' : 'member');
-    }
 
     function notifyRolePromotion(role) {
       const meta = STAFF_ROLE_META[role] || STAFF_ROLE_META.member;
@@ -17669,18 +17500,6 @@ void main() {
         }
       } catch { /* The original remains usable if thumbnail encoding is unavailable. */ }
       return original;
-    }
-    async function uploadAnimatedProfileImage(file, kind) {
-      const isPfp = kind === 'pfp';
-      if (file.size > 8 * 1024 * 1024) { toast({ type: 'error', text: 'That GIF is too large (max 8 MB).' }); return; }
-      try {
-        const url = isPfp ? await uploadAvatar(file, 'gif') : await uploadMedia('liminal-pfp', file, 'gif');
-        if (isPfp) { pendingPfp = url; refreshPfpPreview(); } else { pendingBanner = url; refreshBannerPreview(); }
-        const saved = await saveProfile();
-        if (!saved) throw new Error('save failed');
-        toast({ type: 'success', text: isPfp ? 'Animated avatar set.' : 'Animated banner set.' });
-      } catch { toast({ type: 'error', text: 'GIF upload failed.' }); }
-      finally { $('set-pfp-file').value = ''; $('set-banner-file').value = ''; }
     }
     function cropSurface() {
       if (!cropState) return null;
@@ -19245,15 +19064,6 @@ void main() {
           .select().single();
         if (created) upsertThreadCache(created);
       } catch {}
-    }
-    async function openFollowingThread(tid) {
-      const ch = channelById(FOLLOWING_CHANNEL);
-      if (!ch) return;
-      let t = getThread(FOLLOWING_CHANNEL, tid);
-      if (!t) {
-        try { const { data } = await sb.from('forum_threads').select('*').eq('id', tid).single(); t = data; if (t) upsertThreadCache(t); } catch {}
-      }
-      if (t) openThread(t, ch);
     }
     function postToMyFeed() {
       const t = myFeedThread();
