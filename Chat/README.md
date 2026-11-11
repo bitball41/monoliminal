@@ -14,7 +14,10 @@ measurements, not a production result.
   security once per listener, and every join created and deleted 13
   subscription rows (about 75,000 since October 20). Realtime's change polling
   was the largest database consumer (23,358 s). Now database triggers
-  ([`20261111000000_chat_broadcast_changes.sql`](../Backend/migrations/20261111000000_chat_broadcast_changes.sql))
+  ([`20261111003952_chat_broadcast_changes.sql`](../Backend/migrations/20261111003952_chat_broadcast_changes.sql))
+  (applied 2026-11-11, ledger version `20261111003952`; verified live: 14
+  triggers, two join policies, no publish policy, broadcasts flowing with
+  messages)
   send each change once, to `chat:live` (rows every signed-in member may read)
   or `chat:user:<username>` (DMs, groups, invitations, read cursors,
   owner-preview and follower-only posts). The recipients mirror each table's

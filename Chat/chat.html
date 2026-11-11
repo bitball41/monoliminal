@@ -13867,7 +13867,7 @@ void main() {
     }
 
     // Chat 6.1: the database sends each change once to a private topic
-    // (20261111000000_chat_broadcast_changes.sql): chat:live for rows every
+    // (20261111003952_chat_broadcast_changes.sql): chat:live for rows every
     // member may read, chat:user:<name> for DMs, groups, invites, read cursors
     // and owner- or follower-only posts. Realtime then authorizes each join
     // instead of evaluating row security for every change and listener. Until
