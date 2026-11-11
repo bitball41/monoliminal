@@ -183,6 +183,58 @@ await page.evaluate(()=>{setSettingsTab('owner');});
 await page.waitForSelector('#owner-nav-roles');
 await page.locator('#owner-nav-roles').click();
 await capture('owner-desktop');
+// 6.1: role hierarchy editor and owner-editable rules.
+assert.equal(await page.locator('#owner-role-form').count(),1);
+assert.equal(await page.locator('.role-ladder .role-row').count(),9,'Preston, Owner, six staff roles and Member on one ladder');
+await page.locator('#owner-nav-rules').click();
+await page.waitForSelector('#owner-rules-form');
+assert.equal(await page.locator('[data-rule-row]').count(),6,'the six default rules are editable');
+await capture('owner-rules');
+await page.locator('#owner-rules-add').click();
+assert.equal(await page.locator('[data-rule-row]').count(),7);
+await page.evaluate(()=>{$('settings-dialog').close();openRulesModal();});
+assert.equal(await page.locator('#rules-list .rule-card').count(),6,'defaults show until the owner saves rules');
+await page.evaluate(()=>{$('rules-dialog').close();appSettings.community_rules=JSON.stringify([{title:'Be kind',body:'<b>No</b> bullying.'}]);openRulesModal();});
+assert.equal(await page.locator('#rules-list .rule-card').count(),1);
+assert.equal(await page.locator('#rules-list .rule-card p').innerText(),'<b>No</b> bullying.','rule text is shown as text, never HTML');
+await page.evaluate(()=>{$('rules-dialog').close();delete appSettings.community_rules;openSettings('owner');});
+await page.locator('#owner-nav-roles').click();
+// 6.1: profile extras show on the hover card as text, with only https links.
+await page.evaluate(()=>{
+  qsa('dialog[open]').forEach(d=>d.close());
+  const now=new Date();
+  Object.assign(profiles.get('alice'),{bio:'hi',banner:'',profile_extras:{pronouns:'she/her',birthday:{m:now.getMonth()+1,d:now.getDate()},show_time:true,timezone:'America/New_York',accent:'#ff8800',
+    links:[{label:'<b>site</b>',url:'https://example.com/a'},{label:'bad',url:'javascript:alert(1)'}]}});
+  profileDetailLoaded.add('alice');
+  showHoverCard('alice',qs('#channel-title'));
+});
+await page.waitForSelector('#hover-card:not([hidden]) #hc-extras-wrap:not([hidden])');
+assert.match(await page.locator('#hc-handle').innerText(),/@alice · she\/her/);
+assert.match(await page.locator('#hc-extras').innerText(),/Birthday today!/);
+assert.match(await page.locator('#hc-extras').innerText(),/local time/);
+assert.equal(await page.locator('#hc-extras a').count(),1,'unsafe links are dropped');
+assert.equal(await page.locator('#hc-extras a').innerText(),'<b>site</b>','link labels are text');
+assert.equal(await page.locator('#hc-extras a').getAttribute('rel'),'noopener noreferrer nofollow');
+assert.equal(await page.locator('#hc-chips .bday-chip').count(),1);
+await capture('profile-extras-card');
+await page.evaluate(()=>{$('hover-card').hidden=true;openSettings('profile');});
+assert.equal(await page.locator('#set-links [data-link-url]').count(),3);
+assert.equal(await page.locator('#set-pronouns').getAttribute('maxlength'),'24');
+await page.evaluate(()=>$('set-pronouns').scrollIntoView({block:'start'}));
+await capture('profile-extras-settings');
+// Appearance: accent override survives theme switches; font, clock, motion and confirm-close apply.
+await page.evaluate(()=>{setSettingsTab('appearance');applyCustomAccent('#ff8800');applyTheme('monolight');applyUiFont('serif');applyClock('24');applyReduceMotion(true);applyConfirmClose(true);});
+assert.equal(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--accent')),'#ff8800');
+assert.equal(await page.evaluate(()=>document.documentElement.dataset.uiFont),'serif');
+assert.equal(await page.evaluate(()=>fmtTime('2026-10-01T18:05:00')),'18:05');
+assert.equal(await page.evaluate(()=>document.documentElement.dataset.reduceMotion),'true');
+assert.equal(await page.locator('#set-confirm-close').getAttribute('aria-checked'),'true');
+assert.equal(await page.locator('#uifont-row .radio-pill.active').innerText(),'Serif');
+assert.equal(await page.locator('#clock-row .radio-pill.active').innerText(),'24-hour');
+await page.evaluate(()=>$('set-custom-accent').scrollIntoView({block:'start'}));
+await capture('appearance-options');
+await page.evaluate(()=>{applyCustomAccent('');applyUiFont('default');applyClock('auto');applyReduceMotion(false);applyConfirmClose(false);applyTheme('midnight');});
+assert.notEqual(await page.evaluate(()=>document.documentElement.style.getPropertyValue('--accent')),'#ff8800');
 await page.evaluate(()=>{$('settings-dialog').close();renderSubroleDialog();$('subrole-dialog').showModal();});
 await capture('subroles-desktop');
 await page.evaluate(()=>{$('subrole-dialog').close();openVoiceRoom({type:'channel',id:'voice-chat'});});

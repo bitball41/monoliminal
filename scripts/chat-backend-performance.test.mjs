@@ -79,7 +79,9 @@ test('backend repairs preserve visibility, inboxes, privileges and every analyti
     for (const name of migrations.filter(x => x >= analyticsRemoval)) await db.exec(await file('Backend/migrations/' + name));
     for (const name of [...names, null]) assert.deepEqual(await snapshot(name), beforeRemoval.get(name), 'same visible rows after removal for ' + name);
     await db.exec('reset role');
-    assert.deepEqual(await query("select tablename,policyname,qual,with_check from pg_policies where schemaname='public' order by tablename,policyname"), once);
+    // Later migrations may add tables with their own policies; existing ones stay the same.
+    const existingTables = [...new Set(once.map(row => row.tablename))];
+    assert.deepEqual((await db.query("select tablename,policyname,qual,with_check from pg_policies where schemaname='public' and tablename = any($1) order by tablename,policyname", [existingTables])).rows, once);
     assert.deepEqual(await query("select tgname from pg_trigger where tgname like 'chat_analytics_%'"), []);
     assert.deepEqual(await query(`select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname in ('public','private') and p.proname in ('chat_get_analytics','chat_analytics_summary','chat_record_activity','chat_capture_message_fact','chat_capture_signup_fact')`), []);

@@ -1,0 +1,653 @@
+-- Chat 6.1 part 3: custom staff roles, editable rules, cloud sticker favorites.
+--
+-- Roles: staff roles move from hard-coded lists to public.chat_staff_roles.
+-- Each role has powers (tier) and a place on one ladder (power), chosen
+-- independently, so the owner can add a tier anywhere below Owner:
+--   tier: 1 member, 2 mod, 3 manager, 4 admin, 5 co-owner, 6 owner, 7 PRESTON.
+--   power: Member 100, staff roles 101-599, Owner 650, PRESTON 750.
+-- Every permission threshold still compares tiers (private.chat_staff_rank),
+-- exactly as before. "May act on this person" compares power, so a role acts on
+-- every role below it on the ladder. Built-in roles are seeded in their current
+-- order; admin, super_mega_tuff_admin and dusty keep equal power, so nothing
+-- changes until the owner creates or moves roles. Tier rules keep their
+-- behaviour: admin-level powers cannot ban, mod-level time-outs stop at two
+-- hours. Owner and PRESTON stay fixed and cannot be created.
+--
+-- Rules: app_settings.community_rules, owner-only through
+-- chat_owner_set_app_setting, validated JSON [{title, body}].
+--
+-- Sticker favorites: public.user_fav_stickers, one row per account, readable
+-- and writable only by its owner (same model as user_fav_gifs).
+BEGIN;
+SET LOCAL lock_timeout = '2s';
+
+-- ---------------------------------------------------------------- roles table
+CREATE TABLE IF NOT EXISTS public.chat_staff_roles (
+  slug text PRIMARY KEY CHECK (slug ~ '^[a-z0-9_]{2,40}$'),
+  label text NOT NULL CHECK (char_length(btrim(label)) BETWEEN 1 AND 32),
+  color text CHECK (color IS NULL OR color ~ '^#[0-9a-f]{6}$'),
+  badge text NOT NULL DEFAULT '' CHECK (badge ~ '^[a-z-]{0,32}$'),
+  tier smallint NOT NULL CHECK (tier BETWEEN 1 AND 7),
+  power integer NOT NULL,
+  builtin boolean NOT NULL DEFAULT false,
+  created_by text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chat_staff_roles_ladder CHECK (
+    (slug = 'member' AND power = 100) OR (slug = 'owner' AND power = 650) OR (slug = 'preston' AND power = 750)
+    OR (slug NOT IN ('member', 'owner', 'preston') AND tier BETWEEN 2 AND 5 AND power BETWEEN 101 AND 599))
+);
+INSERT INTO public.chat_staff_roles (slug, label, badge, tier, power, builtin) VALUES
+  ('member', 'Member', '', 1, 100, true),
+  ('mod', 'Mod', 'mod', 2, 200, true),
+  ('manager', 'Manager', 'manager', 3, 300, true),
+  ('admin', 'Admin', 'admin', 4, 400, true),
+  ('super_mega_tuff_admin', 'Super Mega Tuff Admin', 'super-mega-tuff', 4, 400, true),
+  ('dusty', 'Dusty', 'super-mega-tuff', 4, 400, true),
+  ('co_owner', 'Co-owner', 'co-owner', 5, 500, true),
+  ('owner', 'Owner', 'owner', 6, 650, true),
+  ('preston', 'Preston', 'preston', 7, 750, true)
+ON CONFLICT (slug) DO NOTHING;
+ALTER TABLE public.chat_staff_roles ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.chat_staff_roles FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.chat_staff_roles TO authenticated;
+DROP POLICY IF EXISTS chat_staff_roles_read ON public.chat_staff_roles;
+CREATE POLICY chat_staff_roles_read ON public.chat_staff_roles FOR SELECT TO authenticated
+USING ((SELECT private.chat_username()) IS NOT NULL);
+
+-- Tier (permission level). Unknown roles are members.
+CREATE OR REPLACE FUNCTION private.chat_staff_rank(p_role text)
+RETURNS integer LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT coalesce((SELECT r.tier::integer FROM public.chat_staff_roles r
+    WHERE r.slug = lower(coalesce(p_role, 'member'))), 1)
+$$;
+-- Position for "may act on this person" comparisons.
+CREATE OR REPLACE FUNCTION private.chat_staff_power(p_role text)
+RETURNS integer LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT coalesce((SELECT r.power FROM public.chat_staff_roles r
+    WHERE r.slug = lower(coalesce(p_role, 'member'))), 100)
+$$;
+REVOKE ALL ON FUNCTION private.chat_staff_power(text) FROM PUBLIC, anon, authenticated;
+
+-- Any catalogued role is valid; the catalog replaces the fixed list.
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_staff_role_check;
+UPDATE public.profiles SET staff_role = 'member'
+WHERE staff_role IS NULL OR staff_role NOT IN (SELECT slug FROM public.chat_staff_roles);
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_staff_role_fkey;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_staff_role_fkey
+  FOREIGN KEY (staff_role) REFERENCES public.chat_staff_roles(slug) ON UPDATE CASCADE;
+
+CREATE OR REPLACE FUNCTION private.chat_sync_legacy_staff_flags()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+begin
+  if tg_op = 'UPDATE'
+     and new.staff_role is not distinct from old.staff_role
+     and (new.is_owner is distinct from old.is_owner or new.is_admin is distinct from old.is_admin) then
+    if new.is_owner then
+      new.staff_role := 'owner';
+    elsif new.is_admin and private.chat_staff_rank(coalesce(old.staff_role, 'member')) < 4 then
+      new.staff_role := 'admin';
+    elsif not new.is_admin and private.chat_staff_rank(coalesce(old.staff_role, 'member')) >= 4 then
+      new.staff_role := 'member';
+    end if;
+  end if;
+
+  new.staff_role := lower(coalesce(nullif(pg_catalog.btrim(new.staff_role), ''), 'member'));
+  if not exists (select 1 from public.chat_staff_roles r where r.slug = new.staff_role) then
+    new.staff_role := 'member';
+  end if;
+  new.is_owner := (new.staff_role in ('owner', 'preston'));
+  new.is_admin := (private.chat_staff_rank(new.staff_role) >= 4);
+  return new;
+end;
+$function$;
+
+-- --------------------------------------------------- role-specific checks
+CREATE OR REPLACE FUNCTION private.chat_require_moderation_target(p_actor_username text, p_target_username text, p_min_rank integer, p_action text)
+ RETURNS profiles
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+  v_actor public.profiles%rowtype;
+  v_target public.profiles%rowtype;
+BEGIN
+  -- p_actor_username comes only from a verified session in the calling RPC.
+  SELECT * INTO v_actor FROM public.profiles
+  WHERE username = p_actor_username AND NOT is_banned FOR UPDATE;
+  IF v_actor.username IS NULL OR private.chat_staff_rank(v_actor.staff_role) < p_min_rank THEN
+    RAISE EXCEPTION 'Insufficient staff permission';
+  END IF;
+  IF p_action IN ('ban', 'unban') AND private.chat_staff_rank(v_actor.staff_role) = 4 THEN
+    RAISE EXCEPTION 'Admins cannot manage bans';
+  END IF;
+  SELECT * INTO v_target FROM public.profiles
+  WHERE lower(username) = lower(btrim(p_target_username)) FOR UPDATE;
+  IF v_target.username IS NULL THEN RAISE EXCEPTION 'Account not found'; END IF;
+  IF v_target.username = v_actor.username OR v_target.staff_role IN ('owner', 'preston')
+     OR private.chat_staff_power(v_actor.staff_role) <= private.chat_staff_power(v_target.staff_role) THEN
+    RAISE EXCEPTION 'You can only moderate another account below your rank';
+  END IF;
+  IF p_action = 'timeout' AND lower(v_target.username) = 'luna' THEN
+    RAISE EXCEPTION 'Luna cannot be timed out';
+  END IF;
+  RETURN v_target;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.chat_ban_user(p_actor_username text, p_actor_password_hash text, p_target_username text, p_reason text DEFAULT ''::text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor public.profiles%rowtype;
+  v_target public.profiles%rowtype;
+begin
+  v_actor := private.require_chat_staff_min_rank(3);
+  if private.chat_staff_rank(v_actor.staff_role) = 4 then
+    raise exception 'Admins cannot ban accounts. Use delete account, or ask a manager, co-owner, owner, or PRESTON.';
+  end if;
+  v_target := private.chat_require_moderation_target(v_actor.username, p_target_username, 3, 'ban');
+
+  update public.profiles
+  set is_banned = true, ban_reason = coalesce(p_reason, ''), banned_by = v_actor.username
+  where username = v_target.username;
+
+  insert into public.bans (username, reason, banned_by)
+  values (v_target.username, coalesce(p_reason, ''), v_actor.username);
+
+  insert into public.chat_device_bans (device_id, username, reason, banned_by)
+  select d.device_id, v_target.username, coalesce(p_reason, ''), v_actor.username
+  from public.chat_devices d
+  where d.username = v_target.username
+  on conflict (device_id) do update
+  set username = excluded.username, reason = excluded.reason,
+      banned_by = excluded.banned_by, created_at = pg_catalog.now();
+
+  insert into private.chat_admin_audit (actor_username, action, target, details)
+  values (v_actor.username, 'user_banned_in_chat', v_target.username,
+          pg_catalog.jsonb_build_object('reason', coalesce(p_reason, '')));
+  return true;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.chat_unban_user(p_actor_username text, p_actor_password_hash text, p_target_username text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor public.profiles%rowtype;
+  v_target text;
+  v_profile public.profiles%rowtype;
+begin
+  v_actor := private.require_chat_staff_min_rank(3);
+  if private.chat_staff_rank(v_actor.staff_role) = 4 then
+    raise exception 'Admins cannot manage bans.';
+  end if;
+
+  v_profile := private.chat_require_moderation_target(v_actor.username, p_target_username, 3, 'unban');
+  v_target := v_profile.username;
+
+  update public.profiles
+  set is_banned = false,
+      ban_reason = '',
+      banned_by = ''
+  where username = v_target;
+
+  delete from public.chat_device_bans
+  where username = v_target;
+
+  insert into private.chat_admin_audit (actor_username, action, target)
+  values (v_actor.username, 'user_unbanned_in_chat', v_target);
+
+  return true;
+end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.chat_staff_timeout_user(p_actor_username text, p_actor_password_hash text, p_target_username text, p_minutes integer)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+  v_actor public.profiles%rowtype;
+  v_target public.profiles%rowtype;
+  v_until timestamptz;
+  v_max integer;
+BEGIN
+  IF p_minutes NOT BETWEEN 0 AND 10080 THEN
+    RAISE EXCEPTION 'Timeout must be between 0 minutes and 7 days';
+  END IF;
+
+  v_actor := private.require_chat_staff_min_rank(2);
+  v_target := private.chat_require_moderation_target(v_actor.username, p_target_username, 2, 'timeout');
+
+  -- Mod-level roles max 2 hours. Manager level and above any duration (within 7d).
+  v_max := CASE WHEN private.chat_staff_rank(v_actor.staff_role) = 2 THEN 120 ELSE 10080 END;
+  IF p_minutes > v_max THEN
+    RAISE EXCEPTION 'Your rank can only timeout up to % minutes', v_max;
+  END IF;
+
+  v_until := CASE WHEN p_minutes = 0 THEN NULL ELSE now() + pg_catalog.make_interval(mins => p_minutes) END;
+
+  UPDATE public.profiles
+  SET timeout_until = v_until,
+      timeout_by = CASE WHEN v_until IS NULL THEN '' ELSE v_actor.username END
+  WHERE username = v_target.username;
+
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (
+    v_actor.username,
+    CASE WHEN v_until IS NULL THEN 'timeout_cleared_in_chat' ELSE 'user_timed_out_in_chat' END,
+    v_target.username,
+    jsonb_build_object('minutes', p_minutes)
+  );
+  RETURN true;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.chat_set_staff_role(p_actor_username text, p_actor_password_hash text, p_target_username text, p_role text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+  v_actor public.profiles%rowtype;
+  v_target public.profiles%rowtype;
+  v_role text := lower(pg_catalog.btrim(coalesce(p_role, 'member')));
+  v_old text;
+  v_registry text;
+BEGIN
+  v_actor := private.require_chat_staff_min_rank(5);
+
+  -- Any catalogued role up to co-owner level; owner and PRESTON are never assignable.
+  IF NOT EXISTS (SELECT 1 FROM public.chat_staff_roles r WHERE r.slug = v_role AND r.tier <= 5) THEN
+    RAISE EXCEPTION 'Invalid staff role';
+  END IF;
+
+  -- Lock the actor and target while checking and changing privileges.
+  SELECT * INTO v_actor FROM public.profiles
+  WHERE username = v_actor.username FOR UPDATE;
+  IF coalesce(v_actor.is_banned, false) OR private.chat_staff_rank(v_actor.staff_role) < 5 THEN
+    RAISE EXCEPTION 'Insufficient staff permission';
+  END IF;
+
+  SELECT * INTO v_target FROM public.profiles
+  WHERE lower(username) = lower(pg_catalog.btrim(p_target_username)) FOR UPDATE;
+
+  IF v_target.username IS NULL OR v_target.username = v_actor.username
+     OR v_target.staff_role IN ('owner', 'preston') OR coalesce(v_target.is_owner, false) THEN
+    RAISE EXCEPTION 'That staff role cannot be changed';
+  END IF;
+  IF private.chat_staff_power(v_actor.staff_role) <= private.chat_staff_power(v_target.staff_role)
+     OR private.chat_staff_power(v_actor.staff_role) <= private.chat_staff_power(v_role) THEN
+    RAISE EXCEPTION 'You can only change roles below your rank';
+  END IF;
+
+  v_old := v_target.staff_role;
+  UPDATE public.profiles SET staff_role = v_role WHERE username = v_target.username;
+
+  -- Keep the registry for older clients, but native staff_role is authoritative.
+  PERFORM 1 FROM public.app_settings WHERE key = 'co_owners' FOR UPDATE;
+  SELECT coalesce(jsonb_agg(lower(username) ORDER BY lower(username)), '[]'::jsonb)::text
+  INTO v_registry FROM public.profiles WHERE staff_role = 'co_owner';
+  INSERT INTO public.app_settings (key, value, updated_at)
+  VALUES ('co_owners', v_registry, now())
+  ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;
+
+  IF v_role = 'member' THEN
+    DELETE FROM private.chat_admin_sessions WHERE username = v_target.username;
+  END IF;
+
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (v_actor.username, 'staff_role_set_in_chat', v_target.username,
+          jsonb_build_object('from', v_old, 'to', v_role));
+  RETURN true;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION private.liminal_drive_rank()
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select coalesce((
+    select case
+      when p.is_owner or p.is_admin or private.chat_staff_rank(p.staff_role) >= 4 then 3
+      when private.chat_staff_rank(p.staff_role) >= 2 then 2
+      else 1
+    end
+    from public.profiles p
+    where p.username = (select private.chat_username())
+      and not p.is_banned
+  ), 0)
+$function$;
+
+-- Sticker uploads: admin level and above, by tier instead of a name list.
+DROP POLICY IF EXISTS liminal_stickers_staff_insert ON storage.objects;
+CREATE POLICY liminal_stickers_staff_insert ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'liminal-stickers'
+  AND (storage.foldername(name))[1] = ANY (ARRAY['sticker', 'emoji'])
+  AND (storage.foldername(name))[2] = ((SELECT auth.uid()))::text
+  AND char_length(name) <= 300
+  AND (SELECT private.chat_has_rank(4))
+);
+
+-- ------------------------------------------------- owner role management
+-- Rewrite the ladder from a complete top-to-bottom order of the staff roles
+-- (everything except Member, Owner and PRESTON). Neighbours that were tied stay
+-- tied, so the three built-in admin roles keep equal power until separated.
+CREATE OR REPLACE FUNCTION private.chat_staff_apply_ladder(p_order text[])
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_expected text[];
+  v_given text[];
+  v_slug text;
+  v_old integer;
+  v_prev_old integer;
+  v_power integer := 600;
+BEGIN
+  PERFORM 1 FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston') FOR UPDATE;
+  SELECT array_agg(slug ORDER BY slug) INTO v_expected FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston');
+  SELECT array_agg(s ORDER BY s) INTO v_given FROM (SELECT DISTINCT lower(s) s FROM unnest(p_order) s) x;
+  IF p_order IS NULL OR v_given IS DISTINCT FROM v_expected OR cardinality(p_order) <> cardinality(v_expected) THEN
+    RAISE EXCEPTION 'Send every staff role exactly once';
+  END IF;
+  IF cardinality(p_order) > 498 THEN RAISE EXCEPTION 'Too many roles'; END IF;
+  FOREACH v_slug IN ARRAY p_order LOOP
+    SELECT power INTO v_old FROM public.chat_staff_roles WHERE slug = lower(v_slug);
+    IF v_prev_old IS NULL OR v_old IS DISTINCT FROM v_prev_old THEN v_power := v_power - 1; END IF;
+    v_prev_old := v_old;
+    UPDATE public.chat_staff_roles SET power = v_power, updated_at = now() WHERE slug = lower(v_slug);
+  END LOOP;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.chat_staff_apply_ladder(text[]) FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.chat_save_staff_role(p_slug text, p_label text, p_color text, p_tier integer)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_actor public.profiles%rowtype;
+  v_label text := btrim(coalesce(p_label, ''));
+  v_color text := lower(nullif(btrim(coalesce(p_color, '')), ''));
+  v_slug text := lower(nullif(btrim(coalesce(p_slug, '')), ''));
+  v_role public.chat_staff_roles%rowtype;
+  v_order text[];
+  v_at integer;
+BEGIN
+  v_actor := private.require_chat_staff_min_rank(6);
+  IF char_length(v_label) NOT BETWEEN 1 AND 32 THEN RAISE EXCEPTION 'Role names are 1 to 32 characters'; END IF;
+  IF v_color IS NOT NULL AND v_color !~ '^#[0-9a-f]{6}$' THEN RAISE EXCEPTION 'Choose a colour like #a855f7'; END IF;
+
+  IF v_slug IS NULL THEN
+    IF p_tier IS NULL OR p_tier NOT BETWEEN 2 AND 5 THEN
+      RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner powers';
+    END IF;
+    IF (SELECT count(*) FROM public.chat_staff_roles WHERE NOT builtin) >= 40 THEN
+      RAISE EXCEPTION 'You can create up to 40 roles';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.chat_staff_roles WHERE lower(label) = lower(v_label)) THEN
+      RAISE EXCEPTION 'A role with that name already exists';
+    END IF;
+    INSERT INTO public.chat_staff_roles (slug, label, color, tier, power, builtin, created_by)
+    VALUES ('r_' || substr(md5(gen_random_uuid()::text), 1, 12), v_label, v_color, p_tier, 101, false, v_actor.username)
+    RETURNING * INTO v_role;
+    -- A new role starts just above the highest role with the same powers
+    -- (or above every role with fewer powers); the owner moves it from there.
+    SELECT array_agg(slug ORDER BY power DESC, tier DESC, slug) INTO v_order
+    FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston', v_role.slug);
+    SELECT min(i) INTO v_at FROM unnest(coalesce(v_order, '{}')) WITH ORDINALITY u(s, i)
+    JOIN public.chat_staff_roles r ON r.slug = u.s WHERE r.tier <= p_tier;
+    v_order := CASE WHEN v_at IS NULL THEN coalesce(v_order, '{}') || v_role.slug
+      ELSE v_order[1:v_at - 1] || v_role.slug || v_order[v_at:] END;
+    PERFORM private.chat_staff_apply_ladder(v_order);
+    SELECT * INTO v_role FROM public.chat_staff_roles WHERE slug = v_role.slug;
+  ELSE
+    SELECT * INTO v_role FROM public.chat_staff_roles WHERE slug = v_slug FOR UPDATE;
+    IF v_role.slug IS NULL THEN RAISE EXCEPTION 'Role not found'; END IF;
+    IF v_role.slug IN ('owner', 'preston', 'member') THEN RAISE EXCEPTION 'That role cannot be edited'; END IF;
+    IF EXISTS (SELECT 1 FROM public.chat_staff_roles WHERE lower(label) = lower(v_label) AND slug <> v_role.slug) THEN
+      RAISE EXCEPTION 'A role with that name already exists';
+    END IF;
+    IF p_tier IS NOT NULL AND p_tier <> v_role.tier THEN
+      IF v_role.builtin THEN RAISE EXCEPTION 'Built-in roles keep their powers'; END IF;
+      IF p_tier NOT BETWEEN 2 AND 5 THEN RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner powers'; END IF;
+    END IF;
+    -- Changing powers keeps the role's place on the ladder.
+    UPDATE public.chat_staff_roles
+    SET label = v_label, color = v_color,
+        tier = CASE WHEN v_role.builtin OR p_tier IS NULL THEN v_role.tier ELSE p_tier END, updated_at = now()
+    WHERE slug = v_role.slug RETURNING * INTO v_role;
+    -- Legacy admin flags follow the new powers.
+    UPDATE public.profiles SET staff_role = staff_role WHERE staff_role = v_role.slug;
+  END IF;
+
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (v_actor.username, 'staff_role_saved', v_role.slug,
+          jsonb_build_object('label', v_role.label, 'tier', v_role.tier, 'power', v_role.power));
+  RETURN to_jsonb(v_role);
+END;
+$$;
+
+-- Place every staff role on the ladder, highest first. Any order is allowed:
+-- a role acts on everyone below it, and its powers decide what it can do.
+CREATE OR REPLACE FUNCTION public.chat_reorder_staff_roles(p_slugs text[])
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE v_actor public.profiles%rowtype;
+BEGIN
+  v_actor := private.require_chat_staff_min_rank(6);
+  PERFORM private.chat_staff_apply_ladder(p_slugs);
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (v_actor.username, 'staff_roles_reordered', 'roles', jsonb_build_object('order', to_jsonb(p_slugs)));
+  RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.chat_delete_staff_role(p_slug text)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_actor public.profiles%rowtype;
+  v_role public.chat_staff_roles%rowtype;
+  v_holders integer;
+BEGIN
+  v_actor := private.require_chat_staff_min_rank(6);
+  SELECT * INTO v_role FROM public.chat_staff_roles WHERE slug = lower(btrim(coalesce(p_slug, ''))) FOR UPDATE;
+  IF v_role.slug IS NULL THEN RAISE EXCEPTION 'Role not found'; END IF;
+  IF v_role.builtin THEN RAISE EXCEPTION 'Built-in roles cannot be deleted'; END IF;
+  -- Holders become members and lose any dashboard session.
+  DELETE FROM private.chat_admin_sessions WHERE username IN (SELECT username FROM public.profiles WHERE staff_role = v_role.slug);
+  UPDATE public.profiles SET staff_role = 'member' WHERE staff_role = v_role.slug;
+  GET DIAGNOSTICS v_holders = ROW_COUNT;
+  DELETE FROM public.chat_staff_roles WHERE slug = v_role.slug;
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (v_actor.username, 'staff_role_deleted', v_role.slug, jsonb_build_object('label', v_role.label, 'holders', v_holders));
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.chat_save_staff_role(text, text, text, integer), public.chat_reorder_staff_roles(text[]),
+  public.chat_delete_staff_role(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.chat_save_staff_role(text, text, text, integer), public.chat_reorder_staff_roles(text[]),
+  public.chat_delete_staff_role(text) TO authenticated;
+
+-- Live role catalog updates reach every member.
+DO $rt$
+BEGIN
+  IF to_regprocedure('private.chat_rt_public_row()') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS zz_chat_rt_broadcast ON public.chat_staff_roles;
+    CREATE TRIGGER zz_chat_rt_broadcast AFTER INSERT OR UPDATE OR DELETE ON public.chat_staff_roles
+      FOR EACH ROW EXECUTE FUNCTION private.chat_rt_public_row();
+  END IF;
+END;
+$rt$;
+
+-- ------------------------------------------------------------------ rules
+CREATE OR REPLACE FUNCTION public.chat_owner_set_app_setting(p_key text, p_value text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_actor text;
+  v_value text := coalesce(p_value, '');
+  v_json jsonb;
+begin
+  if not private.chat_is_staff(true) then
+    raise exception 'Owner access is required';
+  end if;
+
+  if p_key not in ('app_enabled', 'announcement', 'whats_new', 'co_owners', 'community_rules') then
+    raise exception 'Unsupported owner setting';
+  end if;
+
+  if p_key = 'app_enabled' and v_value not in ('true', 'false') then
+    raise exception 'App enabled must be true or false';
+  elsif p_key = 'announcement' and char_length(v_value) > 300 then
+    raise exception 'Announcement is too long';
+  elsif p_key = 'whats_new' and char_length(v_value) > 4000 then
+    raise exception 'What''s new is too long';
+  elsif p_key = 'community_rules' then
+    -- An empty value restores the built-in rules in Chat.
+    if v_value <> '' then
+      if char_length(v_value) > 30000 then raise exception 'The rules are too long'; end if;
+      begin
+        v_json := v_value::jsonb;
+      exception when others then
+        raise exception 'Rules must be a list';
+      end;
+      if jsonb_typeof(v_json) <> 'array' or jsonb_array_length(v_json) NOT BETWEEN 1 AND 30 then
+        raise exception 'Add between 1 and 30 rules';
+      end if;
+      if exists (
+        select 1 from jsonb_array_elements(v_json) item
+        where jsonb_typeof(item) <> 'object'
+           or jsonb_typeof(item->'title') is distinct from 'string'
+           or jsonb_typeof(item->'body') is distinct from 'string'
+           or char_length(btrim(item->>'title')) NOT BETWEEN 1 AND 80
+           or char_length(btrim(item->>'body')) NOT BETWEEN 1 AND 1000
+      ) then
+        raise exception 'Each rule needs a title (up to 80 characters) and text (up to 1000)';
+      end if;
+      select jsonb_agg(jsonb_build_object('title', btrim(e.item->>'title'), 'body', btrim(e.item->>'body')) order by e.ord)::text
+      into v_value
+      from jsonb_array_elements(v_json) with ordinality e(item, ord);
+    end if;
+  elsif p_key = 'co_owners' then
+    if char_length(v_value) > 10000 then
+      raise exception 'Co-owner registry is too large';
+    end if;
+    begin
+      v_json := v_value::jsonb;
+    exception when others then
+      raise exception 'Co-owner registry must be valid JSON';
+    end;
+    if jsonb_typeof(v_json) <> 'array'
+       or exists (
+         select 1
+         from jsonb_array_elements(v_json) item
+         where jsonb_typeof(item) <> 'string'
+            or trim(both '"' from item::text) !~ '^[A-Za-z0-9_]{1,40}$'
+       ) then
+      raise exception 'Co-owner registry must be an array of usernames';
+    end if;
+    select coalesce(jsonb_agg(distinct lower(value) order by lower(value)), '[]'::jsonb)::text
+    into v_value
+    from jsonb_array_elements_text(v_json) entry(value);
+  end if;
+
+  v_actor := private.chat_username();
+
+  insert into public.app_settings (key, value, updated_at)
+  values (p_key, v_value, now())
+  on conflict (key) do update
+    set value = excluded.value,
+        updated_at = excluded.updated_at;
+
+  insert into private.chat_admin_audit (actor_username, action, target, details)
+  values (v_actor, 'owner_setting_updated', p_key, jsonb_build_object('length', char_length(v_value)));
+
+  return true;
+end;
+$function$;
+
+-- --------------------------------------------------------- profile extras
+-- One validated JSON object per profile: pronouns, birthday (month and day,
+-- never a year), up to three https links, an opt-in time zone for showing local
+-- time, and a profile accent colour. Readable like every profile field;
+-- editable only through the account's own profile update (RLS + column grant).
+CREATE OR REPLACE FUNCTION private.chat_profile_extras_valid(p jsonb)
+RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = '' AS $$
+DECLARE k text; v_link jsonb; v_m integer; v_d integer;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) <> 'object' OR octet_length(p::text) > 4000 THEN RETURN false; END IF;
+  FOR k IN SELECT jsonb_object_keys(p) LOOP
+    IF k NOT IN ('pronouns', 'birthday', 'links', 'timezone', 'show_time', 'accent') THEN RETURN false; END IF;
+  END LOOP;
+  IF p ? 'pronouns' AND (jsonb_typeof(p->'pronouns') <> 'string' OR char_length(p->>'pronouns') > 24) THEN RETURN false; END IF;
+  IF p ? 'birthday' THEN
+    IF jsonb_typeof(p->'birthday') <> 'object' OR (SELECT count(*) FROM jsonb_object_keys(p->'birthday') x WHERE x NOT IN ('m', 'd')) > 0
+       OR jsonb_typeof(p->'birthday'->'m') IS DISTINCT FROM 'number' OR jsonb_typeof(p->'birthday'->'d') IS DISTINCT FROM 'number' THEN RETURN false; END IF;
+    IF (p->'birthday'->>'m') !~ '^[0-9]{1,2}$' OR (p->'birthday'->>'d') !~ '^[0-9]{1,2}$' THEN RETURN false; END IF;
+    v_m := (p->'birthday'->>'m')::integer; v_d := (p->'birthday'->>'d')::integer;
+    IF v_m NOT BETWEEN 1 AND 12 OR v_d < 1
+       OR v_d > (CASE WHEN v_m = 2 THEN 29 WHEN v_m IN (4, 6, 9, 11) THEN 30 ELSE 31 END) THEN RETURN false; END IF;
+  END IF;
+  IF p ? 'links' THEN
+    IF jsonb_typeof(p->'links') <> 'array' OR jsonb_array_length(p->'links') > 3 THEN RETURN false; END IF;
+    FOR v_link IN SELECT * FROM jsonb_array_elements(p->'links') LOOP
+      IF jsonb_typeof(v_link) <> 'object' OR (SELECT count(*) FROM jsonb_object_keys(v_link) x WHERE x NOT IN ('label', 'url')) > 0
+         OR jsonb_typeof(v_link->'label') IS DISTINCT FROM 'string' OR jsonb_typeof(v_link->'url') IS DISTINCT FROM 'string'
+         OR char_length(v_link->>'label') NOT BETWEEN 1 AND 24 OR char_length(v_link->>'url') > 200
+         OR (v_link->>'url') !~ '^https://[^[:space:]<>"''`]+$' THEN RETURN false; END IF;
+    END LOOP;
+  END IF;
+  IF p ? 'timezone' AND (jsonb_typeof(p->'timezone') <> 'string' OR char_length(p->>'timezone') > 40
+     OR (p->>'timezone') !~ '^[A-Za-z]+(/[A-Za-z0-9_+-]+){0,2}$') THEN RETURN false; END IF;
+  IF p ? 'show_time' AND jsonb_typeof(p->'show_time') <> 'boolean' THEN RETURN false; END IF;
+  IF p ? 'accent' AND (jsonb_typeof(p->'accent') <> 'string' OR (p->>'accent') !~ '^#[0-9a-fA-F]{6}$') THEN RETURN false; END IF;
+  RETURN true;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.chat_profile_extras_valid(jsonb) FROM PUBLIC, anon;
+-- The CHECK below runs as the user saving their profile.
+GRANT EXECUTE ON FUNCTION private.chat_profile_extras_valid(jsonb) TO authenticated, service_role;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_extras jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_profile_extras_valid;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_profile_extras_valid CHECK (private.chat_profile_extras_valid(profile_extras));
+GRANT SELECT (profile_extras), UPDATE (profile_extras) ON public.profiles TO authenticated;
+
+-- ------------------------------------------------------ sticker favorites
+CREATE TABLE IF NOT EXISTS public.user_fav_stickers (
+  username text PRIMARY KEY REFERENCES public.profiles(username) ON UPDATE CASCADE ON DELETE CASCADE,
+  stickers jsonb NOT NULL DEFAULT '[]'::jsonb
+    CHECK (jsonb_typeof(stickers) = 'array' AND jsonb_array_length(stickers) <= 300 AND pg_column_size(stickers) <= 65536),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.user_fav_stickers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.user_fav_stickers FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.user_fav_stickers TO authenticated;
+DROP POLICY IF EXISTS fav_stickers_self_read ON public.user_fav_stickers;
+DROP POLICY IF EXISTS fav_stickers_self_insert ON public.user_fav_stickers;
+DROP POLICY IF EXISTS fav_stickers_self_update ON public.user_fav_stickers;
+CREATE POLICY fav_stickers_self_read ON public.user_fav_stickers FOR SELECT TO authenticated
+  USING (username = (SELECT private.chat_username()));
+CREATE POLICY fav_stickers_self_insert ON public.user_fav_stickers FOR INSERT TO authenticated
+  WITH CHECK (username = (SELECT private.chat_username()));
+CREATE POLICY fav_stickers_self_update ON public.user_fav_stickers FOR UPDATE TO authenticated
+  USING (username = (SELECT private.chat_username())) WITH CHECK (username = (SELECT private.chat_username()));
+
+COMMIT;
+NOTIFY pgrst, 'reload schema';

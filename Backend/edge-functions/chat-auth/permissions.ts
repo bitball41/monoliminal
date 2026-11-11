@@ -12,17 +12,30 @@ const RANK: Record<string, number> = {
   co_owner: 5, owner: 6, preston: 7,
 };
 
+// Custom roles (Chat 6.1) live in public.chat_staff_roles: tier is the
+// permission level, power the position. Built-ins are the fallback.
+export type RoleInfo = { tier: number; power: number };
+export type RoleCatalog = Record<string, RoleInfo>;
+
+function roleInfo(role: string | undefined, catalog: RoleCatalog = {}): RoleInfo | null {
+  const slug = (role || '').toLowerCase();
+  if (catalog[slug]) return catalog[slug];
+  const tier = RANK[slug];
+  return tier ? { tier, power: tier * 100 + 50 } : null;
+}
+
 export function isOwner(profile: ChatProfile) {
   return !profile.is_banned && ['owner', 'preston'].includes(profile.staff_role || '');
 }
 
-export function canResetPassword(actor: ChatProfile, target: ChatProfile) {
-  const actorRank = RANK[actor.staff_role || ''] || 0;
-  const targetRank = RANK[target.staff_role || ''] || 0;
-  return !actor.is_banned && actorRank >= 4 && targetRank > 0
+// A pre-check only: chat_authorize_password_reset re-checks live roles.
+export function canResetPassword(actor: ChatProfile, target: ChatProfile, catalog: RoleCatalog = {}) {
+  const a = roleInfo(actor.staff_role, catalog);
+  const t = roleInfo(target.staff_role, catalog);
+  return !actor.is_banned && !!a && !!t && a.tier >= 4
     && actor.user_id !== target.user_id
     && !['owner', 'preston'].includes(target.staff_role || '')
-    && actorRank > targetRank;
+    && a.power > t.power;
 }
 
 // Usernames contain underscores; ILIKE must treat them as literal characters.

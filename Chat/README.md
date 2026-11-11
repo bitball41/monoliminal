@@ -3,6 +3,74 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
+
+Needs [`20261111194810_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111194810_chat_custom_roles_rules_stickers.sql)
+(**applied 2026-11-11**, ledger version `20261111194810`; verified live with
+read-only checks: nine built-in roles at their previous levels with the three
+admin roles tied, no legacy flag changes, RLS on both new tables, no signed-out
+access, broadcast trigger on the catalog). Without it, Chat keeps the built-in
+roles and default rules, keeps sticker favorites in the browser and greys out
+profile extras. The updated `chat-auth` Edge Function is not deployed yet; the
+database re-checks every password reset in the meantime.
+
+- **Custom staff roles on one ladder.** Roles live in `public.chat_staff_roles`
+  instead of being hard-coded. Each role has two independent settings:
+  - **Powers** (`tier`: Mod, Manager, Admin or Co-owner) decide what it can
+    do, with exactly the existing rules: Admin powers cannot ban, Mod powers
+    time out for at most two hours, Drive and sticker uploads follow powers.
+  - **Position** (`power`) on a single ladder decides who may act on whom. A
+    role can sit anywhere between Member and Owner, so the owner can make
+    in-between ranks such as "Head Admin" above Admin and below Co-owner, or a
+    "Right Hand" above Co-owner and below Owner. Position never grants powers:
+    a role with Mod powers placed above Co-owner can time out a co-owner but
+    still cannot ban anyone, and the ladder shows a note when a role sits above
+    stronger ones.
+
+  Owner and PRESTON stay fixed at the top, Member at the bottom. The owner
+  manages roles in Settings → Owner → Roles & badges: create (name, badge
+  colour, powers), rename, recolour, move up or down anywhere on the ladder,
+  change a custom role's powers (its position stays), delete (holders become
+  Members). Built-in roles can be renamed and moved but keep their powers and
+  cannot be deleted. Admin, Super Mega Tuff Admin and Dusty stay tied ("same
+  rank") until the owner moves one. Co-owners assign roles below their own
+  position as before. The profile `staff_role` check became a foreign key to
+  the catalog; an unknown role is stored as Member. The `chat-auth` Edge
+  Function's password-reset pre-check reads the catalog too (the database
+  re-checks every reset).
+- **Profile extras.** Settings → Profile → Profile extras: pronouns (shown
+  after the @handle), birthday month and day (🎂 on the profile, and a
+  "Birthday today!" chip on the day), an opt-in "show my local time" (uses the
+  browser's time zone), up to three https links, and a profile colour for the
+  card border and for the banner when there is no banner image. Stored in
+  `profiles.profile_extras` and validated by the database
+  (`private.chat_profile_extras_valid`: known keys only, https links without
+  spaces or quotes, 4 KB cap). Links open in a new tab with
+  `rel="noopener noreferrer nofollow"`; every value is shown as text.
+- **Appearance.** Settings → Appearance adds a custom accent colour that
+  overrides any theme, a UI font (Default, System, Rounded, Serif, Mono; the
+  dyslexia font still wins), 12-hour/24-hour/automatic time, a Reduce motion
+  switch (stops animated rings, names, the chat background and transitions
+  even when the device has not asked for reduced motion), and **Confirm before
+  closing**, which turns on the browser's own "Leave site?" prompt. These are
+  saved per browser.
+- **Editable rules (owner only).** The Rules dialog reads
+  `app_settings.community_rules`; the owner edits it in Settings → Owner →
+  Rules (add, remove, reorder, up to 30 rules) and every open Chat updates
+  live. "Restore defaults" brings back the original six. Rule text is always
+  shown as text, never HTML.
+- **Sticker favorites on the account.** `public.user_fav_stickers`, one row per
+  account, readable and writable only by its owner. Favorites already saved in
+  a browser are merged into the account once, then follow the account to every
+  launcher and device.
+
+Tests: `scripts/chat-roles-rules.test.mjs` (built-in powers unchanged, ties
+kept, custom role creation and placement, cross-level positions, power rules,
+reordering, deletion, catalog privacy, rules validation, sticker privacy,
+profile extras validation and privileges), the custom-role cases in
+`scripts/security.test.mjs`, and the Roles, Rules, profile-card and Appearance
+checks in `scripts/chat-polish.browser.mjs`.
+
 ## Chat 6.1, part 2: realtime, speed and a lighter, tighter layout
 
 Measured with `scripts/chat-runtime.browser.mjs` at 4x CPU throttle (offline
