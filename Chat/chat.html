@@ -528,6 +528,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     html[data-ring-paused] .yt-thumb img { visibility: hidden; }
     html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
     html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
+    /* Rings spin on the main thread (one restyle per step). Hold them while
+       the timeline scrolls so every scroll frame skips that work. */
+    html[data-ring-visibility][data-scrolling] .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: paused; }
     /* Isolate visible animated images from the surrounding paint surface.
        GIF-only scenes can stall in Chromium even with an idle UI thread.
        Release the layer as soon as the image leaves view or the tab is hidden. */
@@ -1471,6 +1474,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .send-button:active { transform: scale(0.94); box-shadow: none; }
     .send-button svg { width: 18px; height: 18px; }
 
+    /* The counter changes on every key press. A fixed-size, contained box
+       keeps that from re-laying out the whole page (40% of typing layout). */
+    #char-count { display: inline-block; width: 4ch; height: 1lh; contain: strict; text-align: right; vertical-align: bottom; font-variant-numeric: tabular-nums; }
     .composer-foot {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
       min-height: 20px; margin-top: 5px; padding: 0 8px;
@@ -3125,7 +3131,10 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
 </style>
 <style id="chat-feature-controls">
 /* Shared controls for the recent Chat features. Existing copy is retained. */
-    .main-panel { grid-template-columns: minmax(0, 1fr); container-type: inline-size; }
+    /* No size container here: any restyle inside one (every key press in the
+       composer) made Chrome lay out the panel first. watchMainPanelWidth sets
+       data-narrow / data-tight when the width crosses these points instead. */
+    .main-panel { grid-template-columns: minmax(0, 1fr); }
     .channel-header { min-width: 0; column-gap: 12px; }
     .channel-header .channel-title { min-width: 0; }
     .channel-header .header-actions { gap: 4px; flex: 0 0 auto; }
@@ -3195,10 +3204,8 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     .call-invite-join:hover:not(:disabled) { background: var(--surface-3, var(--surface-2)); border-color: var(--accent-line); }
     .call-invite-join:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
     .call-invite-join:disabled { opacity: .45; cursor: default; }
-    @container (max-width: 360px) {
-      .call-invite { display: grid; grid-template-columns: 36px minmax(0, 1fr); padding: 12px; gap: 10px; }
-      .call-invite-join { grid-column: 2; justify-self: start; }
-    }
+    .main-panel[data-tight] .call-invite { display: grid; grid-template-columns: 36px minmax(0, 1fr); padding: 12px; gap: 10px; }
+    .main-panel[data-tight] .call-invite-join { grid-column: 2; justify-self: start; }
     .group-candidates { max-height: min(260px, 33dvh); overscroll-behavior: contain; scrollbar-gutter: stable; }
     .group-person { gap: 12px; padding: 10px 8px; border-radius: 9px; border-bottom: 0; min-width: 0; }
     .group-person > span:not(.avatar) { min-width: 0; }
@@ -3250,10 +3257,8 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
     .vc-shell:has(.vc-has-stage) .vc-grid { flex: 1 1 auto; }
     .vc-grid.vc-has-stage .vc-tile.vc-stage-main { flex-basis: 100%; width: 100%; max-width: none; }
     @media (hover: none) { .vc-staff-mute { opacity: 1; } }
-    @container (max-width: 700px) {
-      .channel-header #subrole-btn { width: 36px; padding: 0; }
-      .channel-header #subrole-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    }
+    .main-panel[data-narrow] .channel-header #subrole-btn { width: 36px; padding: 0; }
+    .main-panel[data-narrow] .channel-header #subrole-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     @media (max-width: 780px) {
       .channel-header { padding-inline: 12px; gap: 6px; }
       .channel-header #subrole-btn { width: 36px; padding: 0; }
@@ -3338,7 +3343,9 @@ html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .timeline-wra
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .composer-zone,
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] > .chat-background-stage { display: none; }
 html[data-layout="tabs"] .main-panel[data-workspace-home="true"] #channel-settings-btn { display: none; }
-html[data-layout="tabs"] .app-shell:has(.main-panel[data-workspace-home="true"]) :is(#search-btn, #pins-btn, #dm-block-btn, #group-details-btn) { display: none; }
+/* A root flag, not .app-shell:has(…): that selector re-scanned the whole app
+   on every header restyle and was 90% of selector time while typing. */
+html[data-layout="tabs"][data-workspace-home="true"] :is(#search-btn, #pins-btn, #dm-block-btn, #group-details-btn) { display: none; }
 .workspace-home-inner { width: 100%; max-width: 1060px; margin: auto; }
 .workspace-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; margin-bottom: 18px; }
 .workspace-card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 16px; min-width: 0; }
@@ -7093,6 +7100,7 @@ void main() {
       tab.view = { ...view };
       workspaceActive = tab.key;
       $('main-content').dataset.workspaceHome = 'false';
+      document.documentElement.dataset.workspaceHome = 'false';
       $('workspace-home').hidden = true;
       renderWorkspaceTabs();
     }
@@ -7113,6 +7121,7 @@ void main() {
       $('message-input').value = '';
       hideNewBadge();
       $('main-content').dataset.workspaceHome = 'true';
+      document.documentElement.dataset.workspaceHome = 'true';
       $('workspace-home').hidden = false;
       $('channel-icon').innerHTML = WORKSPACE_HOME_ICON;
       $('channel-title').textContent = 'Home';
@@ -7792,18 +7801,37 @@ void main() {
       const at = phase * 8, i = Math.min(7, Math.floor(at));
       return ['--name-mix', `${Math.round(NAME_FADE_STOPS[i] + (NAME_FADE_STOPS[i + 1] - NAME_FADE_STOPS[i]) * (at - i))}%`];
     }
+    // Live collections: a tick walks only the animated names, instead of a
+    // whole-document selector search 20 times a second (the largest script
+    // cost while scrolling or typing, even with no animated names on screen).
+    const fadeNameEls = document.getElementsByClassName('name-effect-fade');
+    const shiftNameEls = document.getElementsByClassName('name-effect-shift');
+    const NAME_EFFECT_IDLE_MS = 1000;
     function tickNameEffects(now = performance.now()) {
-      const visible = ringVisibilityController ? '[data-media-visible="true"]' : '';
-      qsa(`.display-name.name-effect-fade${visible}:not([data-scroll-paused]), .display-name.name-effect-shift${visible}:not([data-scroll-paused])`).forEach(el => {
-        const [property, value] = nameEffectValues(el, now);
-        if (el.style.getPropertyValue(property) !== value) el.style.setProperty(property, value);
-      });
+      // Names everywhere hold still while the timeline scrolls.
+      if (document.documentElement.hasAttribute('data-scrolling')) return fadeNameEls.length + shiftNameEls.length;
+      let animated = 0;
+      const tracked = !!ringVisibilityController;
+      for (const list of [fadeNameEls, shiftNameEls]) {
+        for (let i = 0; i < list.length; i++) {
+          const el = list[i];
+          if (!el.classList.contains('display-name')) continue;
+          animated++;
+          if (el.hasAttribute('data-scroll-paused') || (tracked && el.getAttribute('data-media-visible') !== 'true')) continue;
+          const [property, value] = nameEffectValues(el, now);
+          if (el.style.getPropertyValue(property) !== value) el.style.setProperty(property, value);
+        }
+      }
+      return animated;
     }
     // Ticks land on the same 50 ms timeline grid as stepped rings, so a ring
-    // step and a name change share one redraw instead of two.
-    function scheduleNameEffects() {
-      nameEffectTimer = setTimeout(() => { tickNameEffects(); scheduleNameEffects(); },
-        NAME_EFFECT_TICK_MS - (performance.now() % NAME_EFFECT_TICK_MS) + 1);
+    // step and a name change share one redraw instead of two. With no animated
+    // names anywhere, check again once a second.
+    function scheduleNameEffects(delay = NAME_EFFECT_TICK_MS - (performance.now() % NAME_EFFECT_TICK_MS) + 1) {
+      nameEffectTimer = setTimeout(() => {
+        const animated = tickNameEffects();
+        scheduleNameEffects(animated ? undefined : NAME_EFFECT_IDLE_MS);
+      }, delay);
     }
     function syncNameEffects() {
       const run = !document.hidden && !nameMotionQuery?.matches;
@@ -8045,7 +8073,25 @@ void main() {
 
     function getDevConfig() { return LS.get('lc_dev_cfg', null); }
 
+    // Width breakpoints for the conversation column (formerly @container rules).
+    // Attributes change only when a threshold is crossed.
+    let mainPanelWidthWatched = false;
+    function watchMainPanelWidth() {
+      const panel = $('main-content');
+      if (mainPanelWidthWatched || !panel) return;
+      mainPanelWidthWatched = true;
+      const apply = width => {
+        panel.toggleAttribute('data-narrow', width <= 700);
+        panel.toggleAttribute('data-tight', width <= 360);
+      };
+      apply(panel.clientWidth);
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(entries => apply(entries[entries.length - 1].contentRect.width)).observe(panel);
+      }
+    }
+
     function finishStartup() {
+      watchMainPanelWidth();
       const startup = $('startup-screen');
       if (startup) startup.hidden = true;
       if (isEmbedded) {
@@ -12430,7 +12476,8 @@ void main() {
 
     async function loadVoiceServerMutes({ periodic = false } = {}) {
       if (!sb || !me) return false;
-      if (periodic && Date.now() - voice.mutePollAt < (voice.muteChannel?.state === 'joined' ? 300000 : 12000)) return true;
+      const muteLive = realtimeMode === 'broadcast' ? realtimeHealthy() : voice.muteChannel?.state === 'joined';
+      if (periodic && Date.now() - voice.mutePollAt < (muteLive ? 300000 : 12000)) return true;
       if (voice.muteLoad) return voice.muteLoad;
       voice.muteLoad = readVoiceServerMutes().finally(() => { voice.muteLoad = null; });
       return voice.muteLoad;
@@ -13731,7 +13778,10 @@ void main() {
 
     async function watchVoiceMuteTable() {
       const ready = await loadVoiceServerMutes();
-      if (!ready || voice.muteChannel || !sb || !me) return;
+      if (!ready || !sb || !me) return;
+      // The shared chat:live topic already carries mute changes.
+      voice.muteWatch = true;
+      if (realtimeMode === 'broadcast' || voice.muteChannel) return;
       voice.muteChannel = sb.channel(`voice-mutes-${me.username}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_server_mutes' }, () => loadVoiceServerMutes())
         .subscribe(status => {
@@ -13972,43 +14022,95 @@ void main() {
       }, REALTIME_STABLE_MS);
     }
 
+    // Chat 6.1: the database sends each change once to a private topic
+    // (20261111000000_chat_broadcast_changes.sql): chat:live for rows every
+    // member may read, chat:user:<name> for DMs, groups, invites, read cursors
+    // and owner- or follower-only posts. Realtime then authorizes each join
+    // instead of evaluating row security for every change and listener. Until
+    // that migration is applied, joining is refused and Chat falls back to the
+    // previous postgres_changes listeners.
+    const LIVE_TOPIC = 'chat:live';
+    let realtimeMode = 'broadcast', userChannel = null, broadcastJoinedOnce = false;
+    function realtimeChangeHandlers() {
+      return {
+        messages: handleMessageChange,
+        dm_messages: handleDmChange,
+        dm_reads: handleDmReadCursor,
+        dms: payload => {
+          if (voice.roomId && (payload.new?.id || payload.old?.id) === voice.roomId) checkPrivateVoiceAccess();
+          queueConversationRefresh();
+        },
+        chat_group_invites: () => queueConversationRefresh(),
+        profiles: onProfileRealtime,
+        chat_subroles: () => reloadSubroleCatalog(),
+        app_settings: handleSettingsChange,
+        channels: handleChannelChange,
+        forum_threads: handleForumThreadChange,
+        follows: handleFollowChange,
+        polls: handlePollChange,
+        public_stickers: handleStickerChange,
+      };
+    }
+    // Broadcast payloads use the postgres_changes shape the handlers expect.
+    function broadcastChange(payload) {
+      return { eventType: payload?.op, new: payload?.new || null, old: payload?.old || {} };
+    }
+    function onDataChannelStatus(gen) {
+      return (status, error) => {
+        if (gen !== realtimeGen) return;
+        if (status === 'SUBSCRIBED') {
+          if (realtimeMode === 'broadcast') broadcastJoinedOnce = true;
+          realtimeReadyOnce = true;
+          if (realtimeHealthy()) updateConnection('connected');
+          noteRealtimeJoined();
+          reconcileAfterSubscribe();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Topics not authorized yet (migration not applied): use the old listeners.
+          if (realtimeMode === 'broadcast' && !broadcastJoinedOnce && status === 'CHANNEL_ERROR'
+              && /unauthori|permission|not allowed|denied/i.test(String(error?.message || error || ''))) {
+            realtimeMode = 'legacy';
+            logChatWarning('realtime-broadcast-unavailable', error);
+            realtimeRecoverAttempt = 0;
+            void recoverRealtime();
+            return;
+          }
+          // A later rejoin must cover the gap from here.
+          realtimeAttemptAt = Date.now();
+          if (!realtimeReadyOnce) return;
+          updateConnection('error');
+          scheduleRealtimeRecover();
+        }
+      };
+    }
+    function setupDataChannels(gen) {
+      const handlers = realtimeChangeHandlers();
+      if (realtimeMode === 'broadcast') {
+        const bind = channel => {
+          for (const [event, handler] of Object.entries(handlers)) {
+            channel.on('broadcast', { event }, ({ payload }) => handler(broadcastChange(payload)));
+          }
+          channel.on('broadcast', { event: 'voice_server_mutes' }, () => { if (voice.muteWatch) loadVoiceServerMutes(); });
+          return channel;
+        };
+        dbChannel = bind(sb.channel(LIVE_TOPIC, { config: { private: true } })).subscribe(onDataChannelStatus(gen));
+        userChannel = bind(sb.channel(`chat:user:${me.username}`, { config: { private: true } })).subscribe(onDataChannelStatus(gen));
+        return;
+      }
+      userChannel = null;
+      let channel = sb.channel(`db-changes-${gen}`);
+      for (const [table, handler] of Object.entries(handlers)) {
+        const filter = table === 'dm_reads' ? { filter: `username=eq.${me.username}` } : {};
+        channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, ...filter }, handler);
+      }
+      dbChannel = channel.subscribe(onDataChannelStatus(gen));
+    }
+
     function setupRealtime() {
       const gen = realtimeGen;
       realtimeAttemptAt = Date.now();
       updateConnection('connecting');
       wirePresenceLifecycle();
-      dbChannel = sb.channel(`db-changes-${gen}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, handleMessageChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, handleDmChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_reads', filter: `username=eq.${me.username}` }, handleDmReadCursor)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'dms' }, payload => {
-          if (voice.roomId && (payload.new?.id || payload.old?.id) === voice.roomId) checkPrivateVoiceAccess();
-          queueConversationRefresh();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_group_invites' }, () => queueConversationRefresh())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onProfileRealtime)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_subroles' }, () => reloadSubroleCatalog())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, handleSettingsChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'channels' }, handleChannelChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_threads' }, handleForumThreadChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleFollowChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, handlePollChange)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'public_stickers' }, handleStickerChange)
-        .subscribe((status) => {
-          if (gen !== realtimeGen) return;
-          if (status === 'SUBSCRIBED') {
-            realtimeReadyOnce = true;
-            updateConnection('connected');
-            noteRealtimeJoined();
-            reconcileAfterSubscribe();
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            // A later rejoin must cover the gap from here.
-            realtimeAttemptAt = Date.now();
-            if (!realtimeReadyOnce) return;
-            updateConnection('error');
-            scheduleRealtimeRecover();
-          }
-        });
+      setupDataChannels(gen);
       // Keep the existing topic so broadcasts reach older clients during rollout.
       eventsChannel = sb.channel('liminal-presence')
         .on('broadcast', { event: 'typing' }, ({ payload }) => onTypingBroadcast(payload))
@@ -14021,6 +14123,7 @@ void main() {
           if (status === 'SUBSCRIBED') {
             realtimeReadyOnce = true;
             eventsChannelLive = true;
+            if (realtimeHealthy()) updateConnection('connected');
             noteRealtimeJoined();
           } else if (realtimeReadyOnce && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
             eventsChannelLive = false;
@@ -14245,6 +14348,7 @@ void main() {
       try {
         if (!sb || !sb.realtime || !sb.realtime.isConnected()) return false;
         if (!dbChannel || dbChannel.state !== 'joined') return false;
+        if (realtimeMode === 'broadcast' && (!userChannel || userChannel.state !== 'joined')) return false;
         if (!eventsChannel || eventsChannel.state !== 'joined' || !eventsChannelLive) return false;
         return true;
       } catch { return false; }
@@ -14301,12 +14405,14 @@ void main() {
       updateConnection('connecting');
       try {
         if (!await refreshSessionQuiet()) { updateConnection('error'); return; }
-        const oldDb = dbChannel;
+        const oldDb = dbChannel, oldUser = userChannel;
         const oldEvents = eventsChannel;
         stopLivePresence();
         dbChannel = null;
+        userChannel = null;
         eventsChannel = null;
         if (oldDb) { try { await sb.removeChannel(oldDb); } catch {} }
+        if (oldUser) { try { await sb.removeChannel(oldUser); } catch {} }
         if (oldEvents) { try { await sb.removeChannel(oldEvents); } catch {} }
         if (gen !== realtimeGen || presenceStopped || presenceLeft) return;
         setupRealtime();
@@ -19918,6 +20024,7 @@ void main() {
               // those few elements avoid restyling the rest of the timeline.
               timelineElRef.classList.add('is-scrolling');
               timelineInnerRef.setAttribute('data-scrolling', '');
+              document.documentElement.setAttribute('data-scrolling', '');
               scrollPausedNames = qsa('.display-name.name-effect-fade[data-media-visible="true"], .display-name.name-effect-shift[data-media-visible="true"]', timelineElRef);
               scrollPausedNames.forEach(el => el.setAttribute('data-scroll-paused', ''));
             }
@@ -19925,6 +20032,7 @@ void main() {
             scrollSettle = setTimeout(() => {
               timelineElRef.classList.remove('is-scrolling');
               timelineInnerRef.removeAttribute('data-scrolling');
+              document.documentElement.removeAttribute('data-scrolling');
               (scrollPausedNames || []).forEach(el => el.removeAttribute('data-scroll-paused'));
               scrollPausedNames = null;
             }, 150);

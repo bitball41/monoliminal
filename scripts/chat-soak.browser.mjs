@@ -109,7 +109,7 @@ await page.evaluate(({assetCount,busy})=>{
  settings.theme='midnight';LS.set('lc_seen_whats_new','');LS.set('lc_background:member_0','off');
  init();
 },{assetCount:assets.length,busy});
-await page.waitForFunction(()=>!document.getElementById('app-shell').hidden&&typeof pendingTimers!=='undefined'&&pendingTimers.length===6,{timeout:30000});
+await page.waitForFunction(()=>!document.getElementById('app-shell').hidden&&typeof pendingTimers!=='undefined'&&pendingTimers.length===5,{timeout:30000});
 await page.evaluate(()=>chooseChatBackground('off',false));
 await page.evaluate(busy=>{
  let i=100000;const g=window.__soak.gen,bump=k=>{g[k]=(g[k]||0)+1};

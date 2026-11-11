@@ -23,7 +23,7 @@ test('private call checks are bounded, explicit changes check immediately, and s
 test('mute subscription avoids repeated table reads, with a short fallback and request coalescing',async()=>{
  let now=1_000_000,calls=0,release;
  const voice={mutePollAt:0,muteLoad:null,muteChannel:{state:'joined'},serverMutes:new Map()};
- const c=vm.createContext({Date:{now:()=>now},voice,me:{},applyVoiceServerMutes(){},sb:{from:()=>({select:async()=>{calls++;return {data:[]};}})}});
+ const c=vm.createContext({Date:{now:()=>now},voice,me:{},realtimeMode:'legacy',applyVoiceServerMutes(){},sb:{from:()=>({select:async()=>{calls++;return {data:[]};}})}});
  vm.runInContext(section('    async function loadVoiceServerMutes(', '    function applyVoiceServerMutes('),c);
  for(let tick=0;tick<150;tick++){await c.loadVoiceServerMutes({periodic:true});now+=4000;}
  assert.equal(calls,2);

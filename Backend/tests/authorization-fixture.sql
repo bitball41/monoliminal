@@ -27,6 +27,16 @@ ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 CREATE FUNCTION realtime.topic() RETURNS text LANGUAGE sql STABLE AS $$
   SELECT nullif(current_setting('realtime.topic',true),'')::text
 $$;
+-- Same contract as Supabase's realtime.send: never raises, records the broadcast.
+CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
+LANGUAGE plpgsql AS $$
+BEGIN
+  BEGIN
+    INSERT INTO realtime.messages(payload,event,topic,private,extension) VALUES(payload,event,topic,private,'broadcast');
+  EXCEPTION WHEN OTHERS THEN RAISE WARNING 'WarnSendingBroadcastMessage: %', SQLERRM;
+  END;
+END;
+$$;
 GRANT USAGE ON SCHEMA realtime TO anon,authenticated,service_role;
 GRANT SELECT,INSERT,UPDATE ON realtime.messages TO anon,authenticated,service_role;
 

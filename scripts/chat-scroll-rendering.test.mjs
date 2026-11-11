@@ -16,9 +16,13 @@ test('timeline scroll state never restyles every message', () => {
       || /\.timeline-inner\[data-scrolling\][\s>+~]/.test(selector));
   assert.deepEqual(offenders, []);
   assert.match(css, /\.timeline-inner\[data-scrolling\]\s*\{\s*pointer-events:\s*none;\s*\}/);
-  // Names are moved by the shared clock, which skips scroll-paused names.
+  // Names are moved by the shared clock, which skips scroll-paused names and
+  // holds every name while the timeline scrolls.
   const clock = chat.slice(chat.indexOf('function tickNameEffects('), chat.indexOf('function syncNameEffects('));
-  assert.equal((clock.match(/:not\(\[data-scroll-paused\]\)/g) || []).length, 2);
+  assert.match(clock, /el\.hasAttribute\('data-scroll-paused'\)/);
+  assert.match(clock, /document\.documentElement\.hasAttribute\('data-scrolling'\)/);
+  // Rings hold too, keyed on the root flag, which restyles only ring pseudo-elements.
+  assert.match(css, /html\[data-ring-visibility\]\[data-scrolling\] \.avatar\.has-ring\.ring-anim\[data-ring-visible="true"\]::before\s*\{\s*animation-play-state:\s*paused;/);
 });
 
 test('scroll frames pause only visible animated names and restore them on settle', () => {
