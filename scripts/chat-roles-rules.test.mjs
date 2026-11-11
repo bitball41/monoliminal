@@ -54,7 +54,9 @@ test('the owner creates a role, places it, and its permissions follow its level'
     await assert.rejects(call('coowner', "select public.chat_save_staff_role(null,'Helper','#22c55e',2)"), /Insufficient staff permission/);
     const senior = (await call('owner', "select public.chat_save_staff_role(null,'Senior Mod','#22C55E',2) r"))[0].r;
     assert.equal(senior.tier, 2); assert.equal(senior.color, '#22c55e');
-    assert(senior.power > 250 && senior.power <= 299, 'new roles start at the top of their level');
+    const ladder = async () => (await db.query("select slug from public.chat_staff_roles where slug not in ('member','owner','preston') order by power desc, slug")).rows.map(r => r.slug);
+    const before = await ladder();
+    assert.equal(before.indexOf(senior.slug), before.indexOf('mod') - 1, 'a new role starts just above the highest role with the same powers');
     await assert.rejects(call('owner', "select public.chat_save_staff_role(null,'Boss','#000000',6)"), /Choose Mod, Manager, Admin or Co-owner/);
     await assert.rejects(call('owner', "select public.chat_save_staff_role(null,'senior mod',null,2)"), /already exists/);
 
@@ -71,14 +73,23 @@ test('the owner creates a role, places it, and its permissions follow its level'
     await assert.rejects(call('bob', 'select public.chat_staff_timeout_user($1,$2,$3,10)', ['bob', '', 'alice']), /below your rank/);
 
     // Reordering puts Mod above Senior Mod: the direction of authority flips.
-    const order = (await db.query('select slug from public.chat_staff_roles where tier between 2 and 5 order by power desc, slug')).rows.map(r => r.slug);
-    const moved = order.filter(s => s !== senior.slug); moved.splice(moved.indexOf('mod') + 1, 0, senior.slug);
+    const moved = (await ladder()).filter(x => x !== senior.slug); moved.splice(moved.indexOf('mod') + 1, 0, senior.slug);
     await call('owner', 'select public.chat_reorder_staff_roles($1)', [moved]);
     await call('bob', 'select public.chat_staff_timeout_user($1,$2,$3,10)', ['bob', '', 'alice']);
     await assert.rejects(call('alice', 'select public.chat_staff_timeout_user($1,$2,$3,10)', ['alice', '', 'bob']), /below your rank/);
-    const bad = [...moved]; bad.splice(bad.indexOf('co_owner'), 1); bad.push('co_owner');
-    await assert.rejects(call('owner', 'select public.chat_reorder_staff_roles($1)', [bad]), /Keep higher permission levels above/);
     await assert.rejects(call('owner', 'select public.chat_reorder_staff_roles($1)', [moved.slice(1)]), /every staff role exactly once/);
+
+    // New tiers anywhere: a role with Mod powers placed above Co-owner acts on
+    // co-owners, but still has only Mod powers (no bans, two-hour time-outs).
+    const crossed = moved.filter(x => x !== senior.slug); crossed.unshift(senior.slug);
+    await call('owner', 'select public.chat_reorder_staff_roles($1)', [crossed]);
+    await call('alice', 'select public.chat_staff_timeout_user($1,$2,$3,30)', ['alice', '', 'coowner']);
+    await assert.rejects(call('alice', "select public.chat_ban_user($1,$2,$3,'x')", ['alice', '', 'coowner']), /Insufficient staff permission/);
+    await assert.rejects(call('coowner', 'select public.chat_set_staff_role($1,$2,$3,$4)', ['coowner', '', 'alice', 'member']), /below your rank/,
+      'a co-owner cannot change a role placed above them');
+    await call('owner', 'select public.chat_reorder_staff_roles($1)', [moved]);
+    const ties = (await db.query("select count(distinct power)::int n from public.chat_staff_roles where slug in ('admin','dusty','super_mega_tuff_admin')")).rows[0].n;
+    assert.equal(ties, 1, 'reordering keeps the three admin roles tied while they stay together');
 
     // An admin-level custom role is an admin: legacy flag on, no bans.
     const warden = (await call('owner', "select public.chat_save_staff_role(null,'Warden',null,4) r"))[0].r;
@@ -88,14 +99,16 @@ test('the owner creates a role, places it, and its permissions follow its level'
     await db.query("select set_config('request.jwt.claim.sub',(select user_id::text from public.profiles where username='carol'),false)");
     assert.equal((await db.query('select private.liminal_drive_rank() r')).rows[0].r, 3, 'Drive treats it as admin level');
 
-    // Changing a custom role's level updates its holders' flags.
+    // Changing a custom role's powers keeps its place and updates its holders' flags.
+    const place = (await db.query('select power from public.chat_staff_roles where slug=$1', [warden.slug])).rows[0].power;
     await call('owner', "select public.chat_save_staff_role($1,'Warden',null,3)", [warden.slug]);
+    assert.equal((await db.query('select power from public.chat_staff_roles where slug=$1', [warden.slug])).rows[0].power, place);
     assert.equal((await role('carol')).is_admin, false);
     await call('carol', "select public.chat_ban_user($1,$2,$3,'spam')", ['carol', '', 'bob']);
 
     // Built-ins can be renamed but keep their level; deleting a custom role demotes its holders.
     await call('owner', "select public.chat_save_staff_role('mod','Moderator',null,null)");
-    await assert.rejects(call('owner', "select public.chat_save_staff_role('mod','Moderator',null,4)"), /keep their permission level/);
+    await assert.rejects(call('owner', "select public.chat_save_staff_role('mod','Moderator',null,4)"), /keep their powers/);
     await assert.rejects(call('owner', "select public.chat_delete_staff_role('mod')"), /cannot be deleted/);
     await call('owner', 'select public.chat_delete_staff_role($1)', [warden.slug]);
     assert.deepEqual(await role('carol'), { staff_role: 'member', is_admin: false });

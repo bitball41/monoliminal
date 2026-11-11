@@ -185,7 +185,7 @@ await page.locator('#owner-nav-roles').click();
 await capture('owner-desktop');
 // 6.1: role hierarchy editor and owner-editable rules.
 assert.equal(await page.locator('#owner-role-form').count(),1);
-assert.equal(await page.locator('.role-level').count(),4,'one section per permission level');
+assert.equal(await page.locator('.role-ladder .role-row').count(),9,'Preston, Owner, six staff roles and Member on one ladder');
 await page.locator('#owner-nav-rules').click();
 await page.waitForSelector('#owner-rules-form');
 assert.equal(await page.locator('[data-rule-row]').count(),6,'the six default rules are editable');

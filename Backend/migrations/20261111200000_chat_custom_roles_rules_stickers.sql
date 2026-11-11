@@ -1,16 +1,17 @@
 -- Chat 6.1 part 3: custom staff roles, editable rules, cloud sticker favorites.
 --
 -- Roles: staff roles move from hard-coded lists to public.chat_staff_roles.
--- Each role has a permission level (tier) and a position (power):
---   tier 1 member, 2 mod, 3 manager, 4 admin, 5 co-owner, 6 owner, 7 PRESTON.
---   power = tier * 100 + position (0-99), so a role always ranks inside its tier.
+-- Each role has powers (tier) and a place on one ladder (power), chosen
+-- independently, so the owner can add a tier anywhere below Owner:
+--   tier: 1 member, 2 mod, 3 manager, 4 admin, 5 co-owner, 6 owner, 7 PRESTON.
+--   power: Member 100, staff roles 101-599, Owner 650, PRESTON 750.
 -- Every permission threshold still compares tiers (private.chat_staff_rank),
--- exactly as before. "May act on this person" now compares power, so the owner
--- can place roles above or below each other. The built-in roles are seeded with
--- their current tiers; admin, super_mega_tuff_admin and dusty keep equal power,
--- so nothing changes until the owner creates or reorders roles. Tier-specific
--- rules keep their behaviour: admin-level roles cannot ban, mod-level timeouts
--- stop at two hours. Owner and PRESTON stay fixed and cannot be created.
+-- exactly as before. "May act on this person" compares power, so a role acts on
+-- every role below it on the ladder. Built-in roles are seeded in their current
+-- order; admin, super_mega_tuff_admin and dusty keep equal power, so nothing
+-- changes until the owner creates or moves roles. Tier rules keep their
+-- behaviour: admin-level powers cannot ban, mod-level time-outs stop at two
+-- hours. Owner and PRESTON stay fixed and cannot be created.
 --
 -- Rules: app_settings.community_rules, owner-only through
 -- chat_owner_set_app_setting, validated JSON [{title, body}].
@@ -32,16 +33,18 @@ CREATE TABLE IF NOT EXISTS public.chat_staff_roles (
   created_by text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT chat_staff_roles_power_in_tier CHECK (power BETWEEN tier * 100 AND tier * 100 + 99)
+  CONSTRAINT chat_staff_roles_ladder CHECK (
+    (slug = 'member' AND power = 100) OR (slug = 'owner' AND power = 650) OR (slug = 'preston' AND power = 750)
+    OR (slug NOT IN ('member', 'owner', 'preston') AND tier BETWEEN 2 AND 5 AND power BETWEEN 101 AND 599))
 );
 INSERT INTO public.chat_staff_roles (slug, label, badge, tier, power, builtin) VALUES
-  ('member', 'Member', '', 1, 150, true),
-  ('mod', 'Mod', 'mod', 2, 250, true),
-  ('manager', 'Manager', 'manager', 3, 350, true),
-  ('admin', 'Admin', 'admin', 4, 450, true),
-  ('super_mega_tuff_admin', 'Super Mega Tuff Admin', 'super-mega-tuff', 4, 450, true),
-  ('dusty', 'Dusty', 'super-mega-tuff', 4, 450, true),
-  ('co_owner', 'Co-owner', 'co-owner', 5, 550, true),
+  ('member', 'Member', '', 1, 100, true),
+  ('mod', 'Mod', 'mod', 2, 200, true),
+  ('manager', 'Manager', 'manager', 3, 300, true),
+  ('admin', 'Admin', 'admin', 4, 400, true),
+  ('super_mega_tuff_admin', 'Super Mega Tuff Admin', 'super-mega-tuff', 4, 400, true),
+  ('dusty', 'Dusty', 'super-mega-tuff', 4, 400, true),
+  ('co_owner', 'Co-owner', 'co-owner', 5, 500, true),
   ('owner', 'Owner', 'owner', 6, 650, true),
   ('preston', 'Preston', 'preston', 7, 750, true)
 ON CONFLICT (slug) DO NOTHING;
@@ -343,21 +346,35 @@ WITH CHECK (
 );
 
 -- ------------------------------------------------- owner role management
--- Put a role at the top of its level and shift the others down, keeping ties
--- (equal power) tied.
-CREATE OR REPLACE FUNCTION private.chat_staff_role_to_top(p_slug text, p_tier integer)
-RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
-DECLARE v_power integer := p_tier * 100 + 99;
+-- Rewrite the ladder from a complete top-to-bottom order of the staff roles
+-- (everything except Member, Owner and PRESTON). Neighbours that were tied stay
+-- tied, so the three built-in admin roles keep equal power until separated.
+CREATE OR REPLACE FUNCTION private.chat_staff_apply_ladder(p_order text[])
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_expected text[];
+  v_given text[];
+  v_slug text;
+  v_old integer;
+  v_prev_old integer;
+  v_power integer := 600;
 BEGIN
-  UPDATE public.chat_staff_roles r SET power = p_tier * 100 + 99 - x.place
-  FROM (SELECT slug, dense_rank() OVER (ORDER BY power DESC) AS place
-        FROM public.chat_staff_roles WHERE tier = p_tier AND slug <> p_slug) x
-  WHERE r.slug = x.slug;
-  UPDATE public.chat_staff_roles SET power = v_power WHERE slug = p_slug;
-  RETURN v_power;
+  PERFORM 1 FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston') FOR UPDATE;
+  SELECT array_agg(slug ORDER BY slug) INTO v_expected FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston');
+  SELECT array_agg(s ORDER BY s) INTO v_given FROM (SELECT DISTINCT lower(s) s FROM unnest(p_order) s) x;
+  IF p_order IS NULL OR v_given IS DISTINCT FROM v_expected OR cardinality(p_order) <> cardinality(v_expected) THEN
+    RAISE EXCEPTION 'Send every staff role exactly once';
+  END IF;
+  IF cardinality(p_order) > 498 THEN RAISE EXCEPTION 'Too many roles'; END IF;
+  FOREACH v_slug IN ARRAY p_order LOOP
+    SELECT power INTO v_old FROM public.chat_staff_roles WHERE slug = lower(v_slug);
+    IF v_prev_old IS NULL OR v_old IS DISTINCT FROM v_prev_old THEN v_power := v_power - 1; END IF;
+    v_prev_old := v_old;
+    UPDATE public.chat_staff_roles SET power = v_power, updated_at = now() WHERE slug = lower(v_slug);
+  END LOOP;
 END;
 $$;
-REVOKE ALL ON FUNCTION private.chat_staff_role_to_top(text, integer) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.chat_staff_apply_ladder(text[]) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.chat_save_staff_role(p_slug text, p_label text, p_color text, p_tier integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
@@ -367,6 +384,8 @@ DECLARE
   v_color text := lower(nullif(btrim(coalesce(p_color, '')), ''));
   v_slug text := lower(nullif(btrim(coalesce(p_slug, '')), ''));
   v_role public.chat_staff_roles%rowtype;
+  v_order text[];
+  v_at integer;
 BEGIN
   v_actor := private.require_chat_staff_min_rank(6);
   IF char_length(v_label) NOT BETWEEN 1 AND 32 THEN RAISE EXCEPTION 'Role names are 1 to 32 characters'; END IF;
@@ -374,7 +393,7 @@ BEGIN
 
   IF v_slug IS NULL THEN
     IF p_tier IS NULL OR p_tier NOT BETWEEN 2 AND 5 THEN
-      RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner permissions';
+      RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner powers';
     END IF;
     IF (SELECT count(*) FROM public.chat_staff_roles WHERE NOT builtin) >= 40 THEN
       RAISE EXCEPTION 'You can create up to 40 roles';
@@ -382,11 +401,18 @@ BEGIN
     IF EXISTS (SELECT 1 FROM public.chat_staff_roles WHERE lower(label) = lower(v_label)) THEN
       RAISE EXCEPTION 'A role with that name already exists';
     END IF;
-    -- New roles start at the top of their level.
     INSERT INTO public.chat_staff_roles (slug, label, color, tier, power, builtin, created_by)
-    VALUES ('r_' || substr(md5(gen_random_uuid()::text), 1, 12), v_label, v_color, p_tier, p_tier * 100, false, v_actor.username)
+    VALUES ('r_' || substr(md5(gen_random_uuid()::text), 1, 12), v_label, v_color, p_tier, 101, false, v_actor.username)
     RETURNING * INTO v_role;
-    PERFORM private.chat_staff_role_to_top(v_role.slug, p_tier);
+    -- A new role starts just above the highest role with the same powers
+    -- (or above every role with fewer powers); the owner moves it from there.
+    SELECT array_agg(slug ORDER BY power DESC, tier DESC, slug) INTO v_order
+    FROM public.chat_staff_roles WHERE slug NOT IN ('member', 'owner', 'preston', v_role.slug);
+    SELECT min(i) INTO v_at FROM unnest(coalesce(v_order, '{}')) WITH ORDINALITY u(s, i)
+    JOIN public.chat_staff_roles r ON r.slug = u.s WHERE r.tier <= p_tier;
+    v_order := CASE WHEN v_at IS NULL THEN coalesce(v_order, '{}') || v_role.slug
+      ELSE v_order[1:v_at - 1] || v_role.slug || v_order[v_at:] END;
+    PERFORM private.chat_staff_apply_ladder(v_order);
     SELECT * INTO v_role FROM public.chat_staff_roles WHERE slug = v_role.slug;
   ELSE
     SELECT * INTO v_role FROM public.chat_staff_roles WHERE slug = v_slug FOR UPDATE;
@@ -396,14 +422,15 @@ BEGIN
       RAISE EXCEPTION 'A role with that name already exists';
     END IF;
     IF p_tier IS NOT NULL AND p_tier <> v_role.tier THEN
-      IF v_role.builtin THEN RAISE EXCEPTION 'Built-in roles keep their permission level'; END IF;
-      IF p_tier NOT BETWEEN 2 AND 5 THEN RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner permissions'; END IF;
-      UPDATE public.chat_staff_roles SET tier = p_tier, power = p_tier * 100 WHERE slug = v_role.slug;
-      PERFORM private.chat_staff_role_to_top(v_role.slug, p_tier);
+      IF v_role.builtin THEN RAISE EXCEPTION 'Built-in roles keep their powers'; END IF;
+      IF p_tier NOT BETWEEN 2 AND 5 THEN RAISE EXCEPTION 'Choose Mod, Manager, Admin or Co-owner powers'; END IF;
     END IF;
-    UPDATE public.chat_staff_roles SET label = v_label, color = v_color, updated_at = now()
+    -- Changing powers keeps the role's place on the ladder.
+    UPDATE public.chat_staff_roles
+    SET label = v_label, color = v_color,
+        tier = CASE WHEN v_role.builtin OR p_tier IS NULL THEN v_role.tier ELSE p_tier END, updated_at = now()
     WHERE slug = v_role.slug RETURNING * INTO v_role;
-    -- Legacy admin flags follow the new level.
+    -- Legacy admin flags follow the new powers.
     UPDATE public.profiles SET staff_role = staff_role WHERE staff_role = v_role.slug;
   END IF;
 
@@ -414,32 +441,14 @@ BEGIN
 END;
 $$;
 
--- Order every mod..co-owner role, highest first. Levels must stay grouped and
--- descending; positions inside each level follow the given order.
+-- Place every staff role on the ladder, highest first. Any order is allowed:
+-- a role acts on everyone below it, and its powers decide what it can do.
 CREATE OR REPLACE FUNCTION public.chat_reorder_staff_roles(p_slugs text[])
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
-DECLARE
-  v_actor public.profiles%rowtype;
-  v_expected text[];
-  v_tier integer;
-  v_prev integer := 99;
-  v_index integer := 0;
-  v_slug text;
+DECLARE v_actor public.profiles%rowtype;
 BEGIN
   v_actor := private.require_chat_staff_min_rank(6);
-  PERFORM 1 FROM public.chat_staff_roles WHERE tier BETWEEN 2 AND 5 FOR UPDATE;
-  SELECT array_agg(slug ORDER BY slug) INTO v_expected FROM public.chat_staff_roles WHERE tier BETWEEN 2 AND 5;
-  IF p_slugs IS NULL OR (SELECT array_agg(s ORDER BY s) FROM (SELECT DISTINCT lower(s) s FROM unnest(p_slugs) s) x) IS DISTINCT FROM v_expected
-     OR cardinality(p_slugs) <> cardinality(v_expected) THEN
-    RAISE EXCEPTION 'Send every staff role exactly once';
-  END IF;
-  FOREACH v_slug IN ARRAY p_slugs LOOP
-    SELECT tier INTO v_tier FROM public.chat_staff_roles WHERE slug = lower(v_slug);
-    IF v_tier > v_prev THEN RAISE EXCEPTION 'Keep higher permission levels above lower ones'; END IF;
-    IF v_tier < v_prev THEN v_index := 0; v_prev := v_tier; END IF;
-    UPDATE public.chat_staff_roles SET power = v_tier * 100 + 99 - v_index, updated_at = now() WHERE slug = lower(v_slug);
-    v_index := v_index + 1;
-  END LOOP;
+  PERFORM private.chat_staff_apply_ladder(p_slugs);
   INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
   VALUES (v_actor.username, 'staff_roles_reordered', 'roles', jsonb_build_object('order', to_jsonb(p_slugs)));
   RETURN true;

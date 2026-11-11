@@ -1012,8 +1012,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .role-check svg { width: 0.7em; height: 0.7em; display: block; }
     .role-check.mod { background: #22c55e; }
     .role-check.custom { background: var(--role-color, var(--accent-strong)); }
-    .role-level h4 { margin: 16px 0 2px; color: var(--muted); font: 800 .64rem var(--font-ui); letter-spacing: .09em; text-transform: uppercase; }
-    .role-level .field-help { margin: 0 0 6px; }
+    .role-ladder { margin-top: 10px; }
+    .role-row.is-fixed { opacity: .7; }
+    .role-note { color: var(--warning); }
     .role-row-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
     .role-row-actions .icon-button { width: 32px; height: 32px; }
     .role-row-actions .danger-text { color: var(--danger); }
@@ -7089,13 +7090,13 @@ void main() {
     // permission level (tier), power the position used for "may act on". These
     // built-ins are the fallback until the catalog loads; the server enforces.
     const BUILTIN_STAFF_ROLES = {
-      member:  { rank: 1, power: 150, label: 'Member',  check: '' },
-      mod:     { rank: 2, power: 250, label: 'Mod',     check: 'mod' },
-      manager: { rank: 3, power: 350, label: 'Manager', check: 'manager' },
-      admin:   { rank: 4, power: 450, label: 'Admin',   check: 'admin' },
-      super_mega_tuff_admin: { rank: 4, power: 450, label: 'Super Mega Tuff Admin', check: 'super-mega-tuff' },
-      dusty: { rank: 4, power: 450, label: 'Dusty', check: 'super-mega-tuff' },
-      co_owner:{ rank: 5, power: 550, label: 'Co-owner', check: 'co-owner' },
+      member:  { rank: 1, power: 100, label: 'Member',  check: '' },
+      mod:     { rank: 2, power: 200, label: 'Mod',     check: 'mod' },
+      manager: { rank: 3, power: 300, label: 'Manager', check: 'manager' },
+      admin:   { rank: 4, power: 400, label: 'Admin',   check: 'admin' },
+      super_mega_tuff_admin: { rank: 4, power: 400, label: 'Super Mega Tuff Admin', check: 'super-mega-tuff' },
+      dusty: { rank: 4, power: 400, label: 'Dusty', check: 'super-mega-tuff' },
+      co_owner:{ rank: 5, power: 500, label: 'Co-owner', check: 'co-owner' },
       owner:   { rank: 6, power: 650, label: 'Owner',   check: 'owner' },
       preston: { rank: 7, power: 750, label: 'Preston', check: 'preston' },
     };
@@ -16869,37 +16870,46 @@ void main() {
       4: 'Admin: channels, filters, stickers and account deletion; no bans',
       5: 'Co-owner: everything above, plus bans and assigning roles below them',
     };
+    // The ladder: every staff role except Member, Owner and PRESTON, highest first.
     function staffRoleOrder() {
-      return Object.entries(STAFF_ROLE_META).filter(([, meta]) => meta.rank >= 2 && meta.rank <= 5)
-        .sort(([sa, a], [sb, b]) => b.rank - a.rank || b.power - a.power || sa.localeCompare(sb)).map(([slug]) => slug);
+      return Object.entries(STAFF_ROLE_META).filter(([slug]) => !['member', 'owner', 'preston'].includes(slug))
+        .sort(([sa, a], [sb, b]) => b.power - a.power || b.rank - a.rank || sa.localeCompare(sb)).map(([slug]) => slug);
+    }
+    function roleBadgePreview(meta) {
+      return meta.check ? `<span class="role-check ${meta.check}"${meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : ''} aria-hidden="true">${ROLE_CHECK_SVG}</span>` : '';
     }
     function roleHierarchyHtml() {
       const holders = new Map();
       profiles.forEach(p => { if (!isHiddenBot(p.username)) holders.set(staffRoleOf(p), (holders.get(staffRoleOf(p)) || 0) + 1); });
       const order = staffRoleOrder();
-      const levels = [5, 4, 3, 2].map(level => {
-        const slugs = order.filter(slug => STAFF_ROLE_META[slug].rank === level);
-        const rows = slugs.map((slug, i) => {
-          const meta = STAFF_ROLE_META[slug], count = holders.get(slug) || 0;
-          const badge = meta.check ? `<span class="role-check ${meta.check}"${meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : ''} aria-hidden="true">${ROLE_CHECK_SVG}</span>` : '';
-          return `<div class="admin-list-item role-row">
-            <div class="grow"><strong>${esc(meta.label)}</strong>${badge}<div class="sub">${count} ${count === 1 ? 'person' : 'people'} · ${meta.builtin ? 'Built-in' : 'Custom'}</div></div>
-            <div class="role-row-actions">
-              <button class="icon-button" type="button" data-role-move="-1" data-role="${esc(slug)}" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} up">↑</button>
-              <button class="icon-button" type="button" data-role-move="1" data-role="${esc(slug)}" ${i === slugs.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} down">↓</button>
-              <button class="secondary-button" type="button" data-role-edit="${esc(slug)}">Edit</button>
-              ${meta.builtin ? '' : `<button class="secondary-button danger-text" type="button" data-role-delete="${esc(slug)}">Delete</button>`}
-            </div>
-          </div>`;
-        }).join('');
-        return `<section class="role-level"><h4>${STAFF_LEVELS[level]} level</h4><p class="field-help">${esc(STAFF_LEVEL_HELP[level])}</p><div class="admin-list">${rows || '<p class="console-empty">No roles at this level.</p>'}</div></section>`;
+      const fixed = slug => {
+        const meta = STAFF_ROLE_META[slug];
+        return `<div class="admin-list-item role-row is-fixed"><div class="grow"><strong>${esc(meta.label)}</strong>${roleBadgePreview(meta)}<div class="sub">${holders.get(slug) || 0} ${(holders.get(slug) || 0) === 1 ? 'person' : 'people'} · fixed</div></div></div>`;
+      };
+      const rows = order.map((slug, i) => {
+        const meta = STAFF_ROLE_META[slug], count = holders.get(slug) || 0;
+        const tiedAbove = i > 0 && STAFF_ROLE_META[order[i - 1]].power === meta.power;
+        const overStronger = order.slice(i + 1).some(other => STAFF_ROLE_META[other].rank > meta.rank && STAFF_ROLE_META[other].power < meta.power);
+        return `<div class="admin-list-item role-row">
+          <div class="grow"><strong>${esc(meta.label)}</strong>${roleBadgePreview(meta)}
+            <div class="sub">${esc(STAFF_LEVELS[meta.rank] || 'Member')} powers · ${count} ${count === 1 ? 'person' : 'people'}${meta.builtin ? ' · built-in' : ''}${tiedAbove ? ' · same rank as above' : ''}</div>
+            ${overStronger ? '<div class="sub role-note">Placed above roles with more powers: it can act on them, but keeps its own powers.</div>' : ''}</div>
+          <div class="role-row-actions">
+            <button class="icon-button" type="button" data-role-move="-1" data-role="${esc(slug)}" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} up">↑</button>
+            <button class="icon-button" type="button" data-role-move="1" data-role="${esc(slug)}" ${i === order.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} down">↓</button>
+            <button class="secondary-button" type="button" data-role-edit="${esc(slug)}">Edit</button>
+            ${meta.builtin ? '' : `<button class="secondary-button danger-text" type="button" data-role-delete="${esc(slug)}">Delete</button>`}
+          </div>
+        </div>`;
       }).join('');
-      return `<p class="field-help">Higher roles can act on lower ones, also inside a level. Owner and PRESTON stay at the top.</p>${levels}
+      return `<p class="field-help">The ladder decides who can act on whom: each role can moderate everyone below it. Powers decide what a role can do. Add a role anywhere to create a new tier, for example between Admin and Co-owner, or above Co-owner.</p>
+        <div class="admin-list role-ladder">${fixed('preston')}${fixed('owner')}${rows}${fixed('member')}</div>
         <form id="owner-role-form" class="role-form">
           <input type="hidden" id="owner-role-slug">
           <div class="field"><label for="owner-role-name">Role name</label><input id="owner-role-name" maxlength="32" required autocomplete="off"></div>
           <div class="field"><label for="owner-role-color">Badge colour</label><input id="owner-role-color" type="color" value="#a855f7"></div>
-          <div class="field"><label for="owner-role-tier">Permission level</label><select id="owner-role-tier">${[2, 3, 4, 5].map(level => `<option value="${level}">${esc(STAFF_LEVEL_HELP[level])}</option>`).join('')}</select></div>
+          <div class="field"><label for="owner-role-tier">Powers</label><select id="owner-role-tier">${[2, 3, 4, 5].map(level => `<option value="${level}">${esc(STAFF_LEVEL_HELP[level])}</option>`).join('')}</select>
+            <p class="field-help">A new role starts just above the highest role with the same powers. Move it with the arrows.</p></div>
           <div class="role-form-actions"><button class="primary-button" type="submit" id="owner-role-save">Create role</button><button class="secondary-button" type="button" id="owner-role-cancel" hidden>Cancel</button></div>
         </form>`;
     }
@@ -17008,7 +17018,7 @@ void main() {
       }));
       qsa('[data-role-move]', el).forEach(button => button.addEventListener('click', async () => {
         const order = staffRoleOrder(), from = order.indexOf(button.dataset.role), to = from + Number(button.dataset.roleMove);
-        if (from < 0 || !order[to] || STAFF_ROLE_META[order[to]].rank !== STAFF_ROLE_META[order[from]].rank) return;
+        if (from < 0 || !order[to]) return;
         [order[from], order[to]] = [order[to], order[from]];
         qsa('[data-role-move]', el).forEach(item => { item.disabled = true; });
         try {
