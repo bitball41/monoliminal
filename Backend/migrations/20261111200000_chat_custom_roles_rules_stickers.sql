@@ -583,6 +583,52 @@ begin
 end;
 $function$;
 
+-- --------------------------------------------------------- profile extras
+-- One validated JSON object per profile: pronouns, birthday (month and day,
+-- never a year), up to three https links, an opt-in time zone for showing local
+-- time, and a profile accent colour. Readable like every profile field;
+-- editable only through the account's own profile update (RLS + column grant).
+CREATE OR REPLACE FUNCTION private.chat_profile_extras_valid(p jsonb)
+RETURNS boolean LANGUAGE plpgsql IMMUTABLE SET search_path = '' AS $$
+DECLARE k text; v_link jsonb; v_m integer; v_d integer;
+BEGIN
+  IF p IS NULL OR jsonb_typeof(p) <> 'object' OR octet_length(p::text) > 4000 THEN RETURN false; END IF;
+  FOR k IN SELECT jsonb_object_keys(p) LOOP
+    IF k NOT IN ('pronouns', 'birthday', 'links', 'timezone', 'show_time', 'accent') THEN RETURN false; END IF;
+  END LOOP;
+  IF p ? 'pronouns' AND (jsonb_typeof(p->'pronouns') <> 'string' OR char_length(p->>'pronouns') > 24) THEN RETURN false; END IF;
+  IF p ? 'birthday' THEN
+    IF jsonb_typeof(p->'birthday') <> 'object' OR (SELECT count(*) FROM jsonb_object_keys(p->'birthday') x WHERE x NOT IN ('m', 'd')) > 0
+       OR jsonb_typeof(p->'birthday'->'m') IS DISTINCT FROM 'number' OR jsonb_typeof(p->'birthday'->'d') IS DISTINCT FROM 'number' THEN RETURN false; END IF;
+    IF (p->'birthday'->>'m') !~ '^[0-9]{1,2}$' OR (p->'birthday'->>'d') !~ '^[0-9]{1,2}$' THEN RETURN false; END IF;
+    v_m := (p->'birthday'->>'m')::integer; v_d := (p->'birthday'->>'d')::integer;
+    IF v_m NOT BETWEEN 1 AND 12 OR v_d < 1
+       OR v_d > (CASE WHEN v_m = 2 THEN 29 WHEN v_m IN (4, 6, 9, 11) THEN 30 ELSE 31 END) THEN RETURN false; END IF;
+  END IF;
+  IF p ? 'links' THEN
+    IF jsonb_typeof(p->'links') <> 'array' OR jsonb_array_length(p->'links') > 3 THEN RETURN false; END IF;
+    FOR v_link IN SELECT * FROM jsonb_array_elements(p->'links') LOOP
+      IF jsonb_typeof(v_link) <> 'object' OR (SELECT count(*) FROM jsonb_object_keys(v_link) x WHERE x NOT IN ('label', 'url')) > 0
+         OR jsonb_typeof(v_link->'label') IS DISTINCT FROM 'string' OR jsonb_typeof(v_link->'url') IS DISTINCT FROM 'string'
+         OR char_length(v_link->>'label') NOT BETWEEN 1 AND 24 OR char_length(v_link->>'url') > 200
+         OR (v_link->>'url') !~ '^https://[^[:space:]<>"''`]+$' THEN RETURN false; END IF;
+    END LOOP;
+  END IF;
+  IF p ? 'timezone' AND (jsonb_typeof(p->'timezone') <> 'string' OR char_length(p->>'timezone') > 40
+     OR (p->>'timezone') !~ '^[A-Za-z]+(/[A-Za-z0-9_+-]+){0,2}$') THEN RETURN false; END IF;
+  IF p ? 'show_time' AND jsonb_typeof(p->'show_time') <> 'boolean' THEN RETURN false; END IF;
+  IF p ? 'accent' AND (jsonb_typeof(p->'accent') <> 'string' OR (p->>'accent') !~ '^#[0-9a-fA-F]{6}$') THEN RETURN false; END IF;
+  RETURN true;
+END;
+$$;
+REVOKE ALL ON FUNCTION private.chat_profile_extras_valid(jsonb) FROM PUBLIC, anon;
+-- The CHECK below runs as the user saving their profile.
+GRANT EXECUTE ON FUNCTION private.chat_profile_extras_valid(jsonb) TO authenticated, service_role;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_extras jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_profile_extras_valid;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_profile_extras_valid CHECK (private.chat_profile_extras_valid(profile_extras));
+GRANT SELECT (profile_extras), UPDATE (profile_extras) ON public.profiles TO authenticated;
+
 -- ------------------------------------------------------ sticker favorites
 CREATE TABLE IF NOT EXISTS public.user_fav_stickers (
   username text PRIMARY KEY REFERENCES public.profiles(username) ON UPDATE CASCADE ON DELETE CASCADE,

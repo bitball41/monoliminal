@@ -438,6 +438,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       .name-effect-gradient, .name-effect-shift { background-image: linear-gradient(90deg, var(--name-from), var(--name-to), var(--name-from)); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; }
       .name-effect-shift { background-position: var(--name-pos, 0%) 0; }
     }
+    :root[data-ui-font="system"]:not([data-dyslexic="true"]) { --font-ui: var(--font-flags), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --font-body: var(--font-flags), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    :root[data-ui-font="rounded"]:not([data-dyslexic="true"]) { --font-ui: var(--font-flags), ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", "Arial Rounded MT Bold", system-ui, sans-serif; --font-body: var(--font-flags), ui-rounded, "SF Pro Rounded", "Nunito", "Varela Round", system-ui, sans-serif; }
+    :root[data-ui-font="serif"]:not([data-dyslexic="true"]) { --font-ui: var(--font-flags), ui-serif, Georgia, "Times New Roman", serif; --font-body: var(--font-flags), ui-serif, Georgia, "Times New Roman", serif; }
+    :root[data-ui-font="mono"]:not([data-dyslexic="true"]) { --font-ui: var(--font-flags), ui-monospace, "SF Mono", Menlo, Consolas, monospace; --font-body: var(--font-flags), ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    :root[data-reduce-motion="true"] .display-name { --name-mix: 0% !important; --name-pos: 0% !important; }
+    :root[data-reduce-motion="true"] *, :root[data-reduce-motion="true"] *::before, :root[data-reduce-motion="true"] *::after {
+      animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
     :root[data-dyslexic="true"] .display-name { font-family: var(--font-ui); font-style: normal; }
     @media (prefers-reduced-motion: reduce) { .display-name { --name-mix: 0% !important; --name-pos: 0% !important; } }
     @media (forced-colors: active) { .display-name { background: none; color: CanvasText; animation: none !important; } }
@@ -1018,6 +1025,19 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .role-row-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
     .role-row-actions .icon-button { width: 32px; height: 32px; }
     .role-row-actions .danger-text { color: var(--danger); }
+    .inline-fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .inline-fields > * { flex: 1 1 140px; min-width: 0; }
+    .inline-fields > input[type="color"] { flex: 0 0 56px; height: 36px; padding: 2px; border-radius: 8px; }
+    .inline-fields > button { flex: 0 0 auto; }
+    .profile-links-editor { display: grid; gap: 6px; }
+    .hover-card { --card-accent: var(--accent-strong); }
+    .hover-card.has-accent { border-top: 3px solid var(--card-accent); }
+    .hover-extras { display: grid; gap: 6px; color: var(--text-soft); font-size: .76rem; }
+    .hover-extras .hover-links { display: flex; flex-wrap: wrap; gap: 6px; }
+    .hover-link { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px;
+      color: var(--text); background: var(--surface); text-decoration: none; font-size: .72rem; font-weight: 650; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hover-link:hover { border-color: var(--card-accent); }
+    .bday-chip { margin-left: 4px; }
     .rules-editor { display: grid; gap: 10px; margin-bottom: 12px; }
     .rule-editor { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
     .rule-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -3687,6 +3707,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
         <div class="hover-section-label">Status</div>
         <div class="hover-custom-status" id="hc-status"></div>
       </div>
+      <div class="hover-section" id="hc-extras-wrap" hidden><div class="hover-extras" id="hc-extras"></div></div>
       <div class="hover-section" id="hc-bio-wrap" hidden>
         <div class="hover-section-label">About</div>
         <div class="hover-bio" id="hc-bio"></div>
@@ -3777,6 +3798,37 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
           <label for="set-tag">Tag</label>
           <input id="set-tag" type="text" maxlength="20" placeholder="e.g. night owl 🌙">
           <div class="field-help">Shown beside your name.</div>
+        </div>
+        <div class="settings-section-title settings-separator">Profile extras</div>
+        <div class="field">
+          <label for="set-pronouns">Pronouns</label>
+          <input id="set-pronouns" type="text" maxlength="24" placeholder="e.g. she/her">
+        </div>
+        <div class="field">
+          <label for="set-bday-month">Birthday</label>
+          <div class="inline-fields">
+            <select id="set-bday-month" aria-label="Birthday month"><option value="">Not shown</option><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select>
+            <select id="set-bday-day" aria-label="Birthday day"><option value="">Day</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>
+          </div>
+          <div class="field-help">Month and day only. Shown on your profile, with a 🎂 on the day.</div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-copy"><div class="toggle-title">Show my local time</div><div class="toggle-sub" id="set-show-time-sub">Others see your current time on your profile.</div></div>
+          <button class="switch" id="set-show-time" type="button" role="switch" aria-checked="false" aria-label="Show my local time"></button>
+        </div>
+        <div class="field">
+          <label>Links</label>
+          <div class="profile-links-editor" id="set-links">
+            <div class="inline-fields"><input data-link-label maxlength="24" placeholder="Label" aria-label="Link 1 label"><input data-link-url maxlength="200" placeholder="https://" aria-label="Link 1 address"></div>
+            <div class="inline-fields"><input data-link-label maxlength="24" placeholder="Label" aria-label="Link 2 label"><input data-link-url maxlength="200" placeholder="https://" aria-label="Link 2 address"></div>
+            <div class="inline-fields"><input data-link-label maxlength="24" placeholder="Label" aria-label="Link 3 label"><input data-link-url maxlength="200" placeholder="https://" aria-label="Link 3 address"></div>
+          </div>
+          <div class="field-help" id="set-links-help">Up to three https links, shown on your profile.</div>
+        </div>
+        <div class="field">
+          <label for="set-profile-accent">Profile colour</label>
+          <div class="inline-fields"><input id="set-profile-accent" type="color" value="#a855f7"><button class="secondary-button" type="button" id="set-profile-accent-clear">Use theme colour</button></div>
+          <div class="field-help" id="set-profile-accent-help">Colours your profile card, and its banner when you have no banner image.</div>
         </div>
         <div class="settings-section-title settings-separator">More customization</div>
         <div class="settings-subtitle">Profile banner</div>
@@ -3878,10 +3930,39 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
           <button class="radio-pill" type="button" data-fontsize="medium">Medium</button>
           <button class="radio-pill" type="button" data-fontsize="large">Large</button>
         </div>
+        <div class="settings-section-title">Accent colour</div>
+        <div class="inline-fields">
+          <input id="set-custom-accent" type="color" value="#a855f7" aria-label="Custom accent colour">
+          <button class="secondary-button" type="button" id="set-custom-accent-clear">Use theme accent</button>
+        </div>
+        <div class="field-help" id="set-custom-accent-help">Overrides the accent of any theme. Saved for this browser.</div>
+        <div class="settings-section-title">Font</div>
+        <div class="radio-row" id="uifont-row">
+          <button class="radio-pill" type="button" data-uifont="default">Default</button>
+          <button class="radio-pill" type="button" data-uifont="system">System</button>
+          <button class="radio-pill" type="button" data-uifont="rounded">Rounded</button>
+          <button class="radio-pill" type="button" data-uifont="serif">Serif</button>
+          <button class="radio-pill" type="button" data-uifont="mono">Mono</button>
+        </div>
+        <div class="settings-section-title">Time format</div>
+        <div class="radio-row" id="clock-row">
+          <button class="radio-pill" type="button" data-clock="auto">Automatic</button>
+          <button class="radio-pill" type="button" data-clock="12">12-hour</button>
+          <button class="radio-pill" type="button" data-clock="24">24-hour</button>
+        </div>
         <div class="settings-section-title">Accessibility</div>
+        <div class="toggle-row">
+          <div class="toggle-copy"><div class="toggle-title">Reduce motion</div><div class="toggle-sub">Stop animated rings, names, and transitions.</div></div>
+          <button class="switch" id="set-reduce-motion" type="button" role="switch" aria-checked="false" aria-label="Reduce motion"></button>
+        </div>
         <div class="toggle-row">
           <div class="toggle-copy"><div class="toggle-title">Dyslexia-friendly font</div><div class="toggle-sub">Use OpenDyslexic throughout Corazon.</div></div>
           <button class="switch" id="set-dyslexic" type="button" role="switch" aria-checked="false" aria-label="Dyslexia-friendly font"></button>
+        </div>
+        <div class="settings-section-title settings-separator">Tab</div>
+        <div class="toggle-row">
+          <div class="toggle-copy"><div class="toggle-title">Confirm before closing</div><div class="toggle-sub">Ask before the tab closes or reloads, so a stray click doesn't drop you out.</div></div>
+          <button class="switch" id="set-confirm-close" type="button" role="switch" aria-checked="false" aria-label="Confirm before closing"></button>
         </div>
       </section>
 
@@ -5296,7 +5377,12 @@ void main() {
       return crypto.randomUUID ? crypto.randomUUID() : 'xxxx-4xxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
     }
 
-    const timeFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
+    // 'auto' follows the browser locale; '12'/'24' force a clock style.
+    function hour12Setting() {
+      const clock = LS.get('lc_clock', 'auto');
+      return clock === '12' ? true : clock === '24' ? false : undefined;
+    }
+    let timeFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', hour12: hour12Setting() });
     const dateFmt = new Intl.DateTimeFormat([], { weekday: 'long', month: 'long', day: 'numeric' });
     const fullDateFmt = new Intl.DateTimeFormat([], { year: 'numeric', month: 'long', day: 'numeric' });
     function fmtTime(iso) { return timeFmt.format(new Date(iso)); }
@@ -5808,6 +5894,10 @@ void main() {
       root.style.setProperty('--accent', theme.accent);
       root.style.setProperty('--text', theme.text || (theme.light ? '#1c1924' : '#f4f2ff'));
       root.style.setProperty('--on-accent', theme.onAccent || (luminance(theme.accent) > 0.55 ? '#10101a' : '#ffffff'));
+      if (settings.customAccent) {
+        root.style.setProperty('--accent', settings.customAccent);
+        root.style.setProperty('--on-accent', luminance(settings.customAccent) > 0.55 ? '#10101a' : '#ffffff');
+      }
       root.dataset.theme = key;
       if (theme.light) root.setAttribute('data-light', 'true');
       else root.removeAttribute('data-light');
@@ -5846,6 +5936,67 @@ void main() {
       LS.set('lc_dyslexic', !!on);
       const sw = $('set-dyslexic');
       if (sw) sw.setAttribute('aria-checked', String(!!on));
+    }
+    const ACCENT_RE = /^#[0-9a-f]{6}$/i;
+    function applyCustomAccent(value) {
+      const accent = ACCENT_RE.test(value || '') ? value.toLowerCase() : '';
+      settings.customAccent = accent;
+      LS.set('lc_custom_accent', accent);
+      const root = document.documentElement;
+      if (accent) {
+        root.style.setProperty('--accent', accent);
+        root.style.setProperty('--on-accent', luminance(accent) > 0.55 ? '#10101a' : '#ffffff');
+        root.setAttribute('data-custom-accent', 'true');
+      } else if (root.hasAttribute('data-custom-accent')) {
+        root.removeAttribute('data-custom-accent');
+        applyTheme(settings.theme);
+      }
+      const input = $('set-custom-accent');
+      if (input) {
+        input.value = accent || '#a855f7';
+        $('set-custom-accent-help').textContent = accent ? 'Your accent overrides every theme. Saved for this browser.' : 'Using the theme accent. Pick a colour to override it on every theme.';
+      }
+    }
+    const UI_FONTS = ['default', 'system', 'rounded', 'serif', 'mono'];
+    function applyUiFont(value) {
+      if (!UI_FONTS.includes(value)) value = 'default';
+      settings.uiFont = value;
+      LS.set('lc_ui_font', value);
+      if (value === 'default') document.documentElement.removeAttribute('data-ui-font');
+      else document.documentElement.setAttribute('data-ui-font', value);
+      qsa('#uifont-row .radio-pill').forEach(b => { const on = b.dataset.uifont === value; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+    }
+    function applyClock(value, { rerender = false } = {}) {
+      if (!['auto', '12', '24'].includes(value)) value = 'auto';
+      settings.clock = value;
+      LS.set('lc_clock', value);
+      timeFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', hour12: hour12Setting() });
+      qsa('#clock-row .radio-pill').forEach(b => { const on = b.dataset.clock === value; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+      if (rerender && currentView && currentView.type !== 'home') renderTimeline({ preserve: true });
+    }
+    function applyReduceMotion(on) {
+      settings.reduceMotion = !!on;
+      LS.set('lc_reduce_motion', !!on);
+      if (on) document.documentElement.setAttribute('data-reduce-motion', 'true');
+      else document.documentElement.removeAttribute('data-reduce-motion');
+      $('set-reduce-motion')?.setAttribute('aria-checked', String(!!on));
+      if (nameEffectsBound) syncNameEffects();
+      activeChatBackground?.updateTheme?.();
+    }
+    // Optional: the browser's own "Leave site?" prompt. Browsers only show it
+    // after the person has interacted with the page, and never let pages
+    // customise its text.
+    function confirmCloseHandler(event) {
+      if (!settings.confirmClose || !me) return;
+      event.preventDefault();
+      event.returnValue = '';
+    }
+    function applyConfirmClose(on) {
+      settings.confirmClose = !!on;
+      LS.set('lc_confirm_close', !!on);
+      window.removeEventListener('beforeunload', confirmCloseHandler);
+      if (on) window.addEventListener('beforeunload', confirmCloseHandler);
+      $('set-confirm-close')?.setAttribute('aria-checked', String(!!on));
     }
     function applyDensity(value) {
       document.body.setAttribute('data-density', value);
@@ -6223,7 +6374,7 @@ void main() {
         function sync() {
           if (raf) { cancelAnimationFrame(raf); raf = 0; }
           last = null; budget.resetClock();
-          motionReduced = reducedMotion.matches;
+          motionReduced = reducedMotion.matches || document.documentElement?.dataset?.reduceMotion === 'true';
           animated = drawable() && !motionReduced && !document.querySelector('dialog[open]');
           if (drawable()) { resize(); raf = requestAnimationFrame(paint); }
         }
@@ -6806,6 +6957,11 @@ void main() {
       density: LS.get('lc_density', 'comfortable'),
       fontsize: LS.get('lc_fontsize', 'medium'),
       dyslexic: LS.get('lc_dyslexic', false),
+      customAccent: LS.get('lc_custom_accent', ''),
+      uiFont: LS.get('lc_ui_font', 'default'),
+      clock: LS.get('lc_clock', 'auto'),
+      reduceMotion: LS.get('lc_reduce_motion', false),
+      confirmClose: LS.get('lc_confirm_close', false),
       notif: Object.assign({ mention_sound: true, dm_toast: true, mention_toast: true, desktop: false }, LS.get('lc_notif', {})),
     };
 
@@ -7750,7 +7906,7 @@ void main() {
       }, delay);
     }
     function syncNameEffects() {
-      const run = !document.hidden && !nameMotionQuery?.matches;
+      const run = !document.hidden && !nameMotionQuery?.matches && document.documentElement?.dataset?.reduceMotion !== 'true';
       if (run && !nameEffectTimer) scheduleNameEffects();
       else if (!run && nameEffectTimer) { clearTimeout(nameEffectTimer); nameEffectTimer = 0; }
     }
@@ -8020,6 +8176,11 @@ void main() {
       applyDensity(settings.density);
       applyFontSize(settings.fontsize);
       applyDyslexic(settings.dyslexic);
+      applyCustomAccent(settings.customAccent);
+      applyUiFont(settings.uiFont);
+      applyClock(settings.clock);
+      applyReduceMotion(settings.reduceMotion);
+      applyConfirmClose(settings.confirmClose);
       applyFlagFont();
       wireStaticEvents();
       setupAvatarLoading();
@@ -8536,12 +8697,58 @@ void main() {
     async function updateOwnProfile(patch) {
       let result = await sb.from('profiles').update(patch).eq('username', me.username).select(PROFILE_COLUMNS).single();
       if (result.error) {
-        const { pfp_thumbnail, ...legacyPatch } = patch;
+        const { pfp_thumbnail, profile_extras, ...legacyPatch } = patch;
         result = await sb.from('profiles').update(legacyPatch).eq('username', me.username).select(PROFILE_BASE_COLUMNS).single();
       }
       return result;
     }
     const PROFILE_DETAIL_COLUMNS = 'username,bio,banner';
+    // Profile extras (6.1): lazily loaded with the bio. null until we know
+    // whether the database has the column (before its migration it does not).
+    let profileExtrasSupported = null;
+    const SAFE_LINK_RE = /^https:\/\/[^\s<>"'`]+$/;
+    function normalizeProfileExtras(raw) {
+      const x = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+      const out = {};
+      if (typeof x.pronouns === 'string' && x.pronouns.trim()) out.pronouns = x.pronouns.trim().slice(0, 24);
+      const m = Number(x.birthday?.m), d = Number(x.birthday?.d);
+      if (Number.isInteger(m) && Number.isInteger(d) && m >= 1 && m <= 12 && d >= 1 && d <= [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]) out.birthday = { m, d };
+      if (Array.isArray(x.links)) {
+        const links = x.links.filter(l => l && typeof l.label === 'string' && l.label.trim() && typeof l.url === 'string' && SAFE_LINK_RE.test(l.url) && l.url.length <= 200)
+          .slice(0, 3).map(l => ({ label: l.label.trim().slice(0, 24), url: l.url }));
+        if (links.length) out.links = links;
+      }
+      if (typeof x.timezone === 'string' && /^[A-Za-z]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(x.timezone) && x.timezone.length <= 40) out.timezone = x.timezone;
+      if (x.show_time === true) out.show_time = true;
+      if (typeof x.accent === 'string' && /^#[0-9a-f]{6}$/i.test(x.accent)) out.accent = x.accent.toLowerCase();
+      return out;
+    }
+    const birthdayFmt = new Intl.DateTimeFormat([], { month: 'long', day: 'numeric', timeZone: 'UTC' });
+    function isBirthdayToday(extras) {
+      const now = new Date();
+      return !!extras.birthday && extras.birthday.m === now.getMonth() + 1 && extras.birthday.d === now.getDate();
+    }
+    function localTimeIn(timezone) {
+      try { return new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', hour12: hour12Setting(), timeZone: timezone }).format(new Date()); }
+      catch { return ''; }
+    }
+    function renderHoverExtras(p) {
+      const extras = normalizeProfileExtras(p.profile_extras);
+      const card = $('hover-card');
+      card.classList.toggle('has-accent', !!extras.accent);
+      if (extras.accent) card.style.setProperty('--card-accent', extras.accent); else card.style.removeProperty('--card-accent');
+      // An accent colours the banner when there is no banner image.
+      if (extras.accent && !p.banner) $('hc-banner').style.backgroundImage = `linear-gradient(135deg, ${extras.accent}, color-mix(in srgb, ${extras.accent} 35%, transparent))`;
+      $('hc-handle').textContent = `@${p.username}${extras.pronouns ? ` · ${extras.pronouns}` : ''}`;
+      const lines = [];
+      if (extras.birthday) lines.push(`<div>🎂 ${esc(birthdayFmt.format(Date.UTC(2000, extras.birthday.m - 1, extras.birthday.d)))}${isBirthdayToday(extras) ? ' · <strong>Birthday today!</strong>' : ''}</div>`);
+      const time = extras.show_time && extras.timezone ? localTimeIn(extras.timezone) : '';
+      if (time) lines.push(`<div>🕘 ${esc(time)} local time</div>`);
+      if (extras.links) lines.push(`<div class="hover-links">${extras.links.map(l => `<a class="hover-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer nofollow">${esc(l.label)}</a>`).join('')}</div>`);
+      $('hc-extras').innerHTML = lines.join('');
+      $('hc-extras-wrap').hidden = !lines.length;
+      if (isBirthdayToday(extras) && !qs('.bday-chip', $('hc-chips'))) $('hc-chips').insertAdjacentHTML('beforeend', '<span class="bday-chip" title="Birthday today">🎂</span>');
+    }
 
     const profileDetailLoaded = new Set();
     async function loadProfileDetail(username) {
@@ -8553,12 +8760,18 @@ void main() {
           if (!noelleSourceProfile) profileDetailLoaded.delete(username);
           return;
         }
-        const { data, error } = await sb.from('profiles')
-          .select(PROFILE_DETAIL_COLUMNS).eq('username', username).maybeSingle();
+        let { data, error } = await sb.from('profiles')
+          .select(profileExtrasSupported === false ? PROFILE_DETAIL_COLUMNS : PROFILE_DETAIL_COLUMNS + ',profile_extras').eq('username', username).maybeSingle();
+        if (missingSchema(error) && profileExtrasSupported !== false) {
+          profileExtrasSupported = false;
+          ({ data, error } = await sb.from('profiles').select(PROFILE_DETAIL_COLUMNS).eq('username', username).maybeSingle());
+        } else if (!error) profileExtrasSupported = true;
         if (error || !data) { profileDetailLoaded.delete(username); return; }
+        const detail = { bio: data.bio || '', banner: data.banner || '' };
+        if ('profile_extras' in data) detail.profile_extras = normalizeProfileExtras(data.profile_extras);
         const existing = profiles.get(username);
-        if (existing) Object.assign(existing, { bio: data.bio || '', banner: data.banner || '' });
-        if (me && me.username === username) Object.assign(me, { bio: data.bio || '', banner: data.banner || '' });
+        if (existing) Object.assign(existing, detail);
+        if (me && me.username === username) Object.assign(me, detail);
       } catch { profileDetailLoaded.delete(username); }
     }
 
@@ -16479,6 +16692,7 @@ void main() {
       $('hc-bio-wrap').hidden = !p.bio;
       $('hc-bio').textContent = p.bio || '';
       $('hc-joined').textContent = p.created_at ? fullDateFmt.format(new Date(p.created_at)) : '—';
+      renderHoverExtras(p);
 
       if (!profileDetailLoaded.has(username)) {
         loadProfileDetail(username).then(() => {
@@ -16487,6 +16701,7 @@ void main() {
           applyBannerStyle($('hc-banner'), fresh.banner);
           $('hc-bio-wrap').hidden = !fresh.bio;
           $('hc-bio').textContent = fresh.bio || '';
+          renderHoverExtras(fresh);
           if (!card.hidden) { positionPopover(card, hoverCardAnchor); positionProfileMenu(); }
         });
       }
@@ -17655,6 +17870,8 @@ void main() {
       $('set-bio').value = me.bio || '';
       $('bio-count').textContent = (me.bio || '').length;
       $('set-tag').value = me.tag || '';
+      populateProfileExtras();
+      if (!profileDetailLoaded.has(me.username)) loadProfileDetail(me.username).then(() => { if ($('settings-dialog').open) populateProfileExtras(); });
       refreshPfpPreview();
       refreshBannerPreview();
       renderRingControls();
@@ -17668,6 +17885,11 @@ void main() {
       applyFontSize(settings.fontsize);
       syncLayoutSetting();
       $('set-dyslexic').setAttribute('aria-checked', String(!!settings.dyslexic));
+      $('set-reduce-motion').setAttribute('aria-checked', String(!!settings.reduceMotion));
+      $('set-confirm-close').setAttribute('aria-checked', String(!!settings.confirmClose));
+      applyCustomAccent(settings.customAccent);
+      applyUiFont(settings.uiFont);
+      qsa('#clock-row .radio-pill').forEach(b => { const on = b.dataset.clock === settings.clock; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
       $('ntf-sound').setAttribute('aria-checked', String(!!settings.notif.mention_sound));
       $('ntf-dm').setAttribute('aria-checked', String(!!settings.notif.dm_toast));
       $('ntf-mention').setAttribute('aria-checked', String(!!settings.notif.mention_toast));
@@ -18083,6 +18305,7 @@ void main() {
         bio: $('set-bio').value.slice(0, 150),
         tag: $('set-tag').value.slice(0, 20),
       };
+      if (profileExtrasSupported) patch.profile_extras = readProfileExtras();
       $('profile-save-status').textContent = 'Saving changes...';
       profileSaveChain = profileSaveChain.catch(() => {}).then(async () => {
         const { data, error } = await updateOwnProfile(patch);
@@ -18092,14 +18315,56 @@ void main() {
           return false;
         }
         handleProfileChange({ new: { ...patch, ...data, username: me.username } });
-        Object.assign(me, { bio: patch.bio, banner: patch.banner });
-        Object.assign(profiles.get(me.username), { bio: patch.bio, banner: patch.banner });
+        const saved = { bio: patch.bio, banner: patch.banner, ...(patch.profile_extras ? { profile_extras: patch.profile_extras } : {}) };
+        Object.assign(me, saved);
+        Object.assign(profiles.get(me.username), saved);
         profileDetailLoaded.add(me.username);
         broadcastProfileUpdated();
         if (revision === profileSaveRevision) $('profile-save-status').textContent = 'All changes saved.';
         return true;
       });
       return profileSaveChain;
+    }
+    let pendingProfileAccent = '';
+    function populateProfileExtras() {
+      const extras = normalizeProfileExtras(me.profile_extras);
+      const unavailable = profileExtrasSupported === false;
+      qsa('#set-pronouns, #set-bday-month, #set-bday-day, #set-show-time, #set-links input, #set-profile-accent, #set-profile-accent-clear').forEach(el => { el.disabled = unavailable; });
+      $('set-links-help').textContent = unavailable ? 'Profile extras arrive with the next server update.' : 'Up to three https links, shown on your profile.';
+      $('set-pronouns').value = extras.pronouns || '';
+      $('set-bday-month').value = extras.birthday ? String(extras.birthday.m) : '';
+      $('set-bday-day').value = extras.birthday ? String(extras.birthday.d) : '';
+      $('set-show-time').setAttribute('aria-checked', String(!!extras.show_time));
+      qsa('#set-links .inline-fields').forEach((row, i) => {
+        qs('[data-link-label]', row).value = extras.links?.[i]?.label || '';
+        qs('[data-link-url]', row).value = extras.links?.[i]?.url || '';
+      });
+      pendingProfileAccent = extras.accent || '';
+      $('set-profile-accent').value = pendingProfileAccent || '#a855f7';
+      $('set-profile-accent-help').textContent = pendingProfileAccent ? 'Colours your profile card, and its banner when you have no banner image.' : 'Using your theme colour. Pick a colour to personalise your card.';
+    }
+    function readProfileExtras() {
+      const out = {};
+      const pronouns = $('set-pronouns').value.trim();
+      if (pronouns) out.pronouns = pronouns.slice(0, 24);
+      const m = Number($('set-bday-month').value), d = Number($('set-bday-day').value);
+      if (m && d) out.birthday = { m, d };
+      if ($('set-show-time').getAttribute('aria-checked') === 'true') {
+        out.show_time = true;
+        try { out.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch {}
+      }
+      const links = qsa('#set-links .inline-fields').map(row => {
+        const url = qs('[data-link-url]', row).value.trim();
+        let label = qs('[data-link-label]', row).value.trim();
+        if (url && !label) { try { label = new URL(url).hostname.replace(/^www\./, ''); } catch {} }
+        return { label: label.slice(0, 24), url };
+      }).filter(l => l.url);
+      const bad = links.filter(l => !SAFE_LINK_RE.test(l.url) || l.url.length > 200);
+      $('set-links-help').textContent = bad.length ? 'Links must start with https:// and contain no spaces.' : 'Up to three https links, shown on your profile.';
+      const good = links.filter(l => !bad.includes(l) && l.label);
+      if (good.length) out.links = good;
+      if (pendingProfileAccent) out.accent = pendingProfileAccent;
+      return normalizeProfileExtras(out);
     }
     function scheduleProfileSave() {
       clearTimeout(profileSaveTimer);
@@ -20337,12 +20602,27 @@ void main() {
       $('ring-image-btn').addEventListener('click', () => $('ring-image-file').click());
       $('ring-image-file').addEventListener('change', () => uploadRingImage($('ring-image-file').files[0]));
       $('set-dyslexic').addEventListener('click', () => applyDyslexic(!settings.dyslexic));
+      $('set-reduce-motion').addEventListener('click', () => applyReduceMotion(!settings.reduceMotion));
+      $('set-confirm-close').addEventListener('click', () => applyConfirmClose(!settings.confirmClose));
+      $('set-custom-accent').addEventListener('input', () => applyCustomAccent($('set-custom-accent').value));
+      $('set-custom-accent-clear').addEventListener('click', () => applyCustomAccent(''));
+      qsa('#uifont-row .radio-pill').forEach(b => b.addEventListener('click', () => applyUiFont(b.dataset.uifont)));
+      qsa('#clock-row .radio-pill').forEach(b => b.addEventListener('click', () => applyClock(b.dataset.clock, { rerender: true })));
       ['set-name-font', 'set-name-effect', 'set-name-speed'].forEach(id => $(id).addEventListener('change', commitNameStyle));
       ['set-name-from', 'set-name-to'].forEach(id => $(id).addEventListener('input', commitNameStyle));
       $('name-style-reset').addEventListener('click', () => { pendingNameStyle = normalizeNameStyle(null); renderNameStyleControls(); scheduleProfileSave(); });
       $('set-display-name').addEventListener('input', () => { refreshPfpPreview(); refreshNameStylePreview(); scheduleProfileSave(); });
       $('set-bio').addEventListener('input', () => { $('bio-count').textContent = $('set-bio').value.length; scheduleProfileSave(); });
       $('set-tag').addEventListener('input', scheduleProfileSave);
+      ['set-pronouns', 'set-bday-month', 'set-bday-day'].forEach(id => $(id).addEventListener('input', scheduleProfileSave));
+      $('set-links').addEventListener('input', scheduleProfileSave);
+      $('set-show-time').addEventListener('click', () => {
+        const on = $('set-show-time').getAttribute('aria-checked') !== 'true';
+        $('set-show-time').setAttribute('aria-checked', String(on));
+        scheduleProfileSave();
+      });
+      $('set-profile-accent').addEventListener('input', () => { pendingProfileAccent = $('set-profile-accent').value; scheduleProfileSave(); });
+      $('set-profile-accent-clear').addEventListener('click', () => { pendingProfileAccent = ''; $('set-profile-accent').value = '#a855f7'; scheduleProfileSave(); });
       $('settings-status-save').addEventListener('click', async () => {
         await updateMyStatus({ custom_status: $('settings-custom-status').value.trim() });
         toast({ type: 'success', text: 'Status saved.' });

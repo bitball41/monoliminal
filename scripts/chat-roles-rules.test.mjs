@@ -149,3 +149,23 @@ test('sticker favorites are private to their owner', async () => {
     await assert.rejects(call('alice', 'update public.user_fav_stickers set stickers=$1::jsonb', [JSON.stringify(Array(301).fill({ url: 'u' }))]));
   } finally { await db.close(); }
 });
+
+test('members edit their own profile extras, which are validated', async () => {
+  const { db, call } = await setup();
+  try {
+    const good = { pronouns: 'she/her', birthday: { m: 2, d: 29 }, links: [{ label: 'Portfolio', url: 'https://example.com/me' }],
+      timezone: 'America/Chicago', show_time: true, accent: '#22C55E' };
+    await call('alice', "update public.profiles set profile_extras=$1::jsonb where username='alice'", [JSON.stringify(good)]);
+    assert.deepEqual((await call('bob', "select profile_extras from public.profiles where username='alice'"))[0].profile_extras, good, 'others can read them');
+    assert.equal((await call('bob', "update public.profiles set profile_extras='{}'::jsonb where username='alice' returning 1")).length, 0, 'only the owner edits them');
+    const bad = [
+      { pronouns: 'x'.repeat(25) }, { birthday: { m: 2, d: 30 } }, { birthday: { m: 13, d: 1 } }, { birthday: { m: 1, d: 1, y: 2010 } },
+      { links: [{ label: 'x', url: 'javascript:alert(1)' }] }, { links: [{ label: 'x', url: 'http://plain.example' }] },
+      { links: Array(4).fill({ label: 'x', url: 'https://a.b' }) }, { links: [{ label: 'x', url: 'https://a.b/"onmouseover' }] },
+      { timezone: 'Not a zone!' }, { show_time: 'yes' }, { accent: 'red' }, { secret: 1 },
+    ];
+    for (const value of bad) {
+      await assert.rejects(call('alice', "update public.profiles set profile_extras=$1::jsonb where username='alice'", [JSON.stringify(value)]), undefined, JSON.stringify(value));
+    }
+  } finally { await db.close(); }
+});
