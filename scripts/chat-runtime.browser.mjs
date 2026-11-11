@@ -51,7 +51,7 @@ await page.waitForFunction(()=>window.__auditReady);
 const cdp=await host.context().newCDPSession(host);
 await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
 await cdp.send('Performance.enable');
-await cdp.send('Tracing.start',{categories:'devtools.timeline,v8.execute,blink.user_timing,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,disabled-by-default-devtools.timeline.frame',transferMode:'ReturnAsStream'});
+await cdp.send('Tracing.start',{categories:(process.env.CHAT_TRACE_EXTRA?process.env.CHAT_TRACE_EXTRA+',':'')+'devtools.timeline,v8.execute,blink.user_timing,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,disabled-by-default-devtools.timeline.frame',transferMode:'ReturnAsStream'});
  await page.evaluate(({assetCount,noMedia,realistic})=>{
  Object.defineProperty(navigator,'deviceMemory',{configurable:true,get:()=>8});
  window.__audit={calls:{},longTasks:[],loafs:[],frames:[],requests:{},phases:[],lastFrame:0};
@@ -90,14 +90,19 @@ await cdp.send('Tracing.start',{categories:'devtools.timeline,v8.execute,blink.u
   let data=[];if(name==='chat_get_my_profile')data=roster[0];if(name==='chat_check_device_ban')data=null;if(name==='chat_register_device')data=true;if(name==='chat_list_conversations')data=dmRows;if(name==='chat_list_subroles')data=[];
   return {data,error:null};
  },channel(name){const handlers=[];const ch={name,state:'closed',handlers,on(type,filter,fn){handlers.push({type,filter,fn});return ch},subscribe(fn){queueMicrotask(()=>{ch.state='joined';fn('SUBSCRIBED')});return ch},presenceState(){return Object.fromEntries(roster.slice(0,3).map(p=>[p.username,[{username:p.username}]]))},track:async()=>{queueMicrotask(()=>handlers.filter(h=>h.type==='presence').forEach(h=>h.fn({})));return'ok'},untrack:async()=>'ok',send:async()=>'ok'};fixtureChannels.push(ch);return ch},removeChannel:async ch=>{ch.state='closed';fixtureChannels.splice(fixtureChannels.indexOf(ch),1)}};
- window.fixtureEmit=(table,eventType,row)=>{fixtureChannels.flatMap(ch=>ch.handlers).filter(h=>h.type==='postgres_changes'&&h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}))};
+ // Database changes arrive as private broadcasts (6.1) or, in fallback mode, postgres_changes.
+ window.fixtureEmit=(table,eventType,row)=>{const handlers=fixtureChannels.flatMap(ch=>ch.handlers);
+  handlers.filter(h=>h.type==='postgres_changes'&&h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}));
+  handlers.filter(h=>h.type==='broadcast'&&h.filter.event===table).forEach(h=>h.fn({payload:{op:eventType,new:eventType==='DELETE'?null:row,old:row}}))};
  makeClient=()=>client;
  settings.theme='midnight';LS.set('lc_seen_whats_new','');LS.set('lc_background:member_0','off');
  init();
 },{assetCount:assets.length,noMedia,realistic});
-await page.waitForFunction(()=>!document.getElementById('app-shell').hidden&&typeof pendingTimers!=='undefined'&&pendingTimers.length===6,{timeout:20000});
+await page.waitForFunction(()=>!document.getElementById('app-shell').hidden&&typeof pendingTimers!=='undefined'&&pendingTimers.length===5,{timeout:20000});
 await page.evaluate(()=>chooseChatBackground('off',false));
 await page.waitForTimeout(3000);
+// Optional one-off inspection: CHAT_PROBE='expression' prints its value after boot.
+if(process.env.CHAT_PROBE){console.log('PROBE',JSON.stringify(await page.evaluate(process.env.CHAT_PROBE)));if(process.env.CHAT_PROBE_ONLY)process.exit(0);}
 const results={};
 if(verify){
  assert.equal(await page.locator('#chat-background-stage canvas').count(),0);
@@ -161,6 +166,16 @@ await phase('idle',quick?6000:21000);
 await phase('messages',quick?3500:10000,()=>page.evaluate(()=>{let i=700;window.fixtureMessageTimer=setInterval(()=>{const row=fixtureRow(i++);fixtureMessages.push(row);fixtureEmit('messages','INSERT',row);if(i>=706)clearInterval(fixtureMessageTimer)},450)}));
 await phase('history',quick?4000:10000,async()=>{for(let i=0;i<3;i++){await page.evaluate(()=>loadOlder());if(verify)assert(await page.evaluate(()=>fixtureRetainedNode.isConnected&&(!fixtureRetainedImage||fixtureRetainedImage.isConnected)),'history retains existing message/image nodes')}await page.evaluate(()=>{releaseBottomPin();$('timeline').scrollTop=0})});
 await phase('typing',quick?3500:6000,()=>page.evaluate(()=>{window.fixtureTypingTimer=setInterval(()=>{const ta=$('message-input');ta.value+='typing ';ta.dispatchEvent(new Event('input',{bubbles:true}));if(ta.value.length>120)clearInterval(fixtureTypingTimer)},120)}));
+// Real key presses, measured with the Event Timing API (input delay, handler
+// time and presentation), which synthetic input events cannot show.
+await page.evaluate(()=>{const ta=$('message-input');ta.value='';ta.dispatchEvent(new Event('input',{bubbles:true}))});
+await page.click('#message-input');
+await page.evaluate(()=>{window.__keyEvents=[];new PerformanceObserver(list=>list.getEntries().forEach(e=>__keyEvents.push({name:e.name,duration:e.duration,processing:e.processingEnd-e.processingStart,delay:e.processingStart-e.startTime}))).observe({type:'event',durationThreshold:16})});
+await phase('keyboard',500,()=>page.keyboard.type('the quick brown fox jumps over the lazy dog, @ali '.repeat(quick?1:3),{delay:45}));
+results.keyboardEvents=await page.evaluate(()=>{const d=__keyEvents.map(e=>e.duration).sort((a,b)=>a-b);return{slow:d.length,p95:d[Math.floor(d.length*.95)]||0,worst:d.at(-1)||0,
+  handlerMs:+__keyEvents.reduce((t,e)=>t+e.processing,0).toFixed(1)}});
+console.log('keyboard-events',JSON.stringify(results.keyboardEvents));
+await page.evaluate(()=>{const ta=$('message-input');ta.value='';ta.dispatchEvent(new Event('input',{bubbles:true}))});
 await phase('presence',quick?1500:4000,()=>page.evaluate(()=>{for(let i=0;i<71;i++)fixtureEmit('profiles','UPDATE',{...profiles.get(`member_${i}`),last_seen:new Date().toISOString()});window.dispatchEvent(new Event('focus'))}));
 await phase('return-latest',quick?1500:4000,()=>page.evaluate(()=>scrollToBottom(true)));
 // Wheel scrolling with the pointer over messages, as a mouse user would.

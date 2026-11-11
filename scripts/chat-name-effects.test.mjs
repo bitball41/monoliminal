@@ -11,22 +11,26 @@ const section = (start, end) => {
 };
 const css = [...chat.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');
 
-function element(effect, speed = '6s') {
+function element(effect, speed = '6s', attrs = { 'data-media-visible': 'true' }) {
   const props = new Map([['--name-speed', speed]]), writes = [];
-  return { writes, classList: { contains: name => name === `name-effect-${effect}` },
+  return { effect, writes, classList: { contains: name => name === `name-effect-${effect}` || name === 'display-name' },
+    getAttribute: key => attrs[key] ?? null, hasAttribute: key => key in attrs,
     style: { getPropertyValue: key => props.get(key) || '', setProperty(key, value) { props.set(key, value); writes.push([key, value]); } } };
 }
 function clock({ hidden = false, reduced = false, controller = true } = {}) {
-  const listeners = {}, timers = new Set();
+  const listeners = {}, timers = new Set(), lists = { fade: [], shift: [] }, rootAttrs = new Set();
   const c = vm.createContext({
     ringVisibilityController: controller ? {} : null, performance: { now: () => 0 },
-    document: { hidden, addEventListener: (type, fn) => { listeners[type] = fn; } },
+    document: { hidden, addEventListener: (type, fn) => { listeners[type] = fn; },
+      documentElement: { hasAttribute: name => rootAttrs.has(name) },
+      getElementsByClassName: name => name === 'name-effect-fade' ? lists.fade : lists.shift },
     matchMedia: () => ({ matches: reduced, addEventListener: (type, fn) => { listeners.motion = fn; } }),
     setTimeout: (fn, ms) => { const id = { fn, ms }; timers.add(id); return id; }, clearTimeout: id => timers.delete(id),
-    qsa: selector => { c.selectors.push(selector); return c.names; }, selectors: [], names: [],
   });
   vm.runInContext(section('    const NAME_EFFECT_TICK_MS', '    function effectiveMyStatus()'), c);
-  return { c, listeners, timers };
+  // Live collections: update them in place, as the browser would.
+  const setNames = names => { for (const key of ['fade', 'shift']) lists[key].splice(0, Infinity, ...names.filter(n => n.effect === key)); };
+  return { c, listeners, timers, setNames, rootAttrs };
 }
 
 test('Fade and Shift names are not CSS animations that restyle the page every frame', () => {
@@ -40,12 +44,10 @@ test('Fade and Shift names are not CSS animations that restyle the page every fr
 });
 
 test('one shared clock moves visible names in phase and skips unchanged values', () => {
-  const { c } = clock();
+  const { c, setNames } = clock();
   const shift = element('shift', '6s'), slow = element('shift', '10s'), fade = element('fade', '6s');
-  c.names = [shift, slow, fade];
+  setNames([shift, slow, fade]);
   c.tickNameEffects(1500);
-  assert.match(c.selectors[0], /\.name-effect-fade\[data-media-visible="true"\]:not\(\[data-scroll-paused\]\)/);
-  assert.match(c.selectors[0], /\.name-effect-shift\[data-media-visible="true"\]:not\(\[data-scroll-paused\]\)/);
   assert.deepEqual(shift.writes, [['--name-pos', '50%']], 'a quarter of a 6 s cycle across 200%');
   assert.deepEqual(slow.writes, [['--name-pos', '30%']]);
   assert.deepEqual(fade.writes, [['--name-mix', '50%']], 'the fade keeps its keyframe shape');
@@ -53,14 +55,29 @@ test('one shared clock moves visible names in phase and skips unchanged values',
   assert.deepEqual(fade.writes.at(-1), ['--name-mix', '100%']);
   c.tickNameEffects(3000);
   assert.equal(fade.writes.length, 2, 'an unchanged value is not written again');
-  const late = element('shift', '6s'); c.names = [late]; c.tickNameEffects(1500);
+  const late = element('shift', '6s'); setNames([late]); c.tickNameEffects(1500);
   assert.deepEqual(late.writes, [['--name-pos', '50%']], 'a name rendered later joins the same phase');
 });
 
+test('offscreen and scroll-paused names stay still, and every name holds while the timeline scrolls', () => {
+  const { c, setNames, rootAttrs } = clock();
+  const offscreen = element('fade', '6s', { 'data-media-visible': 'false' });
+  const paused = element('shift', '6s', { 'data-media-visible': 'true', 'data-scroll-paused': '' });
+  const moving = element('fade', '6s');
+  setNames([offscreen, paused, moving]);
+  assert.equal(c.tickNameEffects(1500), 3, 'all three still count as animated names');
+  assert.deepEqual([offscreen.writes.length, paused.writes.length, moving.writes.length], [0, 0, 1]);
+  rootAttrs.add('data-scrolling');
+  c.tickNameEffects(3000);
+  assert.equal(moving.writes.length, 1, 'nothing moves mid-scroll');
+});
+
 test('without the visibility controller every Fade/Shift name still moves', () => {
-  const { c } = clock({ controller: false });
-  c.tickNameEffects(0);
-  assert.doesNotMatch(c.selectors[0], /data-media-visible/);
+  const { c, setNames } = clock({ controller: false });
+  const untracked = element('fade', '6s', {});
+  setNames([untracked]);
+  c.tickNameEffects(1500);
+  assert.equal(untracked.writes.length, 1);
 });
 
 test('the clock runs only while the tab is visible and motion is allowed', () => {
@@ -74,10 +91,15 @@ test('the clock runs only while the tab is visible and motion is allowed', () =>
   assert.equal(visible.timers.size, 1, 'never two clocks');
   // Each tick lands just after the next 50 ms timeline boundary, like stepped rings.
   vm.runInContext('performance.now = () => 1234', visible.c);
+  visible.setNames([element('fade')]);
   const first = [...visible.timers][0]; visible.timers.delete(first); first.fn();
   const next = [...visible.timers][0];
   assert.equal(visible.timers.size, 1, 'a tick schedules exactly one next tick');
   assert.equal(next.ms, 50 - 34 + 1);
+  // With no animated names anywhere, the clock checks once a second instead.
+  visible.setNames([]);
+  visible.timers.delete(next); next.fn();
+  assert.equal([...visible.timers][0].ms, 1000);
   for (const options of [{ hidden: true }, { reduced: true }]) {
     const stopped = clock(options); stopped.c.initNameEffects();
     assert.equal(stopped.timers.size, 0, JSON.stringify(options));

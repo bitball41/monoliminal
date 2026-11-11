@@ -3,6 +3,66 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Chat 6.1, part 2: realtime, speed and a lighter, tighter layout
+
+Measured with `scripts/chat-runtime.browser.mjs` at 4x CPU throttle (offline
+fixture, 200 messages), `main` before this part vs after. Request-free local
+measurements, not a production result.
+
+- **Realtime as private broadcasts.** Chat used 13 `postgres_changes`
+  listeners per client. Realtime decoded every change and evaluated row
+  security once per listener, and every join created and deleted 13
+  subscription rows (about 75,000 since October 20). Realtime's change polling
+  was the largest database consumer (23,358 s). Now database triggers
+  ([`20261111003952_chat_broadcast_changes.sql`](../Backend/migrations/20261111003952_chat_broadcast_changes.sql))
+  (applied 2026-11-11, ledger version `20261111003952`; verified live: 14
+  triggers, two join policies, no publish policy, broadcasts flowing with
+  messages)
+  send each change once, to `chat:live` (rows every signed-in member may read)
+  or `chat:user:<username>` (DMs, groups, invitations, read cursors,
+  owner-preview and follower-only posts). The recipients mirror each table's
+  read policy at send time; joining a topic is authorized by
+  `realtime.messages` policies (unbanned accounts, own user topic only), and
+  browsers cannot publish to them. Soft-deleted rows carry no content and
+  profiles never carry the legacy password column. Chat joins the two topics;
+  if the join is refused (migration not applied yet) it falls back to the
+  previous listeners automatically. The launcher keeps its one small
+  app-settings listener, so Realtime's poller keeps running until a launcher
+  update removes it.
+- **Typing.** Each key press re-scanned the whole app for one selector,
+  `.app-shell:has(.main-panel[data-workspace-home]) :is(#search-btn, …)` (90%
+  of selector time while typing); it now keys on a flag on `<html>`. The
+  conversation column is no longer a CSS size container (two `@container`
+  rules became `data-narrow` / `data-tight` attributes set by a
+  ResizeObserver). The character counter is a fixed-size contained box, so
+  updating it no longer re-lays out the page. Key-event processing fell 41%
+  (1,834 to 1,086 ms for 150 characters) and typing layout 65%.
+- **Scrolling and idle.** The Fade/Shift name clock searched the whole
+  document 20 times a second even with no animated names; it now walks live
+  element lists and checks once a second when there are none. Rings and names
+  everywhere hold while the timeline scrolls. Scroll script time fell 62%,
+  timers 95%, and the scroll p95 frame from 50 to 33 ms (p99 67 to 50 ms).
+- **Compact sidebar.** Channel rows 42 to 33 px, conversation rows 50 to 39 px
+  with 28 px avatars, tighter section and category spacing. The rules are now
+  defined once instead of an old rule plus an override.
+- **Old layout removed.** Hover lifts, scaling and glows are now flat colour
+  changes (press feedback stays). 294 CSS declarations that a later identical
+  selector always overrode, 27 selectors for classes nothing renders, 55
+  emptied rules, the unused sidebar indicator and 9 functions nothing called
+  are gone. A computed-style comparison of all 1,048 elements in four
+  theme/width combinations shows no change outside the compacted sidebar.
+  The file is 12 KB smaller (643.6 KB gzip). Most of its weight is the app
+  script (46%) and embedded fonts (24%: OpenDyslexic 314 KB, flags 105 KB);
+  moving OpenDyslexic to a separately hosted file would make Chat about 18%
+  smaller for everyone who does not use the dyslexia font.
+
+The runtime harness now types real keys and reports Event Timing, expects five
+background timers, delivers fixture changes as broadcasts, and accepts
+`CHAT_PROBE` and `CHAT_TRACE_EXTRA` for one-off inspection. `scripts/chat-realtime-broadcast.test.mjs`
+applies the migration in PGlite and checks who receives each change and who
+may join each topic; `scripts/chat-input-performance.test.mjs` guards the
+typing fixes.
+
 ## Chat 6.1, part 1: database errors and analytics removal
 
 Versioning now follows the launcher generation: this update (three parts) is

@@ -31,7 +31,7 @@ function rings(supported = true) {
   const attributes = new Set(), listeners = new Map(), intersections = [], mutations = [];
   const root = { setAttribute: name => attributes.add(name), removeAttribute: name => attributes.delete(name),
     toggleAttribute(name, value) { if (value) attributes.add(name); else attributes.delete(name); } };
-  const document = { documentElement: root, body, hidden: false,
+  const document = { documentElement: root, body, hidden: false, getElementsByClassName: () => [],
     addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) };
   class Intersections {
     constructor(callback) { this.callback = callback; this.targets = new Set(); intersections.push(this); }

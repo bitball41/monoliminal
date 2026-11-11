@@ -139,9 +139,11 @@ test('SUBSCRIBED does not repeat list reads that boot or recovery already starte
 });
 
 test('the realtime channel marks errors so a same-generation rejoin reconciles', () => {
-  const realtime = section('    function setupRealtime()', '    // Keep the existing topic');
+  const realtime = section('    function realtimeChangeHandlers()', '    // Keep the existing topic');
   assert.match(realtime, /realtimeAttemptAt = Date\.now\(\);\s*\n\s*updateConnection\('connecting'\)/);
-  assert.match(realtime, /\(status === 'CHANNEL_ERROR' \|\| status === 'TIMED_OUT' \|\| status === 'CLOSED'\) \{\s*\n\s*\/\/[^\n]*\n\s*realtimeAttemptAt = Date\.now\(\);/);
+  const failure = realtime.slice(realtime.indexOf("status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'"));
+  assert(failure.indexOf('realtimeAttemptAt = Date.now();') >= 0 && failure.indexOf('realtimeAttemptAt = Date.now();') < failure.indexOf('scheduleRealtimeRecover()'),
+    'an error marks the attempt before recovering');
   assert.match(realtime, /reconcileAfterSubscribe\(\)/);
   assert.doesNotMatch(realtime, /reloadSubroleCatalog\(\);\s*\n\s*queueConversationRefresh\(\)/);
   for (const [fn, stamp] of [['loadSubroles', 'subroleReadStartedAt'], ['loadDms', 'dmListReadStartedAt'], ['loadGroupInvites', 'groupInviteReadStartedAt']]) {
