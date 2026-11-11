@@ -99,7 +99,9 @@ await page.evaluate(({assetCount,busy})=>{
    fixtureChannels.push(ch);return ch},
   removeChannel:async ch=>{ch.state='closed';fixtureChannels.splice(fixtureChannels.indexOf(ch),1);return'ok'},removeAllChannels:async()=>{fixtureChannels.length=0},getChannels:()=>fixtureChannels};
  const handlersOf=type=>fixtureChannels.flatMap(ch=>ch.handlers).filter(h=>h.type===type);
- window.fixtureEmit=(table,eventType,row)=>handlersOf('postgres_changes').filter(h=>h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}));
+ // Database changes arrive as private broadcasts (6.1) or, in fallback mode, postgres_changes.
+ window.fixtureEmit=(table,eventType,row)=>{handlersOf('postgres_changes').filter(h=>h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}));
+  handlersOf('broadcast').filter(h=>h.filter.event===table).forEach(h=>h.fn({payload:{op:eventType,new:eventType==='DELETE'?null:row,old:row}}))};
  window.fixtureBroadcast=(event,payload)=>handlersOf('broadcast').filter(h=>h.filter.event===event).forEach(h=>h.fn({payload}));
  window.fixturePresence=()=>handlersOf('presence').forEach(h=>h.fn({}));
  // Like a dropped socket: every channel errors, then those still subscribed rejoin.

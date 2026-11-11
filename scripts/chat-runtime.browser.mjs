@@ -90,7 +90,10 @@ await cdp.send('Tracing.start',{categories:(process.env.CHAT_TRACE_EXTRA?process
   let data=[];if(name==='chat_get_my_profile')data=roster[0];if(name==='chat_check_device_ban')data=null;if(name==='chat_register_device')data=true;if(name==='chat_list_conversations')data=dmRows;if(name==='chat_list_subroles')data=[];
   return {data,error:null};
  },channel(name){const handlers=[];const ch={name,state:'closed',handlers,on(type,filter,fn){handlers.push({type,filter,fn});return ch},subscribe(fn){queueMicrotask(()=>{ch.state='joined';fn('SUBSCRIBED')});return ch},presenceState(){return Object.fromEntries(roster.slice(0,3).map(p=>[p.username,[{username:p.username}]]))},track:async()=>{queueMicrotask(()=>handlers.filter(h=>h.type==='presence').forEach(h=>h.fn({})));return'ok'},untrack:async()=>'ok',send:async()=>'ok'};fixtureChannels.push(ch);return ch},removeChannel:async ch=>{ch.state='closed';fixtureChannels.splice(fixtureChannels.indexOf(ch),1)}};
- window.fixtureEmit=(table,eventType,row)=>{fixtureChannels.flatMap(ch=>ch.handlers).filter(h=>h.type==='postgres_changes'&&h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}))};
+ // Database changes arrive as private broadcasts (6.1) or, in fallback mode, postgres_changes.
+ window.fixtureEmit=(table,eventType,row)=>{const handlers=fixtureChannels.flatMap(ch=>ch.handlers);
+  handlers.filter(h=>h.type==='postgres_changes'&&h.filter.table===table).forEach(h=>h.fn({eventType,new:row,old:row}));
+  handlers.filter(h=>h.type==='broadcast'&&h.filter.event===table).forEach(h=>h.fn({payload:{op:eventType,new:eventType==='DELETE'?null:row,old:row}}))};
  makeClient=()=>client;
  settings.theme='midnight';LS.set('lc_seen_whats_new','');LS.set('lc_background:member_0','off');
  init();
