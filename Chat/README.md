@@ -11,8 +11,9 @@ read-only checks: nine built-in roles at their previous levels with the three
 admin roles tied, no legacy flag changes, RLS on both new tables, no signed-out
 access, broadcast trigger on the catalog). Without it, Chat keeps the built-in
 roles and default rules, keeps sticker favorites in the browser and greys out
-profile extras. The updated `chat-auth` Edge Function is not deployed yet; the
-database re-checks every password reset in the meantime.
+profile extras. The updated `chat-auth` Edge Function was deployed the same
+day (v5, `verify_jwt` unchanged); the database still re-checks every password
+reset.
 
 - **Custom staff roles on one ladder.** Roles live in `public.chat_staff_roles`
   instead of being hard-coded. Each role has two independent settings:
