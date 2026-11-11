@@ -3,6 +3,45 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Chat 6.1, part 3: custom roles, editable rules, account sticker favorites
+
+Needs [`20261111200000_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111200000_chat_custom_roles_rules_stickers.sql).
+Until it is applied, Chat keeps the built-in roles and default rules and keeps
+sticker favorites in the browser, so the HTML can be published first.
+
+- **Custom staff roles.** Roles live in `public.chat_staff_roles` instead of
+  being hard-coded. Each has a **permission level** (Mod, Manager, Admin or
+  Co-owner) and a **position**. The level decides what the role can do, with
+  exactly the existing rules: admin level cannot ban, mod-level time-outs stop at
+  two hours, Drive and sticker uploads follow the level. The position decides
+  who may act on whom (`private.chat_staff_power`), so a "Senior Mod" placed
+  above Mod can time out Mods. Owner and PRESTON stay fixed at the top. The
+  owner manages roles in Settings → Owner → Roles & badges → Role hierarchy:
+  create (name, badge colour, level), edit, move up or down within a level,
+  move to another level, delete (holders become Members). Built-in roles can be
+  renamed but keep their level and cannot be deleted. Every built-in role keeps
+  its current level, and admin, Super Mega Tuff Admin and Dusty stay equal
+  until the owner reorders that level. Co-owners assign roles below their own
+  position as before. The profile `staff_role` check became a foreign key to
+  the catalog; an unknown role is stored as Member. The `chat-auth` Edge
+  Function's password-reset pre-check reads the catalog too (the database
+  re-checks every reset).
+- **Editable rules (owner only).** The Rules dialog reads
+  `app_settings.community_rules`; the owner edits it in Settings → Owner →
+  Rules (add, remove, reorder, up to 30 rules) and every open Chat updates
+  live. "Restore defaults" brings back the original six. Rule text is always
+  shown as text, never HTML.
+- **Sticker favorites on the account.** `public.user_fav_stickers`, one row per
+  account, readable and writable only by its owner. Favorites already saved in
+  a browser are merged into the account once, then follow the account to every
+  launcher and device.
+
+Tests: `scripts/chat-roles-rules.test.mjs` (built-in levels unchanged, custom
+role creation, placement, level rules, reordering, deletion, catalog privacy,
+rules validation, sticker privacy), the custom-role cases in
+`scripts/security.test.mjs`, and the Roles and Rules panels in
+`scripts/chat-polish.browser.mjs`.
+
 ## Chat 6.1, part 2: realtime, speed and a lighter, tighter layout
 
 Measured with `scripts/chat-runtime.browser.mjs` at 4x CPU throttle (offline

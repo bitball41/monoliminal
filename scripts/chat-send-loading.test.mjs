@@ -17,7 +17,7 @@ test('boot paints and opens the first conversation while optional services remai
     me: null, profiles: new Map(), channels: [{ id: 'general' }], activeLayout: 'classic',
     Date, LS: { get() {} }, $: () => ({ hidden: true }),
     appSettings: {}, isOwner: () => false, channelIsHome: () => true,
-    loadAppSettings: async () => {}, loadProfiles: async () => {}, loadChannels: async () => {},
+    loadAppSettings: async () => {}, loadProfiles: async () => {}, loadChannels: async () => {}, loadStaffRoles: async () => true,
     loadAccountInbox() {}, lastListRefreshAt: 0,
     setupRealtime() { calls.push('live'); }, openView: async () => { calls.push('history'); },
     loadChatExtras() { calls.push('extras'); return extras.promise; },

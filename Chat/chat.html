@@ -1011,6 +1011,19 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .role-check svg { width: 0.7em; height: 0.7em; display: block; }
     .role-check.mod { background: #22c55e; }
+    .role-check.custom { background: var(--role-color, var(--accent-strong)); }
+    .role-level h4 { margin: 16px 0 2px; color: var(--muted); font: 800 .64rem var(--font-ui); letter-spacing: .09em; text-transform: uppercase; }
+    .role-level .field-help { margin: 0 0 6px; }
+    .role-row-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .role-row-actions .icon-button { width: 32px; height: 32px; }
+    .role-row-actions .danger-text { color: var(--danger); }
+    .rules-editor { display: grid; gap: 10px; margin-bottom: 12px; }
+    .rule-editor { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .rule-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .rule-editor textarea { resize: vertical; min-height: 64px; }
+    .role-form { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .role-form input[type="color"] { width: 56px; height: 36px; padding: 2px; border-radius: 8px; }
+    .role-form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .role-check.manager { background: #3b82f6; }
     .role-check.admin {
       background: linear-gradient(135deg, #7c3aed, #c084fc);
@@ -4001,14 +4014,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
     </div>
     <div class="dialog-body">
       
-      <div class="rules-list">
-        <article class="rule-card"><h3>Rule #1</h3><p>No inappropriate media, GIFs, or music. Text is fine as long as it isn't explicit.</p></article>
-        <article class="rule-card"><h3>Rule #2</h3><p>No harmful, hateful, or illegal content or jokes. This includes, but is not limited to: CSAM, zoophilia, necrophilia, pedophilia, sexism, explicit racism, and sexualizing minors.</p></article>
-        <article class="rule-card"><h3>Rule #3</h3><p>No threats or bullying. Jokes are fine until they reach the point where the receiver is under stress.</p></article>
-        <article class="rule-card"><h3>Rule #4</h3><p>No blackmail.</p></article>
-        <article class="rule-card"><h3>Rule #5</h3><p>No griefing the doc or chat. Staff abuse is not tolerated, even if you paid to be an admin.</p></article>
-        <article class="rule-card"><h3>Rule #6</h3><p>Use common sense. Staff can act on behavior not listed here.</p></article>
-      </div>
+      <div class="rules-list" id="rules-list"></div>
     </div>
     <div class="dialog-actions"><button class="primary-button" type="button" data-close-dialog="rules-dialog">Understood</button></div>
   </dialog>
@@ -7079,17 +7085,57 @@ void main() {
     const isForumThreadView = (view) => view && view.type === 'channel' && typeof view.id === 'string' && view.id.startsWith(FORUM_PREFIX);
     const isAdmin = () => !!(me && (staffRankOf(me) >= 4 || me.is_admin || me.is_owner));
     const isOwner = () => !!(me && (staffRoleOf(me) === 'owner' || staffRoleOf(me) === 'preston' || me.is_owner));
-    const STAFF_ROLE_META = {
-      member:  { rank: 1, label: 'Member',  check: '' },
-      mod:     { rank: 2, label: 'Mod',     check: 'mod' },
-      manager: { rank: 3, label: 'Manager', check: 'manager' },
-      admin:   { rank: 4, label: 'Admin',   check: 'admin' },
-      super_mega_tuff_admin: { rank: 4, label: 'Super Mega Tuff Admin', check: 'super-mega-tuff' },
-      dusty: { rank: 4, label: 'Dusty', check: 'super-mega-tuff' },
-      co_owner:{ rank: 5, label: 'Co-owner', check: 'co-owner' },
-      owner:   { rank: 6, label: 'Owner',   check: 'owner' },
-      preston: { rank: 7, label: 'Preston', check: 'preston' },
+    // Staff roles come from public.chat_staff_roles (6.1). rank is the
+    // permission level (tier), power the position used for "may act on". These
+    // built-ins are the fallback until the catalog loads; the server enforces.
+    const BUILTIN_STAFF_ROLES = {
+      member:  { rank: 1, power: 150, label: 'Member',  check: '' },
+      mod:     { rank: 2, power: 250, label: 'Mod',     check: 'mod' },
+      manager: { rank: 3, power: 350, label: 'Manager', check: 'manager' },
+      admin:   { rank: 4, power: 450, label: 'Admin',   check: 'admin' },
+      super_mega_tuff_admin: { rank: 4, power: 450, label: 'Super Mega Tuff Admin', check: 'super-mega-tuff' },
+      dusty: { rank: 4, power: 450, label: 'Dusty', check: 'super-mega-tuff' },
+      co_owner:{ rank: 5, power: 550, label: 'Co-owner', check: 'co-owner' },
+      owner:   { rank: 6, power: 650, label: 'Owner',   check: 'owner' },
+      preston: { rank: 7, power: 750, label: 'Preston', check: 'preston' },
     };
+    const STAFF_ROLE_META = Object.fromEntries(Object.entries(BUILTIN_STAFF_ROLES).map(([slug, meta]) => [slug, { ...meta, builtin: true, color: '' }]));
+    const STAFF_LEVELS = { 2: 'Mod', 3: 'Manager', 4: 'Admin', 5: 'Co-owner' };
+    function applyStaffRoleCatalog(rows) {
+      if (!Array.isArray(rows) || !rows.length) return false;
+      const next = {};
+      for (const row of rows) {
+        if (!row || !/^[a-z0-9_]{2,40}$/.test(row.slug || '')) continue;
+        const rank = Math.max(1, Math.min(7, Number(row.tier) || 1));
+        next[row.slug] = { rank, power: Number(row.power) || rank * 100, label: String(row.label || row.slug).slice(0, 32),
+          check: rank >= 2 ? (row.badge || (row.builtin ? '' : 'custom')) : '', color: /^#[0-9a-f]{6}$/i.test(row.color || '') ? row.color : '',
+          builtin: !!row.builtin };
+      }
+      for (const [slug, meta] of Object.entries(BUILTIN_STAFF_ROLES)) if (!next[slug]) next[slug] = { ...meta, builtin: true, color: '' };
+      for (const slug of Object.keys(STAFF_ROLE_META)) if (!next[slug]) delete STAFF_ROLE_META[slug];
+      Object.assign(STAFF_ROLE_META, next);
+      return true;
+    }
+    let staffRolesLoad = null;
+    function loadStaffRoles() {
+      if (staffRolesLoad) return staffRolesLoad;
+      staffRolesLoad = (async () => {
+        const { data, error } = await sb.from('chat_staff_roles').select('slug,label,color,badge,tier,power,builtin').order('power', { ascending: false });
+        if (error) { if (!missingSchema(error) && error.code !== '42P01') logChatWarning('staff-roles-unavailable', error); return false; }
+        return applyStaffRoleCatalog(data);
+      })().catch(() => false).finally(() => { staffRolesLoad = null; });
+      return staffRolesLoad;
+    }
+    let staffRolesRefresh = 0;
+    function onStaffRolesChanged() {
+      clearTimeout(staffRolesRefresh);
+      staffRolesRefresh = setTimeout(async () => {
+        if (!await loadStaffRoles()) return;
+        renderMembers(); renderDmList(); renderSelf();
+        if (currentView?.type !== 'home') renderTimeline({ preserve: true });
+        if ($('settings-dialog')?.open && isOwner()) renderOwnerTab();
+      }, 300);
+    }
     function syncCoOwnerRegistry(raw = appSettings.co_owners) {
       let names = [];
       try { names = Array.isArray(raw) ? raw : JSON.parse(raw || '[]'); } catch {}
@@ -7109,6 +7155,10 @@ void main() {
     function staffRankOf(profileOrUsername) {
       return STAFF_ROLE_META[staffRoleOf(profileOrUsername)]?.rank || 1;
     }
+    function staffPowerOf(profileOrUsername) {
+      return STAFF_ROLE_META[staffRoleOf(profileOrUsername)]?.power || 100;
+    }
+    function myStaffPower() { return me ? staffPowerOf(me) : 100; }
     function myStaffRole() { return me ? staffRoleOf(me) : 'member'; }
     function myStaffRank() { return me ? staffRankOf(me) : 1; }
     function isStaff() { return myStaffRank() >= 2; }
@@ -7133,26 +7183,29 @@ void main() {
       if (min === 'mod') return 'Only moderators and above can send messages in this channel';
       return 'You do not have permission to send messages in this channel';
     }
-    function canBanUsers() { return myStaffRole() === 'manager' || myStaffRank() >= 5; }
+    // Manager level and co-owner and above; admin level cannot ban (server rule).
+    function canBanUsers() { const rank = myStaffRank(); return rank === 3 || rank >= 5; }
     function canManageStaffRoles() { return myStaffRank() >= 5; }
+    function assignableStaffRoles() {
+      return Object.entries(STAFF_ROLE_META)
+        .filter(([, meta]) => meta.rank <= 5 && meta.power < myStaffPower())
+        .sort(([, a], [, b]) => b.power - a.power).map(([slug]) => slug);
+    }
     function canAssignStaffRole(target, role) {
-      const rank = STAFF_ROLE_META[role]?.rank;
-      return canManageStaffRoles() && canModerateUser(target)
-        && ['member', 'mod', 'manager', 'admin', 'super_mega_tuff_admin', 'dusty', 'co_owner'].includes(role)
-        && rank < myStaffRank();
+      return canManageStaffRoles() && canModerateUser(target) && assignableStaffRoles().includes(role);
     }
     function canDeleteAccounts() { return myStaffRank() >= 4; }
     function canTimeoutMinutes(minutes) {
       if (myStaffRank() < 2) return false;
-      if (myStaffRole() === 'mod') return minutes >= 0 && minutes <= 120;
+      if (myStaffRank() === 2) return minutes >= 0 && minutes <= 120;
       return minutes >= 0 && minutes <= 10080;
     }
     function canModerateUser(target) {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t.username || t.username === me.username || isNoelleAI(t.username)) return false;
-      if (staffRoleOf(t) === 'owner') return false;
-      return myStaffRank() > staffRankOf(t);
+      if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
+      return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
     function roleCheckHtml(profileOrUsername, opts = {}) {
@@ -7160,7 +7213,9 @@ void main() {
       const meta = STAFF_ROLE_META[role];
       if (!meta || !meta.check) return '';
       const title = opts.title || meta.label;
-      return `<span class="role-check ${meta.check}" title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
+      // Custom roles carry their own colour (validated #rrggbb).
+      const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
+      return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
     }
     function roleBadgeHtml(profileOrUsername) {
       return roleCheckHtml(profileOrUsername);
@@ -8340,7 +8395,7 @@ void main() {
       if (appSettings.app_enabled === 'false' && !isOwner()) { showMaintenance(); return; }
 
       // Only identities and channel navigation are needed to read the first chat.
-      await Promise.all([loadProfiles(), loadChannels()]);
+      await Promise.all([loadProfiles(), loadChannels(), loadStaffRoles()]);
       profiles.set(me.username, { ...profiles.get(me.username), ...me });
       lastListRefreshAt = Date.now();
 
@@ -8385,7 +8440,7 @@ void main() {
         async () => { await loadDmBlocks(); await loadDms(); renderDmList(); await loadGroupInvites(); await hydrateInbox(); },
         loadSubroles,
         async () => { await hydrateChannelUnreads(); renderChannels(); },
-        () => registerCurrentDevice(profile), loadFavGifs, loadFollowing, loadStickerCatalog,
+        () => registerCurrentDevice(profile), loadFavGifs, loadFavStickers, loadFollowing, loadStickerCatalog,
       ].map(job => async () => { if (me?.username === profile.username && !presenceStopped) await job(); }));
     }
     function showStartupFailure() {
@@ -8740,6 +8795,52 @@ void main() {
         const seen = new Set();
         favGifs = rows.filter(item => item?.url && !seen.has(item.url) && seen.add(item.url));
       } catch { favGifs = []; }
+    }
+
+    // Sticker favorites follow the account (6.1). Favorites saved only in this
+    // browser are merged in once per account, then the cloud list is the source.
+    let favStickersSave = 0, favStickersCloud = false;
+    function cleanFavStickers(list) {
+      const seen = new Set();
+      return (Array.isArray(list) ? list : []).filter(item => item && typeof item.url === 'string' && item.url && !seen.has(item.url) && seen.add(item.url))
+        .map(item => ({ name: String(item.name || '').slice(0, 80), url: item.url.slice(0, 1000) })).slice(0, 300);
+    }
+    async function loadFavStickers() {
+      const actor = me?.username;
+      if (!actor) return;
+      try {
+        const { data, error } = await sb.from('user_fav_stickers').select('stickers').eq('username', actor).maybeSingle();
+        if (error) throw error;
+        if (me?.username !== actor) return;
+        favStickersCloud = true;
+        if (!Array.isArray(favStickers)) favStickers = [];
+        const cloud = cleanFavStickers(data?.stickers);
+        const migratedKey = `lc_fav_stickers_merged:${actor}`;
+        let merged = cloud;
+        if (!LS.get(migratedKey, false)) {
+          merged = cleanFavStickers([...cloud, ...cleanFavStickers(LS.get('lc_fav_stickers', []))]);
+          LS.set(migratedKey, true);
+        }
+        favStickers.splice(0, favStickers.length, ...merged);
+        LS.set('lc_fav_stickers', favStickers);
+        if (merged.length !== cloud.length) saveFavStickersSoon();
+      } catch (error) {
+        // Before the migration (or offline) favorites stay in this browser.
+        favStickersCloud = false;
+        if (!missingSchema(error) && error?.code !== '42P01') logChatWarning('sticker-favorites-unavailable', error);
+      }
+    }
+    function saveFavStickersSoon() {
+      if (!favStickersCloud || !me) return;
+      clearTimeout(favStickersSave);
+      const actor = me.username;
+      favStickersSave = setTimeout(async () => {
+        if (me?.username !== actor) return;
+        try {
+          const { error } = await sb.from('user_fav_stickers').upsert({ username: actor, stickers: cleanFavStickers(favStickers), updated_at: new Date().toISOString() });
+          if (error) throw error;
+        } catch { toast({ type: 'error', text: 'Could not save sticker favorites to your account.' }); }
+      }, 800);
     }
 
     async function saveFavGifs() {
@@ -11455,7 +11556,32 @@ void main() {
       if (!$('help-dialog').open) $('help-dialog').showModal();
     }
 
+    // Rules (6.1): the owner edits them in the console (app_settings.community_rules).
+    // These are shown until then, and whenever the saved value is empty or invalid.
+    const DEFAULT_RULES = Object.freeze([
+      { title: 'Rule #1', body: "No inappropriate media, GIFs, or music. Text is fine as long as it isn't explicit." },
+      { title: 'Rule #2', body: 'No harmful, hateful, or illegal content or jokes. This includes, but is not limited to: CSAM, zoophilia, necrophilia, pedophilia, sexism, explicit racism, and sexualizing minors.' },
+      { title: 'Rule #3', body: 'No threats or bullying. Jokes are fine until they reach the point where the receiver is under stress.' },
+      { title: 'Rule #4', body: 'No blackmail.' },
+      { title: 'Rule #5', body: 'No griefing the doc or chat. Staff abuse is not tolerated, even if you paid to be an admin.' },
+      { title: 'Rule #6', body: 'Use common sense. Staff can act on behavior not listed here.' },
+    ]);
+    function currentRules() {
+      try {
+        const rules = JSON.parse(appSettings.community_rules || '[]');
+        const valid = Array.isArray(rules) ? rules.filter(rule => rule && typeof rule.title === 'string' && typeof rule.body === 'string'
+          && rule.title.trim() && rule.body.trim()).slice(0, 30) : [];
+        if (valid.length) return valid.map(rule => ({ title: rule.title.trim().slice(0, 80), body: rule.body.trim().slice(0, 1000) }));
+      } catch {}
+      return DEFAULT_RULES;
+    }
+    function renderRules() {
+      const list = $('rules-list');
+      if (!list) return;
+      list.innerHTML = currentRules().map(rule => `<article class="rule-card"><h3>${esc(rule.title)}</h3><p>${esc(rule.body)}</p></article>`).join('');
+    }
     function openRulesModal() {
+      renderRules();
       if (!$('rules-dialog').open) $('rules-dialog').showModal();
     }
 
@@ -13887,6 +14013,7 @@ void main() {
         chat_group_invites: () => queueConversationRefresh(),
         profiles: onProfileRealtime,
         chat_subroles: () => reloadSubroleCatalog(),
+        chat_staff_roles: () => onStaffRolesChanged(),
         app_settings: handleSettingsChange,
         channels: handleChannelChange,
         forum_threads: handleForumThreadChange,
@@ -13943,6 +14070,8 @@ void main() {
       userChannel = null;
       let channel = sb.channel(`db-changes-${gen}`);
       for (const [table, handler] of Object.entries(handlers)) {
+        // Newer tables are broadcast-only; they are not in the Realtime publication.
+        if (table === 'chat_staff_roles') continue;
         const filter = table === 'dm_reads' ? { filter: `username=eq.${me.username}` } : {};
         channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, ...filter }, handler);
       }
@@ -14481,7 +14610,7 @@ void main() {
           return;
         }
         if (!uiChanged) return;
-        if (nextRole !== prevRole && (STAFF_ROLE_META[nextRole]?.rank || 1) > (STAFF_ROLE_META[prevRole]?.rank || 1)) {
+        if (nextRole !== prevRole && (STAFF_ROLE_META[nextRole]?.power || 100) > (STAFF_ROLE_META[prevRole]?.power || 100)) {
           notifyRolePromotion(nextRole);
         }
         updateTimeoutUi();
@@ -14588,6 +14717,7 @@ void main() {
       if (row.key === 'app_enabled' && row.value === 'false' && !isOwner()) { showMaintenance(); return; }
       if (row.key === 'announcement') renderAnnouncement();
       if (row.key === 'whats_new') maybeShowWhatsNew();
+      if (row.key === 'community_rules' && $('rules-dialog').open) renderRules();
       if (row.key === 'banned_words') { try { bannedWords = JSON.parse(row.value || '[]'); } catch {} }
       if (['gifs_enabled', 'uploads_enabled', 'registrations_enabled', 'messages_enabled', 'dms_enabled', 'max_message_length'].includes(row.key)) applyFeatureControls();
     }
@@ -15938,6 +16068,7 @@ void main() {
             const idx = favStickers.findIndex(f => f.url === item.url);
             if (idx >= 0) favStickers.splice(idx, 1); else favStickers.unshift({ name: item.name, url: item.url });
             LS.set('lc_fav_stickers', favStickers);
+            saveFavStickersSoon();
             renderStickerGrid();
             return;
           }
@@ -16008,6 +16139,7 @@ void main() {
             const idx = favStickers.findIndex(f => f.url === item.url);
             if (idx >= 0) favStickers.splice(idx, 1); else favStickers.unshift({ name: item.name, url: item.url });
             LS.set('lc_fav_stickers', favStickers);
+            saveFavStickersSoon();
             renderCustomEmojiGrid();
             return;
           }
@@ -16715,11 +16847,10 @@ void main() {
       return true;
     }
     function staffRoleRowsHtml() {
-      const roleOptions = ['member', 'mod', 'manager', 'admin', 'super_mega_tuff_admin', 'dusty', 'co_owner']
-        .filter(role => STAFF_ROLE_META[role].rank < myStaffRank());
+      const roleOptions = assignableStaffRoles();
       return [...profiles.values()]
         .filter(p => canModerateUser(p) && !isHiddenBot(p.username))
-        .sort((a, b) => staffRankOf(b) - staffRankOf(a) || displayNameOf(a).localeCompare(displayNameOf(b)))
+        .sort((a, b) => staffPowerOf(b) - staffPowerOf(a) || displayNameOf(a).localeCompare(displayNameOf(b)))
         .map(p => {
           const role = staffRoleOf(p);
           return `<div class="admin-list-item">
@@ -16729,6 +16860,174 @@ void main() {
             </select>
           </div>`;
         }).join('');
+    }
+    // Owner: role hierarchy (6.1). The level decides what a role may do; the
+    // order decides who may act on whom. The server re-checks every change.
+    const STAFF_LEVEL_HELP = {
+      2: 'Mod: staff tools, time-outs up to 2 hours',
+      3: 'Manager: bans and time-outs up to 7 days',
+      4: 'Admin: channels, filters, stickers and account deletion; no bans',
+      5: 'Co-owner: everything above, plus bans and assigning roles below them',
+    };
+    function staffRoleOrder() {
+      return Object.entries(STAFF_ROLE_META).filter(([, meta]) => meta.rank >= 2 && meta.rank <= 5)
+        .sort(([sa, a], [sb, b]) => b.rank - a.rank || b.power - a.power || sa.localeCompare(sb)).map(([slug]) => slug);
+    }
+    function roleHierarchyHtml() {
+      const holders = new Map();
+      profiles.forEach(p => { if (!isHiddenBot(p.username)) holders.set(staffRoleOf(p), (holders.get(staffRoleOf(p)) || 0) + 1); });
+      const order = staffRoleOrder();
+      const levels = [5, 4, 3, 2].map(level => {
+        const slugs = order.filter(slug => STAFF_ROLE_META[slug].rank === level);
+        const rows = slugs.map((slug, i) => {
+          const meta = STAFF_ROLE_META[slug], count = holders.get(slug) || 0;
+          const badge = meta.check ? `<span class="role-check ${meta.check}"${meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : ''} aria-hidden="true">${ROLE_CHECK_SVG}</span>` : '';
+          return `<div class="admin-list-item role-row">
+            <div class="grow"><strong>${esc(meta.label)}</strong>${badge}<div class="sub">${count} ${count === 1 ? 'person' : 'people'} · ${meta.builtin ? 'Built-in' : 'Custom'}</div></div>
+            <div class="role-row-actions">
+              <button class="icon-button" type="button" data-role-move="-1" data-role="${esc(slug)}" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} up">↑</button>
+              <button class="icon-button" type="button" data-role-move="1" data-role="${esc(slug)}" ${i === slugs.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(meta.label)} down">↓</button>
+              <button class="secondary-button" type="button" data-role-edit="${esc(slug)}">Edit</button>
+              ${meta.builtin ? '' : `<button class="secondary-button danger-text" type="button" data-role-delete="${esc(slug)}">Delete</button>`}
+            </div>
+          </div>`;
+        }).join('');
+        return `<section class="role-level"><h4>${STAFF_LEVELS[level]} level</h4><p class="field-help">${esc(STAFF_LEVEL_HELP[level])}</p><div class="admin-list">${rows || '<p class="console-empty">No roles at this level.</p>'}</div></section>`;
+      }).join('');
+      return `<p class="field-help">Higher roles can act on lower ones, also inside a level. Owner and PRESTON stay at the top.</p>${levels}
+        <form id="owner-role-form" class="role-form">
+          <input type="hidden" id="owner-role-slug">
+          <div class="field"><label for="owner-role-name">Role name</label><input id="owner-role-name" maxlength="32" required autocomplete="off"></div>
+          <div class="field"><label for="owner-role-color">Badge colour</label><input id="owner-role-color" type="color" value="#a855f7"></div>
+          <div class="field"><label for="owner-role-tier">Permission level</label><select id="owner-role-tier">${[2, 3, 4, 5].map(level => `<option value="${level}">${esc(STAFF_LEVEL_HELP[level])}</option>`).join('')}</select></div>
+          <div class="role-form-actions"><button class="primary-button" type="submit" id="owner-role-save">Create role</button><button class="secondary-button" type="button" id="owner-role-cancel" hidden>Cancel</button></div>
+        </form>`;
+    }
+    function ruleEditorRowHtml(rule, i, total) {
+      return `<div class="rule-editor" data-rule-row>
+        <div class="rule-editor-head"><strong>Rule ${i + 1}</strong><span class="role-row-actions">
+          <button class="icon-button" type="button" data-rule-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move rule ${i + 1} up">↑</button>
+          <button class="icon-button" type="button" data-rule-move="1" ${i === total - 1 ? 'disabled' : ''} aria-label="Move rule ${i + 1} down">↓</button>
+          <button class="secondary-button danger-text" type="button" data-rule-remove ${total <= 1 ? 'disabled' : ''}>Remove</button></span></div>
+        <div class="field"><label>Title</label><input data-rule-title maxlength="80" value="${esc(rule.title)}" required></div>
+        <div class="field"><label>Text</label><textarea data-rule-body maxlength="1000" rows="3" required>${esc(rule.body)}</textarea></div>
+      </div>`;
+    }
+    function rulesEditorHtml(rules = currentRules()) {
+      return `<form id="owner-rules-form"><div id="owner-rules-list" class="rules-editor">${rules.map((rule, i) => ruleEditorRowHtml(rule, i, rules.length)).join('')}</div>
+        <div class="role-form-actions"><button class="secondary-button" type="button" id="owner-rules-add">Add rule</button>
+        <button class="primary-button" type="submit" id="owner-rules-save">Save rules</button>
+        <button class="secondary-button" type="button" id="owner-rules-reset">Restore defaults</button></div></form>`;
+    }
+    function readRulesEditor() {
+      return qsa('[data-rule-row]', $('owner-rules-list')).map(row => ({
+        title: qs('[data-rule-title]', row).value.trim(), body: qs('[data-rule-body]', row).value.trim() }));
+    }
+    function bindRulesEditor(el) {
+      const form = $('owner-rules-form');
+      if (!form) return;
+      const redraw = rules => {
+        $('owner-rules-list').innerHTML = rules.map((rule, i) => ruleEditorRowHtml(rule, i, rules.length)).join('');
+      };
+      $('owner-rules-add').addEventListener('click', () => {
+        const rules = readRulesEditor();
+        if (rules.length >= 30) { toast({ type: 'warning', text: 'You can have up to 30 rules.' }); return; }
+        redraw([...rules, { title: `Rule #${rules.length + 1}`, body: '' }]);
+        qsa('[data-rule-body]', $('owner-rules-list')).at(-1)?.focus();
+      });
+      $('owner-rules-list').addEventListener('click', event => {
+        const row = event.target.closest('[data-rule-row]');
+        if (!row) return;
+        const rules = readRulesEditor(), index = qsa('[data-rule-row]', $('owner-rules-list')).indexOf(row);
+        const move = event.target.closest('[data-rule-move]');
+        if (move) {
+          const to = index + Number(move.dataset.ruleMove);
+          if (!rules[to]) return;
+          [rules[index], rules[to]] = [rules[to], rules[index]];
+          redraw(rules);
+        } else if (event.target.closest('[data-rule-remove]') && rules.length > 1) {
+          rules.splice(index, 1);
+          redraw(rules);
+        }
+      });
+      const save = async (value, message) => {
+        const button = $('owner-rules-save');
+        button.disabled = true;
+        try {
+          await ownerRpc('chat_owner_set_app_setting', { p_key: 'community_rules', p_value: value });
+          appSettings.community_rules = value;
+          toast({ type: 'success', text: message });
+          renderOwnerTab();
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save the rules.' }); }
+        finally { button.disabled = false; }
+      };
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        const rules = readRulesEditor();
+        if (rules.some(rule => !rule.title || !rule.body)) { toast({ type: 'warning', text: 'Every rule needs a title and text.' }); return; }
+        void save(JSON.stringify(rules), 'Rules saved.');
+      });
+      $('owner-rules-reset').addEventListener('click', () => confirmAction({ title: 'Restore the default rules?', text: 'Your edited rules will be replaced by the original six.',
+        confirmLabel: 'Restore', onConfirm: () => save('', 'Default rules restored.') }));
+    }
+    async function refreshRoleHierarchy() {
+      await loadStaffRoles();
+      renderOwnerTab();
+      renderMembers();
+    }
+    function bindRoleHierarchy(el) {
+      const form = $('owner-role-form');
+      if (!form) return;
+      const reset = () => {
+        $('owner-role-slug').value = ''; $('owner-role-name').value = ''; $('owner-role-color').value = '#a855f7';
+        $('owner-role-tier').disabled = false; $('owner-role-tier').value = '2';
+        $('owner-role-save').textContent = 'Create role'; $('owner-role-cancel').hidden = true;
+      };
+      $('owner-role-cancel').addEventListener('click', reset);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const button = $('owner-role-save'), slug = $('owner-role-slug').value;
+        button.disabled = true;
+        try {
+          const { error } = await sb.rpc('chat_save_staff_role', { p_slug: slug || null, p_label: $('owner-role-name').value,
+            p_color: $('owner-role-color').value, p_tier: $('owner-role-tier').disabled ? null : Number($('owner-role-tier').value) });
+          if (error) throw error;
+          toast({ type: 'success', text: slug ? 'Role updated.' : 'Role created.' });
+          await refreshRoleHierarchy();
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save the role.' }); }
+        finally { button.disabled = false; }
+      });
+      qsa('[data-role-edit]', el).forEach(button => button.addEventListener('click', () => {
+        const slug = button.dataset.roleEdit, meta = STAFF_ROLE_META[slug];
+        if (!meta) return;
+        $('owner-role-slug').value = slug; $('owner-role-name').value = meta.label;
+        $('owner-role-color').value = meta.color || '#a855f7';
+        $('owner-role-tier').value = String(meta.rank); $('owner-role-tier').disabled = meta.builtin;
+        $('owner-role-save').textContent = 'Save role'; $('owner-role-cancel').hidden = false;
+        $('owner-role-name').focus();
+      }));
+      qsa('[data-role-move]', el).forEach(button => button.addEventListener('click', async () => {
+        const order = staffRoleOrder(), from = order.indexOf(button.dataset.role), to = from + Number(button.dataset.roleMove);
+        if (from < 0 || !order[to] || STAFF_ROLE_META[order[to]].rank !== STAFF_ROLE_META[order[from]].rank) return;
+        [order[from], order[to]] = [order[to], order[from]];
+        qsa('[data-role-move]', el).forEach(item => { item.disabled = true; });
+        try {
+          const { error } = await sb.rpc('chat_reorder_staff_roles', { p_slugs: order });
+          if (error) throw error;
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not move the role.' }); }
+        await refreshRoleHierarchy();
+      }));
+      qsa('[data-role-delete]', el).forEach(button => button.addEventListener('click', () => {
+        const slug = button.dataset.roleDelete, meta = STAFF_ROLE_META[slug];
+        if (!meta) return;
+        confirmAction({ title: `Delete ${meta.label}?`, text: 'Everyone with this role becomes a Member. This cannot be undone.', danger: true, confirmLabel: 'Delete role',
+          onConfirm: async () => {
+            const { error } = await sb.rpc('chat_delete_staff_role', { p_slug: slug });
+            if (error) { toast({ type: 'error', text: error.message || 'Could not delete the role.' }); return; }
+            toast({ type: 'success', text: `${meta.label} deleted.` });
+            await refreshRoleHierarchy();
+          } });
+      }));
     }
     function bindStaffRoleControls(el, onUpdated) {
       qsa('[data-staff-set-role]', el).forEach(select => select.addEventListener('change', async () => {
@@ -18056,15 +18355,16 @@ void main() {
       const testAccount = lastDevSession ? `<div class="console-test-account"><strong>@${esc(lastDevSession.username)}</strong><div class="field-help">Temporary test account</div><div class="console-credentials"><div><span>Username</span><code>${esc(lastDevSession.username)}</code></div><div><span>Password</span><code>${esc(lastDevSession.password)}</code></div></div><div class="group-actions"><button id="owner-dev-copy-un" class="secondary-button" type="button">Copy username</button><button id="owner-dev-copy-pw" class="secondary-button" type="button">Copy password</button><button id="owner-dev-reopen" class="secondary-button" type="button">Open session</button><button id="owner-dev-delete" class="danger-button" type="button">Delete session</button></div></div>` : '<div class="console-inline-form"><label class="sr-only" for="owner-dev-name">Test account name</label><input id="owner-dev-name" maxlength="40" value="Dev Tester" placeholder="Display name"><button class="secondary-button" id="owner-dev-create" type="button">Create test account</button></div>';
       const panels = [
         {id:'overview',label:'Overview',html:consoleCard('Community status','The main switches and places you manage.',`<div class="console-quick-grid"><button data-console-jump="app" type="button"><strong>${appSettings.app_enabled === 'false' ? 'Maintenance mode' : 'Community online'}</strong><span>Manage access and features →</span></button><button data-console-jump="roles" type="button"><strong>${members.filter(p => staffRankOf(p)>=2).length} staff accounts</strong><span>Manage permissions and badges →</span></button><button data-console-jump="broadcast" type="button"><strong>${appSettings.announcement ? 'Announcement active' : 'No announcement'}</strong><span>Publish a community update →</span></button><button data-console-jump="maintenance" type="button"><strong>Maintenance tools</strong><span>Test accounts, recovery, and channel cleanup →</span></button></div>`)+consoleCard('Private groups','People join by accepting invitations. Staff can only read groups they belong to.','<p class="field-help">Members create and manage their groups from Conversations.</p>')},
+        {id:'rules',label:'Rules',html:consoleCard('Community rules','Shown to everyone from the Rules button. Saving updates every open Chat.',rulesEditorHtml())},
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
-        {id:'roles',label:'Roles & badges',html:consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
+        {id:'roles',label:'Roles & badges',html:consoleCard('Role hierarchy','Create roles, choose what they can do, and place them above or below each other.',roleHierarchyHtml())+consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
         {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
         {id:'noelle',label:'Noelle AI',html:consoleCard('Noelle AI','Owner preview. Prompts and replies are visible to owners only.',`<p class="field-help" id="owner-noelle-status" role="status">Loading settings…</p><form id="owner-noelle-form" hidden><div class="console-form-grid"><div class="field"><label for="owner-noelle-enabled">Replies</label><select id="owner-noelle-enabled"><option value="true">On</option><option value="false">Off</option></select></div><div class="field"><label for="owner-noelle-budget">Daily budget (USD cents)</label><input id="owner-noelle-budget" type="number" min="1" max="10000" required></div><div class="field"><label for="owner-noelle-limit">Replies per person per day</label><input id="owner-noelle-limit" type="number" min="1" max="500" required></div></div><button class="primary-button" type="submit">Save settings</button></form>`)},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
       el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',consoleCommunityStats(),panels,ownerPanel);
       void loadNoelleOwnerSettings();
-      bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindSubRoleControls(el);
+      bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindRoleHierarchy(el);bindRulesEditor(el);bindSubRoleControls(el);
       $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
       $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});
       qsa('[data-owner-feature]',el).forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.ownerFeature,enabled=button.getAttribute('aria-checked')!=='true';const run=async()=>{button.disabled=true;try{await ownerRpc('chat_owner_configure',{p_key:key,p_value:enabled?'true':'false'});appSettings[key]=enabled?'true':'false';button.setAttribute('aria-checked',String(enabled));applyFeatureControls();toast({type:'success',text:'Community setting updated.'});}catch(error){toast({type:'error',text:error?.message||'Could not update this setting.'});}finally{button.disabled=false;}};if(key==='app_enabled'&&!enabled)confirmAction({title:'Put the community in maintenance mode?',text:'Members will see the maintenance screen until you turn the community back on.',confirmLabel:'Enable maintenance mode',onConfirm:run});else run();}));

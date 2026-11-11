@@ -217,7 +217,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (targetError) return json({ error: "Could not verify target account" }, 503);
     if (!profile?.user_id) return json({ error: "Account not found" }, 404);
-    if (!canResetPassword(actor, profile)) {
+    const roles = [actor.staff_role, profile.staff_role].filter(Boolean);
+    const { data: roleRows } = await admin.from("chat_staff_roles").select("slug,tier,power").in("slug", roles);
+    const catalog = Object.fromEntries((roleRows || []).map((row: { slug: string; tier: number; power: number }) => [row.slug, { tier: row.tier, power: row.power }]));
+    if (!canResetPassword(actor, profile, catalog)) {
       return json({ error: "You can only reset another account below your staff rank" }, 403);
     }
     // Recheck live roles immediately before the Auth admin operation and audit authorization.

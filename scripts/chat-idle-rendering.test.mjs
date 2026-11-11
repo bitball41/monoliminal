@@ -137,7 +137,7 @@ function profileChanges() {
   const context = vm.createContext({
     profiles: new Map(rows.map(row => [row.username, row])), me: rows[0], document: { visibilityState: 'visible' },
     currentView: { type: 'channel', id: 'general' }, bootedAt: '2026-10-18T02:00:00Z',
-    voice: { peers: new Map() }, STAFF_ROLE_META: { member: { rank: 1 }, owner: { rank: 3 } },
+    voice: { peers: new Map() }, STAFF_ROLE_META: { member: { rank: 1, power: 150 }, owner: { rank: 6, power: 650 } },
     isHiddenBot: () => false, staffRoleOf: p => p.staff_role || 'member',
     noelleSourceProfile: null, NOELLE_AI_USERNAME: 'NoelleAI', hoverCardUser: null,
     isOwner: () => ['owner', 'preston'].includes(context.me?.staff_role), loadNoelleProfile() {},

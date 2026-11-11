@@ -24,7 +24,7 @@ function authHandler(actorRole, targetRole, options = {}) {
     rpc:async (name,body) => { calls.push([name,body]); return {error:options.rpcError ? {message:'Permission denied'} : null}; },
     from() {
       let selectedActor = false;
-      return {select(){return this;},eq(){selectedActor=true;return this;},
+      return {select(){return this;},eq(){selectedActor=true;return this;},in:async () => ({data:[],error:null}),
         ilike(key,value){patterns.push(value);return this;},
         async maybeSingle(){return {data:selectedActor ? actor : target,
           error:!selectedActor && options.targetError ? {message:'Unavailable'} : null};}};
@@ -71,6 +71,12 @@ test('unknown roles, legacy flags and self-targets do not authorize password res
   assert.equal(canResetPassword(actor,target),false);
   assert.equal(canResetPassword({...actor,staff_role:'owner'}, {...target,user_id:'one'}),false);
   assert.equal(canResetPassword({...actor,staff_role:'owner'}, {...target,staff_role:'unknown'}),false);
+  // Custom roles (6.1) compare by their catalog position.
+  const catalog = { r_warden: { tier: 4, power: 499 }, r_helper: { tier: 2, power: 299 } };
+  assert.equal(canResetPassword({...actor,staff_role:'r_warden'}, {...target,staff_role:'r_helper'}, catalog), true);
+  assert.equal(canResetPassword({...actor,staff_role:'r_helper'}, {...target,staff_role:'member'}, catalog), false, 'below admin level cannot reset');
+  assert.equal(canResetPassword({...actor,staff_role:'admin'}, {...target,staff_role:'r_warden'}, catalog), false, 'a higher custom role is protected');
+  assert.equal(canResetPassword({...actor,staff_role:'owner'}, {...target,staff_role:'r_warden'}, catalog), true);
   assert.equal(isOwner(actor),false);
 });
 
