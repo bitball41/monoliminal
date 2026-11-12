@@ -1,27 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="corazon">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#09003d" />
-<title>Liminal Games</title>
+<meta name="theme-color" content="#390606" />
+<meta name="application-name" content="Corazon Games" />
+<meta name="description" content="Corazon Games, part of the Corazon platform by Crimson Heart." />
+<title>Corazon Games</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=Courgette&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#09003d;
-    --panel:#10064a;
-    --panel2:#16095d;
+    /* Corazon by Crimson Heart: heart-red canvas, darker red surfaces, soft
+       white text and one soft rose accent, matching Corazon Chat. */
+    --bg:#390606;
+    --panel:#230404;
+    --panel2:#2a0505;
     --line:rgba(255,255,255,.13);
     --line-soft:rgba(255,255,255,.07);
-    --text:#fff;
+    --text:#fff1f0;
     --muted:rgba(255,255,255,.62);
     --dim:rgba(255,255,255,.40);
-    --accent:#5865f2;
-    --accent2:#7c86ff;
-    --accent-soft:rgba(88,101,242,.20);
-    --accent-line:rgba(124,134,255,.45);
+    --accent:#f4a6a1;
+    --accent2:#f9c1bc;
+    --on-accent:#230404;
+    --accent-soft:rgba(244,166,161,.14);
+    --accent-line:rgba(244,166,161,.36);
     --radius:14px;
     --ease:cubic-bezier(.2,.7,.3,1);
   }
@@ -46,7 +52,7 @@
   button,input{font:inherit}
   button{cursor:pointer}
   [hidden]{display:none!important}
-  ::selection{background:rgba(124,134,255,.38)}
+  ::selection{background:rgba(244,166,161,.38)}
   ::-webkit-scrollbar{width:11px;height:11px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{
@@ -98,7 +104,7 @@
   }
   .sidebar-btn:hover{
     background:var(--accent-soft);
-    color:#fff;
+    color:var(--text);
   }
   .sidebar-btn:active{transform:scale(.9)}
   .sidebar-btn.empty,.sidebar-btn[disabled]{opacity:.22;pointer-events:none}
@@ -118,30 +124,25 @@
     padding:6px 0 18px;
     text-align:center;
   }
-  /* Single typeface for the wordmark. Pairing Pacifico with Montserrat 800 put
-     a monoline script next to a heavy geometric sans, which read as two logos
-     side by side rather than one. Setting the whole title in the script also
-     means the word space is the font's own, not a flex gap to hand-tune.
-     line-height has to clear Pacifico's swashes — the cap L rises well above
-     the ascender line and the G loops below the baseline. */
+  /* Single typeface for the wordmark: the Corazon script (Courgette), as in
+     Corazon Chat. Setting the whole title in the script means the word space
+     is the font's own, not a flex gap to hand-tune. */
   h1{
     margin:0;
-    font-family:"Pacifico", cursive;
-    font-size:clamp(29px,3.6vw,40px);
+    font-family:"Courgette", cursive;
+    font-size:clamp(30px,3.7vw,42px);
     font-weight:400;
     line-height:1.24;
     letter-spacing:0;
-    color:#fff;
-    text-shadow:0 0 28px rgba(124,134,255,.45);
+    color:var(--text);
+    text-shadow:0 0 28px rgba(244,166,161,.28);
   }
   .tag{
     display:flex;
     align-items:center;
     justify-content:center;
     gap:9px;
-    /* Clears the descender loop on Pacifico's G, which hangs ~8px below the
-       h1 line box; a 10px margin left only 2px of visual air. */
-    margin:20px 0 0;
+    margin:14px 0 0;
     color:var(--muted);
     font-size:11px;
     font-weight:700;
@@ -153,13 +154,13 @@
     border:1px solid var(--accent-line);
     border-radius:999px;
     background:var(--accent-soft);
-    color:#dfe3ff;
+    color:#ffd9d5;
     text-decoration:none;
     letter-spacing:.04em;
     text-transform:none;
     transition:background-color .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
   }
-  .tag a:hover{background:var(--accent);border-color:transparent;color:#fff}
+  .tag a:hover{background:var(--accent);border-color:transparent;color:var(--on-accent)}
   .usage{
     display:flex;
     flex-wrap:wrap;
@@ -233,7 +234,7 @@
     letter-spacing:.04em;
     text-transform:uppercase;
   }
-  .spot-rail.is-trend .spot-head strong{color:#dfe3ff}
+  .spot-rail.is-trend .spot-head strong{color:#ffd9d5}
   .spot-chips{
     display:grid;
     grid-template-columns:repeat(2,minmax(0,1fr));
@@ -253,7 +254,7 @@
     border:1px solid var(--line-soft);
     border-radius:11px;
     background:rgba(255,255,255,.055);
-    color:#fff;
+    color:var(--text);
     text-align:left;
     transition:background-color .15s var(--ease), border-color .15s var(--ease);
   }
@@ -274,7 +275,7 @@
   .spot-name{
     min-width:0;
     overflow:hidden;
-    color:#fff;
+    color:var(--text);
     font-size:12px;
     font-weight:750;
     letter-spacing:-.005em;
@@ -311,7 +312,7 @@
     cursor:pointer;
     -webkit-tap-highlight-color:transparent;
   }
-  .spot-more:hover{color:#fff}
+  .spot-more:hover{color:var(--text)}
 
   /* Sticky search band. Opaque so game rows scroll under it cleanly instead
      of frosting through a glass panel. Side margins stay inside .main padding. */
@@ -354,7 +355,7 @@
   .search-box:focus-within{
     border-color:var(--accent-line);
     background:rgba(255,255,255,.08);
-    box-shadow:0 0 0 3px rgba(88,101,242,.20);
+    box-shadow:0 0 0 3px rgba(244,166,161,.20);
   }
   .search-box svg{flex:0 0 auto;width:16px;height:16px;color:rgba(255,255,255,.55);transition:color .18s var(--ease)}
   .search-box:focus-within svg{color:var(--accent2)}
@@ -370,7 +371,7 @@
     outline:0!important;
     border-radius:0!important;
     background:transparent!important;
-    color:#fff;
+    color:var(--text);
     box-shadow:none!important;
     font-size:14px;
     font-weight:650;
@@ -405,7 +406,7 @@
     padding:0 15px;
     border:1px solid rgba(255,255,255,.14);
     border-radius:12px;
-    color:#fff;
+    color:var(--text);
     background:rgba(255,255,255,.05);
     font-size:12px;
     font-weight:750;
@@ -421,12 +422,13 @@
   .btn.is-on{
     background:var(--accent-soft);
     border-color:var(--accent-line);
-    color:#eaecff;
+    color:#fff1f0;
   }
   .btn.primary{
     background:var(--accent);
     border-color:transparent;
-    box-shadow:0 6px 18px rgba(88,101,242,.32);
+    color:var(--on-accent);
+    box-shadow:0 6px 18px rgba(12,0,0,.32);
   }
   .btn.primary:hover{background:var(--accent2);border-color:transparent}
   #clearBtn{
@@ -447,7 +449,7 @@
     box-shadow:none;
     transition:background-color .15s var(--ease), color .15s var(--ease);
   }
-  #clearBtn:hover{background:rgba(255,255,255,.18);color:#fff}
+  #clearBtn:hover{background:rgba(255,255,255,.18);color:var(--text)}
   #clearBtn.show{display:grid;place-items:center}
   #count{
     min-height:16px;
@@ -547,9 +549,9 @@
   .game-row:active{background:rgba(255,255,255,.06)}
   .game-row.is-fav{
     background:var(--accent-soft);
-    border-color:rgba(124,134,255,.34);
+    border-color:rgba(244,166,161,.34);
   }
-  .game-row.is-fav:hover{background:rgba(88,101,242,.28)}
+  .game-row.is-fav:hover{background:rgba(244,166,161,.28)}
 
   input[type="button"]{
     appearance:none;
@@ -564,7 +566,7 @@
     border:0!important;
     border-radius:11px!important;
     background:rgba(255,255,255,.075)!important;
-    color:#fff!important;
+    color:var(--text)!important;
     box-shadow:none!important;
     text-align:left!important;
     font-size:13px!important;
@@ -599,9 +601,9 @@
     line-height:1;
     transition:color .15s var(--ease), background-color .15s var(--ease), transform .15s var(--ease);
   }
-  .fav-btn:hover{color:#fff;background:rgba(255,255,255,.09);transform:scale(1.12)}
+  .fav-btn:hover{color:var(--text);background:rgba(255,255,255,.09);transform:scale(1.12)}
   .game-row.is-fav .fav-btn{color:var(--accent2)}
-  .game-row.is-fav .fav-btn:hover{color:#fff}
+  .game-row.is-fav .fav-btn:hover{color:var(--text)}
   .game-stat{
     display:none;
     align-self:center;
@@ -649,7 +651,7 @@
     transition:opacity .2s var(--ease), transform .2s var(--ease), background-color .15s var(--ease);
   }
   .top-btn.show{opacity:1;transform:none;pointer-events:auto}
-  .top-btn:hover{background:var(--accent)}
+  .top-btn:hover{background:var(--accent);color:var(--on-accent)}
 
   button:focus-visible,input:focus-visible{
     outline:2px solid var(--accent2);
@@ -745,7 +747,7 @@
   /* Compact updates sit with the launcher chrome, leaving room for games. */
   .games-updates{display:grid;gap:10px;margin:0 0 16px;padding:0 0 16px;border-bottom:1px solid var(--line-soft)}
   .games-updates[hidden],.games-announcement[hidden],.games-links[hidden]{display:none}
-  .games-announcement{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-left:2px solid var(--accent2);border-radius:0 8px 8px 0;background:linear-gradient(90deg,rgba(124,134,255,.08),transparent)}
+  .games-announcement{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-left:2px solid var(--accent2);border-radius:0 8px 8px 0;background:linear-gradient(90deg,rgba(244,166,161,.08),transparent)}
   .games-announcement h2{display:flex;align-items:center;gap:7px;flex:0 0 auto;margin:2px 0 0;color:var(--accent2);font-size:.7rem;font-weight:700;line-height:1.6}
   .games-announcement h2 svg{width:15px;height:15px;flex:none}
   .games-announcement p{flex:1;min-width:0;margin:0;color:rgba(255,255,255,.84);font-size:.8rem;font-weight:500;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -772,7 +774,7 @@
   <div class="launcher-migrate" id="launcher-migrate" hidden>
     <div class="launcher-migrate-card">
       <h1>This launcher is out of date</h1>
-      <p id="launcher-migrate-text">This Liminal Games file is out of date and can no longer open the stash.
+      <p id="launcher-migrate-text">This Corazon Games file is out of date and can no longer open the stash.
 
 Download the new launcher, replace this file, and open that instead. Saved favorites on this device are unchanged.</p>
     </div>
@@ -781,7 +783,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     <div class="wrap">
       <header class="hero" id="top">
         <div>
-          <h1>Liminal Games</h1>
+          <h1>Corazon Games</h1>
           <p class="tag">Ultimate Game Stash<a href="https://github.com/bitball41/liminal-ugs" target="_blank" rel="noopener">liminal-ugs</a></p>
           <p class="usage" id="usage" hidden>
             <span class="usage-live" id="usageLive"><b>—</b> on launcher</span>
@@ -867,7 +869,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     var LAUNCHER_PROTOCOL = 2;
     var SUPABASE_URL = "https://trsirhyucncmyyfyiuje.supabase.co";
     var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG";
-    var DEFAULT_MIGRATE = "This Liminal Games file is out of date and can no longer open the stash.\n\nDownload the new launcher, replace this file, and open that instead. Saved favorites on this device are unchanged.";
+    var DEFAULT_MIGRATE = "This Corazon Games file is out of date and can no longer open the stash.\n\nDownload the new launcher, replace this file, and open that instead. Saved favorites on this device are unchanged.";
     var launcherVersion = 0;
     var minLauncherVersion = LAUNCHER_PROTOCOL;
     var migrateMessage = DEFAULT_MIGRATE;

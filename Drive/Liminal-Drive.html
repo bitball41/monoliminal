@@ -521,7 +521,7 @@ const EXTRA_GAMES=[
  {title:'Eaglercraft',aliases:['eagler craft'],genre:'Sandbox',description:'Explore, build, and survive in a browser version of Minecraft.'},
  {title:'Eaglercraft · Zeus Skins',aliases:['eaglercraft 26 2 zeus skins'],genre:'Sandbox',description:'The Zeus Skins build of Eaglercraft.'},
  {title:'Peggle Deluxe',aliases:['peggle deluxe'],genre:'Arcade',description:'Aim your shots, clear the orange pegs, and make every bounce count.'},
- {title:'Liminal Games',aliases:['liminal games launcher'],genre:'Collection',description:'The launcher for the wider Liminal Games collection.'}
+ {title:'Corazon Games',aliases:['corazon games launcher','liminal games','liminal games launcher'],genre:'Collection',description:'The launcher for the wider Corazon Games collection.'}
 ];
 function gameKey(name){return String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\.html?$/i,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function gameInfo(f){if(f.catalogId)return SPECIAL_GAMES.find(g=>g.id===f.catalogId)||{};const name=gameKey(/^index\.html?$/i.test(f.name)?f.key.split('/').slice(-2,-1)[0]:f.name);const base=[...SPECIAL_GAMES,...EXTRA_GAMES].find(g=>g.aliases.includes(name))||{};return {...base,...(f.metadata?.status?{note:undefined}:{}),...f.metadata}}

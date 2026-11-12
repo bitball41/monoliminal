@@ -12,7 +12,7 @@ One cloud development folder for the Liminal ecosystem. Edit here from GitHub or
 | Player | [`Player/liminalplayer.html`](Player/liminalplayer.html) | `liminalplayer.html` |
 | AI | [`AI/luna.html`](AI/luna.html) | `luna.html` |
 | Drive | [`Drive/Liminal-Drive.html`](Drive/Liminal-Drive.html) | `Liminal-Drive.html` |
-| Games | [`Games/games.html`](Games/games.html) | `games.html` |
+| Games (Corazon Games) | [`Games/games.html`](Games/games.html) | `games.html` |
 | Movies | [`Movies/movies.htm`](Movies/movies.htm) | `movies.htm` |
 | Admin dashboard | [`Admin/liminal-admin-dashboard.html`](Admin/liminal-admin-dashboard.html) | `liminal-admin-dashboard.html` |
 
