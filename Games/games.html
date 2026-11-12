@@ -710,7 +710,34 @@
     .top-btn.show{transform:none}
   }
 
-  body.launcher-locked > :not(#launcher-migrate){display:none!important}
+  /* ===== Startup =====
+     The page stays behind this screen until the game list, stats, news and
+     fonts are all in (or a short cap passes), then appears in one piece. */
+  .games-startup{
+    position:fixed;inset:0;z-index:150;
+    display:grid;place-items:center;
+    background:var(--bg);
+    transition:opacity .22s var(--ease), visibility .22s var(--ease);
+  }
+  .games-startup-card{text-align:center}
+  .games-startup-logo{
+    margin:0 0 18px;
+    color:var(--text);
+    font-family:"Courgette", cursive;
+    font-size:36px;
+    font-weight:400;
+    line-height:1.24;
+  }
+  .games-startup-track{width:220px;height:4px;margin:0 auto;overflow:hidden;border-radius:999px;background:rgba(255,241,240,.1)}
+  .games-startup-bar{width:15%;height:100%;border-radius:999px;background:var(--text);animation:games-startup-load 1.2s ease-in-out infinite}
+  .games-startup-status{margin-top:14px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  @keyframes games-startup-load{0%{transform:translateX(-100%)}100%{transform:translateX(680%)}}
+  body.is-loading .main,body.is-loading .top-btn{visibility:hidden}
+  body:not(.is-loading) .games-startup{opacity:0;visibility:hidden;pointer-events:none}
+  body.is-revealing .main{animation:games-reveal .22s var(--ease)}
+  @keyframes games-reveal{from{opacity:0}to{opacity:1}}
+
+  body.launcher-locked > :not(#launcher-migrate):not(#games-startup){display:none!important}
   .launcher-migrate{
     position:fixed;inset:0;z-index:200;
     display:grid;place-items:center;padding:24px;
@@ -770,7 +797,15 @@
   }
 </style>
 </head>
-<body>
+<body class="is-loading">
+  <noscript><style>body.is-loading .main{visibility:visible}.games-startup{display:none}</style></noscript>
+  <div class="games-startup" id="games-startup" role="status" aria-label="Opening Corazon Games">
+    <div class="games-startup-card">
+      <div class="games-startup-logo">Corazon Games</div>
+      <div class="games-startup-track" aria-hidden="true"><div class="games-startup-bar"></div></div>
+      <div class="games-startup-status">Loading games…</div>
+    </div>
+  </div>
   <div class="launcher-migrate" id="launcher-migrate" hidden>
     <div class="launcher-migrate-card">
       <h1>This launcher is out of date</h1>
@@ -904,6 +939,9 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     var hotKeys = new Set();
     var lastLaunchAt = {};
     var usageStarted = false;
+    var usageFirstLoad = null;
+    var READY_CAP_MS = 3500;
+    var revealed = false;
     var spotShown = { trend: 4, pop: 4 };
     var SPOT_PREVIEW = 4;
     var SPOT_LIMIT = 10;
@@ -1767,10 +1805,11 @@ Download the new launcher, replace this file, and open that instead. Saved favor
         });
       }
       paintUsageBar();
-      resolveDeviceId().then(function(){
-        recordOpen();
+      usageFirstLoad = resolveDeviceId().then(function(){
+        var first = recordOpen();
         startPresence();
-      });
+        return first;
+      }).catch(function(){});
       window.addEventListener("pagehide", stopPresence);
       window.addEventListener("pageshow", function(){
         pollUsage();
@@ -1780,6 +1819,59 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       document.addEventListener("visibilitychange", pollUsage);
       window.addEventListener("online", pollUsage);
       setInterval(pollUsage, 60000);
+    }
+
+    function domReady(){
+      return new Promise(function(resolve){
+        if (document.readyState !== "loading") resolve();
+        else document.addEventListener("DOMContentLoaded", function(){ resolve(); }, { once: true });
+      });
+    }
+    // Resolves once games.js has finished adding buttons: the list has stopped
+    // growing for a moment, or the source failed to load.
+    function gamesSettled(){
+      return new Promise(function(resolve){
+        var last = -1;
+        var stableSince = 0;
+        (function check(){
+          if (window.__liminalUgsLoadError) return resolve();
+          queueSync();
+          var n = games.length;
+          if (n !== last) { last = n; stableSince = Date.now(); }
+          else if (n > 0 && Date.now() - stableSince >= 200) return resolve();
+          setTimeout(check, 50);
+        })();
+      });
+    }
+    function fontsReady(){
+      if (!document.fonts || typeof document.fonts.load !== "function") return Promise.resolve();
+      return Promise.all([
+        document.fonts.load('400 40px "Courgette"'),
+        document.fonts.load('700 12px "Montserrat"'),
+        document.fonts.load('800 12px "Montserrat"')
+      ]).then(function(){ return document.fonts.ready; }).catch(function(){});
+    }
+    function revealPage(){
+      if (revealed) return;
+      revealed = true;
+      syncGames();
+      document.body.classList.add("is-revealing");
+      document.body.classList.remove("is-loading");
+      setTimeout(function(){ document.body.classList.remove("is-revealing"); }, 400);
+    }
+    function revealWhenReady(){
+      var everything = domReady().then(function(){
+        return Promise.all([
+          gamesSettled(),
+          usageFirstLoad || Promise.resolve(),
+          window.__gamesContentFirstLoad || Promise.resolve(),
+          fontsReady()
+        ]);
+      });
+      Promise.race([
+        everything,
+        new Promise(function(resolve){ setTimeout(resolve, READY_CAP_MS); })
+      ]).then(revealPage, revealPage);
     }
 
     function startApp(){
@@ -1807,6 +1899,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       observer.observe(document.body, {childList:true, subtree:true});
       queueSync();
       startUsage();
+      revealWhenReady();
       window.addEventListener("load", queueSync);
       [100, 250, 600, 1000, 1800, 3000].forEach(function(ms){
         setTimeout(function(){
@@ -1823,6 +1916,7 @@ Download the new launcher, replace this file, and open that instead. Saved favor
       if (text) text.textContent = migrateMessage || DEFAULT_MIGRATE;
       if (migrate) migrate.hidden = false;
       document.body.classList.add("launcher-locked");
+      document.body.classList.remove("is-loading");
       try { window.parent.postMessage({ type: "liminal:games:ready" }, "*"); } catch (e) {}
     }
 
@@ -1961,7 +2055,8 @@ Download the new launcher, replace this file, and open that instead. Saved favor
     }
     finally { clearTimeout(timer); inFlight = false; }
   }
-  refreshGamesContent();
+  // The catalog waits for this first request before it appears.
+  window.__gamesContentFirstLoad = refreshGamesContent();
   window.addEventListener("focus",refreshGamesContent);
   window.addEventListener("online",refreshGamesContent);
   window.addEventListener("pageshow",refreshGamesContent);
