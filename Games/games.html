@@ -728,10 +728,12 @@
     font-weight:400;
     line-height:1.24;
   }
-  .games-startup-track{width:220px;height:4px;margin:0 auto;overflow:hidden;border-radius:999px;background:rgba(255,241,240,.1)}
-  .games-startup-bar{width:15%;height:100%;border-radius:999px;background:var(--text);animation:games-startup-load 1.2s ease-in-out infinite}
-  .games-startup-status{margin-top:14px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-  @keyframes games-startup-load{0%{transform:translateX(-100%)}100%{transform:translateX(680%)}}
+  /* Same look as the Corazon Games launcher's loader, so the handoff from the
+     launcher to this screen is seamless. */
+  .games-startup-track{width:220px;height:3px;margin:auto;overflow:hidden;border-radius:9px;background:#fff1f01a}
+  .games-startup-bar{width:15%;height:100%;border-radius:9px;background:var(--text);animation:games-startup-load 1.2s ease-in-out infinite}
+  .games-startup-status{margin-top:14px;color:#fff1f08c;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  @keyframes games-startup-load{50%{width:85%}100%{width:15%;transform:translateX(185px)}}
   body.is-loading .main,body.is-loading .top-btn{visibility:hidden}
   body:not(.is-loading) .games-startup{opacity:0;visibility:hidden;pointer-events:none}
   body.is-revealing .main{animation:games-reveal .22s var(--ease)}
