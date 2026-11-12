@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#390606">
+<meta name="application-name" content="Corazon Games">
+<meta name="description" content="Corazon Games launcher, part of the Corazon platform by Crimson Heart.">
+<title>Corazon Games</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courgette&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;height:100vh;display:grid;place-items:center;background:#390606;color:#fff1f0;font:14px Montserrat,system-ui,sans-serif}.loader{text-align:center}.logo{margin:0 0 18px;color:#fff1f0;font-family:Courgette,cursive;font-size:36px;font-weight:400;line-height:1.24;letter-spacing:0}.track{width:220px;height:3px;margin:auto;overflow:hidden;border-radius:9px;background:#fff1f01a}.bar{width:15%;height:100%;border-radius:9px;background:#fff1f0;animation:load 1.2s ease-in-out infinite}.status{margin-top:14px;color:#fff1f08c;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}.error{max-width:340px;color:#ffc9c4;line-height:1.5;white-space:pre-line}button{margin-top:14px;padding:8px 18px;border:1px solid #fff1f0;border-radius:999px;background:#fff1f0;color:#230404;font:inherit;font-size:12px;font-weight:700;cursor:pointer}button:focus-visible{outline:2px solid #f4a6a1;outline-offset:4px}@keyframes load{50%{width:85%}100%{width:15%;transform:translateX(185px)}}@media (prefers-reduced-motion:reduce){.bar{animation:none;width:65%}}
+</style>
+</head>
+<body>
+<main class="loader" id="loader" role="status" aria-live="polite">
+  <div class="logo">Corazon Games</div>
+  <div class="track"><div class="bar"></div></div>
+  <div class="status">Starting launcher...</div>
+</main>
+<iframe id="games-frame" allow="autoplay; fullscreen; gamepad; clipboard-write; accelerometer; gyroscope" style="position:fixed;inset:0;visibility:hidden;width:100%;height:100%;border:none;"></iframe>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script>
+const CDN="https://trsirhyucncmyyfyiuje.supabase.co/storage/v1/object/public/liminal-apps/games.html";
+const SUPABASE_URL="https://ucgjwrjqmexenmrpbdkh.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_BODuji68eJDK34su6xVuwg_B_tXwFaL";
+const LAUNCHER_VERSION=2;
+// Games watches its own key so a chat force-refresh does not yank players out
+// of a running game (and vice versa).
+const REFRESH_KEY="games_force_refresh_at";
+const STAGES={connecting:"Connecting to server...",downloading:"Downloading latest version...",opening:"Opening Corazon Games..."};
+const LOADER_HTML='<div class="logo">Corazon Games</div><div class="track"><div class="bar"></div></div><div class="status">Starting launcher...</div>';
+let revealFallback=0;
+let bootSequence=0;
+let lastRefreshSignal="";
+let refreshSignalReady=false;
+function setStage(stage){
+  window.LIMINAL_STAGE=stage;
+  document.documentElement.dataset.stage=stage;
+  const status=document.querySelector("#loader .status");
+  if(status)status.textContent=STAGES[stage]||stage;
+}
+// Restore the animated loader markup. Needed before a (re)boot because the
+// error path replaces the loader's contents, which would otherwise leave
+// setStage() unable to find .status and the spinner gone on Retry.
+function showLoader(){
+  const loader=document.getElementById("loader");
+  loader.innerHTML=LOADER_HTML;
+  loader.style.display="";
+}
+function revealGames(){
+  clearTimeout(revealFallback);
+  document.getElementById("loader").style.display="none";
+  document.getElementById("games-frame").style.visibility="visible";
+}
+window.addEventListener("message",event=>{
+  const iframe=document.getElementById("games-frame");
+  if(event.source!==iframe.contentWindow||!event.data)return;
+  if(event.data.type==="liminal:games:hello"){
+    iframe.contentWindow.postMessage({type:"liminal:launcher:hello",version:LAUNCHER_VERSION},"*");
+  }
+  if(event.data.type==="liminal:games:ready")revealGames();
+  if(event.data.type==="liminal:games:force-refresh"){
+    iframe.contentWindow.postMessage({type:"liminal:launcher:refreshing",requestedAt:event.data.requestedAt},"*");
+    requestForceRefresh(event.data.requestedAt);
+  }
+});
+function requestForceRefresh(value){
+  const signal=String(value||"").trim();
+  if(!signal||signal===lastRefreshSignal)return;
+  lastRefreshSignal=signal;
+  refreshSignalReady=true;
+  boot(signal);
+}
+async function checkForceRefresh(initialize=false){
+  if(!window.supabase)return;
+  try{
+    const client=window.liminalControlClient;
+    const {data}=await client.from("app_settings").select("value").eq("key",REFRESH_KEY).maybeSingle();
+    if(!data)return;
+    if(initialize&&!refreshSignalReady){
+      lastRefreshSignal=String(data.value||"").trim();
+      refreshSignalReady=true;
+      return;
+    }
+    requestForceRefresh(data.value);
+  }catch{}
+}
+async function watchForceRefresh(){
+  if(!window.supabase)return;
+  const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  window.liminalControlClient=client;
+  await checkForceRefresh(true);
+  client.channel("liminal-games-launcher-controls")
+    .on("postgres_changes",{event:"*",schema:"public",table:"app_settings",filter:"key=eq."+REFRESH_KEY},payload=>{
+      const row=payload.new;
+      if(row)requestForceRefresh(row.value);
+    })
+    .subscribe(status=>{if(status==="SUBSCRIBED")checkForceRefresh();});
+  setInterval(checkForceRefresh,30000);
+}
+async function boot(refreshToken=Date.now()){
+  const sequence=++bootSequence;
+  clearTimeout(revealFallback);
+  showLoader();
+  document.getElementById("games-frame").style.visibility="hidden";
+  if(!window.name.startsWith("liminal-games-launcher:"))window.name="liminal-games-launcher:"+location.href;
+  setStage("connecting");
+  try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),15000);
+    let response;
+    try{
+      response=await fetch(CDN+"?refresh="+encodeURIComponent(refreshToken),{cache:"no-store",signal:controller.signal});
+    }finally{
+      clearTimeout(timeout);
+    }
+    if(!response.ok)throw new Error("Server returned "+response.status);
+    setStage("downloading");
+    const html=await response.text();
+    if(sequence!==bootSequence)return;
+    setStage("opening");
+    const iframe=document.getElementById("games-frame");
+    iframe.srcdoc=html;
+    // Backstop if the stash never posts liminal:games:ready.
+    revealFallback=setTimeout(revealGames,3500);
+  }catch(error){
+    if(sequence!==bootSequence)return;
+    const failedAt=window.LIMINAL_STAGE;
+    const message=error.name==="AbortError"?"The server did not respond within 15 seconds.":error.message;
+    setStage("error");
+    const loader=document.getElementById("loader");
+    loader.replaceChildren();
+    const msg=document.createElement("div");
+    msg.className="error";
+    msg.textContent="Could not load Corazon Games.\n"+message+"\n(failed while "+failedAt+")";
+    const retry=document.createElement("button");
+    retry.type="button";
+    retry.textContent="Retry";
+    retry.addEventListener("click",()=>boot());
+    loader.append(msg,retry);
+  }
+}
+boot();
+watchForceRefresh();
+</script>
+</body>
+</html>
