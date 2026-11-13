@@ -543,8 +543,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     html[data-ring-visibility] .avatar.has-ring.ring-anim::before { animation-play-state: paused; }
     html[data-ring-visibility]:not([data-ring-paused]) .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: running; }
     /* Rings spin on the main thread (one restyle per step). Hold them while
-       the timeline scrolls so every scroll frame skips that work. */
-    html[data-ring-visibility][data-scrolling] .avatar.has-ring.ring-anim[data-ring-visible="true"]::before { animation-play-state: paused; }
+       the timeline scrolls so every scroll frame skips that work. The scroll
+       handler marks only the rings on screen: a rule keyed on the root
+       scroll flag restyled every avatar in the app (~600 elements) at the
+       start and end of each scroll, including the pin-to-bottom scroll while
+       typing, which showed up as dropped keystrokes and late hovers. */
+    html[data-ring-visibility] .avatar.has-ring.ring-anim[data-ring-visible="true"][data-scroll-paused]::before { animation-play-state: paused; }
     /* Isolate visible animated images from the surrounding paint surface.
        GIF-only scenes can stall in Chromium even with an idle UI thread.
        Release the layer as soon as the image leaves view or the tab is hidden. */
@@ -6294,6 +6298,15 @@ void main() {
         const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
         let last = null, raf = 0, destroyed = false, width = 0, height = 0;
         let animated = false, motionReduced = false, pixelScale = preset.scale;
+        // Hold the current frame while the member types. The shader competes
+        // with each keystroke's paint for the GPU, which made typing stutter
+        // on lower-end devices; the background resumes shortly after.
+        const TYPING_HOLD_MS = 400;
+        let typingAt = -Infinity;
+        const noteTyping = event => {
+          if (event.target?.closest?.('textarea, input, [contenteditable="true"]')) typingAt = performance.now();
+        };
+        document.addEventListener('keydown', noteTyping, { capture: true, passive: true });
         const neutralMouse = [0.5, 0.5];
         const timeline = $('timeline');
         const drawable = () => !destroyed && !document.hidden && !stage.hidden &&
@@ -6320,6 +6333,7 @@ void main() {
           if (animated) {
             if (budget.sample(now)) last = null;
             raf = requestAnimationFrame(paint);
+            if (now - typingAt < TYPING_HOLD_MS) { last = null; return; }
             const interval = 1000 / budget.fps;
             if (last !== null && now - last < interval) return;
             last = last === null ? now : now - (now - last) % interval;
@@ -6405,6 +6419,7 @@ void main() {
           if (raf) cancelAnimationFrame(raf);
           resizeObserver.disconnect(); mutationObserver.disconnect();
           document.removeEventListener('visibilitychange', sync);
+          document.removeEventListener('keydown', noteTyping, { capture: true });
           reducedMotion.removeEventListener('change', sync);
           stage.removeEventListener('background-visibility', sync);
           draw.dispose?.();
@@ -20405,29 +20420,41 @@ void main() {
           scrollFrame = requestAnimationFrame(function onTimelineScrollFrame() {
             scrollFrame = 0;
             const top = timelineElRef.scrollTop;
+            // pinToBottom records the position it scrolls to, so an unchanged
+            // position here is the app keeping the view at the bottom (composer
+            // growth while typing, arriving messages), not the reader scrolling.
+            const pinScroll = top === lastTimelineScrollTop;
             const movedUp = top < lastTimelineScrollTop - 2;
             const movedDown = top > lastTimelineScrollTop + 2;
             lastTimelineScrollTop = top;
             const near = applyingPin ? true : isNearBottom();
             if (scrollbarPointer && movedUp && !near) releaseBottomPin();
             updateTimelineReadState(near, movedDown);
-            if (!scrollPausedNames) {
+            // Scroll mode suppresses hover and holds animations for a reader's
+            // gesture. Entering it restyles the whole timeline (pointer-events
+            // is inherited), so a pin scroll on each keystroke skips it.
+            if (!scrollPausedNames && !pinScroll) {
               // Pause only the animated names already on screen. Attributes on
               // those few elements avoid restyling the rest of the timeline.
               timelineElRef.classList.add('is-scrolling');
               timelineInnerRef.setAttribute('data-scrolling', '');
               document.documentElement.setAttribute('data-scrolling', '');
-              scrollPausedNames = qsa('.display-name.name-effect-fade[data-media-visible="true"], .display-name.name-effect-shift[data-media-visible="true"]', timelineElRef);
+              scrollPausedNames = [
+                ...qsa('.display-name.name-effect-fade[data-media-visible="true"], .display-name.name-effect-shift[data-media-visible="true"]', timelineElRef),
+                ...qsa('.avatar.ring-anim[data-ring-visible="true"]'),
+              ];
               scrollPausedNames.forEach(el => el.setAttribute('data-scroll-paused', ''));
             }
-            clearTimeout(scrollSettle);
-            scrollSettle = setTimeout(() => {
-              timelineElRef.classList.remove('is-scrolling');
-              timelineInnerRef.removeAttribute('data-scrolling');
-              document.documentElement.removeAttribute('data-scrolling');
-              (scrollPausedNames || []).forEach(el => el.removeAttribute('data-scroll-paused'));
-              scrollPausedNames = null;
-            }, 150);
+            if (scrollPausedNames) {
+              clearTimeout(scrollSettle);
+              scrollSettle = setTimeout(() => {
+                timelineElRef.classList.remove('is-scrolling');
+                timelineInnerRef.removeAttribute('data-scrolling');
+                document.documentElement.removeAttribute('data-scrolling');
+                (scrollPausedNames || []).forEach(el => el.removeAttribute('data-scroll-paused'));
+                scrollPausedNames = null;
+              }, 150);
+            }
           });
         }
       }, { passive: true });

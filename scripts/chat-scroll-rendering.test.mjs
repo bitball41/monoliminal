@@ -21,16 +21,26 @@ test('timeline scroll state never restyles every message', () => {
   const clock = chat.slice(chat.indexOf('function tickNameEffects('), chat.indexOf('function syncNameEffects('));
   assert.match(clock, /el\.hasAttribute\('data-scroll-paused'\)/);
   assert.match(clock, /document\.documentElement\.hasAttribute\('data-scrolling'\)/);
-  // Rings hold too, keyed on the root flag, which restyles only ring pseudo-elements.
-  assert.match(css, /html\[data-ring-visibility\]\[data-scrolling\] \.avatar\.has-ring\.ring-anim\[data-ring-visible="true"\]::before\s*\{\s*animation-play-state:\s*paused;/);
+  // Rings hold too, but only the visible ones the scroll handler marks: a rule
+  // keyed on the root scroll flag restyled every avatar (~600 elements) twice
+  // per gesture, including the pin-to-bottom scroll while typing.
+  const rootScrollRules = rules.flatMap(rule => rule.split(',')).map(selector => selector.trim())
+    .filter(selector => /^html\S*\[data-scrolling\]/.test(selector));
+  assert.deepEqual(rootScrollRules, []);
+  assert.match(css, /html\[data-ring-visibility\] \.avatar\.has-ring\.ring-anim\[data-ring-visible="true"\]\[data-scroll-paused\]::before\s*\{\s*animation-play-state:\s*paused;/);
 });
 
 test('scroll frames pause only visible animated names and restore them on settle', () => {
   const start = chat.indexOf('function onTimelineScrollFrame');
   const handler = chat.slice(start, chat.indexOf('{ passive: true });', start));
-  assert.match(handler, /if \(!scrollPausedNames\)/, 'pause set is gathered once per gesture');
+  assert.match(handler, /if \(!scrollPausedNames && !pinScroll\)/, 'pause set is gathered once per gesture');
+  // The app's own pin-to-bottom scroll (composer growth on each keystroke,
+  // arriving messages) skips scroll mode, which restyles the whole timeline.
+  assert.match(handler, /const pinScroll = top === lastTimelineScrollTop;/);
+  assert(handler.indexOf('const pinScroll') < handler.indexOf('lastTimelineScrollTop = top;'), 'compared before the position is updated');
   assert.match(handler, /name-effect-fade\[data-media-visible="true"\]/);
   assert.match(handler, /name-effect-shift\[data-media-visible="true"\]/);
+  assert.match(handler, /\.avatar\.ring-anim\[data-ring-visible="true"\]/, 'visible rings pause with the names');
   assert.match(handler, /setAttribute\('data-scroll-paused', ''\)/);
   assert.match(handler, /removeAttribute\('data-scroll-paused'\)/);
   assert.match(handler, /timelineInnerRef\.setAttribute\('data-scrolling', ''\)/);
