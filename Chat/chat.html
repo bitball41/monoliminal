@@ -255,6 +255,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
       --ease-spring: cubic-bezier(0.34, 1.25, 0.45, 1);
       --ease-slide: cubic-bezier(0.32, 0.72, 0, 1);
+      /* Motion timing. Hover feedback should feel immediate; only larger
+         surfaces (menus, dialogs, view slides) get a perceptible glide. */
+      --motion-hover: 60ms;
+      --motion-press: 90ms;
+      --motion-quick: 130ms;
+      --motion-panel: 170ms;
+      --motion-view: 260ms;
 
       --font-flags: "Liminal Native Flags";
 
@@ -372,7 +379,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
  flex: 0 0 auto;
       border: 1px solid transparent; border-radius: 10px;
       color: var(--text-soft); background: transparent;
-      transition: background 130ms ease, color 130ms ease, border-color 130ms ease, transform 120ms ease;
+      transition: background var(--motion-hover) ease-out, color var(--motion-hover) ease-out, border-color var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out);
     }
     .icon-button:hover { color: var(--text); }
     .icon-button:active { transform: scale(0.92); }
@@ -384,7 +391,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       min-height: 40px; padding: 9px 18px;
       border-radius: 11px; border: 1px solid transparent;
       font-family: var(--font-ui); font-weight: 700; font-size: 0.82rem;
-      transition: filter 130ms ease, background 130ms ease, transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+      transition: filter var(--motion-hover) ease-out, background var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out), box-shadow var(--motion-press) var(--ease-out);
     }
     .primary-button { color: var(--on-accent); }
     .primary-button:hover:not(:disabled) { filter: brightness(1.08); }
@@ -409,7 +416,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong);
       color: var(--text); background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
       text-transform: none; letter-spacing: normal;
-      transition: border-color 130ms ease;
+      transition: border-color var(--motion-hover) ease-out;
     }
     .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: 1; }
     .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); }
@@ -465,8 +472,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .chip.owner { border-color: color-mix(in srgb, #fbbf24 45%, transparent); background: color-mix(in srgb, #fbbf24 14%, transparent); color: #fcd34d; }
     .chip.danger { border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 13%, transparent); color: var(--danger); }
 
-    .switch { position: relative; width: 40px; height: 23px; flex: 0 0 auto; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); transition: background 150ms ease, border-color 150ms ease; }
-    .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: var(--text-soft); transition: transform 220ms var(--ease-spring), background 150ms ease; }
+    .switch { position: relative; width: 40px; height: 23px; flex: 0 0 auto; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); transition: background var(--motion-quick) var(--ease-out), border-color var(--motion-quick) var(--ease-out); }
+    .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: var(--text-soft); transition: transform var(--motion-quick) var(--ease-spring), background var(--motion-quick) var(--ease-out); }
     .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
     .switch[aria-checked="true"]::after { transform: translateX(17px); background: var(--on-accent); }
 
@@ -487,13 +494,13 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     
     @keyframes slide-out-left { 0% { opacity: 1; transform: none; } 50% { opacity: 0; } 100% { opacity: 0; transform: translateX(-48px); } }
     @keyframes slide-out-right { 0% { opacity: 1; transform: none; } 50% { opacity: 0; } 100% { opacity: 0; transform: translateX(48px); } }
-    .slide-in-right { animation: slide-in-right 420ms var(--ease-slide) both; }
-    .slide-in-left { animation: slide-in-left 420ms var(--ease-slide) both; }
-    .slide-in-up { animation: slide-in-up 420ms var(--ease-slide) both; }
-    .slide-in-down { animation: slide-in-down 420ms var(--ease-slide) both; }
-    .slide-out-left { animation: slide-out-left 420ms var(--ease-slide) both; }
-    .slide-out-right { animation: slide-out-right 420ms var(--ease-slide) both; }
-    .view-enter { animation: slide-in-up 420ms var(--ease-slide) both; }
+    .slide-in-right { animation: slide-in-right var(--motion-view) var(--ease-slide) both; }
+    .slide-in-left { animation: slide-in-left var(--motion-view) var(--ease-slide) both; }
+    .slide-in-up { animation: slide-in-up var(--motion-view) var(--ease-slide) both; }
+    .slide-in-down { animation: slide-in-down var(--motion-view) var(--ease-slide) both; }
+    .slide-out-left { animation: slide-out-left var(--motion-view) var(--ease-slide) both; }
+    .slide-out-right { animation: slide-out-right var(--motion-view) var(--ease-slide) both; }
+    .view-enter { animation: slide-in-up var(--motion-view) var(--ease-slide) both; }
 
     .avatar {
       position: relative; display: grid; place-items: center; flex: 0 0 auto;
@@ -626,7 +633,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
  -webkit-backdrop-filter: blur(10px);
 
-      animation: pop-in 300ms ease;
+      animation: pop-in var(--motion-panel) var(--ease-out);
       overflow: hidden;
     }
     .auth-brand { display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -645,7 +652,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px;
       width: calc(50% - 6px);
       background: var(--accent-strong);
-      transition: transform 340ms var(--ease-slide);
+      transition: transform var(--motion-panel) var(--ease-slide);
     }
     .auth-tabs.signup-active::before { transform: translateX(calc(100% + 4px)); }
     .auth-tabs:has(#auth-tab-signup[aria-selected="true"])::before { transform: translateX(calc(100% + 4px)); }
@@ -654,7 +661,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       min-height: 36px; border: none;
       background: transparent; color: var(--muted);
       font-family: var(--font-ui); font-weight: 750; font-size: 0.8rem;
-      transition: color 200ms ease;
+      transition: color var(--motion-hover) ease-out;
     }
     .auth-tabs button[aria-selected="true"] { color: var(--on-accent); }
     .auth-footer { margin-top: 18px; text-align: center; color: var(--muted); font-size: 0.7rem; }
@@ -743,7 +750,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       position: relative; display: grid; align-items: center;
       width: 100%; border: 0; border-radius: 9px;
       color: var(--text-soft); background: transparent; text-align: left;
-      transition: background 180ms ease, color 180ms ease;
+      transition: background var(--motion-hover) ease-out, color var(--motion-hover) ease-out;
     }
     .channel-button { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 7px; min-height: 32px; padding: 4px 10px; }
     .channel-button:hover, .dm-button:hover { color: var(--text); background: var(--surface-2); }
@@ -866,7 +873,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
 
       scroll-margin-block: 72px;
-      transition: background 100ms ease, border-color 100ms ease;
+      transition: background var(--motion-hover) ease-out, border-color var(--motion-hover) ease-out;
     }
     
     .msg:hover, .msg:focus-within { overflow: visible; z-index: 5; }
@@ -916,7 +923,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .sk-line { height: 0.7rem; margin-bottom: 8px; }
     .sk-line:last-child { margin-bottom: 0; }
     .skeleton-msg { pointer-events: none; content-visibility: visible; }
-    .msg.msg-enter { animation: msg-enter 340ms var(--ease-out); }
+    .msg.msg-enter { animation: msg-enter 200ms var(--ease-out); }
     .msg.mentioned-me { background: color-mix(in srgb, var(--warning) 7%, transparent); box-shadow: inset 2.5px 0 0 var(--warning); }
     .msg.highlight { animation: msg-flash 1.8s ease; }
     @keyframes msg-flash { 0%, 40% { background: var(--accent-soft); } 100% { background: transparent; } }
@@ -1099,7 +1106,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-content.deleted { color: var(--muted); font-style: italic; }
     .msg-content .mention { padding: 1px 4px; border-radius: 5px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 650; }
     .msg-content .mention.self-mention { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
-    .spoiler { padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--text) 14%, transparent); color: transparent; cursor: pointer; transition: color 150ms ease, background 150ms ease; }
+    .spoiler { padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--text) 14%, transparent); color: transparent; cursor: pointer; transition: color var(--motion-quick) var(--ease-out), background var(--motion-quick) var(--ease-out); }
     .spoiler:not(.revealed) a { visibility: hidden; }
     .spoiler.revealed { background: var(--surface-2); color: inherit; cursor: text; }
 
@@ -1155,7 +1162,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .code-card-long { background: color-mix(in srgb, var(--text) 6%, transparent); }
     .code-card-long .code-block {
       position: relative; max-height: calc(1.5em * 3 + 16px); overflow: hidden;
-      transition: max-height .18s ease;
+      transition: max-height var(--motion-panel) var(--ease-out);
     }
     .code-card-long:not(.is-expanded) .code-block::after {
       content: ''; position: absolute; right: 0; bottom: 0; left: 0; height: 2.2em;
@@ -1174,7 +1181,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 0; border-radius: 7px; background: transparent; color: var(--text); text-align: left;
     }
     .code-toggle:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
-    .code-toggle svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-soft); transition: transform .16s ease; }
+    .code-toggle svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--text-soft); transition: transform var(--motion-quick) var(--ease-out); }
     .code-card-long.is-expanded .code-toggle svg { transform: rotate(180deg); }
     .code-file { display: grid; min-width: 0; gap: 1px; }
     .code-file strong { overflow: hidden; font-family: var(--font-mono); font-size: .77rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -1233,7 +1240,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong); border-radius: 10px;
       background: color-mix(in srgb, var(--bg-deep) 34%, transparent);
       color: var(--text); text-align: left;
-      transition: border-color 130ms ease, transform 130ms ease, background 130ms ease;
+      transition: border-color var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out), background var(--motion-hover) ease-out;
     }
     .poll-option:hover:not(:disabled) { border-color: var(--accent-line); }
     .poll-option.selected { border-color: var(--accent); background: var(--accent-soft); }
@@ -1296,7 +1303,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       padding: 3px 9px; border-radius: 999px;
       border: 1px solid var(--line-strong); background: var(--surface);
       font-size: 0.78rem; color: var(--text-soft);
-      transition: border-color 120ms ease, background 120ms ease, transform 140ms var(--ease-out);
+      transition: border-color var(--motion-hover) ease-out, background var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out);
     }
     .reaction-chip:hover { border-color: var(--accent-line); }
     .reaction-chip:active { transform: scale(0.96); }
@@ -1310,7 +1317,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       
       background: var(--glass-strong);
     }
-    .msg:hover .msg-actions, .msg:focus-within .msg-actions { display: inline-flex; animation: pop-in 130ms var(--ease-out); }
+    .msg:hover .msg-actions, .msg:focus-within .msg-actions { display: inline-flex; animation: pop-in 80ms var(--ease-out); }
     .msg-actions button {
       display: grid; place-items: center; width: 32px; height: 30px;
       border: none; background: none; color: var(--text-soft);
@@ -1328,7 +1335,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: var(--accent-strong); color: var(--on-accent);
       font-family: var(--font-ui); font-size: 0.74rem; font-weight: 800;
       box-shadow: 0 10px 30px var(--accent-glow);
-      animation: pop-in 200ms ease;
+      animation: pop-in var(--motion-panel) var(--ease-out);
     }
 
     .viewing-older {
@@ -1338,7 +1345,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       
       background: var(--glass); border: 1px solid var(--line);
       box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      animation: pop-in 200ms ease;
+      animation: pop-in var(--motion-panel) var(--ease-out);
     }
     .viewing-older-label {
       font-family: var(--font-ui); font-size: 0.74rem; font-weight: 600; color: var(--text-soft);
@@ -1348,7 +1355,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: none; cursor: pointer; border-radius: 999px;
       padding: 6px 14px; background: var(--accent-strong); color: var(--on-accent);
       font-family: var(--font-ui); font-size: 0.74rem; font-weight: 800; white-space: nowrap;
-      transition: filter 120ms ease;
+      transition: filter var(--motion-hover) ease-out;
     }
     .viewing-older-btn:hover { filter: brightness(1.08); }
 
@@ -1366,7 +1373,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       margin-bottom: 6px; padding: 8px 12px;
       border: 1px solid var(--line); border-radius: 11px;
       background: var(--glass); font-size: 0.74rem; color: var(--text-soft);
-      animation: pop-in 150ms ease;
+      animation: pop-in var(--motion-quick) var(--ease-out);
     }
     .context-bar .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .context-bar strong { color: var(--accent-strong); font-family: var(--font-ui); }
@@ -1375,7 +1382,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 6px; padding: 8px 12px;
       border: 1px solid var(--line); border-radius: 11px; background: var(--glass);
-      animation: pop-in 150ms ease;
+      animation: pop-in var(--motion-quick) var(--ease-out);
     }
     .attach-thumb { width: 52px; height: 52px; border-radius: 9px; object-fit: cover; border: 1px solid var(--line); }
     .attach-meta { flex: 1; min-width: 0; font-size: 0.72rem; color: var(--text-soft); }
@@ -1421,7 +1428,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
 
 
-      transition: border-color 150ms ease, box-shadow 150ms ease;
+      transition: border-color var(--motion-hover) ease-out, box-shadow var(--motion-press) var(--ease-out);
     }
     .composer textarea {
       flex: 1 1 140px; min-width: 0; height: 38px; min-height: 38px; max-height: 9.5em; margin: 0;
@@ -1447,7 +1454,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 auto;
       border: none; border-radius: 11px;
       color: var(--on-accent); background: linear-gradient(140deg, var(--accent-strong), var(--accent));
-      transition: filter 130ms ease, transform 160ms var(--ease-spring), box-shadow 160ms ease;
+      transition: filter var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-spring), box-shadow var(--motion-press) var(--ease-out);
     }
     .send-button:hover:not(:disabled) { filter: brightness(1.1); }
     .send-button:active { transform: scale(0.94); box-shadow: none; }
@@ -1505,7 +1512,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
       color: var(--text);
       font-family: var(--font-ui); font-size: 0.72rem;
-      transition: border-color 130ms ease, background 130ms ease;
+      transition: border-color var(--motion-hover) ease-out, background var(--motion-hover) ease-out;
     }
     .member-search input::placeholder { color: var(--muted); }
     .member-search input:focus { outline: none; box-shadow: var(--focus); }
@@ -1518,7 +1525,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       width: 100%;
       border: none; background: transparent;
       color: inherit; text-align: left;
-      transition: background 120ms ease;
+      transition: background var(--motion-hover) ease-out;
     }
     .member-copy { min-width: 0; }
     .member-name { display: flex; align-items: center; gap: 6px; overflow: hidden; font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
@@ -1531,7 +1538,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong); border-radius: var(--radius-md);
       background: var(--panel-strong);
       box-shadow: var(--shadow);
-      animation: pop-in 170ms var(--ease-out);
+      animation: pop-in var(--motion-quick) var(--ease-out);
     }
 
     .hover-card { overflow: hidden; }
@@ -1580,7 +1587,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .emoji-grid button:hover { background: var(--surface-2); }
 
     .quick-react { display: flex; gap: 2px; padding: 5px; }
-    .quick-react button { display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: 9px; background: transparent; font-size: 1.15rem; transition: transform 100ms ease; }
+    .quick-react button { display: grid; place-items: center; width: 36px; height: 36px; border: none; border-radius: 9px; background: transparent; font-size: 1.15rem; transition: transform var(--motion-press) var(--ease-out), background var(--motion-hover) ease-out; }
     .quick-react button:hover { background: var(--surface-2); transform: scale(1.18); }
     .quick-react .more-emoji { font-size: 0.95rem; color: var(--muted); }
 
@@ -1590,7 +1597,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong); border-radius: 13px;
       
       background: var(--glass-strong); box-shadow: var(--shadow);
-      animation: pop-in 120ms ease;
+      animation: pop-in 100ms var(--ease-out);
     }
     .ac-label { padding: 9px 13px 5px; color: var(--muted); font-family: var(--font-ui); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
     .ac-item {
@@ -1631,7 +1638,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: var(--panel-strong); color: var(--text);
       box-shadow: var(--shadow);
     }
-    dialog[open] { display: flex; flex-direction: column; animation: pop-in 220ms var(--ease-out); }
+    dialog[open] { display: flex; flex-direction: column; animation: pop-in var(--motion-panel) var(--ease-out); }
     dialog::backdrop { background: var(--scrim-color); }
     .dialog-header {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -1651,14 +1658,14 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: none; border-radius: 8px 8px 0 0;
       background: transparent; color: var(--muted);
       font-family: var(--font-ui); font-size: 0.74rem; font-weight: 750; white-space: nowrap;
-      transition: color 180ms ease;
+      transition: color var(--motion-hover) ease-out;
     }
     .dialog-tabs button:hover { color: var(--text-soft); background: var(--surface); }
     .dialog-tabs button[aria-selected="true"] { color: var(--accent-strong); }
     .dialog-tabs .tab-indicator {
       position: absolute; bottom: 0; height: 2px; border-radius: 99px;
       background: var(--accent-strong); pointer-events: none; opacity: 0;
-      transition: left 320ms var(--ease-slide), width 320ms var(--ease-slide), opacity 150ms ease;
+      transition: left var(--motion-panel) var(--ease-slide), width var(--motion-panel) var(--ease-slide), opacity var(--motion-hover) ease-out;
     }
     #poll-dialog { width: min(560px, calc(100vw - 32px)); }
     .poll-option-editor { display: grid; grid-template-columns: minmax(0, 1fr) 36px; gap: 8px; margin-bottom: 8px; }
@@ -1676,7 +1683,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
       margin: auto; background: var(--panel-strong);
     }
-    #settings-dialog[open] { animation: fade-in 160ms ease; }
+    #settings-dialog[open] { animation: fade-in var(--motion-quick) var(--ease-out); }
     #settings-dialog::backdrop {
       backdrop-filter: none; -webkit-backdrop-filter: none;
       background: rgba(2, 0, 14, 0.72);
@@ -1801,7 +1808,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       position: relative; display: grid; gap: 7px; padding: 10px;
       border: 2px solid var(--line); border-radius: 13px;
       background: var(--surface); text-align: center;
-      transition: border-color 130ms ease, transform 160ms var(--ease-out);
+      transition: border-color var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out);
     }
     .theme-swatch:hover { border-color: var(--line-strong); }
     .theme-swatch.active { border-color: var(--accent-strong); }
@@ -1858,7 +1865,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       transform-origin: right bottom;
     }
     .picker-dialog:popover-open, .picker-dialog[data-fallback-open="true"] {
-      display: flex; animation: pop-in 160ms var(--ease-out);
+      display: flex; animation: pop-in var(--motion-quick) var(--ease-out);
     }
     .picker-dialog::backdrop { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
     #gif-dialog .dialog-header, #sticker-dialog .dialog-header, #emoji-dialog .dialog-header { padding: 10px 14px; }
@@ -1961,7 +1968,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       animation: toast-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
     }
     @keyframes toast-in { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
-    .toast.leaving { transition: opacity 200ms ease, transform 200ms ease; opacity: 0; transform: translateX(40px); }
+    .toast.leaving { transition: opacity var(--motion-panel) ease-out, transform var(--motion-panel) var(--ease-out); opacity: 0; transform: translateX(40px); }
     .toast-icon { font-size: 1.05rem; }
     .toast-copy { min-width: 0; font-size: 0.76rem; color: var(--text-soft); }
     .toast-copy strong { display: block; color: var(--text); font-family: var(--font-ui); font-size: 0.78rem; }
@@ -2033,12 +2040,12 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: none; border-radius: 8px; background: none; color: var(--muted); text-align: left;
       font-family: var(--font-ui); font-size: 0.64rem; font-weight: 800;
       letter-spacing: 0.09em; text-transform: uppercase;
-      transition: color 130ms ease;
+      transition: color var(--motion-hover) ease-out;
     }
     .category-header:hover { color: var(--text-soft); }
     .category-header .cat-caret {
       width: 12px; height: 12px; flex: 0 0 auto; color: currentColor;
-      transition: transform 200ms var(--ease-out);
+      transition: transform var(--motion-quick) var(--ease-out);
     }
     .category-header[aria-expanded="false"] .cat-caret { transform: rotate(-90deg); }
     .category-header .cat-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2068,7 +2075,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       width: 100%; min-height: 48px; padding: 10px 16px 10px 44px;
       border: 1px solid var(--line-strong); border-radius: 13px;
       background: var(--surface); color: var(--text); font-size: 0.9rem;
-      transition: border-color 130ms ease, background 130ms ease;
+      transition: border-color var(--motion-hover) ease-out, background var(--motion-hover) ease-out;
     }
     .forum-searchbar input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); background: var(--surface-2); }
     .forum-new-btn {
@@ -2096,7 +2103,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       border: 1px solid var(--line-strong); border-radius: 999px;
       background: var(--surface); color: var(--text-soft);
       font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700;
-      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      transition: background var(--motion-hover) ease-out, border-color var(--motion-hover) ease-out, color var(--motion-hover) ease-out;
     }
     .forum-tag-filter:hover { color: var(--text); border-color: var(--accent-line); }
     .forum-tag-filter.active { color: var(--text); border-color: var(--accent-line); background: var(--accent-soft); }
@@ -2109,7 +2116,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
 
  color: inherit;
 
-      transition: border-color 150ms ease, background 150ms ease, transform 180ms var(--ease-out);
+      transition: border-color var(--motion-hover) ease-out, background var(--motion-hover) ease-out, transform var(--motion-press) var(--ease-out);
     }
     .forum-thread-card.pinned { background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
     .ft-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
@@ -2330,7 +2337,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       width: min(340px, calc(100vw - 24px)); height: min(410px, calc(100vh - 118px)); overflow: hidden;
       border: 1px solid var(--line); border-radius: 16px; background: var(--glass-strong); box-shadow: var(--shadow);
       
-      transform-origin: bottom left; transition: opacity 150ms ease, transform 150ms ease;
+      transform-origin: bottom left; transition: opacity var(--motion-quick) var(--ease-out), transform var(--motion-quick) var(--ease-out);
     }
     .vc-chat-popup.vc-chat-hidden { opacity: 0; transform: scale(.96); pointer-events: none; }
     .vc-chat-header {
@@ -2420,7 +2427,7 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .scrim {
       position: fixed; inset: 0; z-index: 580;
       background: var(--scrim-color); opacity: 0; pointer-events: none;
-      transition: opacity 200ms ease;
+      transition: opacity var(--motion-panel) ease-out;
     }
     .scrim.visible { opacity: 1; pointer-events: auto; }
     .mobile-only { display: none !important; }
@@ -3051,7 +3058,7 @@ html[data-light="true"] .theme-swatch .swatch-preview { border-color: var(--line
       margin: 0; padding: 0; border: 1px solid transparent; border-radius: 9px;
       background: transparent; color: var(--text-soft); box-shadow: none;
       font: 650 .72rem/1 var(--font-ui); cursor: pointer;
-      transition: background 120ms ease, color 120ms ease;
+      transition: background var(--motion-hover) ease-out, color var(--motion-hover) ease-out;
     }
     .channel-header .header-action > svg { flex: 0 0 18px; width: 18px; height: 18px; stroke-width: 1.8; }
     .channel-header .header-action:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
@@ -9338,18 +9345,18 @@ void main() {
       if (Math.abs(endH - startH) > 2) {
         parent.style.height = startH + 'px';
         void parent.offsetHeight;
-        parent.style.transition = 'height 420ms var(--ease-slide)';
+        parent.style.transition = 'height var(--motion-view) var(--ease-slide)';
         parent.style.height = endH + 'px';
       }
 
       oldEl._slideTimer = setTimeout(() => {
         oldEl.hidden = true;
         clearSlideGhost(oldEl);
-      }, 430);
+      }, 270);
       parent._slideHTimer = setTimeout(() => {
         parent.style.height = '';
         parent.style.transition = '';
-      }, 430);
+      }, 270);
     }
 
     function positionTabIndicator(container) {
