@@ -17,3 +17,6 @@
   live in `Backend/migrations/`. HTML publication does not apply SQL migrations.
 - Run `npm test` and `node scripts/validate-deployments.mjs` for app/backend
   changes. Report local verification separately from production publication.
+- `Phoenix chat/` is a friend's separate app with its own Supabase project
+  (`wahnihvqlqjnlvwcybis`). The connected Supabase plugin is the WRONG database
+  for Phoenix Chat: never use it for Phoenix Chat queries, migrations, or SQL.
