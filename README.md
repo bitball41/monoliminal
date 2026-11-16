@@ -28,6 +28,7 @@ All seven existing app files were moved into these folders without changing thei
 - `scripts/`: reusable deployment and verification scripts.
 - `config/deployments.json`: source-to-destination mapping for each artifact.
 - `docs/`: setup and development notes.
+- `Phoenix chat/`: a friend's separate app (Phoenix Chat) and its `SQL/`. It uses its own Supabase project; the Supabase plugin connected to Claude is the **wrong** database for it. See [`Phoenix chat/README.md`](Phoenix%20chat/README.md).
 - `.github/workflows/`: separate deployment Actions for each artifact, shared checks, and manual rollback.
 
 For quota controls, current measurements, and low-cost diagnostics, see
