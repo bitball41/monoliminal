@@ -91,6 +91,9 @@
     .notification-remove:hover { color: #ff8b8b; background: #2a1717; }
     .mention { color: #f4d35e; font-weight: 700; }
     .mention-me { color: #ffd84d; background: #66520a; border-radius: 4px; padding: 1px 3px; font-weight: 800; }
+    .composer{position:relative}
+    .phoenix-mention-picker{position:absolute;z-index:1400;left:54px;bottom:calc(100% + 8px);width:min(290px,calc(100% - 70px));max-height:240px;overflow:auto;padding:5px;border:1px solid var(--theme-border,#4b3a50);border-radius:11px;background:var(--theme-surface,#211729);box-shadow:0 12px 34px #0008;color:var(--theme-text,#fff)}
+    .phoenix-mention-picker[hidden]{display:none!important}.phoenix-mention-option{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:0;border-radius:7px;background:transparent;color:inherit;text-align:left;cursor:pointer}.phoenix-mention-option:hover,.phoenix-mention-option.active{background:var(--theme-accent-soft,rgba(168,137,255,.14))}.phoenix-mention-avatar{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--theme-accent-soft);font-size:11px;font-weight:700}.phoenix-mention-avatar img{width:100%;height:100%;object-fit:cover}.phoenix-mention-label{min-width:0;display:flex;flex-direction:column;gap:2px}.phoenix-mention-label strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.phoenix-mention-label small{font-size:10px;color:var(--theme-muted,#aaa)}.phoenix-mention-empty{padding:12px 10px;color:var(--theme-muted,#aaa);font-size:11px}
     .notification-empty { padding: 30px 18px; text-align: center; color: #718579; font-size: 13px; }
 
     .main-layout { flex: 1; min-height: 0; display: flex; }
@@ -2093,7 +2096,6 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
     #app .channel-unread-badge{margin-left:auto;flex:0 0 auto;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#20b85a;color:#fff;font:700 11px/1 system-ui,sans-serif;letter-spacing:0;border:1px solid rgba(255,255,255,.18);box-shadow:0 0 8px rgba(32,184,90,.24)}
     #app .channel-unread-badge[hidden]{display:none}
     #app .channel-unread-badge.is-overflow{min-width:27px}
-    #app .channel-vc-count-badge{margin-left:6px;flex:0 0 auto;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#7b61d1;color:#fff;font:700 11px/1 system-ui,sans-serif;letter-spacing:0;border:1px solid rgba(255,255,255,.2);box-shadow:0 0 8px rgba(123,97,209,.24)}
 
 
     /* Compact, theme-aware channel rows */
@@ -2801,49 +2803,6 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
 
 
 
-<style id="phoenix-voice-chat-v1">
-#app .chat-area.phoenix-vc-active #chat-box,
-#app .chat-area.phoenix-vc-active .composer{display:none!important}
-#app .chat-area.phoenix-vc-active #phoenix-vc-panel{display:flex!important}
-#phoenix-vc-panel{flex:1;min-height:0;overflow:auto;flex-direction:column;align-items:center;gap:18px;padding:clamp(18px,3vw,38px);background:radial-gradient(ellipse at 50% 0%,rgba(255,125,75,.10),transparent 58%),var(--theme-bg,#0d1017)}
-#phoenix-vc-panel[hidden]{display:none!important}
-.phoenix-vc-shell{width:min(980px,100%);display:flex;flex-direction:column;gap:18px}
-.phoenix-vc-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.phoenix-vc-title{font-size:22px;font-weight:850;color:var(--theme-text,#f2eee9);letter-spacing:.01em}
-.phoenix-vc-subtitle{font-size:12px;color:var(--theme-muted,#a39aa0);margin-top:5px;line-height:1.5}
-.phoenix-vc-status{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(255,151,105,.2);border-radius:999px;background:rgba(255,125,75,.07);color:#f5b18f;font-size:11px}
-.phoenix-vc-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#7b818b}
-.phoenix-vc-status.connected:before{background:#67df9b;box-shadow:0 0 9px rgba(103,223,155,.65)}
-.phoenix-vc-stage{border:1px solid color-mix(in srgb,var(--theme-accent,#ff8055) 22%,#38313a);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),var(--theme-surface,#17131b);padding:18px;box-shadow:0 18px 48px rgba(0,0,0,.22)}
-.phoenix-vc-empty{min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--theme-muted,#a39aa0);gap:9px}
-.phoenix-vc-empty-icon{font-size:34px;color:#ff9a66;text-shadow:0 0 22px rgba(255,120,68,.35)}
-.phoenix-vc-empty strong{font-size:15px;color:var(--theme-text,#f2eee9)}
-.phoenix-vc-empty span{max-width:420px;font-size:12px;line-height:1.55}
-.phoenix-vc-controls{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin-top:16px}
-.phoenix-vc-btn{min-height:39px;padding:9px 14px;border:1px solid var(--theme-border,#3b3542);border-radius:10px;background:var(--theme-surface-2,#211c29);color:var(--theme-text,#f2eee9);font-size:12px;font-weight:750;transition:background .15s,border-color .15s,transform .15s}
-.phoenix-vc-btn:hover{background:var(--theme-surface-3,#30253a);border-color:var(--theme-border-strong,#76506b);transform:translateY(-1px)}
-.phoenix-vc-btn.primary{background:linear-gradient(135deg,#d95e3e,#a93d3d);border-color:#e87952;color:white;box-shadow:0 5px 18px rgba(196,71,55,.2)}
-.phoenix-vc-btn.primary:hover{background:linear-gradient(135deg,#ee704c,#bd4945)}
-.phoenix-vc-btn.danger{background:rgba(180,55,65,.13);border-color:rgba(220,88,99,.38);color:#ffabb0}
-.phoenix-vc-btn.active{background:rgba(255,130,83,.14);border-color:rgba(255,151,105,.45);color:#ffc09e}
-.phoenix-vc-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.phoenix-vc-participants{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
-.phoenix-vc-person{position:relative;min-height:158px;overflow:hidden;border:1px solid var(--theme-border,#3b3542);border-radius:14px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.008)),var(--theme-surface-2,#211c29);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:12px}
-.phoenix-vc-person.is-speaking{border-color:rgba(105,225,153,.8);box-shadow:0 0 0 1px rgba(105,225,153,.25),0 0 22px rgba(105,225,153,.09)}
-.phoenix-vc-avatar{width:58px;height:58px;border-radius:50%;object-fit:cover;background:#352b34;border:2px solid rgba(255,160,110,.45);box-shadow:0 0 18px rgba(255,125,75,.12)}
-.phoenix-vc-person-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;color:var(--theme-text,#f2eee9)}
-.phoenix-vc-person-state{font-size:10px;color:var(--theme-muted,#a39aa0)}
-.phoenix-vc-video{display:none;width:100%;max-height:250px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#050609}
-.phoenix-vc-person.has-video .phoenix-vc-video{display:block}
-.phoenix-vc-person.has-video .phoenix-vc-avatar{display:none}
-.phoenix-vc-audio{display:none}
-.phoenix-vc-channel-icon{color:#ff9a68!important;font-weight:900;text-shadow:0 0 10px rgba(255,132,83,.22)}
-@media(max-width:600px){#phoenix-vc-panel{padding:14px}.phoenix-vc-stage{padding:12px}.phoenix-vc-person{min-height:140px}.phoenix-vc-title{font-size:19px}}
-</style>
-<style id="phoenix-vc-channel-type-style">
-#new-channel-type{width:100%;padding:11px;background:var(--theme-input,#0c0a21);color:var(--theme-text,#eeeaff);border:1px solid var(--theme-border,#30295b);border-radius:9px;outline:none}
-#new-channel-type:focus{border-color:var(--theme-border-strong,#51458b)}
-</style>
 </head>
 
 <body>
@@ -3011,34 +2970,6 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
           </div>
         </div>
 
-        <section id="phoenix-vc-panel" aria-label="Phoenix voice channel" hidden>
-          <div class="phoenix-vc-shell">
-            <div class="phoenix-vc-heading">
-              <div>
-                <div class="phoenix-vc-title" id="phoenix-vc-title">Voice channel</div>
-                <div class="phoenix-vc-subtitle">Join the room to talk with other Phoenix members. Your microphone is only requested when you join.</div>
-              </div>
-              <div id="phoenix-vc-status" class="phoenix-vc-status">Not connected</div>
-            </div>
-            <div class="phoenix-vc-stage">
-              <div id="phoenix-vc-empty" class="phoenix-vc-empty">
-                <div class="phoenix-vc-empty-icon">♫</div>
-                <strong>You're not connected yet</strong>
-                <span>Join this voice channel to start talking. You can turn your camera on or share your screen after joining.</span>
-              </div>
-              <div id="phoenix-vc-participants" class="phoenix-vc-participants"></div>
-              <div class="phoenix-vc-controls">
-                <button type="button" id="phoenix-vc-join" class="phoenix-vc-btn primary" onclick="joinPhoenixVoice()">Join Voice</button>
-                <button type="button" id="phoenix-vc-mute" class="phoenix-vc-btn hidden" onclick="togglePhoenixVoiceMute()">Mute mic</button>
-                <button type="button" id="phoenix-vc-deafen" class="phoenix-vc-btn hidden" onclick="togglePhoenixVoiceDeafen()">Deafen</button>
-                <button type="button" id="phoenix-vc-camera" class="phoenix-vc-btn hidden" onclick="togglePhoenixVoiceCamera()">Turn camera on</button>
-                <button type="button" id="phoenix-vc-share" class="phoenix-vc-btn hidden" onclick="togglePhoenixVoiceShare()">Share screen</button>
-                <button type="button" id="phoenix-vc-leave" class="phoenix-vc-btn danger hidden" onclick="leavePhoenixVoice()">Leave</button>
-              </div>
-            </div>
-          </div>
-        </section>
-        
         <div id="chat-box"></div>
         <button type="button" id="phoenix-jump-bottom" aria-label="Jump to latest messages" title="Jump to latest messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"/></svg><span>Jump to latest</span></button>
 <section id="phoenix-dm-panel" aria-label="DMs" hidden></section>
@@ -3053,6 +2984,7 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
           <button id="attach-btn" class="composer-btn" onclick="openAttachmentPicker()" title="Add an image or video" aria-label="Add an image or video">+</button>
           <button type="button" id="file-attach-btn" class="composer-btn" onclick="openPhoenixFilePicker()" title="Attach a file (up to 3 MB)" aria-label="Attach a file (up to 3 MB)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-8.9 8.9a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
           <button type="button" id="poll-btn" class="composer-btn" onclick="openPhoenixPoll()" title="Create a poll" aria-label="Create a poll" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/><path d="M8 3v4M16 10v4M10 17v4" stroke-width="3"/></svg></button>
+          <div id="phoenix-mention-picker" class="phoenix-mention-picker" role="listbox" aria-label="Mention a member" hidden></div>
           <textarea id="msg-input" rows="1" maxlength="2000" placeholder="Message..." autocomplete="off" aria-label="Message" spellcheck="true"></textarea>
           <button type="button" id="gif-btn" class="composer-btn" onclick="toggleGifPicker()" title="Search and send GIFs">GIF</button>
           <button id="emoji-btn" class="composer-btn" onclick="toggleEmojiPicker()" title="Emoji">😊</button>
@@ -3125,9 +3057,7 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
   <div id="channel-modal" class="hidden">
     <div class="channel-modal-card">
       <h2>Create a Channel</h2>
-      <p class="channel-modal-subtitle">Create a text channel or a live voice room for Phoenix members.</p>
-      <label for="new-channel-type">Channel Type</label>
-      <select id="new-channel-type" class="phoenix-vc-type-select"><option value="text">Text channel · messages and media</option><option value="voice">Voice channel · live audio and video</option></select>
+      <p class="channel-modal-subtitle">Add a new text channel for everyone to use.</p>
       <label for="new-channel-name">Channel Name</label>
       <input id="new-channel-name" type="text" maxlength="40" placeholder="e.g. memes" autocomplete="off">
       <label for="new-channel-description">Description (optional)</label>
@@ -3550,15 +3480,6 @@ window.addEventListener('error', function(event) {
     let pendingReply = null;
     let editingMessage = null;
     let channels = [];
-    let phoenixVoiceChannelIds = new Set();
-    const phoenixVoiceChannelCounts = new Map();
-    let phoenixVoiceChannelCountTimer = null;
-    let phoenixVoiceChannelCountBusy = false;
-    let phoenixVoiceChannelCountToken = '';
-    function isPhoenixVoiceChannel(channelOrId) {
-      const id = typeof channelOrId === 'object' ? channelOrId?.id : channelOrId;
-      return !!id && phoenixVoiceChannelIds.has(String(id));
-    }
     // Client-side backstop for spam protection. The database trigger remains
     // authoritative and persists the timeout across refreshes/devices.
     let phoenixRecentSendAttempts = [];
@@ -5988,12 +5909,6 @@ function loadAppearancePreferences() {
         const name = String(c?.name || '').trim().toLowerCase();
         return true;
       });
-      const { data: voiceRows, error: voiceError } = await withTimeout(db.rpc('phoenix_vc_list_channels', {
-        p_session_token: sessionToken, p_browser_id: getPhoenixBrowserId()
-      }));
-      if (voiceError) throw voiceError;
-      phoenixVoiceChannelIds = new Set((Array.isArray(voiceRows) ? voiceRows : []).map(row => String(row.channel_id)));
-      startPhoenixVoiceChannelCountUpdates();
       if (!channels.length) throw new Error('No channels are available for this account.');
       const saved = localStorage.getItem('liminal_current_channel_' + currentUser);
       const exists = channels.some(c => String(c.id) === String(saved));
@@ -6001,8 +5916,7 @@ function loadAppearancePreferences() {
       loadPhoenixUnreadCounts();
       renderChannels();
       applyGozChannelUI();
-      if (isPhoenixVoiceChannel(currentChannelId)) syncPhoenixVoiceUI();
-      else await loadMessages();
+      await loadMessages();
     }
 
     function isPrivateGozChannel() { return false; }
@@ -6016,7 +5930,6 @@ function loadAppearancePreferences() {
       if(send)send.disabled=false;
       document.body.classList.remove('goz-readonly');
       syncPhoenixGamesUI();
-      if (typeof syncPhoenixVoiceUI === 'function') syncPhoenixVoiceUI();
     }
     function isGozPromptChannel() { return false; }
     function openGozPromptChannel() { return; }
@@ -6073,48 +5986,6 @@ function loadAppearancePreferences() {
       savePhoenixUnreadCounts();updatePhoenixUnreadBadge(channelId);
     }
 
-    async function refreshPhoenixVoiceChannelCounts() {
-      if (!sessionToken || !phoenixVoiceChannelIds.size || phoenixVoiceChannelCountBusy) return;
-      const token=sessionToken;
-      phoenixVoiceChannelCountBusy=true;
-      try {
-        const {data,error}=await withTimeout(db.rpc('phoenix_vc_list_counts',{p_session_token:token,p_browser_id:getPhoenixBrowserId()}),7000);
-        if(error)throw error;
-        if(token!==sessionToken)return;
-        const next=new Map();
-        for(const row of Array.isArray(data)?data:[]){
-          const id=String(row.channel_id||'');
-          if(id&&phoenixVoiceChannelIds.has(id))next.set(id,Math.max(0,Number(row.participant_count)||0));
-        }
-        phoenixVoiceChannelCounts.clear();
-        for(const [id,count] of next)if(count>0)phoenixVoiceChannelCounts.set(id,count);
-        for(const id of phoenixVoiceChannelIds)updatePhoenixVoiceChannelCountBadge(id);
-      } catch(err) { console.warn('Voice channel counts could not be refreshed:',errorText(err)); }
-      finally { phoenixVoiceChannelCountBusy=false; }
-    }
-    function startPhoenixVoiceChannelCountUpdates() {
-      if(phoenixVoiceChannelCountTimer)clearInterval(phoenixVoiceChannelCountTimer);
-      phoenixVoiceChannelCountTimer=null;
-      if(!sessionToken||!phoenixVoiceChannelIds.size){phoenixVoiceChannelCounts.clear();return;}
-      phoenixVoiceChannelCountToken=sessionToken;
-      refreshPhoenixVoiceChannelCounts();
-      phoenixVoiceChannelCountTimer=setInterval(()=>{
-        if(!sessionToken||sessionToken!==phoenixVoiceChannelCountToken){clearInterval(phoenixVoiceChannelCountTimer);phoenixVoiceChannelCountTimer=null;phoenixVoiceChannelCounts.clear();return;}
-        if(document.visibilityState!=='hidden')refreshPhoenixVoiceChannelCounts();
-      },5000);
-    }
-    function updatePhoenixVoiceChannelCountBadge(channelId) {
-      const item=[...($('channels-list')?.querySelectorAll('.channel')||[])].find(el=>String(el.dataset.channelId)===String(channelId));
-      if(!item)return;
-      let badge=item.querySelector('.channel-vc-count-badge');
-      const count=phoenixVoiceChannelCounts.get(String(channelId))||0;
-      if(count<=0){badge?.remove();return;}
-      if(!badge){badge=document.createElement('span');badge.className='channel-vc-count-badge';item.appendChild(badge);}
-      badge.textContent=String(count);
-      badge.title=count+' '+(count===1?'person':'people')+' in voice chat';
-      badge.setAttribute('aria-label',badge.title);
-    }
-
     function renderChannels() {
       const list = $('channels-list');
       list.replaceChildren();
@@ -6146,8 +6017,6 @@ function loadAppearancePreferences() {
         channelHash.textContent = '#';
         item.appendChild(channelHash);
         item.appendChild(nameWrap);
-        const voiceCount=phoenixVoiceChannelCounts.get(String(channel.id))||0;
-        if(isPhoenixVoiceChannel(channel.id)&&voiceCount>0){const voiceBadge=document.createElement('span');voiceBadge.className='channel-vc-count-badge';voiceBadge.textContent=String(voiceCount);voiceBadge.title=voiceCount+' '+(voiceCount===1?'person':'people')+' in voice chat';voiceBadge.setAttribute('aria-label',voiceBadge.title);item.appendChild(voiceBadge);}
         const unreadCount=phoenixUnreadChannelCounts.get(String(channel.id))||0;
         if(unreadCount>0){const unread=document.createElement('span');unread.className='channel-unread-badge'+(unreadCount>=100?' is-overflow':'');unread.textContent=unreadCount>=100?'99+':String(unreadCount);unread.title=unreadCount>=100?'99 or more unread messages':unreadCount+' unread message'+(unreadCount===1?'':'s');unread.setAttribute('aria-label',unread.title);item.appendChild(unread);}
 
@@ -6189,7 +6058,6 @@ function loadAppearancePreferences() {
       if (!channelId || String(channelId) === String(currentChannelId)) return;
       const target = channels.find(c => String(c.id) === String(channelId));
       if (!target) return;
-      if (typeof phoenixVoiceActive !== 'undefined' && phoenixVoiceActive && String(phoenixVoiceChannelId) !== String(channelId)) await leavePhoenixVoice();
       closePhoenixPoll(true);
       currentChannelId = String(channelId);
       clearPhoenixUnreadCount(currentChannelId);
@@ -6199,10 +6067,6 @@ function loadAppearancePreferences() {
       localStorage.setItem('liminal_current_channel_' + currentUser, currentChannelId);
       renderChannels();
       applyGozChannelUI();
-      if (isPhoenixVoiceChannel(target)) {
-        syncPhoenixVoiceUI();
-        return;
-      }
       await loadMessages({scrollBottom:true});
     }
 
@@ -6387,6 +6251,7 @@ function loadAppearancePreferences() {
           const latest=page.reduce((max,row)=>Math.max(max,new Date(row.created_at||0).getTime()||0),sync?.latest||0);
           phoenixMessageSync.set(key,{latest,fullAt:incremental?sync.fullAt:Date.now()});
           const base=incremental?(window.__liminalMessages||[]):[];
+          page.forEach(phoenixCheckMentionBell);
           const rows=new Map([...base,...page].filter(m=>!m.channel_id||String(m.channel_id)===channelId).map(m=>[String(m.id),m]));
           for(const mutation of load.mutations){if(mutation.deletedId!==null)rows.delete(String(mutation.deletedId));else if(mutation.row)rows.set(String(mutation.row.id),mutation.row);}
           window.__liminalMessages=[...rows.values()].sort(comparePhoenixMessages);
@@ -6479,6 +6344,79 @@ function loadAppearancePreferences() {
     }
 
     let phoenixNotificationsRequest=null,phoenixNotificationSnapshot='';
+    let phoenixNotificationIds=new Set();
+    let phoenixMentionAudioContext=null;
+    let phoenixMentionLastDingAt=0;
+    const phoenixMentionRungMessageIds=new Set();
+    const phoenixMentionSessionStartedAt=Date.now();
+    function phoenixMentionAudio(){
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)return null;
+      if(!phoenixMentionAudioContext||phoenixMentionAudioContext.state==='closed')phoenixMentionAudioContext=new AudioCtx();
+      return phoenixMentionAudioContext;
+    }
+    // Browsers only allow sound after a real user gesture. Touch screens do not count
+    // pointerdown as one, so unlock on every gesture event and play a silent tick (iOS).
+    function unlockPhoenixMentionAudio(){
+      try{
+        const ctx=phoenixMentionAudio();if(!ctx)return;
+        if(ctx.state!=='running')ctx.resume().catch(()=>{});
+        if(!ctx.__phoenixPrimed){
+          const tick=ctx.createBufferSource();tick.buffer=ctx.createBuffer(1,1,22050);
+          tick.connect(ctx.destination);tick.start(0);ctx.__phoenixPrimed=true;
+        }
+      }catch(e){}
+    }
+    ['pointerdown','pointerup','touchend','mousedown','click','keydown'].forEach(type=>document.addEventListener(type,unlockPhoenixMentionAudio,{passive:true,capture:true}));
+    function phoenixMentionSoundEnabled(){
+      if(!currentUser)return false;
+      try{return localStorage.getItem('liminal_sound_'+currentUser)!=='false';}catch{return true;}
+    }
+    function schedulePhoenixMentionBell(ctx){
+      const now=ctx.currentTime+0.02;
+      [0,1].forEach((step)=>{
+        const start=now+step*0.13;
+        const osc=ctx.createOscillator(),gain=ctx.createGain();
+        osc.type='sine';
+        osc.frequency.setValueAtTime(step?1320:990,start);
+        gain.gain.setValueAtTime(0.0001,start);
+        gain.gain.exponentialRampToValueAtTime(0.16,start+0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001,start+0.42);
+        osc.connect(gain);gain.connect(ctx.destination);
+        osc.start(start);osc.stop(start+0.44);
+      });
+    }
+    function playPhoenixMentionDing(){
+      if(!phoenixMentionSoundEnabled())return;
+      const nowMs=Date.now();
+      if(nowMs-phoenixMentionLastDingAt<1500)return;
+      phoenixMentionLastDingAt=nowMs;
+      try{
+        const ctx=phoenixMentionAudio();if(!ctx)return;
+        // Schedule only once the context is actually running; a suspended context's
+        // clock is frozen, so a bell scheduled then would never be heard on time.
+        if(ctx.state==='running')schedulePhoenixMentionBell(ctx);
+        else ctx.resume().then(()=>{if(ctx.state==='running')schedulePhoenixMentionBell(ctx);}).catch(e=>console.warn('Mention sound is blocked until you click or tap the page:',e));
+      }catch(e){console.warn('Mention sound could not play:',e);}
+    }
+    // Rings when a new message from someone else carries this account's mention marker.
+    // This does not depend on the notifications table reaching this browser.
+    function phoenixMessageMentionsMe(row){
+      const myId=String(currentUserId||'');
+      return !!myId&&String(row?.text||'').includes('[[phoenix-mention:'+myId+']]');
+    }
+    function phoenixCheckMentionBell(row){
+      if(!row?.id||!currentUserId)return;
+      const key=String(row.id);
+      if(phoenixMentionRungMessageIds.has(key))return;
+      if(row.user_id&&String(row.user_id)===String(currentUserId))return;
+      if(!phoenixMessageMentionsMe(row))return;
+      const created=new Date(row.created_at||0).getTime();
+      if(!Number.isFinite(created)||created<phoenixMentionSessionStartedAt-5000||created<Date.now()-120000)return;
+      phoenixMentionRungMessageIds.add(key);
+      if(phoenixMentionRungMessageIds.size>2000)phoenixMentionRungMessageIds.delete(phoenixMentionRungMessageIds.values().next().value);
+      playPhoenixMentionDing();
+    }
     function loadNotifications(){
       if(!sessionToken)return Promise.resolve();
       if(phoenixNotificationsRequest?.token===sessionToken)return phoenixNotificationsRequest.promise;
@@ -6490,6 +6428,10 @@ function loadAppearancePreferences() {
           if(error)throw error;
           const rows=Array.isArray(data)?data:[];
           notificationUnreadCount=rows.filter(n=>!n.read_at).length;updateNotificationDot();
+          const currentIds=new Set(rows.map(n=>String(n.id)));
+          const hasNewMention=phoenixNotificationSnapshot!==''&&rows.some(n=>n.type==='mention'&&!phoenixNotificationIds.has(String(n.id))&&!(n.message_id!=null&&phoenixMentionRungMessageIds.has(String(n.message_id))));
+          if(hasNewMention){rows.forEach(n=>{if(n.type==='mention'&&n.message_id!=null)phoenixMentionRungMessageIds.add(String(n.message_id));});playPhoenixMentionDing();}
+          phoenixNotificationIds=currentIds;
           const signature=JSON.stringify(rows);
           if(signature!==phoenixNotificationSnapshot){phoenixNotificationSnapshot=signature;renderNotifications(rows);}
         }catch(err){console.warn('Could not load notifications:',errorText(err));}
@@ -6539,7 +6481,6 @@ function loadAppearancePreferences() {
       if (!allowed) return;
       $('new-channel-name').value = '';
       $('new-channel-description').value = '';
-      if ($('new-channel-type')) $('new-channel-type').value = 'text';
       $('channel-modal').classList.remove('hidden');
       setTimeout(() => $('new-channel-name').focus(), 0);
     }
@@ -6551,16 +6492,11 @@ function loadAppearancePreferences() {
       if (!allowed) return;
       const name = $('new-channel-name').value.trim();
       const description = $('new-channel-description').value.trim();
-      const type = $('new-channel-type')?.value === 'voice' ? 'voice' : 'text';
       if (!name) return phoenixNotice('Channel name cannot be empty.');
       const button = $('create-channel-btn');
       button.disabled = true;
       try {
-        const rpcName = type === 'voice' ? 'phoenix_vc_create_channel' : 'create_channel';
-        const args = type === 'voice'
-          ? { p_session_token:sessionToken, p_browser_id:getPhoenixBrowserId(), p_name:name, p_description:description }
-          : { p_session_token:sessionToken, p_name:name, p_description:description };
-        const { data, error } = await withTimeout(db.rpc(rpcName, args));
+        const { data, error } = await withTimeout(db.rpc('create_channel', { p_session_token: sessionToken, p_name: name, p_description: description }));
         if (error) throw error;
         const channel = Array.isArray(data) ? data[0] : data;
         if (!channel?.id) throw new Error('Channel was created but no channel ID was returned.');
@@ -6569,8 +6505,7 @@ function loadAppearancePreferences() {
         currentChannelId = String(channel.id);
         localStorage.setItem('liminal_current_channel_' + currentUser, currentChannelId);
         renderChannels();
-        if (type === 'voice') syncPhoenixVoiceUI();
-        else await loadMessages();
+        await loadMessages();
       } catch (err) { phoenixNotice('Could not create channel: ' + errorText(err)); }
       finally { button.disabled = false; }
     }
@@ -6867,7 +6802,7 @@ function loadAppearancePreferences() {
         let newest=phoenixUnreadPollCursor;
         for(const row of (Array.isArray(data)?data:[])){
           const time=new Date(row.created_at||0).getTime();if(Number.isFinite(time))newest=Math.max(newest,time);
-          recordPhoenixUnreadMessage({id:row.message_id,channel_id:row.channel_id,user_id:row.user_id,created_at:row.created_at});
+          phoenixCheckMentionBell({id:row.message_id,user_id:row.user_id,created_at:row.created_at,text:row.text});recordPhoenixUnreadMessage({id:row.message_id,channel_id:row.channel_id,user_id:row.user_id,created_at:row.created_at});
         }
         phoenixUnreadPollCursor=newest;
       }catch(err){console.warn('Unread message refresh failed:',errorText(err));}
@@ -6883,7 +6818,7 @@ function loadAppearancePreferences() {
       realtimeChannel = db.channel('liminal-chat-live')
         .on('postgres_changes', {event:'*',schema:'public',table:'phoenix_custom_roles'}, () => { loadPhoenixCustomRoles().catch(err=>console.warn('Shared custom role refresh failed:',errorText(err))); })
         .on('postgres_changes', {event:'*',schema:'public',table:'phoenix_builtin_role_appearance'}, () => { loadPhoenixCustomRoles().catch(err=>console.warn('Shared built-in role refresh failed:',errorText(err))); })
-        .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages'}, p=>{recordPhoenixUnreadMessage(p.new);mergePhoenixMessage(p.new);})
+        .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages'}, p=>{phoenixCheckMentionBell(p.new);recordPhoenixUnreadMessage(p.new);mergePhoenixMessage(p.new);})
         .on('postgres_changes', {event:'UPDATE',schema:'public',table:'messages'}, p=>mergePhoenixMessage(p.new))
         .on('postgres_changes', {event:'DELETE',schema:'public',table:'messages'}, p=>{
           if(!(window.__liminalMessages||[]).some(m=>String(m.id)===String(p.old.id)))return;
@@ -7433,31 +7368,24 @@ function loadAppearancePreferences() {
     }
 
     function renderMessageText(container, rawText) {
-      const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32})/g;
+      // Only the private marker written by a clicked suggestion creates a mention.
+      // A plain @word (including abbreviations such as @E.O.C.) remains ordinary text.
+      const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32}\[\[phoenix-mention:([^\]]+)\]\])/g;
       const value = String(rawText || '');
-      let last = 0;
-      const myUsername = String(currentUser || '').toLowerCase();
-      let match;
+      let last = 0, match;
+      const myId = String(currentUserId || '');
       while ((match = tokenRegex.exec(value))) {
         if (match.index > last) container.appendChild(document.createTextNode(value.slice(last, match.index)));
         const token = match[0];
         if (token.startsWith('[[emoji:')) {
           const url = token.slice(8, -2);
-          if (isSafeCustomEmojiUrl(url)) {
-            const img = document.createElement('img');
-            img.className = 'message-custom-emoji';
-            img.src = url;
-            img.alt = 'custom emoji';
-            img.loading = 'lazy';
-            img.onerror = () => { img.replaceWith(document.createTextNode('🖼️')); };
-            container.appendChild(img);
-          } else container.appendChild(document.createTextNode('🖼️'));
+          if (isSafeCustomEmojiUrl(url)) { const img=document.createElement('img');img.className='message-custom-emoji';img.src=url;img.alt='custom emoji';img.loading='lazy';img.onerror=()=>img.replaceWith(document.createTextNode('🖼️'));container.appendChild(img); }
+          else container.appendChild(document.createTextNode('🖼️'));
         } else {
-          const mention = document.createElement('span');
-          mention.className = 'mention';
-          mention.textContent = token;
-          if (token.slice(1).toLowerCase() === myUsername) { mention.classList.add('mention-me'); mention.title = 'You were mentioned'; }
-          else mention.title = 'Mention';
+          const username = token.slice(0, token.indexOf('[['));
+          const mention = document.createElement('span'); mention.className='mention'; mention.textContent=username;
+          if (String(match[3]) === myId) { mention.classList.add('mention-me'); mention.title='You were mentioned'; }
+          else mention.title='Mention';
           container.appendChild(mention);
         }
         last = match.index + token.length;
@@ -7602,6 +7530,67 @@ function loadAppearancePreferences() {
       $('reply-bar-content').textContent = '';
     }
 
+    let phoenixMentionMatches=[];
+    let phoenixMentionActiveIndex=0;
+    let phoenixMentionRange=null;
+    let phoenixSelectedMentions=[];
+    let phoenixMentionPreviousInput='';
+    function reconcilePhoenixSelectedMentions(nextValue){
+      const previous=phoenixMentionPreviousInput;let prefix=0;while(prefix<previous.length&&prefix<nextValue.length&&previous[prefix]===nextValue[prefix])prefix++;
+      let suffix=0;while(suffix<previous.length-prefix&&suffix<nextValue.length-prefix&&previous[previous.length-1-suffix]===nextValue[nextValue.length-1-suffix])suffix++;
+      const oldEnd=previous.length-suffix,newEnd=nextValue.length-suffix,delta=(newEnd-prefix)-(oldEnd-prefix);
+      phoenixSelectedMentions=phoenixSelectedMentions.filter(m=>m.end<=prefix||m.start>=oldEnd).map(m=>{if(m.start>=oldEnd)return {...m,start:m.start+delta,end:m.end+delta};return m;});
+      phoenixMentionPreviousInput=nextValue;
+    }
+    function phoenixTextWithMentionIds(value){let result=value;for(const m of [...phoenixSelectedMentions].sort((a,b)=>b.start-a.start)){if(result.slice(m.start,m.end)==='@'+m.username)result=result.slice(0,m.end)+'[[phoenix-mention:'+m.id+']]'+result.slice(m.end);}return result;}
+    function phoenixMentionDisplayName(user){return String(user?.display_name||user?.name||user?.username||'Member');}
+    function getPhoenixMentionQuery(input){
+      const caret=input.selectionStart??input.value.length;
+      const before=input.value.slice(0,caret);
+      const match=before.match(/(?:^|\s)@([A-Za-z0-9_-]*)$/);
+      if(!match)return null;
+      const at=caret-match[1].length-1;
+      return {query:match[1],start:at,end:caret};
+    }
+    function closePhoenixMentionPicker(){const picker=$('phoenix-mention-picker');if(picker)picker.hidden=true;phoenixMentionMatches=[];phoenixMentionRange=null;}
+    function renderPhoenixMentionPicker(queryInfo){
+      const picker=$('phoenix-mention-picker');if(!picker)return;
+      const query=String(queryInfo.query||'').toLowerCase();
+      const users=Object.values(knownMemberUsers||{}).filter(u=>u?.id&&(isOwner||String(u.id)!==String(currentUserId))&&(String(u.username||'').toLowerCase().includes(query)||phoenixMentionDisplayName(u).toLowerCase().includes(query)));
+      phoenixMentionMatches=users.sort((a,b)=>phoenixMentionDisplayName(a).localeCompare(phoenixMentionDisplayName(b),undefined,{sensitivity:'base'})||String(a.username||'').localeCompare(String(b.username||'')));
+      phoenixMentionRange={start:queryInfo.start,end:queryInfo.end};phoenixMentionActiveIndex=0;picker.replaceChildren();
+      if(!phoenixMentionMatches.length){closePhoenixMentionPicker();return;}
+      phoenixMentionMatches.slice(0,8).forEach((user,index)=>{
+        const button=document.createElement('button');button.type='button';button.className='phoenix-mention-option'+(index===0?' active':'');button.setAttribute('role','option');
+        const avatar=document.createElement('span');avatar.className='phoenix-mention-avatar';const photo=user.pfp_url||user.avatar_url||'';
+        if(photo){const img=document.createElement('img');img.src=photo;img.alt='';img.onerror=()=>{img.remove();avatar.textContent=phoenixMentionDisplayName(user).charAt(0).toUpperCase();};avatar.append(img);}else avatar.textContent=phoenixMentionDisplayName(user).charAt(0).toUpperCase();
+        const labels=document.createElement('span');labels.className='phoenix-mention-label';const name=document.createElement('strong');name.textContent=phoenixMentionDisplayName(user);const handle=document.createElement('small');handle.textContent='@'+String(user.username||'');labels.append(name,handle);button.append(avatar,labels);
+        button.onmousedown=e=>e.preventDefault();button.onclick=()=>selectPhoenixMention(user);picker.append(button);
+      });picker.hidden=false;
+    }
+    function updatePhoenixMentionPicker(){
+      const input=$('msg-input');if(!input||document.activeElement!==input){closePhoenixMentionPicker();return;}
+      const info=getPhoenixMentionQuery(input);if(!info){closePhoenixMentionPicker();return;}
+      if(!Object.keys(knownMemberUsers||{}).length){loadKnownMembers().then(()=>{if(document.activeElement===input){const fresh=getPhoenixMentionQuery(input);if(fresh)renderPhoenixMentionPicker(fresh);}}).catch(()=>{});}
+      renderPhoenixMentionPicker(info);
+    }
+    function selectPhoenixMention(user){
+      const input=$('msg-input');if(!input||!phoenixMentionRange||!user?.id||!user?.username)return;
+      const {start,end}=phoenixMentionRange;const visible='@'+String(user.username)+' ';
+      input.value=input.value.slice(0,start)+visible+input.value.slice(end);
+      const mentionStart=start,mentionEnd=start+String(visible).trimEnd().length;
+      phoenixSelectedMentions=phoenixSelectedMentions.filter(m=>m.end<=start||m.start>=end).map(m=>m.start>=end?{...m,start:m.start+visible.length-(end-start),end:m.end+visible.length-(end-start)}:m);
+      phoenixSelectedMentions.push({start:mentionStart,end:mentionEnd,username:String(user.username),id:String(user.id)});
+      phoenixMentionPreviousInput=input.value;
+      const caret=start+visible.length;input.setSelectionRange(caret,caret);closePhoenixMentionPicker();input.focus();
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+    function movePhoenixMentionSelection(delta){
+      if(!$('phoenix-mention-picker')||$('phoenix-mention-picker').hidden||!phoenixMentionMatches.length)return;
+      phoenixMentionActiveIndex=(phoenixMentionActiveIndex+delta+Math.min(8,phoenixMentionMatches.length))%Math.min(8,phoenixMentionMatches.length);
+      const buttons=$('phoenix-mention-picker').querySelectorAll('.phoenix-mention-option');buttons.forEach((b,i)=>b.classList.toggle('active',i===phoenixMentionActiveIndex));
+    }
+
     async function sendMessage() {
       if(isPhoenixGamesChannel())return;
       if(editingMessage){await saveEditedMessage();return;}
@@ -7609,7 +7598,7 @@ function loadAppearancePreferences() {
       const channelId=String(currentChannelId||''),token=sessionToken;
       const channel=channels.find(c=>String(c.id)===channelId);
       if(!channel||(isSharedGozChannel(channel)&&!isOwner))return;
-      const text=input.value.trim();
+      const text=phoenixTextWithMentionIds(input.value).trim();
       if(text.length>2000){phoenixNotice('Messages are limited to 2,000 characters.');return;}
       const imageFile=pendingComposerImage;
       const videoFile=pendingComposerVideo;
@@ -7667,7 +7656,7 @@ function loadAppearancePreferences() {
         const {data,error}=await withTimeout(db.rpc('send_message',{p_session_token:token,p_text:payloadText,p_reply_to_id:replyId,p_channel_id:channelId}));
         if(error)throw error;sent=true;
         if(token!==sessionToken)return;
-        input.value='';input.style.height='46px';input.style.overflowY='hidden';syncPhoenixTyping();cancelReply();clearComposerImage();$('attachment-status').textContent='';input.focus();
+        input.value='';phoenixSelectedMentions=[];phoenixMentionPreviousInput='';input.style.height='46px';input.style.overflowY='hidden';syncPhoenixTyping();cancelReply();clearComposerImage();$('attachment-status').textContent='';input.focus();
         const result=Array.isArray(data)?data[0]:data;
         const insertedId=result&&typeof result==='object'?(result.id??result.message_id):(typeof result==='string'||typeof result==='number'?result:null);
         if(imageUrl){lastUploadedImageUrl=imageUrl;lastUploadedImageChannelId=channelId;}
@@ -8139,7 +8128,7 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
       const view=phoenixOpenProfile;if(!view||view.generation!==generation||view.token!==token)return;view.username=username;
       const follow=$('cp-follow');follow.onclick=()=>view.social?.is_self?(closeChatProfile(),openProfileModal()):changePhoenixProfileFollow(view);
       const dm=$('cp-dm');dm.hidden=!id||String(id)===String(currentUserId);dm.onclick=()=>{if(!phoenixProfileStillHere(view))return;closeChatProfile();openPhoenixDMThread(null,id);};
-      const mention=$('cp-mention');mention.hidden=!id||String(id)===String(currentUserId)||isPhoenixGamesChannel();mention.onclick=()=>{if(!phoenixProfileStillHere(view))return;closeChatProfile();const input=$('msg-input');input.value=(input.value?input.value+' ':'')+'@'+username+' ';input.focus();syncPhoenixTyping();};
+      const mention=$('cp-mention');mention.hidden=!id||String(id)===String(currentUserId)||isPhoenixGamesChannel();mention.onclick=()=>{if(!phoenixProfileStillHere(view))return;closeChatProfile();const input=$('msg-input');input.value=(input.value?input.value+' ':'')+'@'+username;input.focus();input.setSelectionRange(input.value.length,input.value.length);updatePhoenixMentionPicker();syncPhoenixTyping();};
       if(!id){follow.textContent='Unavailable';$('cp-feedback').textContent='This profile is not connected to an account.';return;}
       try{const {data,error}=await withTimeout(db.rpc('get_profile_social',{p_session_token:token,p_user_id:id}),7000);if(error)throw error;paintPhoenixProfileSocial(view,data);}
       catch(error){if(!phoenixProfileStillHere(view))return;$('cp-feedback').textContent='Could not load followers. Tap Retry.';follow.disabled=false;follow.textContent='Retry';follow.onclick=()=>initPhoenixProfileSocial(id,username,generation,token);}
@@ -9007,7 +8996,7 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
       if(phoenixMessageRenderRAF){cancelAnimationFrame(phoenixMessageRenderRAF);phoenixMessageRenderRAF=0;}
       phoenixNextMessageScroll=false;phoenixRenderedChannel=null;
       phoenixMessageNodes.clear();phoenixGroupNodes.clear();phoenixMessageLoads.clear();phoenixMessageSync.clear();phoenixMemberCards.clear();
-      phoenixMemberDirectoryRequest=null;phoenixNotificationsRequest=null;phoenixNotificationSnapshot='';
+      phoenixMemberDirectoryRequest=null;phoenixNotificationsRequest=null;phoenixNotificationSnapshot='';phoenixNotificationIds=new Set();
       window.__liminalMessages=[];$('chat-box').replaceChildren();
       lastUploadedImageUrl=null;lastUploadedImageChannelId=null;clearComposerImage();
       if (memberDirectoryRefreshTimer) { clearInterval(memberDirectoryRefreshTimer); memberDirectoryRefreshTimer = null; }
@@ -9052,11 +9041,13 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
     $('display-name-input').addEventListener('input',updatePhoenixNamePreview);
     $('msg-input').addEventListener('input', () => {
       const box = $('msg-input');
+      reconcilePhoenixSelectedMentions(box.value);
       box.style.height = 'auto';
       const maxHeight = 144;
       box.style.height = Math.min(box.scrollHeight, maxHeight) + 'px';
       box.style.overflowY = box.scrollHeight > maxHeight ? 'auto' : 'hidden';
       syncPhoenixTyping();
+      updatePhoenixMentionPicker();
     });
     $('msg-input').addEventListener('paste', event => {
       const items = Array.from(event.clipboardData?.items || []);
@@ -9069,12 +9060,21 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
       const named = new File([file], 'pasted-image-' + Date.now() + '.' + ext, {type:file.type || 'image/png'});
       showComposerImage(named);
     });
-    $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    $('msg-input').addEventListener('keydown', e => {
+      const picker=$('phoenix-mention-picker');
+      if(picker&&!picker.hidden){
+        if(e.key==='ArrowDown'){e.preventDefault();movePhoenixMentionSelection(1);return;}
+        if(e.key==='ArrowUp'){e.preventDefault();movePhoenixMentionSelection(-1);return;}
+        if(e.key==='Escape'){e.preventDefault();closePhoenixMentionPicker();return;}
+      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
     $('gif-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchGifs(); } });
     $('emoji-search-input').addEventListener('input', renderEmojiGrid);
     $('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); login(); } });
 
     document.addEventListener('click', e => {
+      const mentionPicker=$('phoenix-mention-picker');if(mentionPicker&&!mentionPicker.contains(e.target)&&e.target!==$('msg-input'))closePhoenixMentionPicker();
       const picker = $('gif-picker');
       if (!picker.classList.contains('hidden') && !picker.contains(e.target) && !$('gif-btn').contains(e.target)) {
         picker.classList.add('hidden');
@@ -9266,364 +9266,6 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
     async function sendPhoenixDM(){const input=$('dm-input');if(!input||(!input.value.trim()&&!phoenixDMPendingImage&&!phoenixDMPendingFile)||!phoenixDM.thread)return;rememberPhoenixDMDraft();const thread=phoenixDM.thread,token=phoenixDM.token,gen=phoenixDM.generation;if(phoenixDM.busy.has(thread))return;const body=String(input.value||'').trim();if(body.length>2000){$('dm-status').textContent='Private messages are limited to 2,000 characters.';return;}const imageFile=phoenixDMPendingImage,regularFile=phoenixDMPendingFile;phoenixDM.busy.add(thread);$('dm-send').disabled=true;$('dm-status').textContent=imageFile?'Uploading image…':regularFile?'Uploading file…':'Sending…';try{let payload=body;if(imageFile){const uploaded=await uploadComposerImage(imageFile,'',token);if(token!==sessionToken||thread!==phoenixDM.thread)return;payload='[IMAGE_MESSAGE]'+JSON.stringify({text:body,image:uploaded});}else if(regularFile){if(regularFile.size>3*1024*1024)throw new Error('Files must be 3 MB or smaller.');const safeName=String(regularFile.name||'file').replace(/[^A-Za-z0-9._-]/g,'_').slice(0,180)||'file';const path=currentUserId+'/'+Date.now()+'_'+safeName;const upload=await db.storage.from('liminal-chat-files').upload(path,regularFile,{cacheControl:'31536000',upsert:false,contentType:regularFile.type||'application/octet-stream'});if(upload.error)throw upload.error;const url=db.storage.from('liminal-chat-files').getPublicUrl(path)?.data?.publicUrl;if(!url)throw new Error('Could not create the attachment URL.');payload='[FILE]'+JSON.stringify({name:regularFile.name||'file',type:regularFile.type||'',size:regularFile.size,url});if(body)payload='[FILE]'+JSON.stringify({name:regularFile.name||'file',type:regularFile.type||'',size:regularFile.size,url,text:body});}const client=phoenixDMClientId();const row=phoenixDM.groupMode?await dmGroupRPC('send',{p_thread:thread,p_body:payload,p_client:client},token):await dmRPC('send',{p_thread:thread,p_body:payload,p_client:client},token);if(!dmCurrent(gen,token))return;const latest=phoenixDM.drafts.get(thread);if(latest?.body===input.value)phoenixDM.drafts.delete(thread);if(phoenixDM.open&&phoenixDM.thread===thread){input.value='';clearPhoenixDMPendingImage();clearPhoenixDMPendingFile();phoenixDM.rows.set(String(row.id),row);paintPhoenixDMMessages(true);$('dm-status').textContent='';input.focus();}refreshPhoenixDMList();}catch(e){if(dmCurrent(gen,token)&&phoenixDM.open&&phoenixDM.thread===thread)$('dm-status').textContent='Could not send. Your message is still here; press Send to retry. '+errorText(e);}finally{if(token===sessionToken){phoenixDM.busy.delete(thread);if(phoenixDM.thread===thread&&$('dm-send'))$('dm-send').disabled=false;}}}
 
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&phoenixDM.token){refreshPhoenixDMList();if(phoenixDM.open){refreshPhoenixDM();ackPhoenixDM();}}});
-    // ------------------------------------------------------------
-    // Phoenix Voice Chat: authenticated, short-lived DB signaling.
-    // No third-party public MQTT room or duplicate chat system.
-    // ------------------------------------------------------------
-    let phoenixVoiceActive = false;
-    let phoenixVoiceChannelId = '';
-    let phoenixVoiceClientId = '';
-    let phoenixVoiceStream = null;
-    let phoenixVoiceCameraTrack = null;
-    let phoenixVoiceScreenTrack = null;
-    let phoenixVoiceMuted = false;
-    let phoenixVoiceDeafened = false;
-    let phoenixVoicePeers = new Map();
-    let phoenixVoiceSignalCursor = 0;
-    let phoenixVoicePollTimer = null;
-    let phoenixVoiceHeartbeatTimer = null;
-    let phoenixVoiceJoinBusy = false;
-
-    function phoenixVoiceRandomId() {
-      if (window.crypto?.randomUUID) return crypto.randomUUID().replace(/-/g,'');
-      const bytes = new Uint8Array(18);
-      crypto.getRandomValues(bytes);
-      return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
-    }
-    function phoenixVoiceRpcBase() {
-      return {
-        p_session_token: sessionToken,
-        p_browser_id: getPhoenixBrowserId(),
-        p_channel_id: phoenixVoiceChannelId,
-        p_client_id: phoenixVoiceClientId
-      };
-    }
-    function syncPhoenixVoiceUI() {
-      const area = document.querySelector('#app .chat-area');
-      const panel = $('phoenix-vc-panel');
-      const channel = channels.find(c=>String(c.id)===String(currentChannelId));
-      const active = !!channel && isPhoenixVoiceChannel(channel.id);
-      if (area) area.classList.toggle('phoenix-vc-active',active);
-      if (panel) panel.hidden = !active;
-      if (!active) return;
-      const title = $('phoenix-vc-title');
-      if (title) title.textContent = String(channel.name||'Voice channel').replace(/^\s*#+\s*/,'');
-      const description = $('channel-header-description');
-      if (description) description.textContent = 'Voice channel · live audio and video';
-      $('phoenix-vc-empty')?.classList.toggle('hidden',phoenixVoiceActive);
-      $('phoenix-vc-join')?.classList.toggle('hidden',phoenixVoiceActive);
-      ['phoenix-vc-mute','phoenix-vc-deafen','phoenix-vc-camera','phoenix-vc-share','phoenix-vc-leave'].forEach(id=>{
-        $(id)?.classList.toggle('hidden',!phoenixVoiceActive);
-      });
-      if (!phoenixVoiceActive) {
-        const participants=$('phoenix-vc-participants');
-        if(participants)participants.replaceChildren();
-        setPhoenixVoiceStatus('Not connected',false);
-      }
-    }
-    function setPhoenixVoiceStatus(message,connected=false) {
-      const el=$('phoenix-vc-status');
-      if(!el)return;
-      el.textContent=message;
-      el.classList.toggle('connected',!!connected);
-    }
-    function updatePhoenixVoiceControls() {
-      const mute=$('phoenix-vc-mute'),deafen=$('phoenix-vc-deafen'),camera=$('phoenix-vc-camera'),share=$('phoenix-vc-share');
-      if(mute){mute.textContent=phoenixVoiceMuted?'Unmute mic':'Mute mic';mute.classList.toggle('active',phoenixVoiceMuted);}
-      if(deafen){deafen.textContent=phoenixVoiceDeafened?'Undeafen':'Deafen';deafen.classList.toggle('active',phoenixVoiceDeafened);}
-      if(camera){camera.textContent=phoenixVoiceCameraTrack?'Turn camera off':'Turn camera on';camera.classList.toggle('active',!!phoenixVoiceCameraTrack);camera.disabled=!!phoenixVoiceScreenTrack;}
-      if(share){share.textContent=phoenixVoiceScreenTrack?'Stop sharing':'Share screen';share.classList.toggle('active',!!phoenixVoiceScreenTrack);}
-    }
-    function makePhoenixVoiceTile(clientId, user, local=false) {
-      const list=$('phoenix-vc-participants');
-      let tile=document.querySelector('[data-vc-client="'+clientId+'"]');
-      if(tile)return tile;
-      tile=document.createElement('div');
-      tile.className='phoenix-vc-person';
-      tile.dataset.vcClient=clientId;
-      const video=document.createElement('video');
-      video.className='phoenix-vc-video';
-      video.autoplay=true;video.playsInline=true;video.muted=true;
-      const avatar=document.createElement('img');
-      avatar.className='phoenix-vc-avatar';avatar.alt='';
-      const name=document.createElement('div');name.className='phoenix-vc-person-name';
-      const state=document.createElement('div');state.className='phoenix-vc-person-state';
-      const audio=document.createElement('audio');audio.className='phoenix-vc-audio';audio.autoplay=true;audio.playsInline=true;
-      tile.append(video,avatar,name,state,audio);
-      tile._video=video;tile._avatar=avatar;tile._name=name;tile._state=state;tile._audio=audio;
-      updatePhoenixVoiceTile(tile,user,local);
-      list?.appendChild(tile);
-      $('phoenix-vc-empty')?.classList.add('hidden');
-      return tile;
-    }
-    function updatePhoenixVoiceTile(tile,user,local=false) {
-      if(!tile)return;
-      tile._name.textContent=(user?.display_name||user?.username||'Phoenix member')+(local?' (you)':'');
-      tile._state.textContent=local?(phoenixVoiceMuted?'Mic muted':'Connected'):'Connecting…';
-      const url=String(user?.pfp_url||'');
-      if(/^https:\/\//i.test(url)){tile._avatar.src=url;tile._avatar.style.display='';}
-      else{tile._avatar.removeAttribute('src');tile._avatar.style.display='none';}
-      if(!url)tile._avatar.style.display='';
-    }
-    function removePhoenixVoicePeer(clientId) {
-      const peer=phoenixVoicePeers.get(clientId);
-      if(peer){try{peer.pc.close();}catch{}}
-      phoenixVoicePeers.delete(clientId);
-      document.querySelector('[data-vc-client="'+clientId+'"]')?.remove();
-      if(!phoenixVoicePeers.size && phoenixVoiceActive && !$('phoenix-vc-participants')?.children.length) $('phoenix-vc-empty')?.classList.remove('hidden');
-    }
-    async function sendPhoenixVoiceSignal(targetId,payload) {
-      if(!phoenixVoiceActive)return;
-      const {error}=await db.rpc('phoenix_vc_send_signal',{
-        ...phoenixVoiceRpcBase(),p_sender_client_id:phoenixVoiceClientId,
-        p_target_client_id:targetId,p_payload:payload
-      });
-      if(error)throw error;
-    }
-    async function createPhoenixVoicePeer(remote) {
-      const remoteId=String(remote.client_id||'');
-      if(!remoteId||remoteId===phoenixVoiceClientId)return null;
-      const existing=phoenixVoicePeers.get(remoteId);
-      if(existing)return existing;
-      const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-      const remoteStream=new MediaStream();
-      const peer={pc,remote,stream:remoteStream,iceQueue:[]};
-      phoenixVoicePeers.set(remoteId,peer);
-      if(phoenixVoiceStream)phoenixVoiceStream.getTracks().forEach(track=>pc.addTrack(track,phoenixVoiceStream));
-      pc.ontrack=event=>{
-        if(event.track&&!remoteStream.getTracks().some(t=>t.id===event.track.id))remoteStream.addTrack(event.track);
-        const tile=makePhoenixVoiceTile(remoteId,remote,false);
-        tile._audio.srcObject=remoteStream;
-        tile._audio.muted=phoenixVoiceDeafened;
-        tile._video.srcObject=remoteStream;
-        const hasVideo=remoteStream.getVideoTracks().some(t=>t.readyState==='live'&&t.enabled);
-        tile.classList.toggle('has-video',hasVideo);
-        event.track.onmute=()=>{tile.classList.toggle('has-video',remoteStream.getVideoTracks().some(t=>t.readyState==='live'&&t.enabled));};
-        event.track.onunmute=()=>{tile.classList.toggle('has-video',remoteStream.getVideoTracks().some(t=>t.readyState==='live'&&t.enabled));};
-        tile._state.textContent='Connected';
-        tile._audio.play().catch(()=>{});
-      };
-      pc.onicecandidate=event=>{
-        if(event.candidate)sendPhoenixVoiceSignal(remoteId,{type:'ice',candidate:event.candidate.toJSON?.()||event.candidate}).catch(err=>console.warn('Voice ICE signal failed:',errorText(err)));
-      };
-      pc.onconnectionstatechange=()=>{
-        if(['failed','closed'].includes(pc.connectionState))removePhoenixVoicePeer(remoteId);
-        else if(pc.connectionState==='connected'){
-          const tile=makePhoenixVoiceTile(remoteId,remote,false);
-          tile._state.textContent='Connected';
-        }
-      };
-      makePhoenixVoiceTile(remoteId,remote,false);
-      return peer;
-    }
-    async function reconcilePhoenixVoicePeers(rows) {
-      const active=new Set();
-      for(const row of rows||[]){
-        const id=String(row.client_id||'');if(!id||id===phoenixVoiceClientId)continue;
-        active.add(id);
-        const peer=await createPhoenixVoicePeer(row);
-        if(peer && phoenixVoiceClientId.localeCompare(id)<0 && !peer.pc.localDescription && peer.pc.signalingState==='stable'){
-          try{
-            const offer=await peer.pc.createOffer();
-            await peer.pc.setLocalDescription(offer);
-            await sendPhoenixVoiceSignal(id,{type:'offer',sdp:peer.pc.localDescription});
-          }catch(err){console.warn('Voice offer failed:',errorText(err));}
-        }
-      }
-      for(const id of [...phoenixVoicePeers.keys()])if(!active.has(id))removePhoenixVoicePeer(id);
-      setPhoenixVoiceStatus('Connected · '+(active.size+1)+' member'+(active.size===0?'':'s'),true);
-    }
-    async function refreshPhoenixVoicePresence() {
-      if(!phoenixVoiceActive)return;
-      const {data,error}=await db.rpc('phoenix_vc_join',{
-        ...phoenixVoiceRpcBase(),p_username:currentUser,
-        p_display_name:currentDisplayName||currentUser,
-        p_pfp_url:userProfile?.pfpUrl||publicProfileCache[String(currentUserId)]?.pfp_url||null
-      });
-      if(error)throw error;
-      await reconcilePhoenixVoicePeers(Array.isArray(data)?data:[]);
-    }
-    async function pollPhoenixVoiceSignals() {
-      if(!phoenixVoiceActive)return;
-      const {data,error}=await db.rpc('phoenix_vc_poll_signals',{
-        ...phoenixVoiceRpcBase(),p_after_id:phoenixVoiceSignalCursor
-      });
-      if(error)throw error;
-      for(const row of Array.isArray(data)?data:[]){
-        phoenixVoiceSignalCursor=Math.max(phoenixVoiceSignalCursor,Number(row.id)||0);
-        const from=String(row.from_client_id||''),payload=row.payload||{};
-        if(!from||from===phoenixVoiceClientId)continue;
-        const remote=(phoenixVoicePeers.get(from)?.remote)||{client_id:from,username:'Phoenix member',display_name:'Phoenix member'};
-        const peer=await createPhoenixVoicePeer(remote);
-        if(!peer)continue;
-        try{
-          if(payload.type==='offer'&&payload.sdp){
-            await peer.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-            for(const candidate of peer.iceQueue.splice(0))await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
-            const answer=await peer.pc.createAnswer();
-            await peer.pc.setLocalDescription(answer);
-            await sendPhoenixVoiceSignal(from,{type:'answer',sdp:peer.pc.localDescription});
-          }else if(payload.type==='answer'&&payload.sdp){
-            if(peer.pc.signalingState==='have-local-offer'){
-              await peer.pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-              for(const candidate of peer.iceQueue.splice(0))await peer.pc.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-          }else if(payload.type==='ice'&&payload.candidate){
-            if(peer.pc.remoteDescription)await peer.pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-            else peer.iceQueue.push(payload.candidate);
-          }
-        }catch(err){console.warn('Voice signaling event failed:',errorText(err));}
-      }
-    }
-    async function joinPhoenixVoice() {
-      if(phoenixVoiceActive||phoenixVoiceJoinBusy)return;
-      const channel=channels.find(c=>String(c.id)===String(currentChannelId));
-      if(!channel||!isPhoenixVoiceChannel(channel.id))return;
-      if(!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection)return phoenixNotice('Voice chat requires a supported browser and a secure HTTPS connection.');
-      phoenixVoiceJoinBusy=true;
-      const joinButton=$('phoenix-vc-join');if(joinButton){joinButton.disabled=true;joinButton.textContent='Joining…';}
-      try{
-        phoenixVoiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-        phoenixVoiceChannelId=String(channel.id);
-        phoenixVoiceClientId=phoenixVoiceRandomId();
-        phoenixVoiceSignalCursor=0;phoenixVoiceMuted=false;phoenixVoiceDeafened=false;
-        const local=makePhoenixVoiceTile(phoenixVoiceClientId,{username:currentUser,display_name:currentDisplayName||currentUser,pfp_url:userProfile?.pfpUrl||''},true);
-        local._audio.remove();
-        local._video.srcObject=phoenixVoiceStream;
-        local._state.textContent='Connected · mic on';
-        const {data,error}=await db.rpc('phoenix_vc_join',{
-          ...phoenixVoiceRpcBase(),p_username:currentUser,
-          p_display_name:currentDisplayName||currentUser,
-          p_pfp_url:userProfile?.pfpUrl||publicProfileCache[String(currentUserId)]?.pfp_url||null
-        });
-        if(error)throw error;
-        phoenixVoiceActive=true;
-        syncPhoenixVoiceUI();
-        $('phoenix-vc-empty')?.classList.add('hidden');
-        updatePhoenixVoiceControls();
-        await reconcilePhoenixVoicePeers(Array.isArray(data)?data:[]);
-        phoenixVoicePollTimer=setInterval(()=>pollPhoenixVoiceSignals().catch(err=>console.warn('Voice signal polling failed:',errorText(err))),1300);
-        phoenixVoiceHeartbeatTimer=setInterval(()=>refreshPhoenixVoicePresence().catch(err=>console.warn('Voice presence refresh failed:',errorText(err))),10000);
-        setPhoenixVoiceStatus('Connected · 1 member',true);
-      }catch(err){
-        const failedChannel=phoenixVoiceChannelId,failedClient=phoenixVoiceClientId;
-        phoenixVoiceActive=false;
-        if(phoenixVoicePollTimer)clearInterval(phoenixVoicePollTimer);
-        if(phoenixVoiceHeartbeatTimer)clearInterval(phoenixVoiceHeartbeatTimer);
-        phoenixVoicePollTimer=phoenixVoiceHeartbeatTimer=null;
-        for(const id of [...phoenixVoicePeers.keys()])removePhoenixVoicePeer(id);
-        if(failedChannel&&failedClient){
-          try{await db.rpc('phoenix_vc_leave',{p_session_token:sessionToken,p_browser_id:getPhoenixBrowserId(),p_channel_id:failedChannel,p_client_id:failedClient});}catch{}
-        }
-        if(phoenixVoiceStream){phoenixVoiceStream.getTracks().forEach(t=>t.stop());phoenixVoiceStream=null;}
-        phoenixVoiceCameraTrack=null;phoenixVoiceScreenTrack=null;
-        phoenixVoiceChannelId='';phoenixVoiceClientId='';
-        $('phoenix-vc-participants')?.replaceChildren();
-        setPhoenixVoiceStatus('Not connected',false);
-        phoenixNotice('Could not join voice: '+errorText(err));
-      }finally{
-        phoenixVoiceJoinBusy=false;
-        if(joinButton){joinButton.disabled=false;joinButton.textContent='Join Voice';}
-        syncPhoenixVoiceUI();
-      }
-    }
-    async function leavePhoenixVoice() {
-      if(!phoenixVoiceActive&&!phoenixVoiceJoinBusy)return;
-      const channelId=phoenixVoiceChannelId,clientId=phoenixVoiceClientId,token=sessionToken,browserId=getPhoenixBrowserId();
-      phoenixVoiceActive=false;
-      if(phoenixVoicePollTimer)clearInterval(phoenixVoicePollTimer);
-      if(phoenixVoiceHeartbeatTimer)clearInterval(phoenixVoiceHeartbeatTimer);
-      phoenixVoicePollTimer=phoenixVoiceHeartbeatTimer=null;
-      for(const id of [...phoenixVoicePeers.keys()])removePhoenixVoicePeer(id);
-      if(phoenixVoiceStream)phoenixVoiceStream.getTracks().forEach(t=>t.stop());
-      if(phoenixVoiceCameraTrack&&phoenixVoiceCameraTrack.readyState!=='ended')phoenixVoiceCameraTrack.stop();
-      if(phoenixVoiceScreenTrack&&phoenixVoiceScreenTrack.readyState!=='ended')phoenixVoiceScreenTrack.stop();
-      phoenixVoiceStream=null;phoenixVoiceCameraTrack=null;phoenixVoiceScreenTrack=null;
-      if(token&&channelId&&clientId){
-        try{await db.rpc('phoenix_vc_leave',{p_session_token:token,p_browser_id:browserId,p_channel_id:channelId,p_client_id:clientId});}catch(err){console.warn('Voice leave cleanup will expire automatically:',errorText(err));}
-      }
-      phoenixVoiceChannelId='';phoenixVoiceClientId='';phoenixVoiceMuted=false;phoenixVoiceDeafened=false;
-      $('phoenix-vc-participants')?.replaceChildren();
-      updatePhoenixVoiceControls();
-      syncPhoenixVoiceUI();
-    }
-    function togglePhoenixVoiceMute() {
-      if(!phoenixVoiceActive||!phoenixVoiceStream)return;
-      phoenixVoiceMuted=!phoenixVoiceMuted;
-      phoenixVoiceStream.getAudioTracks().forEach(track=>track.enabled=!phoenixVoiceMuted);
-      const local=document.querySelector('[data-vc-client="'+phoenixVoiceClientId+'"]');
-      if(local)local._state.textContent=phoenixVoiceMuted?'Mic muted':'Connected · mic on';
-      updatePhoenixVoiceControls();
-    }
-    function togglePhoenixVoiceDeafen() {
-      if(!phoenixVoiceActive)return;
-      phoenixVoiceDeafened=!phoenixVoiceDeafened;
-      document.querySelectorAll('.phoenix-vc-audio').forEach(audio=>audio.muted=phoenixVoiceDeafened);
-      updatePhoenixVoiceControls();
-    }
-    async function togglePhoenixVoiceCamera() {
-      if(!phoenixVoiceActive)return;
-      if(phoenixVoiceCameraTrack){
-        const track=phoenixVoiceCameraTrack;phoenixVoiceCameraTrack=null;
-        for(const peer of phoenixVoicePeers.values()){
-          const sender=peer.pc.getSenders().find(s=>s.track?.kind==='video');
-          if(sender)await sender.replaceTrack(null);
-        }
-        phoenixVoiceStream?.removeTrack(track);
-        track.stop();
-        const local=document.querySelector('[data-vc-client="'+phoenixVoiceClientId+'"]');
-        if(local){local.classList.remove('has-video');local._video.srcObject=null;}
-      }else{
-        try{
-          const camera=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false});
-          const track=camera.getVideoTracks()[0];if(!track)return;
-          phoenixVoiceCameraTrack=track;phoenixVoiceStream.addTrack(track);
-          for(const peer of phoenixVoicePeers.values()){
-            const sender=peer.pc.getSenders().find(s=>s.track?.kind==='video');
-            if(sender)await sender.replaceTrack(track);else peer.pc.addTrack(track,phoenixVoiceStream);
-          }
-          const local=document.querySelector('[data-vc-client="'+phoenixVoiceClientId+'"]');
-          if(local){local._video.srcObject=phoenixVoiceStream;local.classList.add('has-video');}
-        }catch(err){phoenixNotice('Could not turn on the camera: '+errorText(err));}
-      }
-      updatePhoenixVoiceControls();
-    }
-    async function togglePhoenixVoiceShare() {
-      if(!phoenixVoiceActive)return;
-      if(phoenixVoiceScreenTrack){
-        const old=phoenixVoiceScreenTrack;phoenixVoiceScreenTrack=null;
-        const restore=phoenixVoiceCameraTrack;
-        for(const peer of phoenixVoicePeers.values()){
-          const sender=peer.pc.getSenders().find(s=>s.track?.kind==='video');
-          if(sender)await sender.replaceTrack(restore||null);
-        }
-        if(!restore)phoenixVoiceStream?.removeTrack(old);
-        old.stop();
-        const local=document.querySelector('[data-vc-client="'+phoenixVoiceClientId+'"]');
-        if(local){local._video.srcObject=restore?new MediaStream([restore]):null;local.classList.toggle('has-video',!!restore);}
-      }else{
-        try{
-          const display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
-          const track=display.getVideoTracks()[0];if(!track)return;
-          phoenixVoiceScreenTrack=track;
-          for(const peer of phoenixVoicePeers.values()){
-            const sender=peer.pc.getSenders().find(s=>s.track?.kind==='video');
-            if(sender)await sender.replaceTrack(track);
-            else {phoenixVoiceStream.addTrack(track);peer.pc.addTrack(track,phoenixVoiceStream);}
-          }
-          const local=document.querySelector('[data-vc-client="'+phoenixVoiceClientId+'"]');
-          if(local){local._video.srcObject=display;local.classList.add('has-video');}
-          track.onended=()=>{if(phoenixVoiceScreenTrack)togglePhoenixVoiceShare();};
-        }catch(err){console.warn('Screen sharing was not started:',errorText(err));}
-      }
-      updatePhoenixVoiceControls();
-    }
-    window.addEventListener('pagehide',()=>{
-      if(phoenixVoiceActive&&phoenixVoiceChannelId&&phoenixVoiceClientId){
-        try{db.rpc('phoenix_vc_leave',{p_session_token:sessionToken,p_browser_id:getPhoenixBrowserId(),p_channel_id:phoenixVoiceChannelId,p_client_id:phoenixVoiceClientId});}catch{}
-      }
-    });
-  
 </script>
 
 <style id="phoenix-dms-polish-v1">
