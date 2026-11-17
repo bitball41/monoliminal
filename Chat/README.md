@@ -38,7 +38,10 @@ Tests: `scripts/chat-super-mega-tuff.test.mjs`.
 
 ## Super Mega Tuff Co-owner, part 2
 
-Needs [`20261117185020_chat_super_mega_tuff_co_owner_2.sql`](../Backend/migrations/20261117185020_chat_super_mega_tuff_co_owner_2.sql).
+Needs [`20261117185634_chat_super_mega_tuff_co_owner_2.sql`](../Backend/migrations/20261117185634_chat_super_mega_tuff_co_owner_2.sql)
+(**applied 2026-11-17**, ledger version `20261117185634`; verified live: ladder
+Super Mega Tuff Co-owner > God Tier > Co-owner, admin roles still tied, new
+troll list in force, new functions callable by signed-in accounts only).
 
 - **Top of the staff ladder.** The role now sits above every custom role,
   God Tier included; only Owner and PRESTON are higher. Reordering roles or
