@@ -27,7 +27,9 @@ test('batched unreads preserve RLS; cursor writes never mutate DM messages; old 
     await db.exec(`select set_config('request.jwt.claim.sub','${ids.owner}',false)`);
     await db.exec("insert into public.channels(id,label,kind) values('general','General','chat'),('following','Following','forum'),('forum','Forum','forum');");
     const thread=(await query("insert into public.forum_threads(channel_id,title,author) values('following','Private feed','bob') returning id"))[0].id;
-    await db.query("insert into public.messages(channel_id,sender,content) values('general','bob','hello'),('general','alice','mine'),('general','owner','@NoelleAI private'),($1,'bob','followers only')",['forum:'+thread]);
+    await db.query("insert into public.messages(channel_id,sender,content) values('general','bob','hello'),('general','alice','mine'),($1,'bob','followers only')",['forum:'+thread]);
+    // A retired Noelle AI owner-preview row: new rows can no longer become one.
+    await db.exec("alter table public.messages disable trigger aa_chat_mark_owner_preview; insert into public.messages(channel_id,sender,content,owner_preview) values('general','owner','owner preview',true); alter table public.messages enable trigger aa_chat_mark_owner_preview;");
     await db.exec("insert into public.forum_threads(channel_id,title,author) values('forum','Public post','bob')");
     await db.exec("insert into public.messages(channel_id,sender,content) select 'general','bob',i::text from generate_series(1,120)i");
     const dm=(await query("insert into public.dms(participants) values(array['alice','bob']) returning id"))[0].id;

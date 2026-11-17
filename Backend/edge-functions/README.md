@@ -2,21 +2,6 @@
 
 Tracked deployed source:
 
-- `noelle-ai`: authenticated `@NoelleAI` channel replies, private live style
-  examples, and atomic usage reservations. The initial release requires owner
-  access; owner-only row policies also protect prompts, replies, and reply chains. Deploy `index.ts`, `handler.ts`, and
-  `persona.ts` with `verify_jwt: true`; it also validates Auth and the current
-  profile. Reuses the existing OpenAI server secret. The Noelle AI migration
-  must be applied before deploying the function and Chat client.
-  Public examples include bounded response context and topic matches; the
-  caller's channel conversation stays separate from those historical examples.
-  Chat mirrors the configured source profile's exact avatar, raw ring and bio
-  through the owner-only profile RPC, keeping the bot's AI label and member role.
-  Structured replies can request an optional GIF search through the existing
-  authenticated `klipy-gifs` function (which uses its high content filter).
-  The server validates returned media hosts, saves text and GIF atomically, and
-  falls back to text if GIF search fails or GIFs are disabled.
-
 - `liminal-drive`: public listing, safe source previews, range requests, and short-lived R2 download redirects. File downloads go directly from R2 to the browser; previews remain sandboxed through the function.
 - `liminal-drive-admin`: verified Liminal profiles, role-based uploads, signed URLs, multipart uploads, folders, and file management.
 - `chat-auth`: shared Chat account signup, self-deletion, authorized password resets and owner test-account management.

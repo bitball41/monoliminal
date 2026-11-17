@@ -114,3 +114,23 @@ test('finishing an upload respects a newer Off selection',async()=>{
   assert(r.records.has('alice'),'the requested photo is still saved');
   assert.equal(r.state().choice,'off','a late save must not override the newer explicit choice');
 });
+
+test('blur and horizontal crop are saved, clamped, applied to the live photo and restored',async()=>{
+  const r=setup();await r.c.uploadPhotoBackground(file);
+  assert.equal(r.state().photo.blur,0,'new photos start sharp');assert.equal(r.state().photo.x,50);
+  r.$('photo-background-blur').value='8';r.$('photo-background-position-x').value='15';
+  r.c.changePhotoBackgroundAppearance();await r.flush();
+  assert.equal(r.records.get('alice').blur,8);assert.equal(r.records.get('alice').x,15);
+  const live=r.$('chat-background-stage').children[0];
+  assert.equal(live.style.objectPosition,'15% 50%');assert.equal(live.style.filter,'blur(8px)');
+  assert.match(live.style.transform,/^scale\(1\.0\d+\)$/,'blurred edges stay off screen');
+  assert.equal(r.$('photo-background-blur-value').textContent,'8 px');
+  // Older saved photos have no blur or x; out-of-range values are clamped.
+  r.records.set('alice',{...r.records.get('alice'),blur:99,x:-5});
+  const next=setup(r.records,r.preferences);next.c.restoreChatBackground();await settle();
+  assert.equal(next.state().photo.blur,24);assert.equal(next.state().photo.x,0);
+  const { blur, x, ...legacy } = r.records.get('alice');r.records.set('alice',legacy);
+  const old=setup(r.records,r.preferences);old.c.restoreChatBackground();await settle();
+  assert.equal(old.state().photo.blur,0);assert.equal(old.state().photo.x,50);
+  assert.equal(old.$('photo-background-blur-value').textContent,'Off');
+});
