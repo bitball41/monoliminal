@@ -11050,7 +11050,7 @@ void main() {
       qs('[data-quote-card]', node)?.addEventListener('click', () => run(null, blob => {
         if (quoteLightboxUrl) URL.revokeObjectURL(quoteLightboxUrl);
         quoteLightboxUrl = URL.createObjectURL(blob);
-        openLightbox(quoteLightboxUrl);
+        openLightbox(quoteLightboxUrl, `quote ${quoteData(msg)?.sender || ''}`.trim());
       }));
       const save = qs('[data-quote-save]', node);
       save?.addEventListener('click', () => run(save, blob => {
@@ -16914,7 +16914,17 @@ void main() {
         return uploadMedia('liminal-media', blob, ext, dataUrlFallback);
       }
     }
+    // blob: and data: links exist only in this browser tab. They must be uploaded,
+    // never stored, or the sticker breaks for everyone else (and for you after a reload).
+    function isLocalMediaUrl(url) { return /^(blob|data):/i.test(String(url || '')); }
     async function copyUrlIntoStickerBucket(url, { kind, name }) {
+      if (isLocalMediaUrl(url)) {
+        const blob = await (await fetch(url)).blob();
+        const ext = STICKER_EXT_BY_TYPE[blob.type];
+        if (!ext) throw new Error('That image type cannot be a sticker.');
+        if (blob.size > STICKER_FILE_MAX_BYTES) throw new Error('That image is too large for a sticker.');
+        return (await putStickerFile(blob, { kind, name, ext })).url;
+      }
       try {
         if (!/^https:\/\/[^/]+\.supabase\.co\//.test(url) || url.includes(`/public/${STICKER_BUCKET}/`)) return url;
         const res = await fetch(url);
@@ -16950,6 +16960,7 @@ void main() {
         }
         const name = stickerNameFromFile({ name: nameHint }, nameHintFromUrl(url));
         const storedUrl = await copyUrlIntoStickerBucket(url, { kind: 'sticker', name });
+        if (!/^https:\/\//i.test(storedUrl)) throw new Error('The sticker image could not be uploaded.');
         const { data, error } = await sb.from('public_stickers').insert({
           name, url: storedUrl, added_by: me.username, kind: 'sticker',
         }).select().single();
@@ -16960,7 +16971,7 @@ void main() {
         toast({ type: 'success', text: `Saved "${data.name}" as a sticker.` });
       } catch (err) {
         console.error(err);
-        toast({ type: 'error', text: 'Could not save that as a sticker.' });
+        toast({ type: 'error', text: err?.message ? `Could not save that as a sticker. ${err.message}` : 'Could not save that as a sticker.' });
       }
     }
     async function convertStickerKind(item, kind) {
@@ -18974,8 +18985,9 @@ void main() {
       $('lightbox-img').src = '';
       syncLightboxSaveButton('');
     }
-    function openLightbox(src) {
+    function openLightbox(src, nameHint = '') {
       const url = String(src || '');
+      $('lightbox-save-sticker').dataset.nameHint = nameHint;
       $('lightbox-img').src = url;
       $('lightbox').hidden = false;
       syncLightboxSaveButton(url);
@@ -21900,7 +21912,7 @@ void main() {
         e.preventDefault();
         e.stopPropagation();
         const url = e.currentTarget.dataset.saveUrl || $('lightbox-img').src;
-        saveMediaAsSticker(url, nameHintFromUrl(url));
+        saveMediaAsSticker(url, e.currentTarget.dataset.nameHint || nameHintFromUrl(url));
       });
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { hidePopovers(); closeLightbox(); }
