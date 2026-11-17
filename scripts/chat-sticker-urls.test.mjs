@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 
 const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
-const FIX = '20261117190000_reject_local_media_urls.sql';
+const FIX = '20261117232947_reject_local_media_urls.sql';
 
 test('broken blob stickers and their messages are removed, and new local links are rejected', async () => {
   const db = new PGlite({ extensions: { pgcrypto } });
