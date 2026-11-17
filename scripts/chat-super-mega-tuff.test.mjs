@@ -230,6 +230,16 @@ test('part 2: PomKnee can clear their own timeout', async () => {
   } finally { await db.close(); }
 });
 
+test('part 3: random keys troll, and all eleven trolls in one call', async () => {
+  const { db, call } = await setup();
+  try {
+    const all = ['fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons', 'random_keys'];
+    const fx = await call('PomKnee', `select public.chat_troll_apply('alice', $1, 5) r`, [all]);
+    assert.equal(fx[0].r.length, 11);
+    assert((await call('alice', `select public.chat_my_troll_effects() r`))[0].r.some(e => e.effect === 'random_keys'));
+  } finally { await db.close(); }
+});
+
 test('part 2: new trolls replace the old ones, and the one-shot refresh', async () => {
   const { db, call } = await setup();
   try {

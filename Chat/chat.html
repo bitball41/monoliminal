@@ -17612,6 +17612,7 @@ void main() {
       ['backwards_typing', '⌨️', 'Backwards typing', 'Everything they type comes out backwards.'],
       ['auto_refresh', '🔄', 'Auto refresh', 'Their page reloads every minute or two.'],
       ['runaway_buttons', '🏃', 'Runaway buttons', 'Buttons dodge their mouse.'],
+      ['random_keys', '🎲', 'Random keys', 'Every key they press types a random one instead.'],
     ];
     const TROLL_POPUPS = [
       ['⚠️ Warning', 'Your chat is experiencing too much drip.'],
@@ -17652,7 +17653,7 @@ void main() {
       if (trollActive('emoji_rain') && !calm) trollRainTimer = setInterval(dropTrollEmoji, 450);
       else qsa('.troll-drop').forEach(n => n.remove());
       setReverseMouse(trollActive('reverse_mouse'));
-      setTrollListener('beforeinput', onTrollBeforeInput, trollActive('backwards_typing'));
+      setTrollListener('beforeinput', onTrollBeforeInput, trollActive('backwards_typing') || trollActive('random_keys'));
       setTrollListener('pointerover', onTrollPointerOver, trollActive('runaway_buttons'));
       clearTimeout(trollRefreshTimer); trollRefreshTimer = 0;
       if (trollActive('auto_refresh')) trollRefreshTimer = setTimeout(trollReload, 60000 + Math.random() * 60000);
@@ -17720,13 +17721,27 @@ void main() {
 
     // Backwards typing: each typed character goes before the caret, not after.
     // Attached only while the troll is active, so nobody else pays for it.
+    // Random keys: each typed letter or digit becomes a different random one
+    // (case kept; spaces and punctuation pass through).
+    const TROLL_LETTERS = 'abcdefghijklmnopqrstuvwxyz', TROLL_DIGITS = '0123456789';
+    function randomTrollKey(ch) {
+      const lower = ch.toLowerCase(), pool = /[0-9]/.test(ch) ? TROLL_DIGITS : /[a-z]/.test(lower) ? TROLL_LETTERS : '';
+      if (!pool) return ch;
+      let next = lower;
+      while (next === lower) next = pool[Math.floor(Math.random() * pool.length)];
+      return ch !== lower ? next.toUpperCase() : next;
+    }
     function onTrollBeforeInput(event) {
-      if (!trollActive('backwards_typing') || event.inputType !== 'insertText' || !event.data || event.isComposing) return;
+      const backwards = trollActive('backwards_typing'), random = trollActive('random_keys');
+      if ((!backwards && !random) || event.inputType !== 'insertText' || !event.data || event.isComposing) return;
       const el = event.target;
       if (!(el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search)$/.test(el.type)))) return;
       event.preventDefault();
+      let chars = [...event.data];
+      if (random) chars = chars.map(randomTrollKey);
+      if (backwards) chars.reverse();
       const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? start;
-      el.setRangeText([...event.data].reverse().join(''), start, end, 'start');
+      el.setRangeText(chars.join(''), start, end, backwards ? 'start' : 'end');
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }
 

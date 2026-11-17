@@ -57,6 +57,9 @@ troll list in force, new functions callable by signed-in accounts only).
   - Backwards typing: typed text comes out reversed.
   - Auto refresh: the page reloads every one to two minutes while active.
   - Runaway buttons: buttons jump away from the mouse.
+  - Random keys (part 3): every letter or digit they type comes out as a
+    different random one; case is kept, spaces and punctuation pass through.
+    Combined with backwards typing, it is random and backwards.
   - Plus a one-shot "Refresh their page now" (`chat_troll_refresh`).
 - **Secret entrance.** For the role holder only, clicking (or Enter on) the
   "Corazon" title at the top of the sidebar opens the troll menu. It looks

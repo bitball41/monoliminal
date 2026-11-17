@@ -7,6 +7,8 @@
 --   * Spam: QuoteBot limits are lighter for the role instead of absent:
 --     1 second between quotes (members: 5), 30 quotes per 10 minutes
 --     (members: 10), and the same message once a minute (members: 10 minutes).
+--   * New troll: random_keys (every key the target types comes out as a
+--     random one). Eleven trolls now, so one call may pick all eleven.
 BEGIN;
 SET LOCAL lock_timeout = '2s';
 
@@ -232,5 +234,45 @@ BEGIN
   VALUES(actor.username,source.id,result.id);
   RETURN to_jsonb(result) - 'search_tsv';
 END $function$;
+
+-- ------------------------------------------------------- random keys troll
+ALTER TABLE private.chat_troll_effects DROP CONSTRAINT IF EXISTS chat_troll_effects_effect_check;
+ALTER TABLE private.chat_troll_effects ADD CONSTRAINT chat_troll_effects_effect_check CHECK (effect IN (
+  'fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain',
+  'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons', 'random_keys'));
+
+CREATE OR REPLACE FUNCTION public.chat_troll_apply(p_target text, p_effects text[], p_minutes integer DEFAULT 5)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_actor text := private.chat_username();
+  v_target text;
+  v_effects text[];
+BEGIN
+  v_target := private.chat_troll_target(p_target);
+  IF p_minutes IS NULL OR p_minutes NOT BETWEEN 1 AND 60 THEN
+    RAISE EXCEPTION 'Trolls last between 1 and 60 minutes';
+  END IF;
+  SELECT array_agg(DISTINCT e) INTO v_effects FROM unnest(coalesce(p_effects, '{}')) e;
+  IF v_effects IS NULL OR cardinality(v_effects) > 11 THEN
+    RAISE EXCEPTION 'Pick at least one troll';
+  END IF;
+  IF EXISTS (SELECT 1 FROM unnest(v_effects) e WHERE e IS NULL OR e NOT IN ('fail_send', 'popups', 'upside_down',
+      'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons',
+      'random_keys')) THEN
+    RAISE EXCEPTION 'Unknown troll';
+  END IF;
+
+  DELETE FROM private.chat_troll_effects WHERE expires_at <= now();
+  INSERT INTO private.chat_troll_effects (target, effect, expires_at, created_by)
+  SELECT v_target, e, now() + make_interval(mins => p_minutes), v_actor FROM unnest(v_effects) e
+  ON CONFLICT (target, effect) DO UPDATE
+    SET expires_at = excluded.expires_at, created_by = excluded.created_by, created_at = now();
+
+  INSERT INTO private.chat_admin_audit (actor_username, action, target, details)
+  VALUES (v_actor, 'troll_applied', v_target, jsonb_build_object('effects', to_jsonb(v_effects), 'minutes', p_minutes));
+  PERFORM private.chat_troll_broadcast(v_target);
+  RETURN private.chat_troll_effects_of(v_target);
+END;
+$$;
 
 COMMIT;
