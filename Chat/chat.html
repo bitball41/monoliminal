@@ -1058,6 +1058,72 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       background: linear-gradient(135deg, #d97706, #fbbf24);
       box-shadow: 0 0 10px rgba(251, 191, 36, 0.45);
     }
+    .role-check.super-mega-tuff-co-owner {
+      background: conic-gradient(from 0deg, #fbbf24, #ff2d95, #7c3aed, #22d3ee, #fbbf24);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.75), 0 0 6px rgba(255, 45, 149, 0.6);
+      outline: 1px solid rgba(255, 255, 255, 0.55);
+      animation: smt-badge-spin 3s linear infinite;
+    }
+    .role-check.super-mega-tuff-co-owner svg { animation: smt-badge-spin 3s linear infinite reverse; }
+    @keyframes smt-badge-spin { to { transform: rotate(360deg); } }
+    .role-check.smt-custom { background: var(--smt-bg); box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
+    .role-check .smt-symbol { font-size: .74em; line-height: 1; display: block; }
+    .role-check.smt-anim-spin { animation: smt-badge-spin 3s linear infinite; }
+    .role-check.smt-anim-spin > * { animation: smt-badge-spin 3s linear infinite reverse; }
+    .role-check.smt-anim-pulse { animation: smt-badge-pulse 1.4s ease-in-out infinite; }
+    .role-check.smt-anim-bounce { animation: smt-badge-bounce 1s ease-in-out infinite; }
+    @keyframes smt-badge-pulse { 50% { transform: scale(1.3); filter: brightness(1.3); } }
+    @keyframes smt-badge-bounce { 50% { transform: translateY(-3px); } }
+    @media (prefers-reduced-motion: reduce) { .role-check.smt-custom, .role-check.smt-custom > * { animation: none; } }
+    .smt-check-editor { display: grid; gap: 10px; }
+    .smt-check-editor .smt-colors { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .smt-check-editor input[type="color"] { width: 44px; height: 34px; padding: 2px; border-radius: 8px; }
+    .smt-check-preview { font-size: 1.6rem; display: flex; align-items: center; gap: 4px; }
+    #sidebar-brand-title.smt-secret { cursor: default; position: relative; outline-offset: 3px; }
+    #sidebar-brand-title.smt-secret::after { content: '😈'; position: absolute; left: 100%; top: -.2em; margin-left: 3px; font-size: .55em; opacity: 0; transition: opacity .6s; pointer-events: none; }
+    #sidebar-brand-title.smt-secret:hover::after, #sidebar-brand-title.smt-secret:focus-visible::after { opacity: .35; }
+    /* Troll effects (Super Mega Tuff Co-owner). Drawn only on the target's screen. */
+    html.troll-upside_down body { transform: rotate(180deg); }
+    html.troll-mirror body { transform: scaleX(-1); }
+    html.troll-upside_down.troll-mirror body { transform: rotate(180deg) scaleX(-1); }
+    html.troll-shake { animation: troll-shake 4s ease-in-out infinite; }
+    @keyframes troll-shake {
+      0%, 14%, 100% { transform: none; }
+      2%, 6%, 10% { transform: translate(-7px, 3px) rotate(-1deg); }
+      4%, 8%, 12% { transform: translate(7px, -3px) rotate(1deg); }
+    }
+    html.troll-reverse_mouse.troll-mouse-ready, html.troll-reverse_mouse.troll-mouse-ready * { cursor: none !important; }
+    .troll-cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+    .troll-runaway { transition: translate .18s ease-out; }
+    #troll-layer { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden; }
+    .troll-drop { position: absolute; top: -48px; font-size: 28px; animation: troll-fall linear forwards; }
+    @keyframes troll-fall { to { transform: translateY(calc(100vh + 96px)) rotate(540deg); } }
+    .troll-popup {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: min(320px, calc(100vw - 32px)); padding: 16px; border-radius: 14px; pointer-events: auto;
+      background: linear-gradient(var(--surface, #1b1b22), var(--surface, #1b1b22)), #15121a; color: var(--text, #fff); border: 1px solid var(--line, #333);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .5); font: 500 .9rem var(--font-ui, system-ui);
+    }
+    .troll-popup strong { display: block; margin-bottom: 6px; font-size: 1rem; }
+    .troll-popup p { margin: 0 0 14px; color: var(--text-soft, #ccc); }
+    .troll-popup .troll-popup-actions { position: relative; height: 36px; }
+    .troll-popup .troll-popup-actions button { position: absolute; right: 0; top: 0; transition: right .15s, top .15s; }
+    @media (prefers-reduced-motion: reduce) {
+      html.troll-shake { animation: none; }
+      .troll-runaway { transition: none; }
+    }
+    #troll-dialog .troll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 6px 0 14px; }
+    #troll-dialog .troll-option { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
+    #troll-dialog .troll-option input { margin-top: 3px; }
+    #troll-dialog .troll-option small { display: block; color: var(--muted); font-size: .72rem; line-height: 1.35; }
+    #troll-dialog .troll-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+    #troll-dialog .troll-row .field { flex: 1; min-width: 140px; margin: 0; }
+    #troll-dialog .troll-active { display: grid; gap: 8px; margin-top: 8px; }
+    #troll-dialog .troll-active-item { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+    #troll-dialog .troll-active-item small { display: block; color: var(--muted); }
+    @media (prefers-reduced-motion: reduce) {
+      .role-check.super-mega-tuff-co-owner, .role-check.super-mega-tuff-co-owner svg { animation: none; }
+    }
     .role-check.owner {
       background: linear-gradient(135deg, #ef4444, #b91c1c);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
@@ -3507,7 +3573,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
     <aside class="sidebar" id="sidebar" aria-label="Channels and direct messages">
       <div class="brand">
         <div class="brand-copy">
-          <div class="brand-title">Corazon</div>
+          <div class="brand-title" id="sidebar-brand-title">Corazon</div>
           <div class="brand-subtitle">Chat</div>
         </div>
       </div>
@@ -3623,6 +3689,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
         <div class="timeout-bar" id="timeout-bar" hidden>
           <span aria-hidden="true">⏳</span>
           <span class="grow" id="timeout-text"></span>
+          <button class="secondary-button" type="button" id="smt-untimeout-self" hidden>Remove my timeout</button>
         </div>
       </div>
 
@@ -7709,6 +7776,7 @@ void main() {
       super_mega_tuff_admin: { rank: 4, power: 400, label: 'Super Mega Tuff Admin', check: 'super-mega-tuff' },
       dusty: { rank: 4, power: 400, label: 'Dusty', check: 'super-mega-tuff' },
       co_owner:{ rank: 5, power: 500, label: 'Co-owner', check: 'co-owner' },
+      super_mega_tuff_co_owner: { rank: 5, power: 550, label: 'Super Mega Tuff Co-owner', check: 'super-mega-tuff-co-owner' },
       owner:   { rank: 6, power: 650, label: 'Owner',   check: 'owner' },
       preston: { rank: 7, power: 750, label: 'Preston', check: 'preston' },
     };
@@ -7799,13 +7867,36 @@ void main() {
     // Manager level and co-owner and above; admin level cannot ban (server rule).
     function canBanUsers() { const rank = myStaffRank(); return rank === 3 || rank >= 5; }
     function canManageStaffRoles() { return myStaffRank() >= 5; }
-    function assignableStaffRoles() {
+    // Super Mega Tuff Co-owner (20261117183155): PomKnee only. Untouchable
+    // (no ban, timeout, kick or delete), clears anyone's timeout, publishes
+    // announcements, skips spam limits and has the troll menu. Only the owner
+    // can change the role. The server enforces all of it.
+    const SMT_ROLE = 'super_mega_tuff_co_owner';
+    const SMT_HOLDER = 'pomknee';
+    function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === SMT_ROLE; }
+    // Only Conno (the owner account "connor") can moderate the role holder.
+    const SMT_JUDGE = 'connor';
+    const isConno = () => !!me && String(me.username || '').toLowerCase() === SMT_JUDGE && staffRoleOf(me) === 'owner';
+    // A timeout from Conno sticks: the holder cannot lift it themselves.
+    const timeoutIsFromConno = t => String(t?.timeout_by || '').toLowerCase() === SMT_JUDGE;
+    function canClearTimeoutOf(target) {
+      const t = typeof target === 'string' ? profileOf(target) : target;
+      if (isSuperMegaTuff()) return !(t?.username === me.username && timeoutIsFromConno(t));
+      return canModerateUser(target);
+    }
+    // The owner may still change the untouchable role holder's role.
+    function canChangeRoleOf(target) {
+      return canModerateUser(target) || (isOwner() && isSuperMegaTuff(target));
+    }
+    function assignableStaffRoles(target = null) {
+      const t = typeof target === 'string' ? profileOf(target) : target;
       return Object.entries(STAFF_ROLE_META)
-        .filter(([, meta]) => meta.rank <= 5 && meta.power < myStaffPower())
+        .filter(([slug, meta]) => meta.rank <= 5 && meta.power < myStaffPower()
+          && (slug !== SMT_ROLE || (t && String(t.username || '').toLowerCase() === SMT_HOLDER)))
         .sort(([, a], [, b]) => b.power - a.power).map(([slug]) => slug);
     }
     function canAssignStaffRole(target, role) {
-      return canManageStaffRoles() && canModerateUser(target) && assignableStaffRoles().includes(role);
+      return canManageStaffRoles() && canChangeRoleOf(target) && assignableStaffRoles(target).includes(role);
     }
     function canDeleteAccounts() { return myStaffRank() >= 4; }
     function canTimeoutMinutes(minutes) {
@@ -7817,15 +7908,34 @@ void main() {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t.username || t.username === me.username || isQuoteBot(t.username)) return false;
+      if (staffRoleOf(t) === SMT_ROLE) return isConno();
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
       return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+    // The Super Mega Tuff Co-owner styles their own check (app_settings.smt_check,
+    // validated by chat_set_smt_check and again here before it reaches the page).
+    const SMT_ANIMATIONS = ['spin', 'pulse', 'bounce', 'none'];
+    function smtCheckStyle(raw = appSettings.smt_check) {
+      let v;
+      try { v = JSON.parse(raw || ''); } catch { return null; }
+      if (!v || typeof v !== 'object') return null;
+      const colors = (Array.isArray(v.colors) ? v.colors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 4);
+      if (!colors.length) return null;
+      const symbol = typeof v.symbol === 'string' && [...v.symbol].length <= 8 && !/[<>&"'`\\\u0000-\u001f]/.test(v.symbol) ? v.symbol : '';
+      return { symbol, colors, animation: SMT_ANIMATIONS.includes(v.animation) ? v.animation : 'none' };
+    }
+    function smtCheckHtml(style, title) {
+      const bg = style.colors.length === 1 ? style.colors[0] : `conic-gradient(from 0deg, ${style.colors.join(', ')}, ${style.colors[0]})`;
+      const inner = style.symbol ? `<span class="smt-symbol">${esc(style.symbol)}</span>` : ROLE_CHECK_SVG;
+      return `<span class="role-check smt-custom smt-anim-${style.animation}" style="--smt-bg:${bg}" title="${esc(title)}" aria-label="${esc(title)}">${inner}</span>`;
+    }
     function roleCheckHtml(profileOrUsername, opts = {}) {
       const role = staffRoleOf(profileOrUsername);
       const meta = STAFF_ROLE_META[role];
       if (!meta || !meta.check) return '';
       const title = opts.title || meta.label;
+      if (role === SMT_ROLE) { const style = smtCheckStyle(); if (style) return smtCheckHtml(style, title); }
       // Custom roles carry their own colour (validated #rrggbb).
       const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
       return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
@@ -11580,7 +11690,10 @@ void main() {
         });
       }
     }
+    // 30 seconds off after a burst: members after 5 messages in 5 seconds,
+    // the Super Mega Tuff Co-owner after 15.
     function spamGuard() {
+      const burst = isSuperMegaTuff() ? 15 : 5, rest = 30000;
       const now = Date.now();
       if (now < cooldownUntil) {
         toast({ type: 'warning', text: `Slow down — you can send again in ${fmtCountdown(cooldownUntil - now)}.` });
@@ -11588,19 +11701,20 @@ void main() {
       }
       sendTimestamps = sendTimestamps.filter(t => now - t < 5000);
       sendTimestamps.push(now);
-      if (sendTimestamps.length > 5) {
-        cooldownUntil = now + 30000;
+      if (sendTimestamps.length > burst) {
+        cooldownUntil = now + rest;
         sendTimestamps = [];
-        toast({ type: 'warning', title: 'Slow down', text: 'You can send again in 30 seconds.' });
+        toast({ type: 'warning', title: 'Slow down', text: `You can send again in ${rest / 1000} seconds.` });
         return false;
       }
       return true;
     }
     function gifGuard() {
+      const limit = isSuperMegaTuff() ? 5 : 2;
       const now = Date.now();
       gifTimestamps = gifTimestamps.filter(t => now - t < 5000);
-      if (gifTimestamps.length >= 2) {
-        toast({ type: 'warning', text: 'You can send 2 GIFs every 5 seconds.' });
+      if (gifTimestamps.length >= limit) {
+        toast({ type: 'warning', text: `You can send ${limit} GIFs every 5 seconds.` });
         return false;
       }
       gifTimestamps.push(now);
@@ -11757,6 +11871,7 @@ void main() {
       const table = kind === 'channel' ? 'messages' : 'dm_messages';
       const columns = kind === 'channel' ? MESSAGE_COLUMNS : DM_MESSAGE_COLUMNS;
       pending.placeholder.sendStartedAt = Date.now();
+      if (await trollEatsSend(pending)) return 'kept';
       const result = await insertChatMessage(table, row, columns, { onNewId: id => {
         pending.serverId = id; pending.placeholder.clientMessageId = id;
       } });
@@ -11903,6 +12018,7 @@ void main() {
       else { row.dm_id = msg.dm_id; }
 
       msg.sendStartedAt = Date.now();
+      if (await trollEatsSend(entry)) return;
       // An earlier attempt of this message may own the ID: look it up first.
       const result = await insertChatMessage(table, row, columns, { retry: true, onNewId: id => {
         entry.serverId = id; msg.clientMessageId = id;
@@ -14856,6 +14972,7 @@ void main() {
     let realtimeAttemptAt = 0, chatExtrasPending = false;
     let subroleReadStartedAt = 0, dmListReadStartedAt = 0, groupInviteReadStartedAt = 0;
     function reconcileAfterSubscribe() {
+      loadMyTrollEffects();
       if (chatExtrasPending) return;
       if (subroleReadStartedAt < realtimeAttemptAt) reloadSubroleCatalog();
       if (Math.min(dmListReadStartedAt, groupInviteReadStartedAt) < realtimeAttemptAt) queueConversationRefresh();
@@ -14939,6 +15056,8 @@ void main() {
             channel.on('broadcast', { event }, ({ payload }) => handler(broadcastChange(payload)));
           }
           channel.on('broadcast', { event: 'voice_server_mutes' }, () => { if (voice.muteWatch) loadVoiceServerMutes(); });
+          channel.on('broadcast', { event: 'troll_effects' }, ({ payload }) => applyTrollEffects(payload?.effects));
+          channel.on('broadcast', { event: 'troll_refresh' }, () => trollReload());
           return channel;
         };
         dbChannel = bind(sb.channel(LIVE_TOPIC, { config: { private: true } })).subscribe(onDataChannelStatus(gen));
@@ -15589,6 +15708,10 @@ void main() {
       if (row.key === 'force_refresh_at') { handleAppUpdateSignal(row.value); return; }
       if (row.key === 'app_enabled' && row.value === 'false' && !isOwner()) { showMaintenance(); return; }
       if (row.key === 'announcement') renderAnnouncement();
+      if (row.key === 'smt_check') {
+        renderSelf(); renderMembers(); renderDmList();
+        if (msgCache.has(viewKey(currentView))) renderTimeline({ preserve: true });
+      }
       if (row.key === 'whats_new') maybeShowWhatsNew();
       if (row.key === 'community_rules' && $('rules-dialog').open) renderRules();
       if (row.key === 'banned_words') { try { bannedWords = JSON.parse(row.value || '[]'); } catch {} }
@@ -15846,6 +15969,7 @@ void main() {
     function updateTimeoutUi() {
       const timedOut = isTimedOut();
       $('timeout-bar').hidden = !timedOut;
+      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && !timeoutIsFromConno(me));
       $('message-input').disabled = timedOut;
       $('send-btn').disabled = timedOut;
       applyFeatureControls();
@@ -17249,6 +17373,7 @@ void main() {
     /* ============================= 26. MEMBERS PANEL ============================= */
     function renderSelf() {
       if (!me) return;
+      syncSecretTrollTrigger();
       const effStatus = presenceStatusOf(me.username);
       const avatar = $('self-avatar');
       const identity = avatarImageHtml(me);
@@ -17399,6 +17524,11 @@ void main() {
         if (canDeleteAccounts()) {
           modHtml += `<button class="danger-button" type="button" data-hc-act="delete-account">Delete account</button>`;
         }
+      } else if (timedOut && isSuperMegaTuff() && canClearTimeoutOf(p)) {
+        modHtml += `<button class="secondary-button" type="button" data-hc-act="untimeout">Remove timeout</button>`;
+      }
+      if (!self && canTroll(p)) {
+        modHtml += `<button class="secondary-button" type="button" data-hc-act="troll">😈 Troll…</button>`;
       }
       modRow.innerHTML = modHtml ? '<div class="profile-menu-label">Moderation</div>' + modHtml : '';
       modRow.hidden = !modHtml;
@@ -17440,6 +17570,7 @@ void main() {
           if (!timeoutMenu.hidden) qs('button', timeoutMenu)?.focus();
         }
         else if (act === 'untimeout') { hidePopovers(); applyTimeout(username, 0); }
+        else if (act === 'troll') { hidePopovers(); openTrollMenu(username); }
         else if (act === 'kick') { hidePopovers(); kickUser(username); }
         else if (act === 'ban') { hidePopovers(); banUser(username); }
         else if (act === 'delete-account') { hidePopovers(); staffDeleteAccount(username); }
@@ -17465,9 +17596,380 @@ void main() {
       showPopover(card, anchor);
     }
 
+    /* ============================= 27b. TROLL MENU ============================= */
+    // The Super Mega Tuff Co-owner can trick another member's chat for 1-60
+    // minutes (20261117183155_chat_super_mega_tuff_co_owner.sql). The server
+    // keeps the list and sends it on the target's private topic; the effects
+    // run only in the target's browser and never send anything as them.
+    const TROLL_EFFECTS = [
+      ['fail_send', '📵', 'Messages fail', 'Most of their messages “fail to send”.'],
+      ['popups', '🪟', 'Popups', 'Silly popups keep showing up.'],
+      ['upside_down', '🙃', 'Upside down', 'Their whole chat is flipped.'],
+      ['mirror', '🪞', 'Mirror', 'Everything is backwards.'],
+      ['shake', '🫨', 'Earthquake', 'The screen shakes every few seconds.'],
+      ['emoji_rain', '🌧️', 'Emoji rain', 'Clowns fall from the sky.'],
+      ['reverse_mouse', '🖱️', 'Reverse mouse', 'Their mouse moves, clicks and scrolls the opposite way.'],
+      ['backwards_typing', '⌨️', 'Backwards typing', 'Everything they type comes out backwards.'],
+      ['auto_refresh', '🔄', 'Auto refresh', 'Their page reloads every minute or two.'],
+      ['runaway_buttons', '🏃', 'Runaway buttons', 'Buttons dodge their mouse.'],
+      ['random_keys', '🎲', 'Random keys', 'Every key they press types a random one instead.'],
+    ];
+    const TROLL_POPUPS = [
+      ['⚠️ Warning', 'Your chat is experiencing too much drip.'],
+      ['Error 418', 'I’m a teapot. Please try again.'],
+      ['🤡', 'Clown detected nearby.'],
+      ['Update required', 'Please update your vibes to continue.'],
+      ['Are you sure?', 'Are you sure you’re sure?'],
+      ['Fun fact', 'PomKnee is super mega tuff.'],
+      ['Loading…', 'Loading more nonsense ███▒▒▒ 61%'],
+      ['Hmm', 'That message was a little too cringe.'],
+      ['🏆 Achievement unlocked', 'Got trolled.'],
+      ['Notice', 'Your keyboard has been flipped. Just kidding. Or am I?'],
+    ];
+    let trollEffects = new Map(), trollExpiryTimer = 0, trollPopupTimer = 0, trollRainTimer = 0, trollLoadAt = 0;
+    const trollActive = effect => (trollEffects.get(effect) || 0) > Date.now();
+    function trollLayer() {
+      let layer = $('troll-layer');
+      if (!layer) { layer = document.createElement('div'); layer.id = 'troll-layer'; layer.setAttribute('aria-hidden', 'true'); document.body.appendChild(layer); }
+      return layer;
+    }
+    function applyTrollEffects(list) {
+      const now = Date.now();
+      trollEffects = new Map((Array.isArray(list) ? list : [])
+        .map(e => [String(e?.effect || ''), Date.parse(e?.expires_at) || 0])
+        .filter(([effect, until]) => until > now && TROLL_EFFECTS.some(([id]) => id === effect)));
+      const root = document.documentElement;
+      for (const [id] of TROLL_EFFECTS) root.classList.toggle(`troll-${id}`, trollActive(id));
+      clearTimeout(trollExpiryTimer);
+      if (trollEffects.size) {
+        const next = Math.min(...trollEffects.values()) - now + 50;
+        trollExpiryTimer = setTimeout(() => applyTrollEffects([...trollEffects].map(([effect, until]) => ({ effect, expires_at: new Date(until).toISOString() }))), Math.min(next, 2147483000));
+      }
+      clearTimeout(trollPopupTimer); trollPopupTimer = 0;
+      if (trollActive('popups')) scheduleTrollPopup();
+      else qsa('.troll-popup').forEach(n => n.remove());
+      clearInterval(trollRainTimer); trollRainTimer = 0;
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (trollActive('emoji_rain') && !calm) trollRainTimer = setInterval(dropTrollEmoji, 450);
+      else qsa('.troll-drop').forEach(n => n.remove());
+      setReverseMouse(trollActive('reverse_mouse'));
+      setTrollListener('beforeinput', onTrollBeforeInput, trollActive('backwards_typing') || trollActive('random_keys'));
+      setTrollListener('pointerover', onTrollPointerOver, trollActive('runaway_buttons'));
+      clearTimeout(trollRefreshTimer); trollRefreshTimer = 0;
+      if (trollActive('auto_refresh')) trollRefreshTimer = setTimeout(trollReload, 60000 + Math.random() * 60000);
+      if (!trollActive('runaway_buttons')) qsa('.troll-runaway').forEach(b => { b.style.translate = ''; b.classList.remove('troll-runaway'); });
+    }
+    let trollRefreshTimer = 0;
+    function trollReload() { try { location.reload(); } catch {} }
+
+    // Reverse mouse: hide the real pointer, draw one mirrored through the
+    // centre of the window, and send clicks and wheel turns to that point.
+    let trollCursor = null, trollMouseOn = false;
+    const mirrorPoint = (x, y) => [window.innerWidth - x, window.innerHeight - y];
+    function onTrollMove(event) {
+      if (event.pointerType && event.pointerType !== 'mouse') return;
+      document.documentElement.classList.add('troll-mouse-ready');
+      const [x, y] = mirrorPoint(event.clientX, event.clientY);
+      if (!trollCursor) {
+        trollCursor = document.createElement('div');
+        trollCursor.className = 'troll-cursor';
+        trollCursor.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 2l7 19 2.6-7.4L20 11z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+        trollLayer().appendChild(trollCursor);
+      }
+      trollCursor.style.transform = `translate(${x}px, ${y}px)`;
+    }
+    function trollTargetAt(event) {
+      const [x, y] = mirrorPoint(event.clientX, event.clientY);
+      const layer = $('troll-layer');
+      if (layer) layer.style.display = 'none';
+      const el = document.elementFromPoint(x, y);
+      if (layer) layer.style.display = '';
+      return el;
+    }
+    function onTrollClick(event) {
+      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.detail === 0) return;
+      if (event.target.closest?.('.troll-popup')) return;
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      const el = trollTargetAt(event);
+      if (!el) return;
+      const focusable = el.closest('input, textarea, select, [contenteditable="true"]');
+      if (focusable) focusable.focus();
+      el.click();
+    }
+    function onTrollDown(event) {
+      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.target.closest?.('.troll-popup')) return;
+      event.preventDefault();
+    }
+    function onTrollWheel(event) {
+      if (!event.isTrusted) return;
+      event.preventDefault(); event.stopPropagation();
+      let el = trollTargetAt(event);
+      while (el && el !== document.body && !(el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+      (el && el !== document.body ? el : document.scrollingElement)?.scrollBy({ top: -event.deltaY, left: -event.deltaX });
+    }
+    function setReverseMouse(on) {
+      if (on === trollMouseOn) return;
+      trollMouseOn = on;
+      const method = on ? 'addEventListener' : 'removeEventListener';
+      window[method]('pointermove', onTrollMove, true);
+      window[method]('pointerdown', onTrollDown, true);
+      window[method]('mousedown', onTrollDown, true);
+      window[method]('click', onTrollClick, true);
+      window[method]('wheel', onTrollWheel, { capture: true, passive: false });
+      if (!on) { trollCursor?.remove(); trollCursor = null; document.documentElement.classList.remove('troll-mouse-ready'); }
+    }
+
+    // Backwards typing: each typed character goes before the caret, not after.
+    // Attached only while the troll is active, so nobody else pays for it.
+    // Random keys: each typed letter or digit becomes a different random one
+    // (case kept; spaces and punctuation pass through).
+    const TROLL_LETTERS = 'abcdefghijklmnopqrstuvwxyz', TROLL_DIGITS = '0123456789';
+    function randomTrollKey(ch) {
+      const lower = ch.toLowerCase(), pool = /[0-9]/.test(ch) ? TROLL_DIGITS : /[a-z]/.test(lower) ? TROLL_LETTERS : '';
+      if (!pool) return ch;
+      let next = lower;
+      while (next === lower) next = pool[Math.floor(Math.random() * pool.length)];
+      return ch !== lower ? next.toUpperCase() : next;
+    }
+    function onTrollBeforeInput(event) {
+      const backwards = trollActive('backwards_typing'), random = trollActive('random_keys');
+      if ((!backwards && !random) || event.inputType !== 'insertText' || !event.data || event.isComposing) return;
+      const el = event.target;
+      if (!(el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search)$/.test(el.type)))) return;
+      event.preventDefault();
+      let chars = [...event.data];
+      if (random) chars = chars.map(randomTrollKey);
+      if (backwards) chars.reverse();
+      const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? start;
+      el.setRangeText(chars.join(''), start, end, backwards ? 'start' : 'end');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    // Runaway buttons: a button jumps away when the mouse reaches it.
+    function onTrollPointerOver(event) {
+      if (!trollActive('runaway_buttons') || event.pointerType !== 'mouse') return;
+      const button = event.target.closest?.('button, [role="button"], .primary-button, .secondary-button');
+      if (!button || button.closest('.troll-popup, #troll-dialog') || Math.random() < 0.25) return;
+      button.classList.add('troll-runaway');
+      const dx = (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 60), dy = (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 40);
+      button.style.translate = `${dx}px ${dy}px`;
+      clearTimeout(button._trollBack);
+      button._trollBack = setTimeout(() => { button.style.translate = ''; }, 1600);
+    }
+    const trollListeners = new Set();
+    function setTrollListener(type, handler, on) {
+      if (on === trollListeners.has(handler)) return;
+      document[on ? 'addEventListener' : 'removeEventListener'](type, handler, true);
+      if (on) trollListeners.add(handler); else trollListeners.delete(handler);
+    }
+    // Once per realtime join (both topics report SUBSCRIBED), like the other reconcile reads.
+    async function loadMyTrollEffects() {
+      if (!me || trollLoadAt >= realtimeAttemptAt) return;
+      trollLoadAt = Date.now();
+      const { data, error } = await sb.rpc('chat_my_troll_effects');
+      if (error) { if (error.code !== 'PGRST202') logChatWarning('troll-effects-unavailable', error); return; }
+      applyTrollEffects(data);
+    }
+    function dropTrollEmoji() {
+      if (document.hidden || !trollActive('emoji_rain')) return;
+      const drop = document.createElement('span');
+      drop.className = 'troll-drop';
+      drop.textContent = ['🤡', '😂', '💀', '🗿', '🤡', '🐸'][Math.floor(Math.random() * 6)];
+      drop.style.left = `${Math.random() * 100}vw`;
+      drop.style.animationDuration = `${3 + Math.random() * 3}s`;
+      drop.addEventListener('animationend', () => drop.remove());
+      trollLayer().appendChild(drop);
+    }
+    function scheduleTrollPopup() {
+      clearTimeout(trollPopupTimer);
+      trollPopupTimer = setTimeout(showTrollPopup, 8000 + Math.random() * 17000);
+    }
+    function showTrollPopup() {
+      if (!trollActive('popups')) return;
+      if (document.hidden || qs('.troll-popup')) { scheduleTrollPopup(); return; }
+      const [title, text] = TROLL_POPUPS[Math.floor(Math.random() * TROLL_POPUPS.length)];
+      const pop = document.createElement('div');
+      pop.className = 'troll-popup';
+      pop.setAttribute('role', 'alertdialog');
+      pop.innerHTML = `<strong></strong><p></p><div class="troll-popup-actions"><button class="primary-button" type="button">OK</button></div>`;
+      qs('strong', pop).textContent = title;
+      qs('p', pop).textContent = text;
+      const ok = qs('button', pop);
+      // Sometimes the button runs away, but only twice.
+      let dodges = Math.random() < 0.4 ? 2 : 0;
+      ok.addEventListener('pointerenter', event => {
+        if (!dodges || event.pointerType === 'touch') return;
+        dodges--;
+        ok.style.right = `${Math.floor(Math.random() * 180)}px`;
+      });
+      ok.addEventListener('click', () => { pop.remove(); scheduleTrollPopup(); });
+      trollLayer().appendChild(pop);
+      ok.focus({ preventScroll: true });
+    }
+    // Pretend a send failed, without contacting the server.
+    async function trollEatsSend(entry) {
+      if (!trollActive('fail_send') || Math.random() >= 0.7) return false;
+      await new Promise(resolve => setTimeout(resolve, 700 + Math.random() * 1500));
+      if (pendingSends.includes(entry)) failPendingSend(entry, 'Message failed to send. Retry it from the bubble.');
+      return true;
+    }
+
+    function smtCheckEditorHtml() {
+      const style = smtCheckStyle() || { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin' };
+      const colors = [0, 1, 2, 3].map(i => style.colors[i] || '');
+      return `<div class="smt-check-editor">
+        <div class="smt-check-preview" id="smt-check-preview" aria-live="polite"></div>
+        <div class="field"><label for="smt-check-symbol">Symbol (emoji or up to 8 characters; empty for a ✓)</label><input id="smt-check-symbol" maxlength="32" value="${esc(style.symbol)}" placeholder="✓"></div>
+        <div class="field"><label>Colours (untick to use fewer)</label><div class="smt-colors">${colors.map((c, i) => `<label class="smt-color"><input type="checkbox" data-smt-color-on="${i}" ${c ? 'checked' : ''} aria-label="Use colour ${i + 1}"><input type="color" data-smt-color="${i}" value="${c || '#ffffff'}" aria-label="Colour ${i + 1}"></label>`).join('')}</div></div>
+        <div class="field"><label for="smt-check-anim">Animation</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
+        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">Reset to default</button></div>
+      </div>`;
+    }
+    function bindSmtCheckEditor(root) {
+      const symbol = $('smt-check-symbol');
+      if (!symbol) return;
+      const read = () => ({
+        symbol: symbol.value.trim(),
+        colors: qsa('[data-smt-color]', root).filter(c => qs(`[data-smt-color-on="${c.dataset.smtColor}"]`, root).checked).map(c => c.value.toLowerCase()),
+        animation: $('smt-check-anim').value,
+      });
+      const preview = () => {
+        const v = read(), style = smtCheckStyle(JSON.stringify(v));
+        $('smt-check-preview').innerHTML = `${esc(displayNameOf(me))} ${style ? smtCheckHtml(style, 'Preview') : '<span class="field-help">Pick at least one colour</span>'}`;
+      };
+      qsa('input, select', root.querySelector('.smt-check-editor')).forEach(i => i.addEventListener('input', preview));
+      preview();
+      const save = async (args, done) => {
+        try {
+          const { error } = await sb.rpc('chat_set_smt_check', args);
+          if (error) throw error;
+          toast({ type: 'success', text: done });
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save your check mark.' }); }
+      };
+      $('smt-check-save').addEventListener('click', () => {
+        const v = read();
+        if (!v.colors.length) { toast({ type: 'warning', text: 'Pick at least one colour.' }); return; }
+        if ([...v.symbol].length > 8) { toast({ type: 'warning', text: 'Use up to 8 characters.' }); return; }
+        if (/[<>&"'`\\]/.test(v.symbol)) { toast({ type: 'warning', text: 'That symbol has characters that aren’t allowed.' }); return; }
+        save({ p_symbol: v.symbol, p_colors: v.colors, p_animation: v.animation }, 'Check mark updated ✨');
+      });
+      $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null }, 'Check mark reset.'));
+    }
+
+    // Secret entrance: for the Super Mega Tuff Co-owner only, the sidebar's
+    // "Corazon" title opens the troll menu. For everyone else it stays text.
+    function syncSecretTrollTrigger() {
+      const title = $('sidebar-brand-title');
+      if (!title) return;
+      const armed = isSuperMegaTuff();
+      if (title.classList.contains('smt-secret') === armed) return;
+      title.classList.toggle('smt-secret', armed);
+      if (armed) { title.tabIndex = 0; title.setAttribute('role', 'button'); title.setAttribute('aria-label', 'Corazon (troll menu)'); }
+      else { title.removeAttribute('tabindex'); title.removeAttribute('role'); title.removeAttribute('aria-label'); }
+    }
+    document.addEventListener('click', event => {
+      if (event.target.closest?.('#sidebar-brand-title') && isSuperMegaTuff()) openTrollMenu();
+    });
+    document.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target.id === 'sidebar-brand-title' && isSuperMegaTuff()) {
+        event.preventDefault(); openTrollMenu();
+      }
+    });
+
+    function canTroll(target) {
+      if (!me || !isSuperMegaTuff()) return false;
+      const t = typeof target === 'string' ? profileOf(target) : target;
+      if (!t?.username || t.username === me.username || t.is_banned) return false;
+      if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
+      if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
+      return true;
+    }
+    function trollDialog() {
+      let dialog = $('troll-dialog');
+      if (dialog) return dialog;
+      dialog = document.createElement('dialog');
+      dialog.id = 'troll-dialog';
+      dialog.setAttribute('aria-labelledby', 'troll-title');
+      dialog.innerHTML = `
+        <div class="dialog-header"><h2 id="troll-title">😈 Troll menu</h2><button class="icon-button" type="button" data-troll-close aria-label="Close troll menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+        <div class="dialog-body">
+          <form id="troll-form" hidden>
+            <div class="troll-row">
+              <div class="field"><label for="troll-target">Who</label><input id="troll-target" list="troll-targets" autocomplete="off" placeholder="@username" required><datalist id="troll-targets"></datalist></div>
+              <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></div>
+            </div>
+            <div class="troll-grid">${TROLL_EFFECTS.map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('')}</div>
+            <div class="group-actions"><button class="primary-button" type="submit">Unleash 😈</button><button class="secondary-button" type="button" id="troll-refresh-target">🔄 Refresh their page now</button><button class="secondary-button" type="button" id="troll-stop-target">Stop trolling them</button></div>
+            <p class="field-help">Effects only show on their screen and wear off on their own. The owner and PRESTON can’t be trolled.</p>
+          </form>
+          <div class="profile-menu-label" style="padding-left:0">Active trolls</div>
+          <div class="troll-active" id="troll-active"><p class="field-help">Loading…</p></div>
+        </div>`;
+      document.body.appendChild(dialog);
+      qs('[data-troll-close]', dialog).addEventListener('click', () => dialog.close());
+      $('troll-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const target = $('troll-target').value.trim().replace(/^@/, '');
+        const effects = qsa('input[name="troll-effect"]:checked', dialog).map(i => i.value);
+        if (!effects.length) { toast({ type: 'warning', text: 'Pick at least one troll.' }); return; }
+        if (!canTroll(target)) { toast({ type: 'warning', text: 'You can’t troll that account.' }); return; }
+        const button = qs('button[type="submit"]', dialog); button.disabled = true;
+        try {
+          const { error } = await sb.rpc('chat_troll_apply', { p_target: profileOf(target)?.username || target, p_effects: effects, p_minutes: Number($('troll-minutes').value) });
+          if (error) throw error;
+          toast({ type: 'success', text: `@${target} is getting trolled 😈` });
+          await renderActiveTrolls();
+        } catch (error) { toast({ type: 'error', text: error?.message || 'The troll failed.' }); }
+        finally { button.disabled = false; }
+      });
+      $('troll-refresh-target').addEventListener('click', async () => {
+        const target = $('troll-target').value.trim().replace(/^@/, '');
+        if (!target) { toast({ type: 'warning', text: 'Pick who to refresh.' }); return; }
+        const { error } = await sb.rpc('chat_troll_refresh', { p_target: profileOf(target)?.username || target });
+        toast(error ? { type: 'error', text: error.message || 'Could not refresh them.' } : { type: 'success', text: `@${target}’s page is reloading 🔄` });
+      });
+      $('troll-stop-target').addEventListener('click', () => {
+        const target = $('troll-target').value.trim().replace(/^@/, '');
+        if (target) stopTroll(profileOf(target)?.username || target);
+      });
+      return dialog;
+    }
+    async function stopTroll(username) {
+      const { error } = await sb.rpc('chat_troll_clear', { p_target: username });
+      if (error) { toast({ type: 'error', text: error.message || 'Could not stop the troll.' }); return; }
+      toast({ type: 'success', text: `@${username} is free.` });
+      await renderActiveTrolls();
+    }
+    async function renderActiveTrolls() {
+      const box = $('troll-active');
+      if (!box) return;
+      const { data, error } = await sb.rpc('chat_troll_list');
+      if (error) { box.innerHTML = `<p class="field-help">${esc(error.message || 'Could not load trolls.')}</p>`; return; }
+      const names = Object.fromEntries(TROLL_EFFECTS.map(([id, icon, label]) => [id, `${icon} ${label}`]));
+      box.innerHTML = (data || []).map(row => {
+        const until = Math.max(...row.effects.map(e => Date.parse(e.expires_at) || 0));
+        return `<div class="troll-active-item"><div><strong>@${esc(row.target)}</strong><small>${row.effects.map(e => esc(names[e.effect] || e.effect)).join(' · ')} · until ${esc(new Date(until).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}</small></div><button class="secondary-button" type="button" data-troll-stop="${esc(row.target)}">Stop</button></div>`;
+      }).join('') || '<p class="field-help">Nobody is being trolled right now.</p>';
+      qsa('[data-troll-stop]', box).forEach(b => b.addEventListener('click', () => { b.disabled = true; stopTroll(b.dataset.trollStop); }));
+    }
+    function openTrollMenu(username = '') {
+      if (!isSuperMegaTuff() && !isOwner()) return;
+      const dialog = trollDialog();
+      const form = $('troll-form');
+      form.hidden = !isSuperMegaTuff();
+      if (isSuperMegaTuff()) {
+        $('troll-targets').innerHTML = [...profiles.values()].filter(canTroll)
+          .sort((a, b) => a.username.localeCompare(b.username))
+          .map(p => `<option value="${esc(p.username)}">${esc(displayNameOf(p))}</option>`).join('');
+        $('troll-target').value = username || '';
+      }
+      if (!dialog.open) dialog.showModal();
+      renderActiveTrolls();
+    }
+
     /* ============================= 28. ADMIN USER ACTIONS ============================= */
     async function applyTimeout(username, minutes) {
-      if (!canModerateUser(username)) {
+      if (!(minutes === 0 ? canClearTimeoutOf(username) : canModerateUser(username))) {
         toast({ type: 'error', text: 'You can only moderate people below your rank.' });
         return;
       }
@@ -17719,12 +18221,12 @@ void main() {
       return true;
     }
     function staffRoleRowsHtml() {
-      const roleOptions = assignableStaffRoles();
       return [...profiles.values()]
-        .filter(p => canModerateUser(p) && !isHiddenBot(p.username))
+        .filter(p => canChangeRoleOf(p) && !isHiddenBot(p.username))
         .sort((a, b) => staffPowerOf(b) - staffPowerOf(a) || displayNameOf(a).localeCompare(displayNameOf(b)))
         .map(p => {
           const role = staffRoleOf(p);
+          const roleOptions = assignableStaffRoles(p);
           return `<div class="admin-list-item">
             <div class="grow">${consolePersonNameHtml(p)}<div class="sub">@${esc(p.username)} · ${esc(STAFF_ROLE_META[role].label)}</div></div>
             <select class="owner-role-select" data-staff-set-role="${esc(p.username)}" aria-label="Set role for ${esc(p.username)}">
@@ -19219,18 +19721,39 @@ void main() {
         if (error) throw error;
         const banned = data?.banned || [], timeouts = data?.timed_out || [];
         const moderation = consoleCard('Member directory', 'Find a member and choose an action. Your role limits who you can moderate.', `<div class="field"><label for="staff-member-search">Find a member</label><input id="staff-member-search" type="search" placeholder="Name, username, or staff role"></div><div class="console-member-list">${staffMemberRows()}</div><p id="staff-member-empty" class="field-help" hidden>No matching members.</p>`)
-          + consoleCard('Active timeouts', 'Temporary restrictions currently in effect.', `<div class="console-list">${timeouts.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>Until ${esc(new Date(u.timeout_until).toLocaleString())} · by @${esc(u.timeout_by || '?')}</small></div>${canModerateUser(u.username) ? `<button class="secondary-button" type="button" data-clear-timeout="${esc(u.username)}">Clear timeout</button>` : ''}</div>`).join('') || '<p class="console-empty">No active timeouts.</p>'}</div>`)
+          + consoleCard('Active timeouts', 'Temporary restrictions currently in effect.', `<div class="console-list">${timeouts.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>Until ${esc(new Date(u.timeout_until).toLocaleString())} · by @${esc(u.timeout_by || '?')}</small></div>${canClearTimeoutOf(u.username) ? `<button class="secondary-button" type="button" data-clear-timeout="${esc(u.username)}">Clear timeout</button>` : ''}</div>`).join('') || '<p class="console-empty">No active timeouts.</p>'}</div>`)
           + (canBanUsers() ? consoleCard('Banned accounts', 'Review a ban or allow an account to return.', `<div class="console-list">${banned.map(u => `<div class="console-person"><div class="grow"><strong>@${esc(u.username)}</strong><small>${esc(u.ban_reason || 'No reason provided')} · by @${esc(u.banned_by || '?')}</small></div><button class="secondary-button" type="button" data-unban="${esc(u.username)}">Unban</button></div>`).join('') || '<p class="console-empty">No banned accounts.</p>'}</div>`) : '');
         const panels = [{ id: 'members', label: 'Members', html: moderation },
           { id: 'badges', label: 'Badges & roles', html: consoleCard('Member badges', 'Cosmetic badges are separate from staff permissions.', subRoleManagerHtml()) + (canManageStaffRoles() && !isOwner() ? consoleCard('Staff hierarchy', 'Manage roles below your own rank.', `<div class="admin-list">${staffRoleRowsHtml()}</div>`) : '') }];
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
+        if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
+          (isSuperMegaTuff() ? consoleCard('Announcement banner', 'Shown above community conversations. Leave it empty to hide the banner.', `<div class="field"><label for="smt-announcement">Announcement</label><input id="smt-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Leave empty to hide the banner"></div><div class="field"><label for="smt-whatsnew">What’s new</label><textarea id="smt-whatsnew" rows="4" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div><button id="smt-save-broadcast" class="primary-button" type="button">Publish</button> <span id="smt-broadcast-status" class="field-help" role="status"></span>`) : '')
+          + (isSuperMegaTuff() ? consoleCard('Your check mark', 'Make your badge whatever you want. Everyone sees it.', smtCheckEditorHtml()) : '')
+          + consoleCard('Troll menu', isSuperMegaTuff() ? 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.' : 'See who is being trolled and stop it.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
         el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', consoleCommunityStats(), panels, staffPanel);
         const loadPanel = id => { if (id === 'activity') loadAdminLogs(); if (id === 'archive') loadDeletedMessages(); };
         bindConsoleNavigation(el, 'staff', loadPanel); bindStaffRoleControls(el, renderAdminTab); bindSubRoleControls(el);
+        $('smt-open-troll')?.addEventListener('click', () => openTrollMenu());
+        bindSmtCheckEditor(el);
+        $('smt-save-broadcast')?.addEventListener('click', async () => {
+          const button = $('smt-save-broadcast'); button.disabled = true;
+          try {
+            const announcement = $('smt-announcement').value.trim(), news = $('smt-whatsnew').value.trim();
+            await ownerRpc('chat_owner_set_app_setting', { p_key: 'announcement', p_value: announcement });
+            appSettings.announcement = announcement; renderAnnouncement();
+            await ownerRpc('chat_owner_set_app_setting', { p_key: 'whats_new', p_value: news });
+            appSettings.whats_new = news;
+            $('smt-broadcast-status').textContent = 'Published.';
+            toast({ type: 'success', text: 'Announcement published.' });
+          } catch (error) {
+            $('smt-broadcast-status').textContent = error?.message || 'Could not publish.';
+            toast({ type: 'error', text: error?.message || 'Could not publish.' });
+          } finally { button.disabled = false; }
+        });
         $('staff-member-search').addEventListener('input', event => { const q = event.target.value.trim().replace(/^@/,'').toLowerCase(); let visible = 0; qsa('[data-staff-search]', el).forEach(row => { row.hidden = !!q && !row.dataset.staffSearch.includes(q); if (!row.hidden) visible++; }); $('staff-member-empty').hidden = visible > 0; });
         qsa('[data-staff-action]', el).forEach(select => select.addEventListener('change', async () => { const action = select.value, username = select.dataset.staffAction; select.value = ''; if (action === 'timeout') { await applyTimeout(username,10); renderAdminTab(); } if (action === 'kick') kickUser(username); if (action === 'ban') banUser(username); }));
         qsa('[data-clear-timeout]', el).forEach(button => button.addEventListener('click', async () => { button.disabled = true; try { await applyTimeout(button.dataset.clearTimeout, 0); await renderAdminTab(); } finally { button.disabled = false; } }));
@@ -21357,6 +21880,14 @@ void main() {
       });
       $('confirm-cancel').addEventListener('click', () => { confirmState = null; $('confirm-dialog').close(); });
 
+      $('smt-untimeout-self').addEventListener('click', async () => {
+        const button = $('smt-untimeout-self'); button.disabled = true;
+        try {
+          await applyTimeout(me.username, 0);
+          me.timeout_until = null; me.timeout_by = '';
+          updateTimeoutUi();
+        } finally { button.disabled = false; }
+      });
       $('announce-dismiss').addEventListener('click', () => {
         LS.set('lc_dismissed_announcement', (appSettings.announcement || '').trim());
         $('announce-bar').hidden = true;

@@ -111,6 +111,7 @@ function subscribeFixture() {
     Date: { now: () => now },
     reloadSubroleCatalog: () => { reads.push('subroles'); },
     queueConversationRefresh: () => { reads.push('conversations'); },
+    loadMyTrollEffects: () => {},
   });
   // Script-level bindings become context properties the test can set.
   vm.runInContext(section('    let realtimeAttemptAt = 0,', '    function setupRealtime()').replace(/\blet /g, 'var '), c);
