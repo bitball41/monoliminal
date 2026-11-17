@@ -2202,8 +2202,6 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
 .phoenix-announcement-toast .pa-close:hover{opacity:1;background:rgba(255,255,255,.08)}
 @keyframes phoenixAnnounceIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.phoenix-announcement-toast{animation:none}}
-.phoenix-announcement-badge{display:inline-block;margin:0 0 4px;padding:2px 8px;border-radius:999px;background:var(--theme-accent-soft,rgba(255,138,42,.16));color:var(--theme-accent,#ff8a2a);font-size:11px;font-weight:700}
-.msg-text.phoenix-announcement-text{border-left:3px solid var(--theme-accent,#ff8a2a);padding-left:10px}
 #phoenix-announcement-overlay{position:fixed;inset:0;z-index:10003;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.62)}
 #phoenix-announcement-card{width:min(480px,100%);padding:20px;border-radius:14px;border:1px solid var(--theme-border,#71464c);background:var(--theme-surface,#17131b);color:var(--theme-text,#fff);box-shadow:0 24px 80px rgba(0,0,0,.65)}
 #phoenix-announcement-card h2{margin:0 0 6px;font-size:18px}
@@ -3670,7 +3668,7 @@ console.error('Phoenix Chat login failed:', err);
       if(role)role.textContent=isOwner?'The Architect':(userRole?getRoleLabel(userRole,false):'Member');
       const counts=groups||getPhoenixMemberGroups();
       const total=counts.onlineUsers.length+counts.offlineUsers.length;
-      const messages=(window.__liminalMessages||[]).filter(m=>!m.channel_id||String(m.channel_id)===String(currentChannelId)).length;
+      const messages=(window.__liminalMessages||[]).filter(m=>(!m.channel_id||String(m.channel_id)===String(currentChannelId))&&!phoenixIsAnnouncement(m)).length;
       for(const [id,value] of [['staff-stat-members',total],['staff-stat-online',counts.onlineUsers.length],['staff-stat-messages',messages]]){
         const node=$(id),text=value.toLocaleString();if(node&&node.textContent!==text)node.textContent=text;
       }
@@ -3812,7 +3810,7 @@ console.error('Phoenix Chat login failed:', err);
     }
 
     let phoenixStaffDirectory=[];
-    function phoenixStaffChannelRows(){return(window.__liminalMessages||[]).filter(m=>!m.channel_id||String(m.channel_id)===String(currentChannelId));}
+    function phoenixStaffChannelRows(){return(window.__liminalMessages||[]).filter(m=>(!m.channel_id||String(m.channel_id)===String(currentChannelId))&&!phoenixIsAnnouncement(m));}
     function phoenixStaffChannelLabel(){return channels.find(c=>String(c.id)===String(currentChannelId))?.name||'current channel';}
     function phoenixStaffEmpty(box,text){const p=document.createElement('p');p.className='staff-empty-state';p.textContent=text;box.appendChild(p);}
     function phoenixStaffListRow(title,detail,extra=''){
@@ -6176,6 +6174,7 @@ function loadAppearancePreferences() {
       const messageKey=row.id!=null?String(row.id):null;
       if(messageKey&&phoenixUnreadSeenMessageIds.has(messageKey))return;
       if(messageKey){phoenixUnreadSeenMessageIds.add(messageKey);if(phoenixUnreadSeenMessageIds.size>5000)phoenixUnreadSeenMessageIds.delete(phoenixUnreadSeenMessageIds.values().next().value);}
+      if(phoenixIsAnnouncement(row))return;
       const channelId=String(row.channel_id);
       if(isPhoenixGamesChannel(channelId)||!channels.some(channel=>String(channel.id)===channelId))return;
       if(row.user_id&&currentUserId&&String(row.user_id)===String(currentUserId))return;
@@ -6477,7 +6476,8 @@ function loadAppearancePreferences() {
         .filter(node=>node.getBoundingClientRect().bottom>box.getBoundingClientRect().top)
         .map(node=>({node,top:node.getBoundingClientRect().top}));
       if(changedChannel){box.replaceChildren();phoenixMessageNodes.clear();phoenixGroupNodes.clear();phoenixRenderedChannel=String(currentChannelId);}
-      const messages=Array.isArray(window.__liminalMessages)?window.__liminalMessages:[];
+      // Owner announcements only appear as the top-right popup, never in the chat.
+      const messages=(Array.isArray(window.__liminalMessages)?window.__liminalMessages:[]).filter(m=>!phoenixIsAnnouncement(m));
       updatePhoenixStaffSummary();
       const byId=new Map(messages.map(m=>[String(m.id),m]));
       const aliveItems=new Set(),aliveGroups=new Set(),day=new Date().toDateString();
@@ -6624,8 +6624,9 @@ function loadAppearancePreferences() {
       const member=row.user_id!=null?knownMemberUsers?.[String(row.user_id)]:null;
       return !!(member&&(member.is_owner===true||member.role==='owner'));
     }
-    // Owner announcements: a message from the owner that starts with this marker.
+    // Owner announcements: sent as a hidden owner message that starts with this marker.
     // The server records who sent each message, so only the owner's announcements pop up.
+    // They are filtered out of the chat list and unread counts; people only see the popup.
     const PHOENIX_ANNOUNCEMENT_MARKER='[[phoenix-announcement]]';
     function phoenixIsAnnouncementText(text){return String(text||'').startsWith(PHOENIX_ANNOUNCEMENT_MARKER);}
     function phoenixAnnouncementBody(text){return String(text||'').slice(PHOENIX_ANNOUNCEMENT_MARKER.length).trim();}
@@ -6673,12 +6674,12 @@ function loadAppearancePreferences() {
     function openPhoenixAnnouncementComposer(){
       if(!isOwner)return;
       const channel=phoenixAnnouncementChannel();
-      if(!channel){phoenixNotice('Create a channel first. Announcements are posted in a chat channel.');return;}
+      if(!channel){phoenixNotice('Create a channel first. Announcements are delivered through a chat channel.');return;}
       document.getElementById('phoenix-announcement-overlay')?.remove();
       const overlay=document.createElement('div');overlay.id='phoenix-announcement-overlay';
       overlay.innerHTML='<div id="phoenix-announcement-card" role="dialog" aria-modal="true" aria-labelledby="phoenix-announcement-title"><h2 id="phoenix-announcement-title">📢 Send Announcement</h2><p id="phoenix-announcement-where"></p><textarea id="phoenix-announcement-input" maxlength="1900" placeholder="Type your announcement…"></textarea><div class="pa-actions"><span id="phoenix-announcement-status" role="status"></span><button type="button" class="pa-cancel">Cancel</button><button type="button" class="pa-send" disabled>Send</button></div></div>';
       document.body.appendChild(overlay);
-      overlay.querySelector('#phoenix-announcement-where').textContent='Everyone online gets a popup in the top right. It is also posted in #'+String(channel.name||'general').replace(/^\s*#+\s*/,'')+'.';
+      overlay.querySelector('#phoenix-announcement-where').textContent='Everyone online gets a popup in the top right. People who are offline see it when they next open the chat (within a day). It does not appear in the chat.';
       const input=overlay.querySelector('#phoenix-announcement-input'),send=overlay.querySelector('.pa-send'),cancel=overlay.querySelector('.pa-cancel'),status=overlay.querySelector('#phoenix-announcement-status');
       const close=()=>{overlay.remove();document.removeEventListener('keydown',onKey,true);};
       const onKey=e=>{if(e.key==='Escape'&&!send.dataset.busy){e.preventDefault();close();}};
@@ -6693,7 +6694,6 @@ function loadAppearancePreferences() {
           const {error}=await withTimeout(db.rpc('send_message',{p_session_token:token,p_text:PHOENIX_ANNOUNCEMENT_MARKER+text,p_reply_to_id:null,p_channel_id:String(target.id)}),10000);
           if(error)throw error;
           close();phoenixNotice('Your announcement was sent.','📢 Announcement sent');
-          if(String(target.id)===String(currentChannelId))loadMessages({scrollBottom:true}).catch(()=>{});
         }catch(err){delete send.dataset.busy;send.disabled=false;cancel.disabled=false;input.disabled=false;status.textContent='Could not send: '+errorText(err);}
       };
       setTimeout(()=>input.focus(),0);
@@ -7679,14 +7679,7 @@ function loadAppearancePreferences() {
       // A plain @word (including abbreviations such as @E.O.C.) remains ordinary text.
       const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32}\[\[phoenix-mention:([^\]]+)\]\])|(@everyone\[\[phoenix-everyone\]\])/gi;
       let value = String(rawText || '');
-      if (phoenixIsAnnouncementText(value)) {
-        value = phoenixAnnouncementBody(value);
-        if (phoenixMessageFromOwner(authorRow) && container.classList.contains('msg-text')) {
-          container.classList.add('phoenix-announcement-text');
-          const badge = document.createElement('span'); badge.className = 'phoenix-announcement-badge'; badge.textContent = '📢 Announcement';
-          container.append(badge, document.createElement('br'));
-        }
-      }
+      if (phoenixIsAnnouncementText(value)) value = phoenixAnnouncementBody(value);
       let last = 0, match;
       const myId = String(currentUserId || '');
       while ((match = tokenRegex.exec(value))) {
