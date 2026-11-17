@@ -3,7 +3,7 @@ name: Encrypted Liminal migration backup
 on:
   workflow_dispatch:
   push:
-    branches: [codex/liminal-migration-backup]
+    branches: [codex/liminal-migration-backup, codex/corazon-migration-backup]
     paths:
       - '.github/workflows/migration-backup.yml'
       - 'scripts/migration_backup*'

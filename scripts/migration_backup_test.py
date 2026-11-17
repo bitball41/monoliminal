@@ -13,7 +13,7 @@ import migration_backup as backup
 
 
 def environment():
-    return {"LIMINAL_SOURCE_DB_URL": "postgresql://postgres.ucgjwrjqmexenmrpbdkh:p%40ss@aws-0-us-east-1.pooler.supabase.com:5432/postgres",
+    return {"LIMINAL_SOURCE_DB_URL": "postgresql://postgres.trsirhyucncmyyfyiuje:p%40ss@aws-0-us-east-1.pooler.supabase.com:5432/postgres",
             "LIMINAL_SOURCE_STORAGE_KEY": "sb_secret_fixture", "LIMINAL_SOURCE_ACCESS_TOKEN": "sbp_fixture",
             "LIMINAL_BACKUP_PASSPHRASE": "migration-test-passphrase-123456789"}
 
@@ -99,7 +99,7 @@ class MigrationTests(unittest.TestCase):
         env = environment()
         self.assertEqual(backup.credentials(env)["PGPASSWORD"], "p@ss")
         for url in [env["LIMINAL_SOURCE_DB_URL"].replace(":5432/", ":6543/"),
-                    env["LIMINAL_SOURCE_DB_URL"].replace("ucgjwrjqmexenmrpbdkh", "another-project"),
+                    env["LIMINAL_SOURCE_DB_URL"].replace("trsirhyucncmyyfyiuje", "another-project"),
                     env["LIMINAL_SOURCE_DB_URL"] + "?sslmode=disable",
                     "postgresql://postgres:password@attacker.example/postgres"]:
             with self.subTest(url=url), self.assertRaises(backup.BackupError):

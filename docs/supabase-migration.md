@@ -1,8 +1,25 @@
 # Liminal Supabase migration
 
-The source is `ucgjwrjqmexenmrpbdkh`. No destination is configured. The migration
+The source is `trsirhyucncmyyfyiuje`. No destination is configured. The migration
 backup workflow only reads the original project; it never restores, deletes,
 changes policies, changes a password, or switches the launcher.
+
+## Current Corazon export
+
+The current source is Corazon (`trsirhyucncmyyfyiuje`). Phoenix Chat is a
+separate app/project and is not part of this database migration.
+
+Use the existing encrypted full-backup workflow on branch
+`codex/corazon-migration-backup`. Update the source repository secrets to this
+project before exporting: the October database URI and Storage key may still
+belong to the preceding project. Keep a private copy of the backup passphrase.
+
+The historical checkpoint IDs documented below belong to the October source
+project. Do not use them to resume a Corazon export; the checkpoint identity
+check deliberately rejects backups from another project.
+
+The exporter treats `pg_net`'s `net` schema as managed runtime state, so HTTP
+request queues and cached responses are not restored as application data.
 
 ## Enable the private export
 
@@ -11,7 +28,7 @@ Add these **repository Actions secrets** at
 
 | Secret | Value |
 | --- | --- |
-| `LIMINAL_SOURCE_DB_URL` | Original project's **Connect → Session pooler** PostgreSQL connection URI, with its database password percent-encoded in the URI. Use port **5432**, database `postgres`, and the original project's `postgres.ucgjwrjqmexenmrpbdkh` username. A direct connection is also accepted if IPv6 works. |
+| `LIMINAL_SOURCE_DB_URL` | Original project's **Connect → Session pooler** PostgreSQL connection URI, with its database password percent-encoded in the URI. Use port **5432**, database `postgres`, and the original project's `postgres.trsirhyucncmyyfyiuje` username. A direct connection is also accepted if IPv6 works. |
 | `LIMINAL_SOURCE_ACCESS_TOKEN` | A Supabase personal access token belonging to an account that can read the original project's configuration, function source, secret inventory, and saved SQL queries (`snippets_read`). Generate it at <https://supabase.com/dashboard/account/tokens>. |
 | `LIMINAL_BACKUP_PASSPHRASE` | A unique, single-line passphrase with at least 24 characters. Keep an independent private copy: the encrypted backup cannot be recovered without it. |
 

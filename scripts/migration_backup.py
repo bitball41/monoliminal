@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SETTINGS = json.loads((ROOT / "config/migration-source.json").read_text())
 REQUIRED = ("LIMINAL_SOURCE_DB_URL", "LIMINAL_SOURCE_STORAGE_KEY",
             "LIMINAL_SOURCE_ACCESS_TOKEN", "LIMINAL_BACKUP_PASSPHRASE")
-MANAGED = {"auth", "storage", "realtime", "extensions", "graphql", "graphql_public", "vault", "supabase_migrations"}
+MANAGED = {"auth", "storage", "realtime", "extensions", "graphql", "graphql_public", "vault", "supabase_migrations", "net"}
 OBJECT_FIELDS = ("bucket_id", "name", "version", "updated_at", "metadata")
 
 
