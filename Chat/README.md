@@ -3,6 +3,36 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Super Mega Tuff Co-owner (PomKnee only)
+
+Needs [`20261117181723_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117181723_chat_super_mega_tuff_co_owner.sql).
+Older Chat pages keep working against it; they just show a plain badge and no
+troll menu.
+
+- **One holder.** The built-in role `super_mega_tuff_co_owner` has co-owner
+  powers and sits directly above Co-owner. The database refuses it on any
+  account but PomKnee, and only the owner (or PRESTON) can change PomKnee's
+  role. It cannot be deleted. Badge: a spinning rainbow check.
+- **Untouchable.** Nobody, the owner included, can ban, time out, kick,
+  delete, voice-mute or reset the password of the role holder. The owner can
+  change the role first if that is ever needed.
+- **Clears anyone's timeout**, from the profile card or Staff → Members.
+- **Announcements.** Staff → 😈 Tuff powers publishes the announcement banner
+  and What's new (other owner settings stay owner-only).
+- **No spam limits**: skips the client burst limit, the GIF limit and slow
+  mode, and QuoteBot's per-member limits.
+- **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
+  1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
+  messages), shows silly popups, flips or mirrors the page, shakes, switches to
+  Comic Sans, cycles colours, blurs, rains emoji or hides the cursor. Effects
+  run only in the target's browser, never post anything as them, expire on
+  their own, and skip shaking/rainbow/rain when the device asks for reduced
+  motion. The owner, PRESTON and the bots cannot be trolled. The owner sees
+  and stops active trolls from Staff → Trolls. Every troll is in the staff
+  audit log.
+
+Tests: `scripts/chat-super-mega-tuff.test.mjs`.
+
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
 
 Needs [`20261111194810_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111194810_chat_custom_roles_rules_stickers.sql)
