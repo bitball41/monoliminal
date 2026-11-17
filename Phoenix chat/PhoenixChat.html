@@ -4270,13 +4270,17 @@ console.error('Phoenix Chat login failed:', err);
         if (memberDirectoryRefreshTimer) clearInterval(memberDirectoryRefreshTimer);
         memberDirectoryRefreshTimer = setInterval(() => { if(!document.hidden)loadKnownMembers().catch(err=>console.warn('Member refresh failed:',errorText(err))); }, 120000);
         if (notificationPollInterval) clearInterval(notificationPollInterval);
-        notificationPollInterval = setInterval(() => { if(!document.hidden)loadNotifications(); }, 45000);
+        // Keep checking for pings while the tab is in the background (AFK or on another tab):
+        // every 15s when hidden, every 45s when the chat is on screen.
+        phoenixNotificationPollTick = 0;
+        notificationPollInterval = setInterval(phoenixNotificationPollStep, 15000);
       } 
       catch (err) { console.error(err); phoenixNotice('Could not load chat: ' + errorText(err)); }
 
       subscribeRealtime();
       startSessionMonitor();
       applySettings();
+      phoenixShowSoundUnlockHint();
       $('msg-input').focus();
       checkPhoenixRulesOnJoin();
       startPhoenixDM();
@@ -6444,6 +6448,24 @@ function loadAppearancePreferences() {
       phoenixMentionRungMessageIds.add(key);
       if(phoenixMentionRungMessageIds.size>2000)phoenixMentionRungMessageIds.delete(phoenixMentionRungMessageIds.values().next().value);
       playPhoenixMentionDing({fromOwner:phoenixMessageFromOwner(row)});
+    }
+    let phoenixNotificationPollTick=0;
+    function phoenixNotificationPollStep(){
+      phoenixNotificationPollTick++;
+      if(document.hidden||phoenixNotificationPollTick%3===0)loadNotifications();
+    }
+    // A reload logs straight back in without a tap, and browsers keep sound off until one.
+    // Show a small reminder so pings can be heard after switching to another tab.
+    function phoenixShowSoundUnlockHint(){
+      try{
+        if(navigator.userActivation?.hasBeenActive||phoenixMentionAudioContext?.state==='running'||document.getElementById('phoenix-sound-hint'))return;
+        const hint=document.createElement('button');hint.type='button';hint.id='phoenix-sound-hint';
+        hint.textContent='🔔 Click anywhere to turn on ping sounds';
+        hint.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translateX(-50%);z-index:10002;max-width:calc(100vw - 32px);padding:9px 14px;border-radius:999px;border:1px solid var(--theme-accent,#ff8a2a);background:var(--theme-surface,#1b1418);color:var(--theme-text,#fff);font:inherit;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.45);cursor:pointer';
+        const done=()=>{hint.remove();['pointerup','touchend','mousedown','click','keydown'].forEach(t=>document.removeEventListener(t,done,true));};
+        ['pointerup','touchend','mousedown','click','keydown'].forEach(t=>document.addEventListener(t,done,true));
+        document.body.appendChild(hint);
+      }catch(e){}
     }
     function loadNotifications(){
       if(!sessionToken)return Promise.resolve();
