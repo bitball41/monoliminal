@@ -65,6 +65,24 @@ troll list in force, new functions callable by signed-in accounts only).
   like plain text; a faint 😈 appears on hover. For everyone else it stays text.
   Old active trolls of the removed kinds are cleared by the migration.
 
+## Super Mega Tuff Co-owner: benchmark (2026-11-17)
+
+Local, offline measurements, not production results.
+
+- **Database** (`node scripts/chat-super-mega-tuff.bench.mjs 7`, PGlite, all
+  migrations with vs without the two role migrations, median of 7): member
+  message insert, own-profile update, owner timeout + clear, owner
+  announcement and PomKnee's message insert all within ±7% (run-to-run
+  noise). The role's own calls take 0.5–1.5 ms each: troll apply, troll list,
+  troll refresh, set check mark, a QuoteBot quote with no limits, and the
+  one read each member makes on connect (`chat_my_troll_effects`).
+- **Browser** (`scripts/chat-runtime.browser.mjs --quick`, `main` vs this
+  change, 3 runs each, alternating): no page errors; frame times, long tasks
+  and keyboard handler time stay within the spread between runs. The only new
+  request is `chat_my_troll_effects`, once per Realtime join. One extra DOM
+  node. Backwards typing and runaway buttons attach their listeners only
+  while those trolls are active; the rest is under 1 µs per input event.
+
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
 
 Needs [`20261111194810_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111194810_chat_custom_roles_rules_stickers.sql)

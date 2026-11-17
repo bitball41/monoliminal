@@ -17640,6 +17640,8 @@ void main() {
       if (trollActive('emoji_rain') && !calm) trollRainTimer = setInterval(dropTrollEmoji, 450);
       else qsa('.troll-drop').forEach(n => n.remove());
       setReverseMouse(trollActive('reverse_mouse'));
+      setTrollListener('beforeinput', onTrollBeforeInput, trollActive('backwards_typing'));
+      setTrollListener('pointerover', onTrollPointerOver, trollActive('runaway_buttons'));
       clearTimeout(trollRefreshTimer); trollRefreshTimer = 0;
       if (trollActive('auto_refresh')) trollRefreshTimer = setTimeout(trollReload, 60000 + Math.random() * 60000);
       if (!trollActive('runaway_buttons')) qsa('.troll-runaway').forEach(b => { b.style.translate = ''; b.classList.remove('troll-runaway'); });
@@ -17705,7 +17707,8 @@ void main() {
     }
 
     // Backwards typing: each typed character goes before the caret, not after.
-    document.addEventListener('beforeinput', event => {
+    // Attached only while the troll is active, so nobody else pays for it.
+    function onTrollBeforeInput(event) {
       if (!trollActive('backwards_typing') || event.inputType !== 'insertText' || !event.data || event.isComposing) return;
       const el = event.target;
       if (!(el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search)$/.test(el.type)))) return;
@@ -17713,10 +17716,10 @@ void main() {
       const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? start;
       el.setRangeText([...event.data].reverse().join(''), start, end, 'start');
       el.dispatchEvent(new Event('input', { bubbles: true }));
-    }, true);
+    }
 
     // Runaway buttons: a button jumps away when the mouse reaches it.
-    document.addEventListener('pointerover', event => {
+    function onTrollPointerOver(event) {
       if (!trollActive('runaway_buttons') || event.pointerType !== 'mouse') return;
       const button = event.target.closest?.('button, [role="button"], .primary-button, .secondary-button');
       if (!button || button.closest('.troll-popup, #troll-dialog') || Math.random() < 0.25) return;
@@ -17725,7 +17728,13 @@ void main() {
       button.style.translate = `${dx}px ${dy}px`;
       clearTimeout(button._trollBack);
       button._trollBack = setTimeout(() => { button.style.translate = ''; }, 1600);
-    }, true);
+    }
+    const trollListeners = new Set();
+    function setTrollListener(type, handler, on) {
+      if (on === trollListeners.has(handler)) return;
+      document[on ? 'addEventListener' : 'removeEventListener'](type, handler, true);
+      if (on) trollListeners.add(handler); else trollListeners.delete(handler);
+    }
     // Once per realtime join (both topics report SUBSCRIBED), like the other reconcile reads.
     async function loadMyTrollEffects() {
       if (!me || trollLoadAt >= realtimeAttemptAt) return;
