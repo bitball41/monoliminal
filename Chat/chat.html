@@ -7853,7 +7853,7 @@ void main() {
     // Manager level and co-owner and above; admin level cannot ban (server rule).
     function canBanUsers() { const rank = myStaffRank(); return rank === 3 || rank >= 5; }
     function canManageStaffRoles() { return myStaffRank() >= 5; }
-    // Super Mega Tuff Co-owner (20261117181723): PomKnee only. Untouchable
+    // Super Mega Tuff Co-owner (20261117183155): PomKnee only. Untouchable
     // (no ban, timeout, kick or delete), clears anyone's timeout, publishes
     // announcements, skips spam limits and has the troll menu. Only the owner
     // can change the role. The server enforces all of it.
@@ -17547,7 +17547,7 @@ void main() {
 
     /* ============================= 27b. TROLL MENU ============================= */
     // The Super Mega Tuff Co-owner can trick another member's chat for 1-60
-    // minutes (20261117181723_chat_super_mega_tuff_co_owner.sql). The server
+    // minutes (20261117183155_chat_super_mega_tuff_co_owner.sql). The server
     // keeps the list and sends it on the target's private topic; the effects
     // run only in the target's browser and never send anything as them.
     const TROLL_EFFECTS = [

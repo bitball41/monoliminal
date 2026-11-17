@@ -5,9 +5,12 @@ previously called Liminal Chat.
 
 ## Super Mega Tuff Co-owner (PomKnee only)
 
-Needs [`20261117181723_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117181723_chat_super_mega_tuff_co_owner.sql).
-Older Chat pages keep working against it; they just show a plain badge and no
-troll menu.
+Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)
+(**applied 2026-11-17**, ledger version `20261117183155`; verified live:
+PomKnee is the only holder, ladder God Tier > Super Mega Tuff Co-owner >
+Co-owner with the three admin roles still tied, troll functions callable by
+signed-in accounts only). Older Chat pages keep working against it; they just
+show a plain badge and no troll menu.
 
 - **One holder.** The built-in role `super_mega_tuff_co_owner` has co-owner
   powers and sits directly above Co-owner. The database refuses it on any
