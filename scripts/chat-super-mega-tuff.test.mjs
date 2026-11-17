@@ -11,7 +11,7 @@ const SMT = 'super_mega_tuff_co_owner';
 
 async function setup() {
   const db = new PGlite({ extensions: { pgcrypto } });
-  const people = { owner: 'owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
+  const people = { owner: 'owner', connor: 'owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
   const ids = Object.fromEntries(Object.keys(people).map((name, i) => [name, `00000000-0000-4000-8000-0000000004${String(i + 10)}`]));
   await db.exec(await file('Backend/tests/authorization-fixture.sql'));
   for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort()) {
@@ -66,18 +66,38 @@ test('only PomKnee can hold it, and only the owner can take it away', async () =
   } finally { await db.close(); }
 });
 
-test('it cannot be banned, timed out or kicked, even by the owner', async () => {
+test('only Conno can ban, time out or kick it; anyone else (another owner too) is refused', async () => {
   const { db, call, profile } = await setup();
   try {
-    for (const sql of [
-      `select public.chat_ban_user('owner','', 'PomKnee','x')`,
-      `select public.chat_staff_timeout_user('owner','', 'PomKnee', 10)`,
-      `select public.chat_staff_kick_user('owner','', 'PomKnee')`,
-    ]) await assert.rejects(call('owner', sql), /untouchable/);
-    await assert.rejects(db.query(`update public.profiles set is_banned=true where username='PomKnee'`), /cannot be banned/);
-    await assert.rejects(db.query(`update public.profiles set timeout_until=now()+interval '1 hour' where username='PomKnee'`), /cannot be timed out/);
-    const pom = await profile('PomKnee');
+    for (const who of ['owner', 'coowner', 'manager']) for (const sql of [
+      `select public.chat_ban_user($1,'', 'PomKnee','x')`,
+      `select public.chat_staff_timeout_user($1,'', 'PomKnee', 10)`,
+      `select public.chat_staff_kick_user($1,'', 'PomKnee')`,
+    ]) await assert.rejects(call(who, sql, [who]), /Only Conno|Insufficient staff permission|Admins cannot/);
+    await assert.rejects(db.query(`update public.profiles set is_banned=true where username='PomKnee'`), /Only Conno can ban/);
+    await assert.rejects(db.query(`update public.profiles set timeout_until=now()+interval '1 hour' where username='PomKnee'`), /Only Conno can time out/);
+    let pom = await profile('PomKnee');
     assert.equal(pom.is_banned, false); assert.equal(pom.timeout_until, null);
+
+    // Conno's timeout sticks: PomKnee cannot lift it, Conno can.
+    await call('connor', `select public.chat_staff_timeout_user('connor','', 'PomKnee', 10)`);
+    assert.equal((await profile('PomKnee')).timeout_by, 'connor');
+    await assert.rejects(call('PomKnee', `select public.chat_staff_timeout_user('PomKnee','', 'PomKnee', 0)`), /Only Conno can lift/);
+    await assert.rejects(call('PomKnee', `insert into public.messages(channel_id,sender,content,type) values('general','PomKnee','hi','text')`), /timed out/);
+    await call('connor', `select public.chat_staff_timeout_user('connor','', 'PomKnee', 0)`);
+    assert.equal((await profile('PomKnee')).timeout_until, null);
+
+    await call('connor', `select public.chat_staff_kick_user('connor','', 'PomKnee')`);
+    assert((await profile('PomKnee')).kicked_at);
+    await call('connor', `select public.chat_ban_user('connor','', 'PomKnee','too tuff')`);
+    pom = await profile('PomKnee');
+    assert.equal(pom.is_banned, true); assert.equal(pom.banned_by, 'connor');
+    // A banned holder loses the powers until unbanned.
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only the Super Mega Tuff/);
+    await call('connor', `select public.chat_unban_user('connor','', 'PomKnee')`);
+    assert.equal((await profile('PomKnee')).is_banned, false);
+    // The permission does not leak to later statements outside Conno's call.
+    await assert.rejects(db.query(`update public.profiles set is_banned=true where username='PomKnee'`), /Only Conno can ban/);
   } finally { await db.close(); }
 });
 
@@ -108,16 +128,33 @@ test('it publishes announcements but no other owner settings', async () => {
   } finally { await db.close(); }
 });
 
-test('it spams freely, QuoteBot included; everyone else keeps the limits', async () => {
+test('it spams with lighter limits, QuoteBot included; everyone else keeps the normal ones', async () => {
   const { db, call } = await setup();
   try {
+    const srcs = [];
+    for (let i = 0; i < 31; i++) srcs.push((await call('alice', `insert into public.messages(channel_id,sender,content,type) values('general','alice',$1,'text') returning id`, ['quote me ' + i]))[0].id);
     await db.query(`insert into public.app_settings(key,value) values('slow_mode_seconds','30') on conflict (key) do update set value=excluded.value`);
     for (let i = 0; i < 8; i++) {
       await call('PomKnee', `insert into public.messages(channel_id,sender,content,type) values('general','PomKnee',$1,'text')`, ['spam ' + i]);
     }
-    const src = (await call('alice', `insert into public.messages(channel_id,sender,content,type) values('general','alice','quote me','text') returning id`))[0].id;
-    for (let i = 0; i < 12; i++) await call('PomKnee', `select public.chat_post_quote($1,'classic')`, [src]);
-    assert.equal((await db.query(`select count(*)::int n from public.messages where sender='QuoteBot'`)).rows[0].n, 12);
+    const age = secs => db.query(`update private.chat_quote_requests set created_at = created_at - make_interval(secs => $1)`, [secs]);
+    const quote = id => call('PomKnee', `select public.chat_post_quote($1,'classic')`, [id]);
+    // 1 second between quotes (members: 5).
+    await quote(srcs[0]);
+    await assert.rejects(quote(srcs[1]), /few seconds/);
+    await age(1.5);
+    // The same message once a minute (members: 10 minutes).
+    await assert.rejects(quote(srcs[0]), /just quoted/);
+    await age(60);
+    await quote(srcs[0]);
+    // 30 per 10 minutes (members: 10).
+    for (let i = 1; i < 28; i++) { await age(1.5); await quote(srcs[i]); }
+    await age(1.5);
+    await quote(srcs[28]);
+    await age(1.5);
+    await assert.rejects(quote(srcs[29]), /a lot of quotes/);
+    assert.equal((await db.query(`select count(*)::int n from public.messages where sender='QuoteBot'`)).rows[0].n, 30);
+    const src = srcs[0];
     await call('bob', `select public.chat_post_quote($1,'classic')`, [src]);
     await assert.rejects(call('bob', `select public.chat_post_quote($1,'classic')`, [src]), /few seconds/);
     await assert.rejects(call('alice', `insert into public.messages(channel_id,sender,content,type) values('general','alice','again','text')`), /Slow mode/);

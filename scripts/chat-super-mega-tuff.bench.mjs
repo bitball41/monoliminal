@@ -55,8 +55,18 @@ async function run(withRole) {
     r.push(await time('message insert (PomKnee)', 300, i => db.query(`insert into public.messages(channel_id,sender,content,type) values('general','PomKnee',$1,'text')`, ['p' + i])));
     const src = (await db.query(`select id from public.messages where sender='alice' limit 1`)).rows[0].id;
     if (withRole) {
-      // Only possible with the role: no QuoteBot limits.
-      r.push(await time('QuoteBot quote (PomKnee, no limits)', 100, () => db.query(`select public.chat_post_quote($1,'classic')`, [src])));
+      // The role's lighter QuoteBot limits (1 s apart): age the ledger between
+      // quotes, outside the timed call.
+      let quoteMs = 0;
+      for (let i = 0; i < 25; i++) {
+        await db.exec('reset role');
+        await db.query(`update private.chat_quote_requests set created_at = created_at - interval '2 minutes'`);
+        await as('PomKnee');
+        const t0 = performance.now();
+        await db.query(`select public.chat_post_quote($1,'classic')`, [src]);
+        quoteMs += performance.now() - t0;
+      }
+      r.push({ label: 'QuoteBot quote (PomKnee)', n: 25, msPerOp: quoteMs / 25 });
       r.push(await time('troll apply (2 effects)', 100, () => db.query(`select public.chat_troll_apply('alice', array['popups','fail_send'], 5)`)));
       r.push(await time('troll refresh', 100, () => db.query(`select public.chat_troll_refresh('alice')`)));
       r.push(await time('set check mark', 100, () => db.query(`select public.chat_set_smt_check('🔥', array['#ff0000','#00ff00'], 'spin')`)));

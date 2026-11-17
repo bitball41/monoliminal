@@ -7874,7 +7874,16 @@ void main() {
     const SMT_ROLE = 'super_mega_tuff_co_owner';
     const SMT_HOLDER = 'pomknee';
     function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === SMT_ROLE; }
-    function canClearTimeoutOf(target) { return isSuperMegaTuff() || canModerateUser(target); }
+    // Only Conno (the owner account "connor") can moderate the role holder.
+    const SMT_JUDGE = 'connor';
+    const isConno = () => !!me && String(me.username || '').toLowerCase() === SMT_JUDGE && staffRoleOf(me) === 'owner';
+    // A timeout from Conno sticks: the holder cannot lift it themselves.
+    const timeoutIsFromConno = t => String(t?.timeout_by || '').toLowerCase() === SMT_JUDGE;
+    function canClearTimeoutOf(target) {
+      const t = typeof target === 'string' ? profileOf(target) : target;
+      if (isSuperMegaTuff()) return !(t?.username === me.username && timeoutIsFromConno(t));
+      return canModerateUser(target);
+    }
     // The owner may still change the untouchable role holder's role.
     function canChangeRoleOf(target) {
       return canModerateUser(target) || (isOwner() && isSuperMegaTuff(target));
@@ -7899,7 +7908,8 @@ void main() {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t.username || t.username === me.username || isQuoteBot(t.username)) return false;
-      if (['owner', 'preston', SMT_ROLE].includes(staffRoleOf(t))) return false;
+      if (staffRoleOf(t) === SMT_ROLE) return isConno();
+      if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
       return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
@@ -11680,8 +11690,10 @@ void main() {
         });
       }
     }
+    // Members: 5 messages per 5 seconds, then 30 seconds off. The Super Mega
+    // Tuff Co-owner: 15 per 5 seconds, then 5 seconds off.
     function spamGuard() {
-      if (isSuperMegaTuff()) return true;
+      const tuff = isSuperMegaTuff(), burst = tuff ? 15 : 5, rest = tuff ? 5000 : 30000;
       const now = Date.now();
       if (now < cooldownUntil) {
         toast({ type: 'warning', text: `Slow down — you can send again in ${fmtCountdown(cooldownUntil - now)}.` });
@@ -11689,20 +11701,20 @@ void main() {
       }
       sendTimestamps = sendTimestamps.filter(t => now - t < 5000);
       sendTimestamps.push(now);
-      if (sendTimestamps.length > 5) {
-        cooldownUntil = now + 30000;
+      if (sendTimestamps.length > burst) {
+        cooldownUntil = now + rest;
         sendTimestamps = [];
-        toast({ type: 'warning', title: 'Slow down', text: 'You can send again in 30 seconds.' });
+        toast({ type: 'warning', title: 'Slow down', text: `You can send again in ${rest / 1000} seconds.` });
         return false;
       }
       return true;
     }
     function gifGuard() {
-      if (isSuperMegaTuff()) return true;
+      const limit = isSuperMegaTuff() ? 5 : 2;
       const now = Date.now();
       gifTimestamps = gifTimestamps.filter(t => now - t < 5000);
-      if (gifTimestamps.length >= 2) {
-        toast({ type: 'warning', text: 'You can send 2 GIFs every 5 seconds.' });
+      if (gifTimestamps.length >= limit) {
+        toast({ type: 'warning', text: `You can send ${limit} GIFs every 5 seconds.` });
         return false;
       }
       gifTimestamps.push(now);
@@ -15957,7 +15969,7 @@ void main() {
     function updateTimeoutUi() {
       const timedOut = isTimedOut();
       $('timeout-bar').hidden = !timedOut;
-      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff());
+      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && !timeoutIsFromConno(me));
       $('message-input').disabled = timedOut;
       $('send-btn').disabled = timedOut;
       applyFeatureControls();
@@ -17512,7 +17524,7 @@ void main() {
         if (canDeleteAccounts()) {
           modHtml += `<button class="danger-button" type="button" data-hc-act="delete-account">Delete account</button>`;
         }
-      } else if (timedOut && isSuperMegaTuff()) {
+      } else if (timedOut && isSuperMegaTuff() && canClearTimeoutOf(p)) {
         modHtml += `<button class="secondary-button" type="button" data-hc-act="untimeout">Remove timeout</button>`;
       }
       if (!self && canTroll(p)) {

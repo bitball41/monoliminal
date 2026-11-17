@@ -16,14 +16,12 @@ show a plain badge and no troll menu.
   powers and sits directly above Co-owner. The database refuses it on any
   account but PomKnee, and only the owner (or PRESTON) can change PomKnee's
   role. It cannot be deleted. Badge: a spinning rainbow check.
-- **Untouchable.** Nobody, the owner included, can ban, time out, kick,
-  delete, voice-mute or reset the password of the role holder. The owner can
-  change the role first if that is ever needed.
+- **Untouchable** except by Conno (see part 3): nobody else can ban, time out,
+  kick, delete, voice-mute or reset the password of the role holder.
 - **Clears anyone's timeout**, from the profile card or Staff → Members.
 - **Announcements.** Staff → 😈 Tuff powers publishes the announcement banner
   and What's new (other owner settings stay owner-only).
-- **No spam limits**: skips the client burst limit, the GIF limit and slow
-  mode, and QuoteBot's per-member limits.
+- **Lighter spam limits** (see part 3; part 1 removed them entirely).
 - **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
   1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
   messages), shows silly popups, flips or mirrors the page, shakes or rains
@@ -64,6 +62,23 @@ troll list in force, new functions callable by signed-in accounts only).
   "Corazon" title at the top of the sidebar opens the troll menu. It looks
   like plain text; a faint 😈 appears on hover. For everyone else it stays text.
   Old active trolls of the removed kinds are cleared by the migration.
+
+## Super Mega Tuff Co-owner, part 3
+
+Needs [`20261117201254_chat_super_mega_tuff_co_owner_3.sql`](../Backend/migrations/20261117201254_chat_super_mega_tuff_co_owner_3.sql)
+(**not applied yet**). Until it is, the database keeps the part 1 rules: nobody can
+moderate the holder and QuoteBot has no limits for them.
+
+- **Only Conno can consequence PomKnee.** The owner account `connor` can ban,
+  time out, kick, delete or otherwise moderate the role holder. Everyone else,
+  including another owner or PRESTON, is refused, both in the moderation
+  functions and in the profile guard. A timeout from Conno sticks: PomKnee
+  can't lift it themselves (other timeouts they still can).
+- **Lighter spam limits, not none.** Messages: 15 per 5 seconds, then a
+  5-second cooldown (members: 5, then 30 seconds). GIFs: 5 per 5 seconds
+  (members: 2). QuoteBot: 1 second between quotes (members: 5), 30 per
+  10 minutes (members: 10), the same message once a minute (members: 10
+  minutes). Slow mode still doesn't apply, as for every admin-level role.
 
 ## Super Mega Tuff Co-owner: benchmark (2026-11-17)
 
