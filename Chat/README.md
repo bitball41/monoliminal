@@ -627,7 +627,7 @@ interval), ten per ten minutes, and one per message per person per ten minutes.
 The member who asked for a quote, the member quoted, and staff can delete it
 (`public.chat_delete_quote`). `QuoteBot` is a reserved name with no login.
 
-Apply `Backend/migrations/20261117180000_quotebot_remove_noelle_ai.sql` before
+Apply `Backend/migrations/20261117170932_quotebot_remove_noelle_ai.sql` before
 publishing this Chat build. Until it is applied, `/quote` reports that QuoteBot
 isn't set up yet.
 
