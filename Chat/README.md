@@ -75,7 +75,7 @@ moderate the holder and QuoteBot has no limits for them.
   functions and in the profile guard. A timeout from Conno sticks: PomKnee
   can't lift it themselves (other timeouts they still can).
 - **Lighter spam limits, not none.** Messages: 15 per 5 seconds, then a
-  5-second cooldown (members: 5, then 30 seconds). GIFs: 5 per 5 seconds
+  30-second cooldown (members: 5, then the same 30 seconds). GIFs: 5 per 5 seconds
   (members: 2). QuoteBot: 1 second between quotes (members: 5), 30 per
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.

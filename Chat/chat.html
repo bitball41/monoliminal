@@ -11690,10 +11690,10 @@ void main() {
         });
       }
     }
-    // Members: 5 messages per 5 seconds, then 30 seconds off. The Super Mega
-    // Tuff Co-owner: 15 per 5 seconds, then 5 seconds off.
+    // 30 seconds off after a burst: members after 5 messages in 5 seconds,
+    // the Super Mega Tuff Co-owner after 15.
     function spamGuard() {
-      const tuff = isSuperMegaTuff(), burst = tuff ? 15 : 5, rest = tuff ? 5000 : 30000;
+      const burst = isSuperMegaTuff() ? 15 : 5, rest = 30000;
       const now = Date.now();
       if (now < cooldownUntil) {
         toast({ type: 'warning', text: `Slow down — you can send again in ${fmtCountdown(cooldownUntil - now)}.` });
