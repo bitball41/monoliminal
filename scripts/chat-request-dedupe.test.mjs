@@ -194,7 +194,7 @@ test('a banner without a saved position is centred, not pinned to the corner', (
 test('confirmed sends keep tail containment, dropped slurs stay out of the composer', () => {
   const resolve = section('    function resolvePendingSend(', '    function rememberId(');
   assert.match(resolve, /node\.replaceWith\([^\n]+\n(?:\s*\/\/[^\n]*\n)*\s*markTimelineTail\(\);\s*\n\s*paintUnreadMarker\(\);/);
-  const send = section('    async function sendMessage(', '    const noelleRequests');
+  const send = section('    async function sendMessage(', '    /* ===== Optimistic send bookkeeping ===== */');
   assert.match(send, /verdict === 'silent'\) \{[^}]*return 'silent'; \}/);
   assert.match(section('    function deleteMessage(', '    function editLastOwnMessage('), /const table = msg\.dm_id \? 'dm_messages' : 'messages';/);
 });

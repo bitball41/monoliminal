@@ -54,10 +54,17 @@ test('changes reach exactly the members who can read them, once per topic', asyn
     await db.query("insert into public.messages(channel_id,sender,content) values($1,'bob','for followers')", ['forum:' + thread]);
     assert.deepEqual(topics(await sent()), ['chat:user:alice', 'chat:user:bob']);
 
-    // Owner-preview (Noelle AI) messages reach owners only.
-    await as('owner');
-    await db.exec("insert into public.messages(channel_id,sender,content) values('general','owner','@NoelleAI hi')");
+    // Retired Noelle AI owner-preview rows, and owner replies to them, reach owners only.
+    await db.exec("reset role; alter table public.messages disable trigger aa_chat_mark_owner_preview");
+    const preview = (await db.query("insert into public.messages(channel_id,sender,content,owner_preview) values('general','owner','owner preview',true) returning id")).rows[0].id;
+    await db.exec("alter table public.messages enable trigger aa_chat_mark_owner_preview");
     assert.deepEqual(topics(await sent()), ['chat:user:owner']);
+    await as('owner');
+    await db.query("insert into public.messages(channel_id,sender,content,reply_to) values('general','owner','reply',jsonb_build_object('id',$1::text))", [preview]);
+    assert.deepEqual(topics(await sent()), ['chat:user:owner']);
+    await as('alice');
+    // Members cannot reply into an owner-only conversation.
+    await assert.rejects(db.query("insert into public.messages(channel_id,sender,content,reply_to) values('general','alice','sneak',jsonb_build_object('id',$1::text))", [preview]), /private to owners/);
 
     // A soft delete carries no content.
     await as('alice');

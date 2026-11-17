@@ -1210,6 +1210,56 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .msg-media.gif-wrap:hover .gif-fav-msg { display: grid; }
     .gif-fav-msg.faved { display: grid; color: #fbbf24; }
 
+    /* QuoteBot card: drawn from the server's snapshot of the quoted message. */
+    .quote-card {
+      position: relative; isolation: isolate; display: block;
+      width: min(520px, 100%); aspect-ratio: 2 / 1; margin-top: 7px; padding: 0;
+      overflow: hidden; border: 1px solid var(--line-strong); border-radius: 12px;
+      background: #000; color: #f4f4f4; font: inherit; text-align: center; cursor: zoom-in;
+      box-shadow: var(--shadow-soft);
+    }
+    .quote-card[data-style="light"] { background: #fff; color: #141414; border-color: rgba(0,0,0,.14); }
+    .quote-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .quote-portrait { position: absolute; inset: 0 auto 0 0; z-index: -1; width: 55%; }
+    .quote-portrait > img { display: block; object-fit: cover; }
+    .quote-portrait > img, .quote-portrait > .quote-initial {
+      width: 100%; height: 100%;
+      filter: grayscale(1) contrast(1.06);
+      -webkit-mask-image: linear-gradient(90deg, #000 38%, transparent 100%);
+      mask-image: linear-gradient(90deg, #000 38%, transparent 100%);
+    }
+    .quote-card[data-style="color"] .quote-portrait > img,
+    .quote-card[data-style="color"] .quote-portrait > .quote-initial { filter: none; }
+    .quote-portrait > .quote-initial {
+      display: grid; place-items: center; padding-right: 18%; font-family: var(--font-ui); font-size: clamp(2.6rem, 11vw, 5rem); font-weight: 800;
+      background: linear-gradient(140deg, var(--quote-tint, #6b7280), #111);
+      color: rgba(255,255,255,.88);
+    }
+    .quote-card[data-style="light"] .quote-initial { background: linear-gradient(140deg, var(--quote-tint, #6b7280), #e5e5e5); }
+    .quote-words {
+      position: absolute; inset: 0 0 0 42%; display: flex; flex-direction: column; justify-content: center; gap: .7em;
+      padding: 6% 6% 6% 2%; min-width: 0;
+    }
+    .quote-text {
+      margin: 0; font-family: var(--font-ui); font-weight: 500; line-height: 1.24; letter-spacing: -.01em;
+      overflow-wrap: anywhere; white-space: pre-line;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; overflow: hidden;
+    }
+    .quote-card[data-len="xl"] .quote-text { font-size: clamp(1.15rem, 4.6vw, 1.7rem); -webkit-line-clamp: 3; }
+    .quote-card[data-len="l"] .quote-text { font-size: clamp(1rem, 3.7vw, 1.35rem); -webkit-line-clamp: 4; }
+    .quote-card[data-len="m"] .quote-text { font-size: clamp(.86rem, 3vw, 1.08rem); -webkit-line-clamp: 6; }
+    .quote-card[data-len="s"] .quote-text { font-size: clamp(.74rem, 2.4vw, .88rem); -webkit-line-clamp: 8; }
+    .quote-card[data-len="xs"] .quote-text { font-size: clamp(.66rem, 2vw, .76rem); -webkit-line-clamp: 10; }
+    .quote-attrib { display: grid; gap: 2px; font-family: var(--font-ui); font-size: clamp(.7rem, 2.3vw, .84rem); font-style: italic; }
+    .quote-attrib .quote-handle { font-size: .82em; font-style: normal; opacity: .55; }
+    .quote-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; color: var(--muted); font-size: .7rem; }
+    .quote-meta button {
+      padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: transparent;
+      color: var(--text-soft); font: inherit; cursor: pointer;
+    }
+    .quote-meta button:hover, .quote-meta button:focus-visible { border-color: var(--accent-line); color: var(--text); }
+    .quote-meta button[disabled] { opacity: .55; cursor: progress; }
+
     .poll-card {
       display: grid; gap: 10px;
       width: min(520px, 100%); margin-top: 7px; padding: 14px;
@@ -2503,7 +2553,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .photo-background-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
     .photo-background-heading strong { font-size: .78rem; }
     .photo-background-preview-wrap { position: relative; overflow: hidden; height: 140px; margin-bottom: 10px; border-radius: 8px; background: var(--bg); }
+    .photo-background-preview-wrap img, .chat-background-photo { transform-origin: center; }
     .photo-background-preview-wrap img { display: block; width: 100%; height: 100%; }
+    .photo-background-card.dragging { border-color: var(--accent); background: var(--accent-soft); }
     .photo-background-preview-wrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
     .photo-background-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .photo-background-settings { display: grid; gap: 8px; margin-top: 12px; }
@@ -3333,6 +3385,17 @@ html[data-theme="fall"] {
 html[data-theme="fall"] .sidebar,
 html[data-theme="fall"] .member-panel { background: var(--panel); }
 .chat-background-stage[data-effect="autumnLeaves"]:not(:empty)::after { background: rgba(18, 9, 4, .22); }
+html[data-theme="space"] {
+  --bg-deep: #040716; --panel: #070c20; --panel-strong: #0d1530;
+  --glass: #0d1530; --glass-strong: #121c3a; --elevated: #162243;
+  --text-soft: #d6e2ff; --muted: #94a6cc; --accent-strong: #c7dcff;
+  --accent-soft: rgba(156, 195, 255, .13); --accent-line: rgba(156, 195, 255, .3);
+  --accent-glow: rgba(156, 195, 255, .16); --scrim-color: rgba(2, 4, 14, .66);
+}
+html[data-theme="space"] .sidebar,
+html[data-theme="space"] .member-panel { background: var(--panel); }
+/* Stars are small points of light; a lighter scrim keeps them visible behind messages. */
+.chat-background-stage[data-effect="starrySpace"]:not(:empty)::after { background: rgba(2, 4, 14, .2); }
 html[data-theme="corazon"] .sidebar,
 html[data-theme="corazon"] .member-panel { background: var(--panel); }
 html[data-theme="corazon"] .brand .brand-subtitle { color: var(--muted); }
@@ -3960,12 +4023,16 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
           <div id="photo-background-settings" class="photo-background-settings" hidden>
             <label for="photo-background-dim">Dim background <output id="photo-background-dim-value" for="photo-background-dim">40%</output></label>
             <input id="photo-background-dim" type="range" min="0" max="85" step="1" value="40">
+            <label for="photo-background-blur">Blur <output id="photo-background-blur-value" for="photo-background-blur">Off</output></label>
+            <input id="photo-background-blur" type="range" min="0" max="24" step="1" value="0">
             <label for="photo-background-fit">Image fit</label>
             <select id="photo-background-fit"><option value="cover">Fill the background</option><option value="contain">Show the whole photo</option></select>
+            <label for="photo-background-position-x">Horizontal position</label>
+            <input id="photo-background-position-x" type="range" min="0" max="100" step="1" value="50">
             <label for="photo-background-position">Vertical position</label>
             <input id="photo-background-position" type="range" min="0" max="100" step="1" value="50">
           </div>
-          <p id="photo-background-message" class="field-help" role="status" aria-live="polite">Images up to 15 MB. Animated images are saved as still photos.</p>
+          <p id="photo-background-message" class="field-help" role="status" aria-live="polite">Choose or drop an image up to 15 MB. Animated images are saved as still photos.</p>
         </div>
 
         <div class="settings-section-title">Message density</div>
@@ -5313,30 +5380,16 @@ void main() {
     const SUPABASE_URL = 'https://trsirhyucncmyyfyiuje.supabase.co';
     const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_IRSgHfkgRkLvRYcoKkwAqA_UFpMAetG';
     const HIDDEN_BOT_USERNAME = 'Luna';
-    const NOELLE_AI_USERNAME = 'NoelleAI';
-    const NOELLE_AI_PROFILE = Object.freeze({ username: NOELLE_AI_USERNAME, display_name: 'Noelle AI',
-      color: '#c4b5fd', pfp: '', ring: '', tag: 'AI', bio: '',
+    // QuoteBot has no login. The server posts as it through chat_post_quote.
+    const QUOTE_BOT_USERNAME = 'QuoteBot';
+    const QUOTE_BOT_AVATAR = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#111"/><path fill="#f5f5f5" d="M18 40c0-8 3-14 11-18l2 3c-4 2-6 5-6 8h5v11H18zm19 0c0-8 3-14 11-18l2 3c-4 2-6 5-6 8h5v11H37z"/></svg>');
+    const QUOTE_BOT_PROFILE = Object.freeze({ username: QUOTE_BOT_USERNAME, display_name: 'QuoteBot',
+      color: '#e5e5e5', pfp: QUOTE_BOT_AVATAR, ring: '', tag: 'BOT',
+      bio: 'Reply to a message and type /quote. I turn it into a quote card for everyone.',
       banner: '', custom_status: '', staff_role: 'member', user_id: null });
-    let noelleSourceProfile = null;
-    function noelleAIProfile() {
-      const source = profiles.get(noelleSourceProfile?.source_username) || noelleSourceProfile || {};
-      return { ...NOELLE_AI_PROFILE, pfp: source.pfp ?? noelleSourceProfile?.pfp ?? '', pfp_thumbnail: source.pfp_thumbnail || '',
-        ring: source.ring ?? noelleSourceProfile?.ring ?? '', bio: source.bio ?? noelleSourceProfile?.bio ?? '' };
-    }
-    async function loadNoelleProfile() {
-      if (!isOwner()) { noelleSourceProfile = null; return; }
-      const { data, error } = await sb.rpc('chat_noelle_profile');
-      if (!error && data && isOwner()) {
-        noelleSourceProfile = data;
-        const source = profiles.get(data.source_username);
-        if (source) Object.assign(source, { pfp: data.pfp, ring: data.ring, bio: data.bio });
-        refreshTimelineForAuthor(NOELLE_AI_USERNAME);
-      }
-    }
-    function isNoelleAI(username) { return String(username || '').toLowerCase() === 'noelleai'; }
-    function clearNoelleOwnerPreview() {
-      noelleSourceProfile = null;
-      profileDetailLoaded.delete(NOELLE_AI_USERNAME);
+    function isQuoteBot(username) { return String(username || '').toLowerCase() === 'quotebot'; }
+    // Owner-only rows (the retired Noelle AI preview) leave the cache when owner access ends.
+    function clearOwnerPreviewRows() {
       msgCache.forEach((rows, key) => setViewMessages(key, rows.filter(row => !row.owner_preview)));
       historyContexts.forEach(context => {
         context.rows.filter(row => row.owner_preview).forEach(unindexMessage);
@@ -5347,7 +5400,7 @@ void main() {
       renderTimeline();
     }
     function isHiddenBot(username) {
-      return String(username || '').toLowerCase() === HIDDEN_BOT_USERNAME.toLowerCase() || isNoelleAI(username);
+      return String(username || '').toLowerCase() === HIDDEN_BOT_USERNAME.toLowerCase() || isQuoteBot(username);
     }
     const PAGE_SIZE = 60;
     const LAUNCHER_PROTOCOL = 2;
@@ -5394,7 +5447,7 @@ void main() {
         iceCandidatePoolSize: 2,
       };
     }
-    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'corazon', 'crimsonheart', 'admin', 'luna', 'noelleai'];
+    const RESERVED_NAMES = ['claude', 'system', 'liminal', 'corazon', 'crimsonheart', 'admin', 'luna', 'noelleai', 'quotebot'];
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
     const GROUP_WINDOW_MS = 5 * 60 * 1000;
     const FORUM_PREFIX = 'forum:';
@@ -5414,7 +5467,8 @@ void main() {
       midnight:  { name: 'Midnight',   bg: '#09003d', accent: '#a78bfa' },
       ocean:     { name: 'Ocean',      bg: '#001f3f', accent: '#38bdf8' },
       forest:    { name: 'Forest',     bg: '#0a1f0a', accent: '#4ade80' },
-      fall:      { name: 'Fall',       bg: '#21120c', accent: '#f4b066', text: '#fff3df', onAccent: '#291509', background: 'autumnLeaves' },
+      fall:      { name: 'Fall',       bg: '#21120c', accent: '#f4b066', text: '#fff3df', onAccent: '#291509', background: 'autumnLeaves', backgroundLabel: 'leaves' },
+      space:     { name: 'Space',      bg: '#060a1c', accent: '#9cc3ff', text: '#eef3ff', onAccent: '#071029', background: 'starrySpace', backgroundLabel: 'stars' },
       ember:     { name: 'Ember',      bg: '#1a0a00', accent: '#fb923c' },
       rose:      { name: 'Rose',       bg: '#1a000a', accent: '#f472b6' },
       slate:     { name: 'Slate',      bg: '#0f172a', accent: '#94a3b8' },
@@ -6180,7 +6234,7 @@ void main() {
         return `
         <button class="theme-swatch ${settings.theme === key ? 'active' : ''}" type="button" data-theme="${key}" aria-label="Theme ${esc(t.name)}" aria-pressed="${String(settings.theme === key)}">
           <span class="swatch-preview" style="background:linear-gradient(140deg, ${t.bg}, color-mix(in srgb, ${t.bg} 70%, ${t.accent})); --swatch-accent:${t.accent};"></span>
-          <span class="swatch-name">${esc(t.name)}${t.background ? ' · leaves' : ''}</span>
+          <span class="swatch-name">${esc(t.name)}${t.backgroundLabel ? ` · ${esc(t.backgroundLabel)}` : ''}</span>
         </button>`;
       }).join('');
       qsa('.theme-swatch').forEach(b => b.addEventListener('click', () => selectTheme(b.dataset.theme)));
@@ -6203,6 +6257,7 @@ void main() {
       balatro: { name: 'Balatro', detail: 'The familiar swirling color field.', fps: 30, scale: 0.75 },
     };
     // Photos stay in this browser, separated by account. No network upload is made.
+    const PHOTO_BACKGROUND_INPUTS = ['photo-background-dim', 'photo-background-blur', 'photo-background-position-x', 'photo-background-position', 'photo-background-fit'];
     let photoBackground = null;
     let photoBackgroundUrl = '';
     let photoBackgroundOwner = '';
@@ -6225,7 +6280,7 @@ void main() {
       photoBackground = null;
       photoBackgroundOwner = '';
       photoBackgroundBusy = false;
-      photoBackgroundMessage('Images up to 15 MB. Animated images are saved as still photos.');
+      photoBackgroundMessage('Choose or drop an image up to 15 MB. Animated images are saved as still photos.');
       renderPhotoBackgroundControls();
     }
     function photoBackgroundStore(action, owner, value) {
@@ -6271,11 +6326,20 @@ void main() {
       photoBackground = {
         blob: record.blob,
         dim: photoBackgroundNumber(record.dim, 40, 0, 85),
+        blur: photoBackgroundNumber(record.blur, 0, 0, 24),
+        x: photoBackgroundNumber(record.x, 50, 0, 100),
         position: photoBackgroundNumber(record.position, 50, 0, 100),
         fit: record.fit === 'contain' ? 'contain' : 'cover',
       };
       photoBackgroundUrl = nextUrl;
       return true;
+    }
+    // Blur softens the edges too, so the image grows a little to keep them off screen.
+    function stylePhotoBackgroundImage(image) {
+      image.style.objectFit = photoBackground.fit;
+      image.style.objectPosition = `${photoBackground.x}% ${photoBackground.position}%`;
+      image.style.filter = photoBackground.blur ? `blur(${photoBackground.blur}px)` : '';
+      image.style.transform = photoBackground.blur ? `scale(${1 + photoBackground.blur * 0.012})` : '';
     }
     function renderPhotoBackgroundControls() {
       const ready = !!photoBackground && photoBackgroundOwner === currentPhotoOwner();
@@ -6285,8 +6349,7 @@ void main() {
       box.hidden = !ready;
       if (ready) {
         preview.src = photoBackgroundUrl;
-        preview.style.objectFit = photoBackground.fit;
-        preview.style.objectPosition = `50% ${photoBackground.position}%`;
+        stylePhotoBackgroundImage(preview);
         box.style.setProperty('--photo-dim', photoBackground.dim / 100);
       } else preview.removeAttribute('src');
       $('photo-background-settings').hidden = !ready;
@@ -6294,10 +6357,13 @@ void main() {
       upload.disabled = photoBackgroundBusy;
       upload.textContent = photoBackgroundBusy ? 'Saving photo…' : ready ? 'Change photo' : 'Choose photo';
       $('photo-background-remove').disabled = !ready || photoBackgroundBusy;
-      for (const id of ['photo-background-dim', 'photo-background-position', 'photo-background-fit']) $(id).disabled = photoBackgroundBusy;
+      for (const id of PHOTO_BACKGROUND_INPUTS) $(id).disabled = photoBackgroundBusy;
       if (ready) {
         $('photo-background-dim').value = photoBackground.dim;
         $('photo-background-dim-value').textContent = `${photoBackground.dim}%`;
+        $('photo-background-blur').value = photoBackground.blur;
+        $('photo-background-blur-value').textContent = photoBackground.blur ? `${photoBackground.blur} px` : 'Off';
+        $('photo-background-position-x').value = photoBackground.x;
         $('photo-background-position').value = photoBackground.position;
         $('photo-background-fit').value = photoBackground.fit;
       }
@@ -6310,8 +6376,7 @@ void main() {
         const image = stage.querySelector('img');
         if (image) {
           image.src = photoBackgroundUrl;
-          image.style.objectFit = photoBackground.fit;
-          image.style.objectPosition = `50% ${photoBackground.position}%`;
+          stylePhotoBackgroundImage(image);
         }
       }
       renderPhotoBackgroundControls();
@@ -6356,7 +6421,7 @@ void main() {
         const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.86));
         if (!blob) throw new Error('Could not read this photo. Try another image.');
         if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner) return;
-        const record = { blob, dim: photoBackground?.dim ?? 40, position: 50, fit: photoBackground?.fit || 'cover' };
+        const record = { blob, dim: photoBackground?.dim ?? 40, blur: photoBackground?.blur ?? 0, x: 50, position: 50, fit: photoBackground?.fit || 'cover' };
         await writePhotoBackground(owner, record);
         if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner || $('app-shell').hidden) return;
         setPhotoBackgroundRecord(owner, record);
@@ -6378,6 +6443,8 @@ void main() {
     function changePhotoBackgroundAppearance() {
       if (!photoBackground || photoBackgroundBusy || photoBackgroundOwner !== currentPhotoOwner()) return;
       photoBackground.dim = Number($('photo-background-dim').value);
+      photoBackground.blur = Number($('photo-background-blur').value);
+      photoBackground.x = Number($('photo-background-position-x').value);
       photoBackground.position = Number($('photo-background-position').value);
       photoBackground.fit = $('photo-background-fit').value === 'contain' ? 'contain' : 'cover';
       applyPhotoBackgroundAppearance();
@@ -7749,7 +7816,7 @@ void main() {
     function canModerateUser(target) {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
-      if (!t.username || t.username === me.username || isNoelleAI(t.username)) return false;
+      if (!t.username || t.username === me.username || isQuoteBot(t.username)) return false;
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
       return myStaffPower() > staffPowerOf(t);
     }
@@ -8372,7 +8439,7 @@ void main() {
       return msgById.get(id) || null;
     }
     function profileOf(username) {
-      if (isNoelleAI(username)) return noelleAIProfile();
+      if (isQuoteBot(username)) return QUOTE_BOT_PROFILE;
       return profiles.get(username) || { username, display_name: username, color: '#a78bfa', pfp: '', tag: '', bio: '', banner: '', custom_status: '' };
     }
     function displayNameOf(profileOrUsername) {
@@ -9146,11 +9213,7 @@ void main() {
       if (!username || profileDetailLoaded.has(username)) return;
       profileDetailLoaded.add(username);
       try {
-        if (isNoelleAI(username)) {
-          await loadNoelleProfile();
-          if (!noelleSourceProfile) profileDetailLoaded.delete(username);
-          return;
-        }
+        if (isQuoteBot(username)) return;
         let { data, error } = await sb.from('profiles')
           .select(profileExtrasSupported === false ? PROFILE_DETAIL_COLUMNS : PROFILE_DETAIL_COLUMNS + ',profile_extras').eq('username', username).maybeSingle();
         if (missingSchema(error) && profileExtrasSupported !== false) {
@@ -9192,7 +9255,6 @@ void main() {
         profiles.set(p.username, p);
       });
       if (me) profiles.set(me.username, { ...profiles.get(me.username), ...me });
-      void loadNoelleProfile();
     }
 
     async function loadChannels() {
@@ -10065,7 +10127,7 @@ void main() {
 
       text = expandShortcodes(text);
       text = text.replace(/@([A-Za-z0-9_]{3,20})/g, (m, name) => {
-        if (!profiles.has(name) && !(isOwner() && isNoelleAI(name))) return m;
+        if (!profiles.has(name)) return m;
         const self = me && name === me.username;
         return hold(`<span class="mention ${self ? 'self-mention' : ''}">@${esc(name)}</span>`);
       });
@@ -10604,6 +10666,9 @@ void main() {
       } else if (msg.type === 'poll') {
         bodyHtml += renderPollCardHtml(msg);
         node._urls = [];
+      } else if (msg.type === 'quote') {
+        bodyHtml += renderQuoteCardHtml(msg);
+        node._urls = [];
       } else {
         const { html, urls } = renderContentHtml(msg.content);
         const jumbo = msg.type === 'text' && isEmojiOnly(expandShortcodes(msg.content));
@@ -10670,6 +10735,7 @@ void main() {
         toast({ text: nowFaved ? 'Added to GIF favorites' : 'Removed from GIF favorites' });
       });
       wirePollCard(node, msg);
+      wireQuoteCard(node, msg);
       const retryBtn = qs('[data-retry-send]', node);
       if (retryBtn) retryBtn.addEventListener('click', () => retryFailedSend(sourceMessage));
       const discardBtn = qs('[data-discard-send]', node);
@@ -10689,6 +10755,244 @@ void main() {
         load();
       }
       return node;
+    }
+
+    /* ===== QuoteBot =====
+       chat_post_quote copies the quoted text on the server and posts it as
+       QuoteBot, so every card shows words that were really said. The card is
+       drawn here; Save and Copy render the same card as a PNG on demand. */
+    const QUOTE_STYLES = Object.freeze({ '': 'classic', classic: 'classic', bw: 'classic', dark: 'classic', color: 'color', colour: 'color', light: 'light', white: 'light' });
+    function quoteData(msg) {
+      const reply = replyMeta(msg?.reply_to);
+      const quote = reply?.quote;
+      if (!reply || reply.bot !== 'quote' || !quote || typeof quote.text !== 'string') return null;
+      const style = ['classic', 'color', 'light'].includes(quote.style) ? quote.style : 'classic';
+      return { text: quote.text, sender: String(reply.sender || ''), name: String(quote.display_name || reply.sender || ''),
+        style, requestedBy: String(reply.requested_by || ''), saidAt: quote.said_at || null };
+    }
+    // Plain text for the card: spoilers stay hidden and markdown markers drop.
+    function quotePlainText(text) {
+      return expandShortcodes(String(text || ''))
+        .replace(/\|\|([\s\S]+?)\|\|/g, (m, inner) => '█'.repeat(Math.min(12, Math.max(3, inner.trim().length))))
+        .replace(/```[a-z0-9_-]*\n?/gi, '').replace(/(\*\*|__|~~|`)/g, '')
+        .replace(/^>\s?/gm, '').trim();
+    }
+    function quoteLengthClass(text) {
+      const n = text.length;
+      return n <= 40 ? 'xl' : n <= 90 ? 'l' : n <= 180 ? 'm' : n <= 400 ? 's' : 'xs';
+    }
+    function quoteInitial(name) { return (Array.from(String(name || '?').trim())[0] || '?').toUpperCase(); }
+    function renderQuoteCardHtml(msg) {
+      const quote = quoteData(msg);
+      if (!quote) return '<div class="msg-content">[quote unavailable]</div>';
+      const profile = profileOf(quote.sender);
+      const text = quotePlainText(quote.text);
+      const avatar = avatarUrl(profile, true);
+      const portrait = avatar
+        ? `<img src="${esc(avatar)}" alt="" loading="lazy" decoding="async" draggable="false">`
+        : `<span class="quote-initial" style="--quote-tint:${esc(safeColor(profile.color))}" aria-hidden="true">${esc(quoteInitial(quote.name))}</span>`;
+      const requester = quote.requestedBy ? `Quoted by ${displayNameHtml(quote.requestedBy)}` : 'Quote';
+      return `
+        <button class="quote-card" type="button" data-quote-card data-style="${quote.style}" data-len="${quoteLengthClass(text)}"
+          aria-label="Quote from ${esc(quote.name)}: ${esc(text)}. Open as an image.">
+          <span class="quote-portrait">${portrait}</span>
+          <span class="quote-words">
+            <span class="quote-text">${esc(text)}</span>
+            <span class="quote-attrib"><span>- ${esc(quote.name)}</span><span class="quote-handle">@${esc(quote.sender)}</span></span>
+          </span>
+        </button>
+        <div class="quote-meta"><span>${requester}</span>
+          <button type="button" data-quote-save>Save image</button>
+          ${navigator.clipboard?.write && window.ClipboardItem ? '<button type="button" data-quote-copy>Copy image</button>' : ''}
+        </div>`;
+    }
+    function safeColor(value) { return /^#[0-9a-f]{3,8}$/i.test(String(value || '')) ? value : '#6b7280'; }
+    function loadQuoteAvatar(url) {
+      if (!url) return Promise.resolve(null);
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.decoding = 'async';
+        const timer = setTimeout(() => resolve(null), 8000);
+        img.onload = () => { clearTimeout(timer); resolve(img); };
+        img.onerror = () => { clearTimeout(timer); resolve(null); };
+        img.src = url;
+      });
+    }
+    function wrapQuoteLines(ctx, text, width) {
+      const lines = [];
+      for (const paragraph of text.split('\n')) {
+        let line = '';
+        for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+          const pieces = [];
+          let rest = word;
+          // Very long words (links, keysmashes) break instead of overflowing.
+          while (ctx.measureText(rest).width > width && rest.length > 1) {
+            let cut = rest.length - 1;
+            while (cut > 1 && ctx.measureText(rest.slice(0, cut)).width > width) cut--;
+            pieces.push(rest.slice(0, cut)); rest = rest.slice(cut);
+          }
+          pieces.push(rest);
+          for (const piece of pieces) {
+            const next = line ? `${line} ${piece}` : piece;
+            if (line && ctx.measureText(next).width > width) { lines.push(line); line = piece; }
+            else line = next;
+          }
+        }
+        lines.push(line);
+      }
+      return lines;
+    }
+    const quoteImageCache = new Map();
+    async function renderQuoteImage(msg) {
+      const quote = quoteData(msg);
+      if (!quote) throw new Error('This quote is unavailable.');
+      const profile = profileOf(quote.sender);
+      const avatar = avatarUrl(profile, true);
+      const cacheKey = `${msg.id}|${avatar}`;
+      if (quoteImageCache.has(cacheKey)) return quoteImageCache.get(cacheKey);
+      const W = 1600, H = 800, light = quote.style === 'light';
+      const bg = light ? '#ffffff' : '#000000', fg = light ? '#141414' : '#f4f4f4';
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Your browser could not draw this quote.');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      const portraitW = Math.round(W * 0.55);
+      const image = await loadQuoteAvatar(avatar);
+      const gray = quote.style !== 'color';
+      if (image?.naturalWidth) {
+        const scale = Math.max(portraitW / image.naturalWidth, H / image.naturalHeight);
+        const dw = image.naturalWidth * scale, dh = image.naturalHeight * scale;
+        if (gray && 'filter' in ctx) ctx.filter = 'grayscale(1) contrast(1.06)';
+        ctx.drawImage(image, (portraitW - dw) / 2, (H - dh) / 2, dw, dh);
+        ctx.filter = 'none';
+        if (gray && !('filter' in ctx)) {
+          try {
+            const pixels = ctx.getImageData(0, 0, portraitW, H);
+            const d = pixels.data;
+            for (let i = 0; i < d.length; i += 4) { const y = d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114; d[i] = d[i + 1] = d[i + 2] = y; }
+            ctx.putImageData(pixels, 0, 0);
+          } catch {}
+        }
+      } else {
+        const tint = ctx.createLinearGradient(0, 0, portraitW, H);
+        tint.addColorStop(0, gray ? '#6b6b6b' : safeColor(profile.color));
+        tint.addColorStop(1, light ? '#e5e5e5' : '#111111');
+        ctx.fillStyle = tint; ctx.fillRect(0, 0, portraitW, H);
+        ctx.fillStyle = 'rgba(255,255,255,.88)';
+        ctx.font = '800 300px system-ui, -apple-system, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(quoteInitial(quote.name), portraitW * 0.42, H / 2);
+      }
+      // Fade the portrait into the background, like the card's CSS mask.
+      const fade = ctx.createLinearGradient(portraitW * 0.38, 0, portraitW, 0);
+      fade.addColorStop(0, light ? 'rgba(255,255,255,0)' : 'rgba(0,0,0,0)');
+      fade.addColorStop(1, bg);
+      ctx.fillStyle = fade; ctx.fillRect(0, 0, portraitW + 1, H);
+
+      const text = quotePlainText(quote.text);
+      const left = Math.round(W * 0.43), right = W - 96, width = right - left, centerX = (left + right) / 2;
+      const family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+      let size = 76, lines = [];
+      for (; size >= 26; size -= 2) {
+        ctx.font = `500 ${size}px ${family}`;
+        lines = wrapQuoteLines(ctx, text, width);
+        if (lines.length * size * 1.24 <= H * 0.62) break;
+      }
+      const maxLines = Math.floor((H * 0.62) / (size * 1.24));
+      if (lines.length > maxLines) { lines = lines.slice(0, maxLines); lines[maxLines - 1] = lines[maxLines - 1].replace(/\s*\S*$/, '') + '…'; }
+      const nameSize = Math.max(28, Math.min(40, Math.round(size * 0.62)));
+      const block = lines.length * size * 1.24 + nameSize * 2.8;
+      let y = (H - block) / 2 + size;
+      ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.font = `500 ${size}px ${family}`;
+      for (const line of lines) { ctx.fillText(line, centerX, y); y += size * 1.24; }
+      y += nameSize * 0.7;
+      ctx.font = `italic 500 ${nameSize}px ${family}`;
+      ctx.fillText(`- ${quote.name}`, centerX, y, width);
+      ctx.globalAlpha = 0.55;
+      ctx.font = `500 ${Math.round(nameSize * 0.8)}px ${family}`;
+      ctx.fillText(`@${quote.sender}`, centerX, y + nameSize * 1.25, width);
+      ctx.globalAlpha = 0.32;
+      ctx.font = `600 22px ${family}`;
+      ctx.textAlign = 'right';
+      ctx.fillText('Corazon · QuoteBot', W - 34, H - 30);
+      ctx.globalAlpha = 1;
+      const blob = await new Promise((resolve, reject) => {
+        try { canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not create the image.')), 'image/png'); }
+        catch (error) { reject(error); }
+      });
+      quoteImageCache.set(cacheKey, blob);
+      if (quoteImageCache.size > 12) quoteImageCache.delete(quoteImageCache.keys().next().value);
+      return blob;
+    }
+    let quoteLightboxUrl = '';
+    function wireQuoteCard(node, msg) {
+      if (msg.type !== 'quote') return;
+      const run = async (button, action) => {
+        if (button) button.disabled = true;
+        try { await action(await renderQuoteImage(msg)); }
+        catch (error) { toast({ type: 'error', text: error?.message || 'Could not create the quote image.' }); }
+        finally { if (button) button.disabled = false; }
+      };
+      const fileName = () => `quote-${(quoteData(msg)?.sender || 'corazon').replace(/[^\w-]+/g, '_')}.png`;
+      qs('[data-quote-card]', node)?.addEventListener('click', () => run(null, blob => {
+        if (quoteLightboxUrl) URL.revokeObjectURL(quoteLightboxUrl);
+        quoteLightboxUrl = URL.createObjectURL(blob);
+        openLightbox(quoteLightboxUrl);
+      }));
+      const save = qs('[data-quote-save]', node);
+      save?.addEventListener('click', () => run(save, blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = fileName();
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }));
+      const copy = qs('[data-quote-copy]', node);
+      copy?.addEventListener('click', () => run(copy, async blob => {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        toast({ type: 'success', text: 'Quote image copied.' });
+      }));
+    }
+    function quoteBlockedReason(target) {
+      if (currentView.type !== 'channel' || isForumThreadView(currentView) || channelById(currentView.id)?.kind !== 'chat')
+        return 'QuoteBot only works in text channels.';
+      if (!target) return 'Reply to a message first, then type /quote.';
+      if (target.pending || target.failed) return 'Wait for that message to send first.';
+      if (target.deleted) return 'That message was deleted.';
+      if (isQuoteBot(target.sender)) return 'You can’t quote a quote.';
+      if (['poll', 'system', 'quote'].includes(target.type) || !String(target.content || '').trim()) return 'That message has no text to quote.';
+      if (isTimedOut()) return 'You are timed out and cannot send messages right now.';
+      if (!canSpeakHere()) return 'You do not have permission to speak in this channel.';
+      return '';
+    }
+    const quoteRequests = new Set();
+    async function postQuote(target, styleArg = '') {
+      const key = String(styleArg || '').trim().toLowerCase();
+      if (!Object.hasOwn(QUOTE_STYLES, key)) {
+        toast({ type: 'warning', text: 'Try /quote, /quote color or /quote light.' });
+        return false;
+      }
+      const reason = quoteBlockedReason(target);
+      if (reason) { toast({ type: 'warning', text: reason }); return false; }
+      if (quoteRequests.has(target.id)) return false;
+      quoteRequests.add(target.id);
+      try {
+        const { data, error } = await sb.rpc('chat_post_quote', { p_source_message_id: target.id, p_style: QUOTE_STYLES[key] });
+        if (error) {
+          const missing = error.code === 'PGRST202' || /chat_post_quote/.test(error.message || '');
+          throw new Error(missing ? 'QuoteBot isn’t set up yet. Ask the owner to finish the update.' : error.message);
+        }
+        if (replyTarget?.id === target.id) cancelReply();
+        ingestMessage(data, 'channel');
+        scrollToBottom();
+        return true;
+      } catch (error) {
+        toast({ type: 'error', title: 'QuoteBot', text: error?.message || 'QuoteBot couldn’t post that quote.' });
+        return false;
+      } finally { quoteRequests.delete(target.id); }
     }
 
     function pollCloseLabel(poll) {
@@ -10895,11 +11199,14 @@ void main() {
       const blockedDm = msg.dm_id && dmIsBlocked(msg.dm_id);
       const canReact = !blockedDm && (currentView.type === 'channel' || currentView.type === 'dm');
       const canEdit = !blockedDm && mine && !isPrivateCallMessage(msg) && (msg.type === 'text' || msg.type === 'image');
-      const canDelete = mine || isAdmin();
+      const quote = msg.type === 'quote' && isQuoteBot(msg.sender) ? quoteData(msg) : null;
+      const canDelete = mine || isAdmin() || (!!quote && !!me && [quote.requestedBy, quote.sender].includes(me.username));
+      const canQuote = !msg.dm_id && !quote && !quoteBlockedReason(msg);
       const canPin = currentView.type === 'channel' && !isForumThreadView(currentView) && (mine || isAdmin());
       bar.innerHTML = `
         ${canReact ? `<button type="button" data-act="react" title="Add reaction" aria-label="Add reaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="2.4"></line><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="2.4"></line></svg></button>` : ''}
         <button type="button" data-act="reply" title="Reply" aria-label="Reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 17l-5-5 5-5"></path><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg></button>
+        ${canQuote ? `<button type="button" data-act="quote" title="Make it a quote" aria-label="Make it a quote"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18c0-5 2-9 7-11l1 2c-3 1.4-4 3.4-4 5h3v6H4zm9 0c0-5 2-9 7-11l1 2c-3 1.4-4 3.4-4 5h3v6h-7z"></path></svg></button>` : ''}
         ${canEdit ? `<button type="button" data-act="edit" title="Edit" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>` : ''}
         ${canPin ? `<button type="button" data-act="pin" title="${msg.pinned ? 'Unpin' : 'Pin'}" aria-label="${msg.pinned ? 'Unpin message' : 'Pin message'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ${msg.pinned ? 'fill="currentColor"' : ''}><path d="M12 17v5"></path><path d="M9 10.76V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.76l1.79 2.15A1 1 0 0 1 16 14.6V16a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-1.4a1 1 0 0 1 .21-.69Z"></path></svg></button>` : ''}
         ${canDelete ? `<button type="button" class="danger" data-act="delete" title="Delete (hold Shift to skip confirm)" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>` : ''}`;
@@ -10909,6 +11216,7 @@ void main() {
         const act = btn.dataset.act;
         if (act === 'react') showQuickReact(msg, btn);
         else if (act === 'reply') startReply(msg);
+        else if (act === 'quote') postQuote(msg);
         else if (act === 'edit') startEdit(msg);
         else if (act === 'pin') togglePin(msg);
         else if (act === 'delete') deleteMessage(msg, e.shiftKey);
@@ -11454,7 +11762,7 @@ void main() {
       } });
 
       if (result.error) {
-        if (pending.confirmed) { void requestNoelleReply(pending.confirmedMessage, kind); return true; }
+        if (pending.confirmed) return true;
         pending.placeholder.outcomeUnknown = !!result.error.outcomeUnknown;
         console.error(result.error);
         failPendingSend(pending, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
@@ -11462,47 +11770,7 @@ void main() {
       }
       lastSuccessfulSendAt = Date.now();
       ingestMessage(result.data, kind);
-      void requestNoelleReply(result.data, kind);
       return true;
-    }
-
-    const noelleRequests = new Set();
-    function shouldInvokeNoelle(message, kind) {
-      return isOwner() && kind === 'channel' && !!message?.id && !message.deleted && !message.pending
-        && ['text', 'image'].includes(message.type)
-        && /(^|[^a-z0-9_@])@noelleai(?![a-z0-9_])/i.test(message.content || '')
-        && channelById(message.channel_id)?.kind === 'chat';
-    }
-    async function requestNoelleReply(message, kind) {
-      if (!isOwner() || !me || message?.sender !== me.username || !shouldInvokeNoelle(message, kind) || noelleRequests.has(message.id)) return;
-      noelleRequests.add(message.id);
-      const node = qs(`#message-list [data-id="${CSS.escape(message.id)}"]`);
-      const status = document.createElement('div');
-      status.className = 'msg-edited';
-      status.setAttribute('role', 'status');
-      status.textContent = 'Noelle AI is replying…';
-      qs('.msg-body', node || document.createElement('div'))?.appendChild(status);
-      try {
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) throw new Error('Sign in again to talk to Noelle AI.');
-        const response = await fetch(`${runtimeSupabaseUrl}/functions/v1/noelle-ai`, {
-          method: 'POST', signal: AbortSignal.timeout(60_000),
-          headers: { 'Content-Type': 'application/json', apikey: runtimeSupabaseKey, Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ action: 'reply', source_message_id: message.id }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Noelle AI couldn’t reply.');
-        if (!me || me.user_id !== session.user.id) return;
-        if (result.response_message_id) {
-          const reply = await sb.from('messages').select(MESSAGE_COLUMNS).eq('id', result.response_message_id).maybeSingle();
-          if (reply.data) ingestMessage(reply.data, 'channel');
-        } else if (result.duplicate && result.status === 'failed') {
-          throw new Error('Noelle AI couldn’t reply. Mention it again to try again.');
-        }
-      } catch (error) {
-        if (me && message.sender === me.username) toast({ type: 'error', title: 'Noelle AI',
-          text: error?.name === 'TimeoutError' ? 'The reply is taking too long. It may still arrive.' : error?.message || 'Couldn’t reach Noelle AI.' });
-      } finally { status.remove(); noelleRequests.delete(message.id); }
     }
 
     /* ===== Optimistic send bookkeeping ===== */
@@ -11640,7 +11908,7 @@ void main() {
         entry.serverId = id; msg.clientMessageId = id;
       } });
       if (result.error) {
-        if (entry.confirmed) { void requestNoelleReply(entry.confirmedMessage, kind); return; }
+        if (entry.confirmed) return;
         msg.outcomeUnknown = !!result.error.outcomeUnknown;
         console.error(result.error);
         failPendingSend(entry, isDmBlockedError(result.error) ? 'Direct messages are unavailable for this conversation.' : '', result.error);
@@ -11648,7 +11916,6 @@ void main() {
       }
       lastSuccessfulSendAt = Date.now();
       ingestMessage(result.data, kind);
-      void requestNoelleReply(result.data, kind);
     }
 
     function forgetMessage(id) {
@@ -12127,6 +12394,8 @@ void main() {
         run: (rest) => sendMessage({ content: `${rest ? rest + ' ' : ''}┬─┬ ノ( ゜-゜ノ)`, type: 'text' }) },
       { name: 'spoiler', args: '<message>', help: 'Send the whole message as a spoiler.',
         run: (rest) => rest ? sendMessage({ content: `||${rest}||`, type: 'text' }) : NEEDS_ARG },
+      { name: 'quote', args: '[color|light]', help: 'Reply to a message first. QuoteBot posts it as a quote card.',
+        run: (rest) => postQuote(replyTarget, rest) },
       { name: 'poll', args: '', help: 'Open the poll builder.',
         run: () => { openPollDialog(); return true; } },
       { name: 'gif', args: '[search]', help: 'Open the GIF picker.',
@@ -12624,9 +12893,13 @@ void main() {
 
     function deleteMessage(msg, instant) {
       const mine = me && msg.sender === me.username;
+      const quote = msg.type === 'quote' && isQuoteBot(msg.sender) && !msg.dm_id;
       const run = async () => {
         const table = msg.dm_id ? 'dm_messages' : 'messages';
-        const { error } = await sb.from(table).update({ deleted: true }).eq('id', msg.id).eq('deleted', false);
+        // Quote requesters and the quoted member are not the sender, so the server checks them.
+        const { error } = quote
+          ? await sb.rpc('chat_delete_quote', { p_message_id: msg.id })
+          : await sb.from(table).update({ deleted: true }).eq('id', msg.id).eq('deleted', false);
         if (error) { toast({ type: 'error', text: 'Delete failed.' }); return; }
         forgetMessage(msg.id);
         if (msg.dm_id) {
@@ -12637,8 +12910,8 @@ void main() {
       };
       if (instant) { run(); return; }
       confirmAction({
-        title: 'Delete message?',
-        text: groupOf() ? 'This hides the message from the group. Staff outside this group cannot read its archived content.' : mine
+        title: quote ? 'Delete quote?' : 'Delete message?',
+        text: quote ? 'This removes the quote card for everyone. The original message stays.' : groupOf() ? 'This hides the message from the group. Staff outside this group cannot read its archived content.' : mine
           ? 'This takes the message out of the chat for everyone. Staff still keep a copy in the deleted-message log.'
           : `Hide @${msg.sender}'s message from the chat? Staff keep the original in the deleted-message log.`,
         danger: true,
@@ -15206,8 +15479,7 @@ void main() {
       if (me && p.username === me.username) {
         const nextRole = staffRoleOf({ ...me, ...merged });
         me = { ...me, ...merged };
-        if (['owner', 'preston'].includes(prevRole) && !isOwner()) clearNoelleOwnerPreview();
-        if (!['owner', 'preston'].includes(prevRole) && isOwner()) void loadNoelleProfile();
+        if (['owner', 'preston'].includes(prevRole) && !isOwner()) clearOwnerPreviewRows();
         if (merged.is_banned) { showBanned(merged); return; }
         if (merged.kicked_at && merged.kicked_at > bootedAt) {
           toast({ type: 'warning', title: 'Kicked', text: 'You were signed out by a moderator.' });
@@ -15234,10 +15506,6 @@ void main() {
       const TIMELINE_IDENTITY = new Set(['display_name', 'name_style', 'pfp', 'pfp_thumbnail', 'ring', 'tag', 'staff_role', 'is_admin', 'is_owner', 'sub_role']);
       const timelineDirty = changed.some(k => TIMELINE_IDENTITY.has(k));
       if (timelineDirty) refreshTimelineForAuthor(p.username);
-      if (p.username === noelleSourceProfile?.source_username && (timelineDirty || changed.includes('bio'))) {
-        if (timelineDirty) refreshTimelineForAuthor(NOELLE_AI_USERNAME);
-        if (hoverCardUser === NOELLE_AI_USERNAME && !$('hover-card').hidden) showHoverCard(NOELLE_AI_USERNAME, hoverCardAnchor);
-      }
       if (existing.sub_role !== merged.sub_role) {
         refreshSubroleMemberControls(p.username);
         if ($('subrole-dialog')?.open) renderSubroleDialog();
@@ -15953,8 +16221,6 @@ void main() {
         });
         const byName = (a, b) => displayNameOf(profileOf(a)).localeCompare(displayNameOf(profileOf(b)));
         const names = online.sort(byName).concat(offline.sort(byName)).slice(0, 8);
-        if (isOwner() && currentView.type === 'channel' && !isForumThreadView(currentView)
-          && channelById(currentView.id)?.kind === 'chat' && matchUser(profileOf(NOELLE_AI_USERNAME))) names.unshift(NOELLE_AI_USERNAME);
         if (names.length) {
           acMode = 'mention';
           acTokenStart = upToCursor.length - m[1].length - 1;
@@ -15962,7 +16228,7 @@ void main() {
             const profile = profileOf(name);
             return {
               label: displayNameOf(profile), profile, insert: `@${name} `,
-              sub: isNoelleAI(name) ? '@NoelleAI · AI' : `@${name} · ${presenceStatusOf(name) !== 'offline' ? 'online' : 'offline'}`,
+              sub: `@${name} · ${presenceStatusOf(name) !== 'offline' ? 'online' : 'offline'}`,
             };
           });
           showAutocomplete('Mention someone');
@@ -17056,7 +17322,6 @@ void main() {
 
     /* ============================= 27. HOVER CARD ============================= */
     function showHoverCard(username, anchor) {
-      if (isNoelleAI(username) && !isOwner()) return;
       const p = profileOf(username);
       const self = me && username === me.username;
       hoverCardUser = username;
@@ -17105,8 +17370,8 @@ void main() {
       $('hc-extra-actions').innerHTML = '';
       timeoutMenu.hidden = true;
       timeoutMenu.innerHTML = '';
-      if (isNoelleAI(username)) {
-        actions.innerHTML = '<span class="field-help">Mention @NoelleAI in a channel to chat.</span>';
+      if (isQuoteBot(username)) {
+        actions.innerHTML = '<span class="field-help">Reply to a message and type <code>/quote</code>.</span>';
       } else if (self) {
         actions.innerHTML = '<button class="secondary-button" type="button" data-hc-act="edit">Edit profile</button>';
       } else {
@@ -18978,40 +19243,6 @@ void main() {
         $('admin-logs-refresh').addEventListener('click', loadAdminLogs); $('deleted-messages-refresh').addEventListener('click',loadDeletedMessages); loadPanel(staffPanel);
       } catch(error) { if (request !== staffRenderGeneration) return; el.innerHTML = '<div class="console-empty"><strong>Staff tools could not load.</strong><button class="secondary-button" id="staff-retry" type="button">Try again</button></div>'; $('staff-retry').addEventListener('click', renderAdminTab); }
     }
-    async function loadNoelleOwnerSettings() {
-      const form = $('owner-noelle-form'), status = $('owner-noelle-status');
-      if (!form || !status || !isOwner()) return;
-      const show = data => {
-        $('owner-noelle-enabled').value = String(data.enabled);
-        $('owner-noelle-budget').value = data.daily_budget_cents;
-        $('owner-noelle-limit').value = data.user_daily_limit;
-        status.textContent = `$${(Number(data.spent_micros || 0) / 1_000_000).toFixed(3)} used or reserved today. Resets at midnight Central.`;
-        form.hidden = false;
-      };
-      try {
-        const { data, error } = await sb.rpc('chat_noelle_settings');
-        if (error) throw error;
-        if (!form.isConnected) return;
-        show(data);
-      } catch { status.textContent = 'Noelle AI settings could not load.'; return; }
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        const button = qs('button', form);
-        button.disabled = true;
-        try {
-          const { data, error } = await sb.rpc('chat_noelle_settings', {
-            p_enabled: $('owner-noelle-enabled').value === 'true',
-            p_daily_budget_cents: Number($('owner-noelle-budget').value),
-            p_user_daily_limit: Number($('owner-noelle-limit').value),
-          });
-          if (error) throw error;
-          show(data);
-          toast({ type: 'success', text: 'Noelle AI settings saved.' });
-        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save Noelle AI settings.' }); }
-        finally { button.disabled = false; }
-      });
-    }
-
     function renderOwnerTab() {
       const el = $('tab-owner');
       if (!isOwner()) { el.innerHTML = ''; return; }
@@ -19025,11 +19256,9 @@ void main() {
         {id:'broadcast',label:'Broadcasts',html:consoleCard('Announcement banner','A short message displayed above community conversations.','<div class="field"><label for="owner-announcement">Announcement</label><input id="owner-announcement" maxlength="300" value="'+esc(appSettings.announcement || '')+'" placeholder="Leave empty to hide the banner"></div>')+consoleCard('What’s new','An update that appears once per member when it changes.','<div class="field"><label for="owner-whatsnew">Update message</label><textarea id="owner-whatsnew" rows="5" maxlength="4000">'+esc(appSettings.whats_new || '')+'</textarea></div><button id="owner-save-broadcast" class="primary-button" type="button">Publish updates</button><span id="owner-broadcast-status" class="field-help" role="status"></span>')},
         {id:'roles',label:'Roles & badges',html:consoleCard('Role hierarchy','Create roles, choose what they can do, and place them above or below each other.',roleHierarchyHtml())+consoleCard('Staff permissions','You can change roles below your own rank. Co-owners can manage admins and lower roles.',`<div class="field"><label for="owner-role-search">Find an account</label><input id="owner-role-search" type="search" placeholder="Name or username"></div><div id="owner-role-list" class="admin-list">${staffRoleRowsHtml() || '<p class="console-empty">No accounts to manage.</p>'}</div><p id="owner-role-empty" class="field-help" hidden>No matching accounts.</p>`)+consoleCard('Community badges','Badges are cosmetic and do not grant staff permissions.',subRoleManagerHtml())},
         {id:'app',label:'App controls',html:consoleCard('Access & features','Changes take effect for everyone.',featureRows)+consoleCard('Message limits','Set a maximum length and spacing between messages.',`<form id="owner-limits-form"><div class="console-form-grid"><div class="field"><label for="owner-max-length">Maximum characters</label><input id="owner-max-length" type="number" min="100" max="4000" value="${esc(appSettings.max_message_length || '2000')}" required></div><div class="field"><label for="owner-slow-mode">Slow mode (seconds)</label><input id="owner-slow-mode" type="number" min="0" max="3600" value="${esc(appSettings.slow_mode_seconds || '0')}" required></div></div><button class="primary-button" type="submit">Save limits</button></form>`)+consoleCard('Voice relay','Home Wi-Fi can connect directly. School and campus networks block that UDP path, so calls need a TURN server on port 443.','<form id="owner-turn-form"><div class="field"><label for="owner-turn">TURN servers (JSON)</label><textarea id="owner-turn" rows="5" maxlength="4000" spellcheck="false" placeholder=\'[{"urls":"turns:turn.example.com:443","username":"voice","credential":"secret"}]\'>'+esc(appSettings.turn_servers || '')+'</textarea></div><p class="field-help">Use turns: on port 443. Leave this empty to clear it. Signed-in members can see this password, so use an account that can only relay voice.</p><button class="primary-button" type="submit">Save voice relay</button></form>')},
-        {id:'noelle',label:'Noelle AI',html:consoleCard('Noelle AI','Owner preview. Prompts and replies are visible to owners only.',`<p class="field-help" id="owner-noelle-status" role="status">Loading settings…</p><form id="owner-noelle-form" hidden><div class="console-form-grid"><div class="field"><label for="owner-noelle-enabled">Replies</label><select id="owner-noelle-enabled"><option value="true">On</option><option value="false">Off</option></select></div><div class="field"><label for="owner-noelle-budget">Daily budget (USD cents)</label><input id="owner-noelle-budget" type="number" min="1" max="10000" required></div><div class="field"><label for="owner-noelle-limit">Replies per person per day</label><input id="owner-noelle-limit" type="number" min="1" max="500" required></div></div><button class="primary-button" type="submit">Save settings</button></form>`)},
         {id:'maintenance',label:'Maintenance',html:consoleCard('Test account','Test the sign-up and login flow without signing out of your account.',testAccount)+consoleCard('Recover media','Restore stickers and emoji missing from the catalog. Existing files stay in place.',`<button id="owner-sticker-recover" class="secondary-button" type="button" ${stickerRecoveryRunning ? 'disabled' : ''}>Recover stickers & emoji</button><span id="owner-sticker-recover-status" class="field-help" role="status">${esc(stickerRecoveryStatus)}</span>`)+consoleCard('Channel cleanup','Hide every message in a channel. The moderation archive retains a copy.',`<div class="field"><label for="owner-purge-channel">Channel</label><select id="owner-purge-channel">${channels.filter(ch => ch.kind === 'chat').map(ch => `<option value="${esc(ch.id)}">#${esc(ch.label || ch.id)}</option>`).join('')}</select></div><button id="owner-purge-channel-btn" class="danger-button" type="button">Purge channel messages</button>`,true)}
       ];
       el.innerHTML = consoleShell('owner','Control center','Configure the community, delegate responsibilities, and maintain the app.',consoleCommunityStats(),panels,ownerPanel);
-      void loadNoelleOwnerSettings();
       bindConsoleNavigation(el,'owner');bindStaffRoleControls(el,renderOwnerTab);bindRoleHierarchy(el);bindRulesEditor(el);bindSubRoleControls(el);
       $('owner-role-search').addEventListener('input',event=>{const q=event.target.value.trim().replace(/^@/,'').toLowerCase();let visible=0;qsa('.admin-list-item',$('owner-role-list')).forEach(row=>{row.hidden=!!q&&!row.textContent.toLowerCase().includes(q);if(!row.hidden)visible++;});$('owner-role-empty').hidden=visible>0;});
       $('owner-save-broadcast').addEventListener('click',async()=>{const button=$('owner-save-broadcast');button.disabled=true;try{const announcement=$('owner-announcement').value.trim(),news=$('owner-whatsnew').value.trim();await ownerRpc('chat_owner_set_app_setting',{p_key:'announcement',p_value:announcement});appSettings.announcement=announcement;renderAnnouncement();await ownerRpc('chat_owner_set_app_setting',{p_key:'whats_new',p_value:news});appSettings.whats_new=news;$('owner-broadcast-status').textContent='Updates published.';toast({type:'success',text:'Community updates published.'});}catch(error){$('owner-broadcast-status').textContent=error?.message||'Could not publish updates.';toast({type:'error',text:error?.message||'Could not publish updates.'});}finally{button.disabled=false;}});
@@ -19349,6 +19578,8 @@ void main() {
     }
     function messagePreview(m) {
       if (isPrivateCallMessage(m)) return 'Private voice call';
+      const quote = m.type === 'quote' ? quoteData(m) : null;
+      if (quote) return `Quote · “${quotePlainText(quote.text).slice(0, 80)}” - ${quote.name}`;
       const label = { image: 'Image', gif: 'GIF', sticker: 'Sticker', file: 'File', poll: 'Poll', system: 'Update' }[m.type];
       return [label, String(m.content || '').trim()].filter(Boolean).join(' · ') || 'Message';
     }
@@ -21002,8 +21233,21 @@ void main() {
         uploadPhotoBackground(file);
       });
       $('photo-background-remove').addEventListener('click', removePhotoBackground);
-      for (const id of ['photo-background-dim', 'photo-background-position', 'photo-background-fit'])
-        $(id).addEventListener('input', changePhotoBackgroundAppearance);
+      for (const id of PHOTO_BACKGROUND_INPUTS) $(id).addEventListener('input', changePhotoBackgroundAppearance);
+      // Drop a photo straight onto the card.
+      const photoCard = qs('.photo-background-card');
+      photoCard?.addEventListener('dragover', event => {
+        if (![...(event.dataTransfer?.types || [])].includes('Files')) return;
+        event.preventDefault(); photoCard.classList.add('dragging');
+      });
+      photoCard?.addEventListener('dragleave', event => { if (!photoCard.contains(event.relatedTarget)) photoCard.classList.remove('dragging'); });
+      photoCard?.addEventListener('drop', event => {
+        photoCard.classList.remove('dragging');
+        const file = [...(event.dataTransfer?.files || [])].find(item => item.type.startsWith('image/'));
+        if (!file) return;
+        event.preventDefault();
+        uploadPhotoBackground(file);
+      });
       $('set-custom-accent').addEventListener('input', () => applyCustomAccent($('set-custom-accent').value));
       $('set-custom-accent-clear').addEventListener('click', () => applyCustomAccent(''));
       qsa('#uifont-row .radio-pill').forEach(b => b.addEventListener('click', () => applyUiFont(b.dataset.uifont)));
