@@ -2494,6 +2494,24 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .main-panel > .channel-header, .main-panel > .banner-zone,
     .main-panel > .timeline-wrap, .main-panel > .composer-zone { position: relative; z-index: 1; }
     .main-panel.has-chat-background > .composer-zone { background: transparent; }
+    .chat-background-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .chat-background-stage[data-effect="photo"]:not(:empty)::after,
+    .photo-background-preview-wrap::after { background: rgba(0, 0, 0, var(--photo-dim, .4)); }
+    html[data-light="true"] .chat-background-stage[data-effect="photo"]:not(:empty)::after,
+    html[data-light="true"] .photo-background-preview-wrap::after { background: rgba(255, 255, 255, var(--photo-dim, .4)); }
+    .photo-background-card { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .photo-background-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .photo-background-heading strong { font-size: .78rem; }
+    .photo-background-preview-wrap { position: relative; overflow: hidden; height: 140px; margin-bottom: 10px; border-radius: 8px; background: var(--bg); }
+    .photo-background-preview-wrap img { display: block; width: 100%; height: 100%; }
+    .photo-background-preview-wrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+    .photo-background-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .photo-background-settings { display: grid; gap: 8px; margin-top: 12px; }
+    .photo-background-settings[hidden], .photo-background-preview-wrap[hidden] { display: none; }
+    .photo-background-settings label { display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; color: var(--text-soft); }
+    .photo-background-settings input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .photo-background-settings select { width: 100%; padding: 8px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+
     .background-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
     .background-choice {
       display: flex; flex-direction: column; gap: 4px; min-height: 69px;
@@ -3305,6 +3323,16 @@ html[data-theme="corazon"] {
   --shadow-soft: 0 10px 30px rgba(12, 0, 0, .26);
   --inner-highlight: inset 0 1px rgba(255, 241, 240, .03);
 }
+html[data-theme="fall"] {
+  --bg-deep: #160d09; --panel: #1b100b; --panel-strong: #28180f;
+  --glass: #28180f; --glass-strong: #302015; --elevated: #352318;
+  --text-soft: #ead8bf; --muted: #baa48b; --accent-strong: #ffd09a;
+  --accent-soft: rgba(244, 176, 102, .13); --accent-line: rgba(244, 176, 102, .3);
+  --accent-glow: rgba(244, 176, 102, .14); --scrim-color: rgba(18, 9, 4, .65);
+}
+html[data-theme="fall"] .sidebar,
+html[data-theme="fall"] .member-panel { background: var(--panel); }
+.chat-background-stage[data-effect="autumnLeaves"]:not(:empty)::after { background: rgba(18, 9, 4, .22); }
 html[data-theme="corazon"] .sidebar,
 html[data-theme="corazon"] .member-panel { background: var(--panel); }
 html[data-theme="corazon"] .brand .brand-subtitle { color: var(--muted); }
@@ -3919,6 +3947,27 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
         
         <div class="background-choices" id="background-choices" role="group" aria-label="Chat background"></div>
         <div class="field-help" id="background-status" role="status" aria-live="polite"></div>
+        <div class="photo-background-card">
+          <div class="photo-background-heading"><strong>Your photo</strong><span class="field-help">Only you see it · saved in this browser</span></div>
+          <div id="photo-background-preview-wrap" class="photo-background-preview-wrap" hidden>
+            <img id="photo-background-preview" alt="Your background photo preview">
+          </div>
+          <div class="photo-background-actions">
+            <button type="button" class="secondary-button" id="photo-background-upload">Choose photo</button>
+            <button type="button" class="ghost-button" id="photo-background-remove" disabled>Remove photo</button>
+            <input type="file" id="photo-background-file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden>
+          </div>
+          <div id="photo-background-settings" class="photo-background-settings" hidden>
+            <label for="photo-background-dim">Dim background <output id="photo-background-dim-value" for="photo-background-dim">40%</output></label>
+            <input id="photo-background-dim" type="range" min="0" max="85" step="1" value="40">
+            <label for="photo-background-fit">Image fit</label>
+            <select id="photo-background-fit"><option value="cover">Fill the background</option><option value="contain">Show the whole photo</option></select>
+            <label for="photo-background-position">Vertical position</label>
+            <input id="photo-background-position" type="range" min="0" max="100" step="1" value="50">
+          </div>
+          <p id="photo-background-message" class="field-help" role="status" aria-live="polite">Images up to 15 MB. Animated images are saved as still photos.</p>
+        </div>
+
         <div class="settings-section-title">Message density</div>
         <div class="radio-row" id="density-row">
           <button class="radio-pill" type="button" data-density="comfortable">Comfortable</button>
@@ -4662,6 +4711,109 @@ void main() {
 }
 
   </script>
+  <script type="text/plain" id="background-shader-starrySpace">
+precision highp float;
+uniform vec3 uResolution;
+uniform float uTime;
+varying vec2 vUv;
+vec2 spaceHash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.xx + p3.yz) * p3.zy);
+}
+float spaceNoise(vec2 p) {
+  vec2 cell = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(spaceHash(cell).x, spaceHash(cell + vec2(1.0, 0.0)).x, f.x),
+             mix(spaceHash(cell + vec2(0.0, 1.0)).x, spaceHash(cell + 1.0).x, f.x), f.y);
+}
+float spaceCloud(vec2 p) {
+  float sum = 0.0, amplitude = 0.55;
+  for (int i = 0; i < 4; i++) { sum += amplitude * spaceNoise(p); p = mat2(1.6, -1.2, 1.2, 1.6) * p + 7.3; amplitude *= 0.5; }
+  return sum;
+}
+vec3 spaceStars(vec2 p, float density, float seed, float cutoff, float depth) {
+  vec2 grid = (p + vec2(uTime * 0.0016, uTime * 0.0005) * depth) * density;
+  vec2 cell = floor(grid), random = spaceHash(cell + seed);
+  vec2 delta = fract(grid) - (0.25 + 0.5 * spaceHash(cell + seed + 23.0));
+  float d = length(delta);
+  float radius = (0.7 + 1.1 * random.y) * (0.65 + depth * 0.55) * density / uResolution.y;
+  float core = 1.0 - smoothstep(0.0, radius, d);
+  float halo = exp(-d * 30.0) * 0.3;
+  float cross = exp(-abs(delta.x) * 260.0) * exp(-abs(delta.y) * 12.0)
+              + exp(-abs(delta.y) * 260.0) * exp(-abs(delta.x) * 12.0);
+  float twinkle = 0.78 + 0.22 * sin(uTime * (0.45 + random.x * 0.7) + random.y * 30.0);
+  vec3 tint = mix(vec3(0.50, 0.73, 1.0), vec3(1.0, 0.87, 0.69), random.y);
+  return tint * (core + halo + cross * step(0.985, random.x) * 1.1) * twinkle * step(cutoff, random.x);
+}
+float spaceMeteor(vec2 p) {
+  float cycle = floor(uTime / 13.0), age = mod(uTime, 13.0) - 4.0;
+  vec2 random = spaceHash(vec2(cycle, 91.0));
+  vec2 head = vec2(mix(-0.3, 0.6, random.x), mix(0.2, 0.5, random.y)) + vec2(0.8, -0.42) * age;
+  vec2 delta = p - head, direction = normalize(vec2(0.8, -0.42));
+  float along = dot(delta, direction), across = abs(dot(delta, vec2(-direction.y, direction.x)));
+  float tail = exp(-across * 650.0) * exp(min(along, 0.0) * 18.0) * step(along, 0.0) * smoothstep(-0.28, -0.20, along);
+  return (tail * 0.65 + exp(-length(delta) * 450.0)) * smoothstep(0.0, 0.15, age) * (1.0 - smoothstep(0.85, 1.35, age));
+}
+void main() {
+  vec2 p = (vUv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);
+  vec2 drift = vec2(uTime * 0.004, -uTime * 0.0015);
+  float cloud = spaceCloud(p * 3.2 + drift + 5.0), detail = spaceCloud(p * 7.0 - drift * 0.5 + cloud * 1.3);
+  float band = exp(-pow((p.y - p.x * 0.38 + (cloud - 0.5) * 0.22) * 3.5, 2.0));
+  vec3 color = vec3(0.006, 0.009, 0.025);
+  color += mix(vec3(0.16, 0.035, 0.36), vec3(0.015, 0.24, 0.38), smoothstep(-0.6, 0.7, p.x + cloud * 0.3)) * pow(cloud, 1.7) * band * 3.2;
+  color += vec3(0.36, 0.22, 0.45) * pow(detail, 3.0) * band;
+  color *= 1.0 - smoothstep(0.32, 0.72, detail) * band * 0.38;
+  color += spaceStars(p, 19.0, 3.0, 0.76, 0.35) * 0.55 + spaceStars(p, 34.0, 29.0, 0.88, 0.75) * 0.8 + spaceStars(p, 52.0, 61.0, 0.94, 1.3);
+  color += vec3(0.62, 0.82, 1.0) * spaceMeteor(p);
+  color *= 1.0 - 0.26 * smoothstep(0.25, 1.0, length(vUv - 0.5));
+  gl_FragColor = vec4(color, 1.0);
+}
+  </script>
+  <script type="text/plain" id="background-shader-autumnLeaves">
+precision highp float;
+uniform vec3 uResolution;
+uniform float uTime;
+varying vec2 vUv;
+vec2 fallHash(float seed) { return fract(sin(vec2(seed * 127.1 + 17.3, seed * 311.7 + 91.1)) * 43758.5453); }
+vec2 fallRotate(vec2 p, float angle) { float c = cos(angle), s = sin(angle); return mat2(c, -s, s, c) * p; }
+float fallLobe(vec2 p, float angle, float length, float width) {
+  vec2 q = fallRotate(p, angle); return abs(q.x) / width + abs(q.y - length * 0.40) / (length * 0.60) - 1.0;
+}
+void main() {
+  float aspect = uResolution.x / uResolution.y;
+  vec2 p = vec2(vUv.x * aspect, vUv.y);
+  float sunlight = exp(-length((vUv - vec2(0.15, 0.85)) * vec2(1.2, 0.8)) * 2.8);
+  vec3 color = mix(vec3(0.060, 0.021, 0.014), vec3(0.22, 0.095, 0.026), sunlight);
+  color += vec3(0.04, 0.012, 0.003) * sin(vUv.x * 4.0 + vUv.y * 3.0) * 0.5;
+  for (int i = 0; i < 24; i++) {
+    float seed = float(i) + 1.0; vec2 random = fallHash(seed);
+    float depth = 0.45 + random.y * 0.55, speed = 0.018 + random.y * 0.022;
+    vec2 center = vec2(random.x * (aspect + 0.18) - 0.09, 1.13 - fract(random.y + uTime * speed) * 1.26);
+    center.x += sin(uTime * 0.38 + seed * 2.4) * (0.025 + random.y * 0.025);
+    float size = mix(0.016, 0.037, random.y);
+    vec2 leaf = fallRotate((p - center) / size, seed * 2.3 + uTime * (random.x - 0.5) * 0.7);
+    leaf.x /= 0.48 + 0.52 * abs(sin(seed + uTime * 0.55));
+    float silhouette;
+    if (random.x > 0.42) {
+      silhouette = fallLobe(leaf + vec2(0.0, 0.2), 0.0, 1.15, 0.27);
+      silhouette = min(silhouette, fallLobe(leaf + vec2(0.0, 0.2), 0.83, 0.95, 0.28));
+      silhouette = min(silhouette, fallLobe(leaf + vec2(0.0, 0.2), -0.83, 0.95, 0.28));
+      silhouette = min(silhouette, fallLobe(leaf + vec2(0.0, 0.2), 1.55, 0.70, 0.24));
+      silhouette = min(silhouette, fallLobe(leaf + vec2(0.0, 0.2), -1.55, 0.70, 0.24));
+    } else { silhouette = length(leaf * vec2(1.8, 1.0)) - 0.88; silhouette += sin(leaf.y * 22.0) * 0.035; }
+    float aa = 1.6 / (uResolution.y * size), blade = 1.0 - smoothstep(-aa, aa, silhouette);
+    float stem = (1.0 - smoothstep(0.025, 0.025 + aa, abs(leaf.x))) * step(-1.2, leaf.y) * (1.0 - step(-0.35, leaf.y));
+    vec3 leafColor = mix(vec3(0.75, 0.14, 0.035), vec3(1.0, 0.59, 0.095), random.x);
+    leafColor = mix(leafColor, vec3(0.46, 0.07, 0.035), step(0.82, random.y) * 0.7);
+    float vein = exp(-abs(leaf.x) * 44.0) * 0.28;
+    float branches = exp(-abs(abs(leaf.x) * 0.9 - mod(leaf.y + 1.0, 0.32)) * 55.0) * 0.15;
+    leafColor *= 0.82 + 0.18 * leaf.x - vein - branches;
+    color = mix(color, leafColor, max(blade, stem * 0.75) * (0.38 + 0.56 * depth));
+  }
+  color *= 1.0 - 0.20 * smoothstep(0.2, 0.75, length(vUv - 0.5));
+  gl_FragColor = vec4(color, 1.0);
+}
+  </script>
   <script type="text/plain" id="background-shader-threads">
 
 precision highp float;
@@ -5262,6 +5414,7 @@ void main() {
       midnight:  { name: 'Midnight',   bg: '#09003d', accent: '#a78bfa' },
       ocean:     { name: 'Ocean',      bg: '#001f3f', accent: '#38bdf8' },
       forest:    { name: 'Forest',     bg: '#0a1f0a', accent: '#4ade80' },
+      fall:      { name: 'Fall',       bg: '#21120c', accent: '#f4b066', text: '#fff3df', onAccent: '#291509', background: 'autumnLeaves' },
       ember:     { name: 'Ember',      bg: '#1a0a00', accent: '#fb923c' },
       rose:      { name: 'Rose',       bg: '#1a000a', accent: '#f472b6' },
       slate:     { name: 'Slate',      bg: '#0f172a', accent: '#94a3b8' },
@@ -5277,7 +5430,6 @@ void main() {
       sand:      { name: 'Sand',       bg: '#fbf8f2', accent: '#a64b0a', light: true, text: '#33291d' },
       blossom:   { name: 'Blossom',    bg: '#fdf8fa', accent: '#b61d61', light: true, text: '#35232d' },
       meadow:    { name: 'Meadow',     bg: '#f7faf7', accent: '#187342', light: true, text: '#21382a' },
-      skylight:  { name: 'Sky',        bg: '#f5fafd', accent: '#086a9c', light: true, text: '#1b3442' },
     };
 
     // Corazon replaced Midnight as the default theme. A saved Midnight moves once;
@@ -5913,7 +6065,11 @@ void main() {
       activeChatBackground?.updateTheme?.();
     }
     function selectTheme(key) {
+      const previousBackground = THEMES[settings.theme]?.background;
       applyTheme(key);
+      const background = THEMES[settings.theme]?.background;
+      if (background) chooseChatBackground(background);
+      else if (previousBackground && chatBackgroundChoice === previousBackground) chooseChatBackground('off');
     }
     function applyFlagFont() {
       let needsFont = false;
@@ -6024,7 +6180,7 @@ void main() {
         return `
         <button class="theme-swatch ${settings.theme === key ? 'active' : ''}" type="button" data-theme="${key}" aria-label="Theme ${esc(t.name)}" aria-pressed="${String(settings.theme === key)}">
           <span class="swatch-preview" style="background:linear-gradient(140deg, ${t.bg}, color-mix(in srgb, ${t.bg} 70%, ${t.accent})); --swatch-accent:${t.accent};"></span>
-          <span class="swatch-name">${esc(t.name)}</span>
+          <span class="swatch-name">${esc(t.name)}${t.background ? ' · leaves' : ''}</span>
         </button>`;
       }).join('');
       qsa('.theme-swatch').forEach(b => b.addEventListener('click', () => selectTheme(b.dataset.theme)));
@@ -6035,6 +6191,9 @@ void main() {
        Shader text stays inert in the HTML until a signed-in user opts in. */
     const CHAT_BACKGROUNDS = {
       off: { name: 'Off', detail: 'The regular Corazon background.' },
+      photo: { name: 'My Photo', detail: 'Choose an image from your device.' },
+      autumnLeaves: { name: 'Autumn Leaves', detail: 'Golden light and slowly tumbling amber and crimson leaves.', fps: 24, scale: 0.75 },
+      starrySpace: { name: 'Starry Space', detail: 'Drifting stars, luminous nebulae and shooting stars.', fps: 24, scale: 0.75 },
       softAurora: { name: 'Soft Aurora', detail: 'Slow, diffused violet light.', fps: 30, scale: 0.75 },
       threads: { name: 'Threads', detail: 'Fine, flowing lines.', fps: 30, scale: 0.7 },
       particles: { name: 'Particles', detail: 'Floating points of light.', fps: 30, scale: 0.9 },
@@ -6043,11 +6202,220 @@ void main() {
       crtWarp: { name: 'CRT Warp', detail: 'Warped plasma and scanlines.', fps: 24, scale: 0.7 },
       balatro: { name: 'Balatro', detail: 'The familiar swirling color field.', fps: 30, scale: 0.75 },
     };
+    // Photos stay in this browser, separated by account. No network upload is made.
+    let photoBackground = null;
+    let photoBackgroundUrl = '';
+    let photoBackgroundOwner = '';
+    let photoBackgroundOperation = 0;
+    let photoBackgroundBusy = false;
+    let photoBackgroundSaveTimer = 0;
+    let photoBackgroundWrites = Promise.resolve();
+
+    function currentPhotoOwner() { return String(me?.username || '').toLowerCase(); }
+    function photoBackgroundMessage(message) {
+      const node = $('photo-background-message');
+      if (node) node.textContent = message;
+    }
+    function resetPhotoBackgroundState() {
+      photoBackgroundOperation++;
+      clearTimeout(photoBackgroundSaveTimer);
+      photoBackgroundSaveTimer = 0;
+      if (photoBackgroundUrl) URL.revokeObjectURL(photoBackgroundUrl);
+      photoBackgroundUrl = '';
+      photoBackground = null;
+      photoBackgroundOwner = '';
+      photoBackgroundBusy = false;
+      photoBackgroundMessage('Images up to 15 MB. Animated images are saved as still photos.');
+      renderPhotoBackgroundControls();
+    }
+    function photoBackgroundStore(action, owner, value) {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('Photo storage is unavailable in this browser.')); return; }
+        const open = indexedDB.open('lc_chat_background_photos_v1', 1);
+        let failed = false;
+        open.onupgradeneeded = () => {
+          if (!open.result.objectStoreNames.contains('photos')) open.result.createObjectStore('photos');
+        };
+        open.onerror = () => reject(open.error || new Error('Could not open photo storage.'));
+        open.onblocked = () => { failed = true; reject(new Error('Close other chat tabs and try again.')); };
+        open.onsuccess = () => {
+          const db = open.result;
+          if (failed) { db.close(); return; }
+          let tx;
+          try {
+            tx = db.transaction('photos', action === 'get' ? 'readonly' : 'readwrite');
+            const store = tx.objectStore('photos');
+            const request = action === 'get' ? store.get(owner)
+              : action === 'delete' ? store.delete(owner) : store.put(value, owner);
+            tx.oncomplete = () => { const result = request.result; db.close(); resolve(result); };
+            tx.onabort = tx.onerror = () => { db.close(); reject(tx.error || new Error('Could not save the photo.')); };
+          } catch (error) { db.close(); reject(error); }
+        };
+      });
+    }
+    function writePhotoBackground(owner, value) {
+      const next = photoBackgroundWrites.catch(() => {}).then(() =>
+        photoBackgroundStore(value ? 'put' : 'delete', owner, value));
+      photoBackgroundWrites = next;
+      return next;
+    }
+    function photoBackgroundNumber(value, fallback, min, max) {
+      const number = Number(value);
+      return value == null || !Number.isFinite(number) ? fallback : Math.max(min, Math.min(max, number));
+    }
+    function setPhotoBackgroundRecord(owner, record) {
+      if (!(record?.blob instanceof Blob) || !/^image\/(jpeg|png|webp)$/.test(record.blob.type)) return false;
+      const nextUrl = URL.createObjectURL(record.blob);
+      if (photoBackgroundUrl) URL.revokeObjectURL(photoBackgroundUrl);
+      photoBackgroundOwner = owner;
+      photoBackground = {
+        blob: record.blob,
+        dim: photoBackgroundNumber(record.dim, 40, 0, 85),
+        position: photoBackgroundNumber(record.position, 50, 0, 100),
+        fit: record.fit === 'contain' ? 'contain' : 'cover',
+      };
+      photoBackgroundUrl = nextUrl;
+      return true;
+    }
+    function renderPhotoBackgroundControls() {
+      const ready = !!photoBackground && photoBackgroundOwner === currentPhotoOwner();
+      const preview = $('photo-background-preview');
+      if (!preview) return;
+      const box = $('photo-background-preview-wrap');
+      box.hidden = !ready;
+      if (ready) {
+        preview.src = photoBackgroundUrl;
+        preview.style.objectFit = photoBackground.fit;
+        preview.style.objectPosition = `50% ${photoBackground.position}%`;
+        box.style.setProperty('--photo-dim', photoBackground.dim / 100);
+      } else preview.removeAttribute('src');
+      $('photo-background-settings').hidden = !ready;
+      const upload = $('photo-background-upload');
+      upload.disabled = photoBackgroundBusy;
+      upload.textContent = photoBackgroundBusy ? 'Saving photo…' : ready ? 'Change photo' : 'Choose photo';
+      $('photo-background-remove').disabled = !ready || photoBackgroundBusy;
+      for (const id of ['photo-background-dim', 'photo-background-position', 'photo-background-fit']) $(id).disabled = photoBackgroundBusy;
+      if (ready) {
+        $('photo-background-dim').value = photoBackground.dim;
+        $('photo-background-dim-value').textContent = `${photoBackground.dim}%`;
+        $('photo-background-position').value = photoBackground.position;
+        $('photo-background-fit').value = photoBackground.fit;
+      }
+    }
+    function applyPhotoBackgroundAppearance() {
+      if (!photoBackground) return;
+      const stage = $('chat-background-stage');
+      if (stage?.dataset.effect === 'photo') {
+        stage.style.setProperty('--photo-dim', photoBackground.dim / 100);
+        const image = stage.querySelector('img');
+        if (image) {
+          image.src = photoBackgroundUrl;
+          image.style.objectFit = photoBackground.fit;
+          image.style.objectPosition = `50% ${photoBackground.position}%`;
+        }
+      }
+      renderPhotoBackgroundControls();
+    }
+    function createPhotoBackground() {
+      if (!photoBackground || photoBackgroundOwner !== currentPhotoOwner()) throw new Error('No photo is selected.');
+      const stage = $('chat-background-stage');
+      const image = document.createElement('img');
+      image.className = 'chat-background-photo';
+      image.alt = '';
+      image.setAttribute('aria-hidden', 'true');
+      image.draggable = false;
+      stage.append(image);
+      applyPhotoBackgroundAppearance();
+      return { updateTheme: applyPhotoBackgroundAppearance, destroy() {
+        image.remove(); stage.style.removeProperty('--photo-dim');
+      } };
+    }
+    async function uploadPhotoBackground(file) {
+      if (!file || !me || $('app-shell').hidden || photoBackgroundBusy) return;
+      if (!/^image\/(jpeg|png|webp|gif|avif)$/i.test(file.type) || file.size > 15 * 1024 * 1024) {
+        photoBackgroundMessage('Choose a JPG, PNG, WebP, GIF or AVIF image up to 15 MB.'); return;
+      }
+      const owner = currentPhotoOwner(), operation = ++photoBackgroundOperation;
+      const selectionRevision = chatBackgroundSelectionRevision;
+      clearTimeout(photoBackgroundSaveTimer);
+      photoBackgroundBusy = true;
+      renderPhotoBackgroundControls();
+      photoBackgroundMessage('Preparing your photo…');
+      try {
+        const image = await loadImageFile(file);
+        if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 60000000)
+          throw new Error('This photo is too large. Try a smaller image.');
+        const scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Your browser could not prepare this photo.');
+        ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.86));
+        if (!blob) throw new Error('Could not read this photo. Try another image.');
+        if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner) return;
+        const record = { blob, dim: photoBackground?.dim ?? 40, position: 50, fit: photoBackground?.fit || 'cover' };
+        await writePhotoBackground(owner, record);
+        if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner || $('app-shell').hidden) return;
+        setPhotoBackgroundRecord(owner, record);
+        if (chatBackgroundChoice === 'photo') activeChatBackground?.updateTheme?.();
+        if (selectionRevision === chatBackgroundSelectionRevision) {
+          chooseChatBackground('photo');
+          photoBackgroundMessage('Photo saved. Only you see it, in this browser.');
+        } else {
+          renderPhotoBackgroundControls();
+          photoBackgroundMessage('Photo saved. Select My Photo to use it.');
+        }
+      } catch (error) {
+        if (operation === photoBackgroundOperation && currentPhotoOwner() === owner)
+          photoBackgroundMessage(error?.name === 'QuotaExceededError' ? 'Your browser storage is full. Free some space and try again.' : (error.message || 'Could not save this photo.'));
+      } finally {
+        if (operation === photoBackgroundOperation) { photoBackgroundBusy = false; renderPhotoBackgroundControls(); }
+      }
+    }
+    function changePhotoBackgroundAppearance() {
+      if (!photoBackground || photoBackgroundBusy || photoBackgroundOwner !== currentPhotoOwner()) return;
+      photoBackground.dim = Number($('photo-background-dim').value);
+      photoBackground.position = Number($('photo-background-position').value);
+      photoBackground.fit = $('photo-background-fit').value === 'contain' ? 'contain' : 'cover';
+      applyPhotoBackgroundAppearance();
+      clearTimeout(photoBackgroundSaveTimer);
+      const owner = photoBackgroundOwner, record = { ...photoBackground }, operation = photoBackgroundOperation;
+      photoBackgroundSaveTimer = setTimeout(() => {
+        writePhotoBackground(owner, record).then(() => {
+          if (operation === photoBackgroundOperation && owner === currentPhotoOwner()) photoBackgroundMessage('Photo and settings saved in this browser.');
+        }).catch(() => {
+          if (operation === photoBackgroundOperation && owner === currentPhotoOwner()) photoBackgroundMessage('The preview changed, but your browser could not save these settings.');
+        });
+      }, 250);
+    }
+    async function removePhotoBackground() {
+      if (!photoBackground || photoBackgroundBusy || photoBackgroundOwner !== currentPhotoOwner()) return;
+      const owner = currentPhotoOwner(), operation = ++photoBackgroundOperation;
+      clearTimeout(photoBackgroundSaveTimer);
+      photoBackgroundBusy = true; renderPhotoBackgroundControls();
+      try {
+        await writePhotoBackground(owner, null);
+        if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner) return;
+        if (chatBackgroundChoice === 'photo') chooseChatBackground('off');
+        resetPhotoBackgroundState();
+        renderBackgroundChoices();
+        photoBackgroundMessage('Photo removed.');
+      } catch {
+        if (operation === photoBackgroundOperation) photoBackgroundMessage('Could not remove the saved photo. Try again.');
+      } finally {
+        if (operation === photoBackgroundOperation) { photoBackgroundBusy = false; renderPhotoBackgroundControls(); }
+      }
+    }
+
     const BG_VERTEX = `attribute vec2 position; attribute vec2 uv; varying vec2 vUv;
       void main() { vUv = uv; gl_Position = vec4(position, 0.0, 1.0); }`;
     let activeChatBackground = null;
     let chatBackgroundChoice = 'off';
     let chatBackgroundOwner = '';
+    let chatBackgroundSelectionRevision = 0;
 
     function backgroundStorageKey(username) {
       return `lc_background_v1_${String(username).toLowerCase()}`;
@@ -6068,6 +6436,7 @@ void main() {
       if (status) status.textContent = chatBackgroundChoice === 'off'
         ? 'Off. No background canvas or renderer is running.'
         : `${CHAT_BACKGROUNDS[chatBackgroundChoice].name} is enabled on this device.`;
+      renderPhotoBackgroundControls();
     }
     function stopChatBackground() {
       if (activeChatBackground) {
@@ -6082,7 +6451,14 @@ void main() {
     function chooseChatBackground(choice, persist = true) {
       const key = Object.hasOwn(CHAT_BACKGROUNDS, choice) ? choice : 'off';
       if (!me || $('app-shell').hidden) return;
-      if (persist) LS.set(backgroundStorageKey(me.username), key);
+      if (key === 'photo' && (!photoBackground || photoBackgroundOwner !== currentPhotoOwner())) {
+        if (!photoBackgroundBusy) $('photo-background-file').click();
+        return;
+      }
+      if (persist) {
+        chatBackgroundSelectionRevision++;
+        LS.set(backgroundStorageKey(me.username), key);
+      }
       if (key === chatBackgroundChoice && (key === 'off' || activeChatBackground)) {
         renderBackgroundChoices(); return;
       }
@@ -6094,7 +6470,7 @@ void main() {
       try {
         $('main-content').classList.add('has-chat-background');
         $('chat-background-stage').dataset.effect = key;
-        activeChatBackground = key === 'dotField'
+        activeChatBackground = key === 'photo' ? createPhotoBackground() : key === 'dotField'
           ? createDotFieldBackground()
           : createWebGLBackground(key);
       } catch (error) {
@@ -6109,12 +6485,23 @@ void main() {
     }
     function restoreChatBackground() {
       stopChatBackground();
+      resetPhotoBackgroundState();
       chatBackgroundOwner = me?.username || '';
       chatBackgroundChoice = 'off';
       if (!me || $('app-shell').hidden) return;
-      const key = LS.get(backgroundStorageKey(me.username), 'off');
-      if (key !== 'off' && Object.hasOwn(CHAT_BACKGROUNDS, key)) chooseChatBackground(key, false);
+      const owner = currentPhotoOwner(), operation = photoBackgroundOperation;
+      const key = LS.get(backgroundStorageKey(me.username), THEMES[settings.theme]?.background || 'off');
+      if (key !== 'off' && key !== 'photo' && Object.hasOwn(CHAT_BACKGROUNDS, key)) chooseChatBackground(key, false);
       else renderBackgroundChoices();
+      photoBackgroundWrites.catch(() => {}).then(() => photoBackgroundStore('get', owner)).then(record => {
+        if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner || $('app-shell').hidden) return;
+        if (setPhotoBackgroundRecord(owner, record)) {
+          renderPhotoBackgroundControls();
+          if (key === 'photo' && LS.get(backgroundStorageKey(me.username), 'off') === 'photo' && chatBackgroundChoice === 'off') chooseChatBackground('photo', false);
+        } else if (key === 'photo') photoBackgroundMessage('Choose a photo to use as your background.');
+      }).catch(() => {
+        if (operation === photoBackgroundOperation && currentPhotoOwner() === owner) photoBackgroundMessage('Saved photos are unavailable. You can try choosing a photo again.');
+      });
     }
 
     function compileBackgroundShader(gl, type, source) {
@@ -6322,7 +6709,9 @@ void main() {
           gl.clear(gl.COLOR_BUFFER_BIT);
           const t = motionReduced ? 0 : now * 0.001;
           const resolution = [width, height, width / height];
-          if (key === 'softAurora') {
+          if (key === 'starrySpace' || key === 'autumnLeaves') {
+            uniform('uTime', t); uniform('uResolution', resolution);
+          } else if (key === 'softAurora') {
             uniform('uTime', t); uniform('uResolution', resolution);
             uniform('uSpeed', 0.6); uniform('uScale', 1.5); uniform('uBrightness', 1.2);
             uniform('uColor1', backgroundRGB(palette.bright)); uniform('uColor2', backgroundRGB(palette.secondary));
@@ -8324,6 +8713,7 @@ void main() {
       signOutLocked = false;
       $('auth-screen').hidden = false;
       stopChatBackground();
+      resetPhotoBackgroundState();
       $('app-shell').hidden = true;
       $('blocked-screen').hidden = true;
       finishStartup();
@@ -8528,6 +8918,7 @@ void main() {
       if (signOutLocked || (me && me.is_banned)) return;
       signingOut = true;
       stopChatBackground();
+      resetPhotoBackgroundState();
       leaveVoiceRoom({ quiet: true });
       presenceLeft = true;
       presenceStopped = true;
@@ -20604,6 +20995,15 @@ void main() {
       $('set-dyslexic').addEventListener('click', () => applyDyslexic(!settings.dyslexic));
       $('set-reduce-motion').addEventListener('click', () => applyReduceMotion(!settings.reduceMotion));
       $('set-confirm-close').addEventListener('click', () => applyConfirmClose(!settings.confirmClose));
+      $('photo-background-upload').addEventListener('click', () => $('photo-background-file').click());
+      $('photo-background-file').addEventListener('change', () => {
+        const input = $('photo-background-file');
+        const file = input.files[0]; input.value = '';
+        uploadPhotoBackground(file);
+      });
+      $('photo-background-remove').addEventListener('click', removePhotoBackground);
+      for (const id of ['photo-background-dim', 'photo-background-position', 'photo-background-fit'])
+        $(id).addEventListener('input', changePhotoBackgroundAppearance);
       $('set-custom-accent').addEventListener('input', () => applyCustomAccent($('set-custom-accent').value));
       $('set-custom-accent-clear').addEventListener('click', () => applyCustomAccent(''));
       qsa('#uifont-row .radio-pill').forEach(b => b.addEventListener('click', () => applyUiFont(b.dataset.uifont)));

@@ -129,7 +129,7 @@ function chatPresence() {
     realtimeHealthy: () => true,
     recoverRealtime: async () => { wakeJobs.push('recover'); },
     updateConnection() {},
-    signOutLocked: false, stopChatBackground() {}, leaveVoiceRoom() {},
+    signOutLocked: false, stopChatBackground() {}, resetPhotoBackgroundState() {}, leaveVoiceRoom() {},
     LS: { del() {} }, location: { reload: () => wakeJobs.push('reload') },
     esc: value => String(value), displayNameOf: account => account.display_name || account.username,
     displayNameHtml: account => account.display_name || account.username,
