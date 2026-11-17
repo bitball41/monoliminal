@@ -6409,7 +6409,8 @@ function loadAppearancePreferences() {
       if(!row?.id||!currentUserId)return;
       const key=String(row.id);
       if(phoenixMentionRungMessageIds.has(key))return;
-      if(row.user_id&&String(row.user_id)===String(currentUserId))return;
+      // Only the owner can mention themselves (the @ picker lists the owner for the owner), so let that ring for testing.
+      if(row.user_id&&String(row.user_id)===String(currentUserId)&&!isOwner)return;
       if(!phoenixMessageMentionsMe(row))return;
       const created=new Date(row.created_at||0).getTime();
       if(!Number.isFinite(created)||created<phoenixMentionSessionStartedAt-5000||created<Date.now()-120000)return;
@@ -7659,6 +7660,7 @@ function loadAppearancePreferences() {
         input.value='';phoenixSelectedMentions=[];phoenixMentionPreviousInput='';input.style.height='46px';input.style.overflowY='hidden';syncPhoenixTyping();cancelReply();clearComposerImage();$('attachment-status').textContent='';input.focus();
         const result=Array.isArray(data)?data[0]:data;
         const insertedId=result&&typeof result==='object'?(result.id??result.message_id):(typeof result==='string'||typeof result==='number'?result:null);
+        phoenixCheckMentionBell({id:insertedId??('sent-'+Date.now()),user_id:currentUserId,created_at:new Date().toISOString(),text:payloadText});
         if(imageUrl){lastUploadedImageUrl=imageUrl;lastUploadedImageChannelId=channelId;}
         if(channelId===String(currentChannelId)){
           if(insertedId!=null){
