@@ -2193,6 +2193,25 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
 #poll-btn{width:40px;min-height:40px;padding:0;display:grid;place-items:center;flex-shrink:0;background:var(--theme-surface,#1b2330);color:var(--theme-text,#e8eaf3);border:1px solid var(--theme-border,#3b4350);}
 #poll-btn:hover{background:var(--theme-accent-soft,#263843);color:var(--theme-accent,#58d8ae);}#poll-btn svg{width:21px;height:21px;}
 #phoenix-poll-modal{width:620px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:0;border:1px solid var(--theme-border,#3b4350);border-radius:18px;background:var(--theme-surface-2,#1b2330);color:var(--theme-text,#e8eaf3);box-shadow:0 24px 80px #0008;overflow:auto;}
+#phoenix-announcement-stack{position:fixed;top:16px;right:16px;z-index:10004;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 32px));pointer-events:none}
+.phoenix-announcement-toast{pointer-events:auto;position:relative;padding:14px 40px 14px 16px;border-radius:14px;border:1px solid var(--theme-accent,#ff8a2a);background:var(--theme-surface,#17131b);color:var(--theme-text,#fff);box-shadow:0 18px 50px rgba(0,0,0,.55);animation:phoenixAnnounceIn .28s ease-out}
+.phoenix-announcement-toast h3{margin:0 0 2px;font-size:14px;color:var(--theme-accent,#ff8a2a)}
+.phoenix-announcement-toast .pa-from{display:block;margin-bottom:8px;font-size:11px;color:var(--theme-muted,#aaa)}
+.phoenix-announcement-toast .pa-body{font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto}
+.phoenix-announcement-toast .pa-close{position:absolute;top:8px;right:8px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer;opacity:.75}
+.phoenix-announcement-toast .pa-close:hover{opacity:1;background:rgba(255,255,255,.08)}
+@keyframes phoenixAnnounceIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.phoenix-announcement-toast{animation:none}}
+#phoenix-announcement-overlay{position:fixed;inset:0;z-index:10003;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.62)}
+#phoenix-announcement-card{width:min(480px,100%);padding:20px;border-radius:14px;border:1px solid var(--theme-border,#71464c);background:var(--theme-surface,#17131b);color:var(--theme-text,#fff);box-shadow:0 24px 80px rgba(0,0,0,.65)}
+#phoenix-announcement-card h2{margin:0 0 6px;font-size:18px}
+#phoenix-announcement-card p{margin:0 0 12px;font-size:12px;color:var(--theme-muted,#aaa)}
+#phoenix-announcement-input{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:10px;border:1px solid var(--theme-border,#3b4350);background:var(--theme-input,rgba(0,0,0,.25));color:inherit;font:inherit;resize:vertical}
+#phoenix-announcement-card .pa-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px}
+#phoenix-announcement-card .pa-actions span{margin-right:auto;font-size:11px;color:var(--theme-muted,#aaa)}
+#phoenix-announcement-card button{padding:9px 14px;border-radius:8px;border:1px solid var(--theme-border,#3b4350);background:transparent;color:inherit;font:inherit;cursor:pointer}
+#phoenix-announcement-card button.pa-send{border-color:var(--theme-accent,#a93e3e);background:var(--theme-accent,#a93e3e);color:#fff}
+#phoenix-announcement-card button:disabled{opacity:.55;cursor:default}
 #phoenix-poll-modal::backdrop{background:#0009;backdrop-filter:blur(3px);}
 #phoenix-poll-form{display:flex;flex-direction:column;max-height:calc(100dvh - 26px);font-family:Arial,Helvetica,sans-serif;}
 .phoenix-poll-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--theme-border,#3b4350);flex-shrink:0;}.phoenix-poll-head h2{margin:0;font-size:21px;font-weight:800;}.phoenix-poll-close{border:0;background:transparent;color:var(--theme-muted,#b4b6c4);font-size:25px;width:32px;height:32px;}
@@ -3264,6 +3283,7 @@ body .role-ai,body .msg-role-ai{background:#b7f7be!important;color:#14351e!impor
             </div>
             <div id="owner-subpanel-general" role="tabpanel" aria-labelledby="owner-tab-general">
             <div class="staff-owner-controls">
+              <button class="settings-wide-button" onclick="openPhoenixAnnouncementComposer()">📢 Send Announcement</button>
               <button class="settings-wide-button" onclick="triggerRemoteReload()">🔄 Force Reload All</button>
               <button class="settings-wide-button" onclick="openUpdatePicker()">⚡ Bootstrap Update</button>
               <input id="update-file-input" type="file" accept=".html,text/html" style="display:none" onchange="handleUpdateFileSelect(event)">
@@ -3648,7 +3668,7 @@ console.error('Phoenix Chat login failed:', err);
       if(role)role.textContent=isOwner?'The Architect':(userRole?getRoleLabel(userRole,false):'Member');
       const counts=groups||getPhoenixMemberGroups();
       const total=counts.onlineUsers.length+counts.offlineUsers.length;
-      const messages=(window.__liminalMessages||[]).filter(m=>!m.channel_id||String(m.channel_id)===String(currentChannelId)).length;
+      const messages=(window.__liminalMessages||[]).filter(m=>(!m.channel_id||String(m.channel_id)===String(currentChannelId))&&!phoenixIsAnnouncement(m)).length;
       for(const [id,value] of [['staff-stat-members',total],['staff-stat-online',counts.onlineUsers.length],['staff-stat-messages',messages]]){
         const node=$(id),text=value.toLocaleString();if(node&&node.textContent!==text)node.textContent=text;
       }
@@ -3790,7 +3810,7 @@ console.error('Phoenix Chat login failed:', err);
     }
 
     let phoenixStaffDirectory=[];
-    function phoenixStaffChannelRows(){return(window.__liminalMessages||[]).filter(m=>!m.channel_id||String(m.channel_id)===String(currentChannelId));}
+    function phoenixStaffChannelRows(){return(window.__liminalMessages||[]).filter(m=>(!m.channel_id||String(m.channel_id)===String(currentChannelId))&&!phoenixIsAnnouncement(m));}
     function phoenixStaffChannelLabel(){return channels.find(c=>String(c.id)===String(currentChannelId))?.name||'current channel';}
     function phoenixStaffEmpty(box,text){const p=document.createElement('p');p.className='staff-empty-state';p.textContent=text;box.appendChild(p);}
     function phoenixStaffListRow(title,detail,extra=''){
@@ -4282,6 +4302,7 @@ console.error('Phoenix Chat login failed:', err);
       applySettings();
       $('msg-input').focus();
       checkPhoenixRulesOnJoin();
+      checkPhoenixAnnouncementsOnJoin();
       startPhoenixDM();
     }
 
@@ -6153,6 +6174,7 @@ function loadAppearancePreferences() {
       const messageKey=row.id!=null?String(row.id):null;
       if(messageKey&&phoenixUnreadSeenMessageIds.has(messageKey))return;
       if(messageKey){phoenixUnreadSeenMessageIds.add(messageKey);if(phoenixUnreadSeenMessageIds.size>5000)phoenixUnreadSeenMessageIds.delete(phoenixUnreadSeenMessageIds.values().next().value);}
+      if(phoenixIsAnnouncement(row))return;
       const channelId=String(row.channel_id);
       if(isPhoenixGamesChannel(channelId)||!channels.some(channel=>String(channel.id)===channelId))return;
       if(row.user_id&&currentUserId&&String(row.user_id)===String(currentUserId))return;
@@ -6427,7 +6449,7 @@ function loadAppearancePreferences() {
           const latest=page.reduce((max,row)=>Math.max(max,new Date(row.created_at||0).getTime()||0),sync?.latest||0);
           phoenixMessageSync.set(key,{latest,fullAt:incremental?sync.fullAt:Date.now()});
           const base=incremental?(window.__liminalMessages||[]):[];
-          page.forEach(phoenixCheckMentionBell);
+          page.forEach(phoenixCheckMentionBell);page.forEach(row=>phoenixMaybeShowAnnouncement(row));
           const rows=new Map([...base,...page].filter(m=>!m.channel_id||String(m.channel_id)===channelId).map(m=>[String(m.id),m]));
           for(const mutation of load.mutations){if(mutation.deletedId!==null)rows.delete(String(mutation.deletedId));else if(mutation.row)rows.set(String(mutation.row.id),mutation.row);}
           window.__liminalMessages=[...rows.values()].sort(comparePhoenixMessages);
@@ -6454,7 +6476,8 @@ function loadAppearancePreferences() {
         .filter(node=>node.getBoundingClientRect().bottom>box.getBoundingClientRect().top)
         .map(node=>({node,top:node.getBoundingClientRect().top}));
       if(changedChannel){box.replaceChildren();phoenixMessageNodes.clear();phoenixGroupNodes.clear();phoenixRenderedChannel=String(currentChannelId);}
-      const messages=Array.isArray(window.__liminalMessages)?window.__liminalMessages:[];
+      // Owner announcements only appear as the top-right popup, never in the chat.
+      const messages=(Array.isArray(window.__liminalMessages)?window.__liminalMessages:[]).filter(m=>!phoenixIsAnnouncement(m));
       updatePhoenixStaffSummary();
       const byId=new Map(messages.map(m=>[String(m.id),m]));
       const aliveItems=new Set(),aliveGroups=new Set(),day=new Date().toDateString();
@@ -6600,6 +6623,80 @@ function loadAppearancePreferences() {
       if(row.is_owner===true||row.role==='owner')return true;
       const member=row.user_id!=null?knownMemberUsers?.[String(row.user_id)]:null;
       return !!(member&&(member.is_owner===true||member.role==='owner'));
+    }
+    // Owner announcements: sent as a hidden owner message that starts with this marker.
+    // The server records who sent each message, so only the owner's announcements pop up.
+    // They are filtered out of the chat list and unread counts; people only see the popup.
+    const PHOENIX_ANNOUNCEMENT_MARKER='[[phoenix-announcement]]';
+    function phoenixIsAnnouncementText(text){return String(text||'').startsWith(PHOENIX_ANNOUNCEMENT_MARKER);}
+    function phoenixAnnouncementBody(text){return String(text||'').slice(PHOENIX_ANNOUNCEMENT_MARKER.length).trim();}
+    function phoenixIsAnnouncement(row){return phoenixIsAnnouncementText(row?.text)&&phoenixMessageFromOwner(row);}
+    function phoenixAnnouncementChannel(){
+      const list=(channels||[]).filter(c=>c&&c.id!=null&&!isPhoenixGamesChannel(c.id));
+      return list.find(c=>String(c.name||'').replace(/^\s*#+\s*/,'').trim().toLowerCase()==='general')||list[0]||null;
+    }
+    function phoenixSeenAnnouncementsKey(){return 'phoenix_seen_announcements_'+String(currentUserId||'');}
+    function phoenixSeenAnnouncements(){try{return new Set(JSON.parse(localStorage.getItem(phoenixSeenAnnouncementsKey())||'[]').map(String));}catch{return new Set();}}
+    function phoenixMarkAnnouncementSeen(id){try{const seen=[...phoenixSeenAnnouncements()].filter(x=>x!==String(id));seen.push(String(id));localStorage.setItem(phoenixSeenAnnouncementsKey(),JSON.stringify(seen.slice(-60)));}catch{}}
+    function showPhoenixAnnouncementToast(row){
+      let stack=document.getElementById('phoenix-announcement-stack');
+      if(!stack){stack=document.createElement('div');stack.id='phoenix-announcement-stack';stack.setAttribute('aria-live','polite');document.body.appendChild(stack);}
+      const toast=document.createElement('section');toast.className='phoenix-announcement-toast';toast.setAttribute('role','status');
+      const title=document.createElement('h3');title.textContent='📢 Announcement';
+      const from=document.createElement('span');from.className='pa-from';
+      const member=row.user_id!=null?knownMemberUsers?.[String(row.user_id)]:null;const name=row.display_name||member?.display_name||row.username||member?.username||'Owner';const when=new Date(row.created_at||Date.now());
+      from.textContent='From '+name+' · '+(Number.isFinite(when.getTime())?when.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'');
+      const body=document.createElement('div');body.className='pa-body';renderMessageText(body,phoenixAnnouncementBody(row.text),row);
+      const close=document.createElement('button');close.type='button';close.className='pa-close';close.textContent='✕';close.setAttribute('aria-label','Dismiss announcement');close.onclick=()=>toast.remove();
+      toast.append(title,from,body,close);stack.appendChild(toast);
+      while(stack.children.length>3)stack.firstElementChild.remove();
+    }
+    function phoenixMaybeShowAnnouncement(row,maxAgeMs=120000){
+      if(!row?.id||!currentUserId||!phoenixIsAnnouncement(row))return false;
+      if(String(row.user_id||'')===String(currentUserId))return false;
+      const created=new Date(row.created_at||0).getTime();if(!Number.isFinite(created)||Date.now()-created>maxAgeMs)return false;
+      if(phoenixSeenAnnouncements().has(String(row.id)))return false;
+      phoenixMarkAnnouncementSeen(row.id);showPhoenixAnnouncementToast(row);return true;
+    }
+    // People who were offline see the newest announcement from the last day when they next open the chat.
+    async function checkPhoenixAnnouncementsOnJoin(){
+      const token=sessionToken,channel=phoenixAnnouncementChannel();if(!token||!channel)return;
+      try{
+        let query=db.rpc('get_channel_messages',{p_session_token:token,p_channel_id:String(channel.id)});
+        if(typeof query.gte==='function')query=query.gte('created_at',new Date(Date.now()-86400000).toISOString());
+        const {data,error}=await withTimeout(query,8000);if(error)throw error;if(token!==sessionToken)return;
+        const fresh=(Array.isArray(data)?data:[]).filter(row=>phoenixIsAnnouncement(row)&&String(row.user_id||'')!==String(currentUserId)&&!phoenixSeenAnnouncements().has(String(row.id)))
+          .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+        const newest=fresh.at(-1);fresh.forEach(row=>phoenixMarkAnnouncementSeen(row.id));
+        if(newest)showPhoenixAnnouncementToast(newest);
+      }catch(err){console.warn('Announcement check failed:',errorText(err));}
+    }
+    function openPhoenixAnnouncementComposer(){
+      if(!isOwner)return;
+      const channel=phoenixAnnouncementChannel();
+      if(!channel){phoenixNotice('Create a channel first. Announcements are delivered through a chat channel.');return;}
+      document.getElementById('phoenix-announcement-overlay')?.remove();
+      const overlay=document.createElement('div');overlay.id='phoenix-announcement-overlay';
+      overlay.innerHTML='<div id="phoenix-announcement-card" role="dialog" aria-modal="true" aria-labelledby="phoenix-announcement-title"><h2 id="phoenix-announcement-title">📢 Send Announcement</h2><p id="phoenix-announcement-where"></p><textarea id="phoenix-announcement-input" maxlength="1900" placeholder="Type your announcement…"></textarea><div class="pa-actions"><span id="phoenix-announcement-status" role="status"></span><button type="button" class="pa-cancel">Cancel</button><button type="button" class="pa-send" disabled>Send</button></div></div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('#phoenix-announcement-where').textContent='Everyone online gets a popup in the top right. People who are offline see it when they next open the chat (within a day). It does not appear in the chat.';
+      const input=overlay.querySelector('#phoenix-announcement-input'),send=overlay.querySelector('.pa-send'),cancel=overlay.querySelector('.pa-cancel'),status=overlay.querySelector('#phoenix-announcement-status');
+      const close=()=>{overlay.remove();document.removeEventListener('keydown',onKey,true);};
+      const onKey=e=>{if(e.key==='Escape'&&!send.dataset.busy){e.preventDefault();close();}};
+      document.addEventListener('keydown',onKey,true);
+      input.oninput=()=>{send.disabled=!input.value.trim();status.textContent=input.value.length>1700?(1900-input.value.length)+' characters left':'';};
+      cancel.onclick=close;overlay.onclick=e=>{if(e.target===overlay&&!send.dataset.busy)close();};
+      send.onclick=async()=>{
+        const text=input.value.trim();if(!text||send.dataset.busy)return;
+        const token=sessionToken,target=phoenixAnnouncementChannel();if(!token||!target)return;
+        send.dataset.busy='1';send.disabled=true;cancel.disabled=true;input.disabled=true;status.textContent='Sending…';
+        try{
+          const {error}=await withTimeout(db.rpc('send_message',{p_session_token:token,p_text:PHOENIX_ANNOUNCEMENT_MARKER+text,p_reply_to_id:null,p_channel_id:String(target.id)}),10000);
+          if(error)throw error;
+          close();phoenixNotice('Your announcement was sent.','📢 Announcement sent');
+        }catch(err){delete send.dataset.busy;send.disabled=false;cancel.disabled=false;input.disabled=false;status.textContent='Could not send: '+errorText(err);}
+      };
+      setTimeout(()=>input.focus(),0);
     }
     function phoenixMessageMentionsMe(row){
       const myId=String(currentUserId||'');if(!myId)return false;
@@ -6764,6 +6861,7 @@ function loadAppearancePreferences() {
     let phoenixReplyHighlightNode=null;
     function phoenixReplySnippet(raw){
       const text=String(raw||'');
+      if(phoenixIsAnnouncementText(text))return 'Announcement · '+phoenixAnnouncementBody(text).replace(/\s+/g,' ').slice(0,200);
       if(text.startsWith('[POLL]'))return 'Poll · '+text.slice(6).split('\n')[0].slice(0,200);
       if(text.startsWith('[GIF]'))return 'GIF';
       if(text.startsWith('[IMAGE_MESSAGE]')){try{const msg=JSON.parse(text.slice(15));return (msg.text?String(msg.text).replace(/\s+/g,' ').slice(0,150)+' · ':'')+'Image';}catch{return 'Image message';}}
@@ -6979,7 +7077,7 @@ function loadAppearancePreferences() {
 
       const actions = document.createElement('div');
       actions.className = 'msg-item-actions';
-      const canEdit = data.username === currentUser && !rawText.startsWith('[FILE]') && !rawText.startsWith('[IMAGE_MESSAGE]') && !rawText.startsWith('[VIDEO_MESSAGE]') && !rawText.startsWith('[GIF]') && !rawText.startsWith('[POLL]');
+      const canEdit = data.username === currentUser && !rawText.startsWith('[FILE]') && !rawText.startsWith('[IMAGE_MESSAGE]') && !rawText.startsWith('[VIDEO_MESSAGE]') && !rawText.startsWith('[GIF]') && !rawText.startsWith('[POLL]') && !phoenixIsAnnouncementText(rawText);
       if (canEdit) {
         const edit = document.createElement('button');
         edit.className = 'edit-btn';
@@ -7027,7 +7125,7 @@ function loadAppearancePreferences() {
       realtimeChannel = db.channel('liminal-chat-live')
         .on('postgres_changes', {event:'*',schema:'public',table:'phoenix_custom_roles'}, () => { loadPhoenixCustomRoles().catch(err=>console.warn('Shared custom role refresh failed:',errorText(err))); })
         .on('postgres_changes', {event:'*',schema:'public',table:'phoenix_builtin_role_appearance'}, () => { loadPhoenixCustomRoles().catch(err=>console.warn('Shared built-in role refresh failed:',errorText(err))); })
-        .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages'}, p=>{phoenixCheckMentionBell(p.new);recordPhoenixUnreadMessage(p.new);mergePhoenixMessage(p.new);})
+        .on('postgres_changes', {event:'INSERT',schema:'public',table:'messages'}, p=>{phoenixMaybeShowAnnouncement(p.new);phoenixCheckMentionBell(p.new);recordPhoenixUnreadMessage(p.new);mergePhoenixMessage(p.new);})
         .on('postgres_changes', {event:'UPDATE',schema:'public',table:'messages'}, p=>mergePhoenixMessage(p.new))
         .on('postgres_changes', {event:'DELETE',schema:'public',table:'messages'}, p=>{
           if(!(window.__liminalMessages||[]).some(m=>String(m.id)===String(p.old.id)))return;
@@ -7580,7 +7678,8 @@ function loadAppearancePreferences() {
       // Only the private marker written by a clicked suggestion creates a mention.
       // A plain @word (including abbreviations such as @E.O.C.) remains ordinary text.
       const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32}\[\[phoenix-mention:([^\]]+)\]\])|(@everyone\[\[phoenix-everyone\]\])/gi;
-      const value = String(rawText || '');
+      let value = String(rawText || '');
+      if (phoenixIsAnnouncementText(value)) value = phoenixAnnouncementBody(value);
       let last = 0, match;
       const myId = String(currentUserId || '');
       while ((match = tokenRegex.exec(value))) {
@@ -8088,7 +8187,7 @@ function loadAppearancePreferences() {
       if(String(data.text||'').startsWith('[POLL]'))return;
       if (!data || data.username !== currentUser || !sessionToken) return;
       const oldText = String(data.text || '');
-      if (!oldText || oldText.startsWith('[FILE]') || oldText.startsWith('[IMAGE_MESSAGE]') || oldText.startsWith('[GIF]')) return;
+      if (!oldText || oldText.startsWith('[FILE]') || oldText.startsWith('[IMAGE_MESSAGE]') || oldText.startsWith('[GIF]') || phoenixIsAnnouncementText(oldText)) return;
 
       editingMessage = { id: data.id, text: oldText };
       const input = $('msg-input');

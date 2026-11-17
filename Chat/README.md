@@ -3,6 +3,106 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Super Mega Tuff Co-owner (PomKnee only)
+
+Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)
+(**applied 2026-11-17**, ledger version `20261117183155`; verified live:
+PomKnee is the only holder, ladder God Tier > Super Mega Tuff Co-owner >
+Co-owner with the three admin roles still tied, troll functions callable by
+signed-in accounts only). Older Chat pages keep working against it; they just
+show a plain badge and no troll menu.
+
+- **One holder.** The built-in role `super_mega_tuff_co_owner` has co-owner
+  powers and sits directly above Co-owner. The database refuses it on any
+  account but PomKnee, and only the owner (or PRESTON) can change PomKnee's
+  role. It cannot be deleted. Badge: a spinning rainbow check.
+- **Untouchable** except by Conno (see part 3): nobody else can ban, time out,
+  kick, delete, voice-mute or reset the password of the role holder.
+- **Clears anyone's timeout**, from the profile card or Staff → Members.
+- **Announcements.** Staff → 😈 Tuff powers publishes the announcement banner
+  and What's new (other owner settings stay owner-only).
+- **Lighter spam limits** (see part 3; part 1 removed them entirely).
+- **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
+  1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
+  messages), shows silly popups, flips or mirrors the page, shakes or rains
+  emoji (see part 2 for the rest). Effects
+  run only in the target's browser, never post anything as them, expire on
+  their own, and skip shaking/rain when the device asks for reduced
+  motion. The owner, PRESTON and the bots cannot be trolled. The owner sees
+  and stops active trolls from Staff → Trolls. Every troll is in the staff
+  audit log.
+
+Tests: `scripts/chat-super-mega-tuff.test.mjs`.
+
+## Super Mega Tuff Co-owner, part 2
+
+Needs [`20261117185634_chat_super_mega_tuff_co_owner_2.sql`](../Backend/migrations/20261117185634_chat_super_mega_tuff_co_owner_2.sql)
+(**applied 2026-11-17**, ledger version `20261117185634`; verified live: ladder
+Super Mega Tuff Co-owner > God Tier > Co-owner, admin roles still tied, new
+troll list in force, new functions callable by signed-in accounts only).
+
+- **Top of the staff ladder.** The role now sits above every custom role,
+  God Tier included; only Owner and PRESTON are higher. Reordering roles or
+  creating new ones keeps it first.
+- **Custom check mark.** Staff → 😈 Tuff powers → Your check mark: any emoji or
+  up to 8 characters (or the normal ✓), 1–4 colours, and spin, pulse, bounce
+  or no animation, with a live preview. Saved in `app_settings.smt_check`
+  (`chat_set_smt_check`, holder only) and shown to everyone live. Symbol and
+  colours are validated on the server and again before rendering.
+- **Remove my timeout.** The role can't be timed out, but if a timeout is ever
+  on the account, the timeout bar has a "Remove my timeout" button.
+- **New trolls** replace Rainbow, Comic Sans, Blurry and No cursor:
+  - Reverse mouse: the real pointer is hidden and a mirrored one is drawn;
+    clicks and scrolling go to the mirrored spot, the opposite way.
+  - Backwards typing: typed text comes out reversed.
+  - Auto refresh: the page reloads every one to two minutes while active.
+  - Runaway buttons: buttons jump away from the mouse.
+  - Random keys (part 3): every letter or digit they type comes out as a
+    different random one; case is kept, spaces and punctuation pass through.
+    Combined with backwards typing, it is random and backwards.
+  - Plus a one-shot "Refresh their page now" (`chat_troll_refresh`).
+- **Secret entrance.** For the role holder only, clicking (or Enter on) the
+  "Corazon" title at the top of the sidebar opens the troll menu. It looks
+  like plain text; a faint 😈 appears on hover. For everyone else it stays text.
+  Old active trolls of the removed kinds are cleared by the migration.
+
+## Super Mega Tuff Co-owner, part 3
+
+Needs [`20261117203705_chat_super_mega_tuff_co_owner_3.sql`](../Backend/migrations/20261117203705_chat_super_mega_tuff_co_owner_3.sql)
+(**applied 2026-11-17**, ledger version `20261117203705`; checked first with a
+rolled-back dry run on live data: PRESTON refused, Conno's timeout, clear, ban
+and unban accepted, PomKnee can't lift Conno's timeout, a second quote within
+a second refused, all eleven trolls accepted).
+
+- **Only Conno can consequence PomKnee.** The owner account `connor` can ban,
+  time out, kick, delete or otherwise moderate the role holder. Everyone else,
+  including another owner or PRESTON, is refused, both in the moderation
+  functions and in the profile guard. A timeout from Conno sticks: PomKnee
+  can't lift it themselves (other timeouts they still can).
+- **Lighter spam limits, not none.** Messages: 15 per 5 seconds, then a
+  30-second cooldown (members: 5, then the same 30 seconds). GIFs: 5 per 5 seconds
+  (members: 2). QuoteBot: 1 second between quotes (members: 5), 30 per
+  10 minutes (members: 10), the same message once a minute (members: 10
+  minutes). Slow mode still doesn't apply, as for every admin-level role.
+
+## Super Mega Tuff Co-owner: benchmark (2026-11-17)
+
+Local, offline measurements, not production results.
+
+- **Database** (`node scripts/chat-super-mega-tuff.bench.mjs 7`, PGlite, all
+  migrations with vs without the two role migrations, median of 7): member
+  message insert, own-profile update, owner timeout + clear, owner
+  announcement and PomKnee's message insert all within ±7% (run-to-run
+  noise). The role's own calls take 0.5–1.5 ms each: troll apply, troll list,
+  troll refresh, set check mark, a QuoteBot quote with no limits, and the
+  one read each member makes on connect (`chat_my_troll_effects`).
+- **Browser** (`scripts/chat-runtime.browser.mjs --quick`, `main` vs this
+  change, 3 runs each, alternating): no page errors; frame times, long tasks
+  and keyboard handler time stay within the spread between runs. The only new
+  request is `chat_my_troll_effects`, once per Realtime join. One extra DOM
+  node. Backwards typing and runaway buttons attach their listeners only
+  while those trolls are active; the rest is under 1 µs per input event.
+
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
 
 Needs [`20261111194810_chat_custom_roles_rules_stickers.sql`](../Backend/migrations/20261111194810_chat_custom_roles_rules_stickers.sql)
