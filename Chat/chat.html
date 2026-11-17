@@ -1066,6 +1066,19 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     }
     .role-check.super-mega-tuff-co-owner svg { animation: smt-badge-spin 3s linear infinite reverse; }
     @keyframes smt-badge-spin { to { transform: rotate(360deg); } }
+    .role-check.smt-custom { background: var(--smt-bg); box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
+    .role-check .smt-symbol { font-size: .74em; line-height: 1; display: block; }
+    .role-check.smt-anim-spin { animation: smt-badge-spin 3s linear infinite; }
+    .role-check.smt-anim-spin > * { animation: smt-badge-spin 3s linear infinite reverse; }
+    .role-check.smt-anim-pulse { animation: smt-badge-pulse 1.4s ease-in-out infinite; }
+    .role-check.smt-anim-bounce { animation: smt-badge-bounce 1s ease-in-out infinite; }
+    @keyframes smt-badge-pulse { 50% { transform: scale(1.3); filter: brightness(1.3); } }
+    @keyframes smt-badge-bounce { 50% { transform: translateY(-3px); } }
+    @media (prefers-reduced-motion: reduce) { .role-check.smt-custom, .role-check.smt-custom > * { animation: none; } }
+    .smt-check-editor { display: grid; gap: 10px; }
+    .smt-check-editor .smt-colors { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .smt-check-editor input[type="color"] { width: 44px; height: 34px; padding: 2px; border-radius: 8px; }
+    .smt-check-preview { font-size: 1.6rem; display: flex; align-items: center; gap: 4px; }
     /* Troll effects (Super Mega Tuff Co-owner). Drawn only on the target's screen. */
     html.troll-upside_down body { transform: rotate(180deg); }
     html.troll-mirror body { transform: scaleX(-1); }
@@ -1076,13 +1089,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       2%, 6%, 10% { transform: translate(-7px, 3px) rotate(-1deg); }
       4%, 8%, 12% { transform: translate(7px, -3px) rotate(1deg); }
     }
-    html.troll-rainbow body { animation: troll-hue 4s linear infinite; }
-    html.troll-blur body { filter: blur(1.4px); }
-    html.troll-blur.troll-rainbow body { animation: troll-hue-blur 4s linear infinite; }
-    @keyframes troll-hue { from { filter: hue-rotate(0deg) saturate(1.6); } to { filter: hue-rotate(360deg) saturate(1.6); } }
-    @keyframes troll-hue-blur { from { filter: blur(1.4px) hue-rotate(0deg) saturate(1.6); } to { filter: blur(1.4px) hue-rotate(360deg) saturate(1.6); } }
-    html.troll-comic_sans body, html.troll-comic_sans body * { font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", "Comic Neue", cursive !important; }
-    html.troll-no_cursor, html.troll-no_cursor * { cursor: none !important; }
+    html.troll-reverse_mouse.troll-mouse-ready, html.troll-reverse_mouse.troll-mouse-ready * { cursor: none !important; }
+    .troll-cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+    .troll-runaway { transition: translate .18s ease-out; }
     #troll-layer { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden; }
     .troll-drop { position: absolute; top: -48px; font-size: 28px; animation: troll-fall linear forwards; }
     @keyframes troll-fall { to { transform: translateY(calc(100vh + 96px)) rotate(540deg); } }
@@ -1097,7 +1106,8 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .troll-popup .troll-popup-actions { position: relative; height: 36px; }
     .troll-popup .troll-popup-actions button { position: absolute; right: 0; top: 0; transition: right .15s, top .15s; }
     @media (prefers-reduced-motion: reduce) {
-      html.troll-shake, html.troll-rainbow body, html.troll-blur.troll-rainbow body { animation: none; }
+      html.troll-shake { animation: none; }
+      .troll-runaway { transition: none; }
     }
     #troll-dialog .troll-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 6px 0 14px; }
     #troll-dialog .troll-option { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; }
@@ -3676,6 +3686,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
         <div class="timeout-bar" id="timeout-bar" hidden>
           <span aria-hidden="true">⏳</span>
           <span class="grow" id="timeout-text"></span>
+          <button class="secondary-button" type="button" id="smt-untimeout-self" hidden>Remove my timeout</button>
         </div>
       </div>
 
@@ -7889,11 +7900,29 @@ void main() {
       return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+    // The Super Mega Tuff Co-owner styles their own check (app_settings.smt_check,
+    // validated by chat_set_smt_check and again here before it reaches the page).
+    const SMT_ANIMATIONS = ['spin', 'pulse', 'bounce', 'none'];
+    function smtCheckStyle(raw = appSettings.smt_check) {
+      let v;
+      try { v = JSON.parse(raw || ''); } catch { return null; }
+      if (!v || typeof v !== 'object') return null;
+      const colors = (Array.isArray(v.colors) ? v.colors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 4);
+      if (!colors.length) return null;
+      const symbol = typeof v.symbol === 'string' && [...v.symbol].length <= 8 && !/[<>&"'`\\\u0000-\u001f]/.test(v.symbol) ? v.symbol : '';
+      return { symbol, colors, animation: SMT_ANIMATIONS.includes(v.animation) ? v.animation : 'none' };
+    }
+    function smtCheckHtml(style, title) {
+      const bg = style.colors.length === 1 ? style.colors[0] : `conic-gradient(from 0deg, ${style.colors.join(', ')}, ${style.colors[0]})`;
+      const inner = style.symbol ? `<span class="smt-symbol">${esc(style.symbol)}</span>` : ROLE_CHECK_SVG;
+      return `<span class="role-check smt-custom smt-anim-${style.animation}" style="--smt-bg:${bg}" title="${esc(title)}" aria-label="${esc(title)}">${inner}</span>`;
+    }
     function roleCheckHtml(profileOrUsername, opts = {}) {
       const role = staffRoleOf(profileOrUsername);
       const meta = STAFF_ROLE_META[role];
       if (!meta || !meta.check) return '';
       const title = opts.title || meta.label;
+      if (role === SMT_ROLE) { const style = smtCheckStyle(); if (style) return smtCheckHtml(style, title); }
       // Custom roles carry their own colour (validated #rrggbb).
       const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
       return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
@@ -15013,6 +15042,7 @@ void main() {
           }
           channel.on('broadcast', { event: 'voice_server_mutes' }, () => { if (voice.muteWatch) loadVoiceServerMutes(); });
           channel.on('broadcast', { event: 'troll_effects' }, ({ payload }) => applyTrollEffects(payload?.effects));
+          channel.on('broadcast', { event: 'troll_refresh' }, () => trollReload());
           return channel;
         };
         dbChannel = bind(sb.channel(LIVE_TOPIC, { config: { private: true } })).subscribe(onDataChannelStatus(gen));
@@ -15663,6 +15693,10 @@ void main() {
       if (row.key === 'force_refresh_at') { handleAppUpdateSignal(row.value); return; }
       if (row.key === 'app_enabled' && row.value === 'false' && !isOwner()) { showMaintenance(); return; }
       if (row.key === 'announcement') renderAnnouncement();
+      if (row.key === 'smt_check') {
+        renderSelf(); renderMembers(); renderDmList();
+        if (msgCache.has(viewKey(currentView))) renderTimeline({ preserve: true });
+      }
       if (row.key === 'whats_new') maybeShowWhatsNew();
       if (row.key === 'community_rules' && $('rules-dialog').open) renderRules();
       if (row.key === 'banned_words') { try { bannedWords = JSON.parse(row.value || '[]'); } catch {} }
@@ -15920,6 +15954,7 @@ void main() {
     function updateTimeoutUi() {
       const timedOut = isTimedOut();
       $('timeout-bar').hidden = !timedOut;
+      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff());
       $('message-input').disabled = timedOut;
       $('send-btn').disabled = timedOut;
       applyFeatureControls();
@@ -17473,7 +17508,7 @@ void main() {
         if (canDeleteAccounts()) {
           modHtml += `<button class="danger-button" type="button" data-hc-act="delete-account">Delete account</button>`;
         }
-      } else if (timedOut && !self && isSuperMegaTuff()) {
+      } else if (timedOut && isSuperMegaTuff()) {
         modHtml += `<button class="secondary-button" type="button" data-hc-act="untimeout">Remove timeout</button>`;
       }
       if (!self && canTroll(p)) {
@@ -17556,11 +17591,11 @@ void main() {
       ['upside_down', '🙃', 'Upside down', 'Their whole chat is flipped.'],
       ['mirror', '🪞', 'Mirror', 'Everything is backwards.'],
       ['shake', '🫨', 'Earthquake', 'The screen shakes every few seconds.'],
-      ['comic_sans', '🤡', 'Comic Sans', 'Every font becomes Comic Sans.'],
-      ['rainbow', '🌈', 'Rainbow', 'Colours cycle nonstop.'],
-      ['blur', '👓', 'Blurry', 'Lost their glasses.'],
       ['emoji_rain', '🌧️', 'Emoji rain', 'Clowns fall from the sky.'],
-      ['no_cursor', '🫥', 'No cursor', 'Their mouse pointer vanishes.'],
+      ['reverse_mouse', '🖱️', 'Reverse mouse', 'Their mouse moves, clicks and scrolls the opposite way.'],
+      ['backwards_typing', '⌨️', 'Backwards typing', 'Everything they type comes out backwards.'],
+      ['auto_refresh', '🔄', 'Auto refresh', 'Their page reloads every minute or two.'],
+      ['runaway_buttons', '🏃', 'Runaway buttons', 'Buttons dodge their mouse.'],
     ];
     const TROLL_POPUPS = [
       ['⚠️ Warning', 'Your chat is experiencing too much drip.'],
@@ -17600,7 +17635,93 @@ void main() {
       const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if (trollActive('emoji_rain') && !calm) trollRainTimer = setInterval(dropTrollEmoji, 450);
       else qsa('.troll-drop').forEach(n => n.remove());
+      setReverseMouse(trollActive('reverse_mouse'));
+      clearTimeout(trollRefreshTimer); trollRefreshTimer = 0;
+      if (trollActive('auto_refresh')) trollRefreshTimer = setTimeout(trollReload, 60000 + Math.random() * 60000);
+      if (!trollActive('runaway_buttons')) qsa('.troll-runaway').forEach(b => { b.style.translate = ''; b.classList.remove('troll-runaway'); });
     }
+    let trollRefreshTimer = 0;
+    function trollReload() { try { location.reload(); } catch {} }
+
+    // Reverse mouse: hide the real pointer, draw one mirrored through the
+    // centre of the window, and send clicks and wheel turns to that point.
+    let trollCursor = null, trollMouseOn = false;
+    const mirrorPoint = (x, y) => [window.innerWidth - x, window.innerHeight - y];
+    function onTrollMove(event) {
+      if (event.pointerType && event.pointerType !== 'mouse') return;
+      document.documentElement.classList.add('troll-mouse-ready');
+      const [x, y] = mirrorPoint(event.clientX, event.clientY);
+      if (!trollCursor) {
+        trollCursor = document.createElement('div');
+        trollCursor.className = 'troll-cursor';
+        trollCursor.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 2l7 19 2.6-7.4L20 11z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+        trollLayer().appendChild(trollCursor);
+      }
+      trollCursor.style.transform = `translate(${x}px, ${y}px)`;
+    }
+    function trollTargetAt(event) {
+      const [x, y] = mirrorPoint(event.clientX, event.clientY);
+      const layer = $('troll-layer');
+      if (layer) layer.style.display = 'none';
+      const el = document.elementFromPoint(x, y);
+      if (layer) layer.style.display = '';
+      return el;
+    }
+    function onTrollClick(event) {
+      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.detail === 0) return;
+      if (event.target.closest?.('.troll-popup')) return;
+      event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      const el = trollTargetAt(event);
+      if (!el) return;
+      const focusable = el.closest('input, textarea, select, [contenteditable="true"]');
+      if (focusable) focusable.focus();
+      el.click();
+    }
+    function onTrollDown(event) {
+      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.target.closest?.('.troll-popup')) return;
+      event.preventDefault();
+    }
+    function onTrollWheel(event) {
+      if (!event.isTrusted) return;
+      event.preventDefault(); event.stopPropagation();
+      let el = trollTargetAt(event);
+      while (el && el !== document.body && !(el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+      (el && el !== document.body ? el : document.scrollingElement)?.scrollBy({ top: -event.deltaY, left: -event.deltaX });
+    }
+    function setReverseMouse(on) {
+      if (on === trollMouseOn) return;
+      trollMouseOn = on;
+      const method = on ? 'addEventListener' : 'removeEventListener';
+      window[method]('pointermove', onTrollMove, true);
+      window[method]('pointerdown', onTrollDown, true);
+      window[method]('mousedown', onTrollDown, true);
+      window[method]('click', onTrollClick, true);
+      window[method]('wheel', onTrollWheel, { capture: true, passive: false });
+      if (!on) { trollCursor?.remove(); trollCursor = null; document.documentElement.classList.remove('troll-mouse-ready'); }
+    }
+
+    // Backwards typing: each typed character goes before the caret, not after.
+    document.addEventListener('beforeinput', event => {
+      if (!trollActive('backwards_typing') || event.inputType !== 'insertText' || !event.data || event.isComposing) return;
+      const el = event.target;
+      if (!(el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search)$/.test(el.type)))) return;
+      event.preventDefault();
+      const start = el.selectionStart ?? el.value.length, end = el.selectionEnd ?? start;
+      el.setRangeText([...event.data].reverse().join(''), start, end, 'start');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, true);
+
+    // Runaway buttons: a button jumps away when the mouse reaches it.
+    document.addEventListener('pointerover', event => {
+      if (!trollActive('runaway_buttons') || event.pointerType !== 'mouse') return;
+      const button = event.target.closest?.('button, [role="button"], .primary-button, .secondary-button');
+      if (!button || button.closest('.troll-popup, #troll-dialog') || Math.random() < 0.25) return;
+      button.classList.add('troll-runaway');
+      const dx = (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 60), dy = (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 40);
+      button.style.translate = `${dx}px ${dy}px`;
+      clearTimeout(button._trollBack);
+      button._trollBack = setTimeout(() => { button.style.translate = ''; }, 1600);
+    }, true);
     // Once per realtime join (both topics report SUBSCRIBED), like the other reconcile reads.
     async function loadMyTrollEffects() {
       if (!me || trollLoadAt >= realtimeAttemptAt) return;
@@ -17653,6 +17774,48 @@ void main() {
       return true;
     }
 
+    function smtCheckEditorHtml() {
+      const style = smtCheckStyle() || { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin' };
+      const colors = [0, 1, 2, 3].map(i => style.colors[i] || '');
+      return `<div class="smt-check-editor">
+        <div class="smt-check-preview" id="smt-check-preview" aria-live="polite"></div>
+        <div class="field"><label for="smt-check-symbol">Symbol (emoji or up to 8 characters; empty for a ✓)</label><input id="smt-check-symbol" maxlength="32" value="${esc(style.symbol)}" placeholder="✓"></div>
+        <div class="field"><label>Colours (untick to use fewer)</label><div class="smt-colors">${colors.map((c, i) => `<label class="smt-color"><input type="checkbox" data-smt-color-on="${i}" ${c ? 'checked' : ''} aria-label="Use colour ${i + 1}"><input type="color" data-smt-color="${i}" value="${c || '#ffffff'}" aria-label="Colour ${i + 1}"></label>`).join('')}</div></div>
+        <div class="field"><label for="smt-check-anim">Animation</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
+        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">Reset to default</button></div>
+      </div>`;
+    }
+    function bindSmtCheckEditor(root) {
+      const symbol = $('smt-check-symbol');
+      if (!symbol) return;
+      const read = () => ({
+        symbol: symbol.value.trim(),
+        colors: qsa('[data-smt-color]', root).filter(c => qs(`[data-smt-color-on="${c.dataset.smtColor}"]`, root).checked).map(c => c.value.toLowerCase()),
+        animation: $('smt-check-anim').value,
+      });
+      const preview = () => {
+        const v = read(), style = smtCheckStyle(JSON.stringify(v));
+        $('smt-check-preview').innerHTML = `${esc(displayNameOf(me))} ${style ? smtCheckHtml(style, 'Preview') : '<span class="field-help">Pick at least one colour</span>'}`;
+      };
+      qsa('input, select', root.querySelector('.smt-check-editor')).forEach(i => i.addEventListener('input', preview));
+      preview();
+      const save = async (args, done) => {
+        try {
+          const { error } = await sb.rpc('chat_set_smt_check', args);
+          if (error) throw error;
+          toast({ type: 'success', text: done });
+        } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save your check mark.' }); }
+      };
+      $('smt-check-save').addEventListener('click', () => {
+        const v = read();
+        if (!v.colors.length) { toast({ type: 'warning', text: 'Pick at least one colour.' }); return; }
+        if ([...v.symbol].length > 8) { toast({ type: 'warning', text: 'Use up to 8 characters.' }); return; }
+        if (/[<>&"'`\\]/.test(v.symbol)) { toast({ type: 'warning', text: 'That symbol has characters that aren’t allowed.' }); return; }
+        save({ p_symbol: v.symbol, p_colors: v.colors, p_animation: v.animation }, 'Check mark updated ✨');
+      });
+      $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null }, 'Check mark reset.'));
+    }
+
     function canTroll(target) {
       if (!me || !isSuperMegaTuff()) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
@@ -17676,7 +17839,7 @@ void main() {
               <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></div>
             </div>
             <div class="troll-grid">${TROLL_EFFECTS.map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('')}</div>
-            <div class="group-actions"><button class="primary-button" type="submit">Unleash 😈</button><button class="secondary-button" type="button" id="troll-stop-target">Stop trolling them</button></div>
+            <div class="group-actions"><button class="primary-button" type="submit">Unleash 😈</button><button class="secondary-button" type="button" id="troll-refresh-target">🔄 Refresh their page now</button><button class="secondary-button" type="button" id="troll-stop-target">Stop trolling them</button></div>
             <p class="field-help">Effects only show on their screen and wear off on their own. The owner and PRESTON can’t be trolled.</p>
           </form>
           <div class="profile-menu-label" style="padding-left:0">Active trolls</div>
@@ -17698,6 +17861,12 @@ void main() {
           await renderActiveTrolls();
         } catch (error) { toast({ type: 'error', text: error?.message || 'The troll failed.' }); }
         finally { button.disabled = false; }
+      });
+      $('troll-refresh-target').addEventListener('click', async () => {
+        const target = $('troll-target').value.trim().replace(/^@/, '');
+        if (!target) { toast({ type: 'warning', text: 'Pick who to refresh.' }); return; }
+        const { error } = await sb.rpc('chat_troll_refresh', { p_target: profileOf(target)?.username || target });
+        toast(error ? { type: 'error', text: error.message || 'Could not refresh them.' } : { type: 'success', text: `@${target}’s page is reloading 🔄` });
       });
       $('troll-stop-target').addEventListener('click', () => {
         const target = $('troll-target').value.trim().replace(/^@/, '');
@@ -19501,6 +19670,7 @@ void main() {
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
         if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
           (isSuperMegaTuff() ? consoleCard('Announcement banner', 'Shown above community conversations. Leave it empty to hide the banner.', `<div class="field"><label for="smt-announcement">Announcement</label><input id="smt-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Leave empty to hide the banner"></div><div class="field"><label for="smt-whatsnew">What’s new</label><textarea id="smt-whatsnew" rows="4" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div><button id="smt-save-broadcast" class="primary-button" type="button">Publish</button> <span id="smt-broadcast-status" class="field-help" role="status"></span>`) : '')
+          + (isSuperMegaTuff() ? consoleCard('Your check mark', 'Make your badge whatever you want. Everyone sees it.', smtCheckEditorHtml()) : '')
           + consoleCard('Troll menu', isSuperMegaTuff() ? 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.' : 'See who is being trolled and stop it.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
@@ -19508,6 +19678,7 @@ void main() {
         const loadPanel = id => { if (id === 'activity') loadAdminLogs(); if (id === 'archive') loadDeletedMessages(); };
         bindConsoleNavigation(el, 'staff', loadPanel); bindStaffRoleControls(el, renderAdminTab); bindSubRoleControls(el);
         $('smt-open-troll')?.addEventListener('click', () => openTrollMenu());
+        bindSmtCheckEditor(el);
         $('smt-save-broadcast')?.addEventListener('click', async () => {
           const button = $('smt-save-broadcast'); button.disabled = true;
           try {
@@ -21649,6 +21820,14 @@ void main() {
       });
       $('confirm-cancel').addEventListener('click', () => { confirmState = null; $('confirm-dialog').close(); });
 
+      $('smt-untimeout-self').addEventListener('click', async () => {
+        const button = $('smt-untimeout-self'); button.disabled = true;
+        try {
+          await applyTimeout(me.username, 0);
+          me.timeout_until = null; me.timeout_by = '';
+          updateTimeoutUi();
+        } finally { button.disabled = false; }
+      });
       $('announce-dismiss').addEventListener('click', () => {
         LS.set('lc_dismissed_announcement', (appSettings.announcement || '').trim());
         $('announce-bar').hidden = true;

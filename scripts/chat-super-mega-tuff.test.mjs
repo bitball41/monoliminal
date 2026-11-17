@@ -31,7 +31,7 @@ async function setup() {
   return { db, call, profile };
 }
 
-test('the role sits right above Co-owner with co-owner powers and is permanent', async () => {
+test('the role tops the staff ladder with co-owner powers and is permanent', async () => {
   const { db, profile } = await setup();
   try {
     const r = (await db.query(`select * from public.chat_staff_roles where slug=$1`, [SMT])).rows[0];
@@ -52,13 +52,13 @@ test('only PomKnee can hold it, and only the owner can take it away', async () =
     await assert.rejects(db.query(`update public.profiles set staff_role=$1 where username='alice'`, [SMT]), /PomKnee only/);
     await assert.rejects(call('owner', `select public.chat_set_staff_role('owner','', 'alice', $1)`, [SMT]), /PomKnee only/);
     await assert.rejects(call('coowner', `select public.chat_set_staff_role('coowner','', 'PomKnee', 'member')`), /below your rank|Only the owner/);
-    // A custom role placed above it still cannot strip it.
+    // A custom role cannot be placed above it, so its holders cannot strip it either.
     await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
     const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
     const order = (await db.query(`select array_agg(slug order by power desc, slug) o from public.chat_staff_roles where slug not in ('member','owner','preston') and slug <> $1`, [god])).rows[0].o;
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...order]]);
     await db.query(`update public.profiles set staff_role=$1 where username='coowner'`, [god]);
-    await assert.rejects(call('coowner', `select public.chat_set_staff_role('coowner','', 'PomKnee', 'member')`), /Only the owner/);
+    await assert.rejects(call('coowner', `select public.chat_set_staff_role('coowner','', 'PomKnee', 'member')`), /below your rank/);
     await assert.rejects(call('owner', `select public.chat_delete_staff_role($1)`, [SMT]));
     // The owner can.
     await call('owner', `select public.chat_set_staff_role('owner','', 'PomKnee', 'co_owner')`);
@@ -148,5 +148,63 @@ test('troll menu: PomKnee only, never the owner, broadcast to the target, owner 
     await call('owner', `select public.chat_troll_clear('alice')`);
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await db.query(`update private.chat_troll_effects set expires_at = now() - interval '1 second'`);
+  } finally { await db.close(); }
+});
+
+test('part 2: pinned above every custom role, even after reordering or new roles', async () => {
+  const { db, call } = await setup();
+  try {
+    await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
+    const ladder = async () => (await db.query(`select slug from public.chat_staff_roles where slug not in ('member','owner','preston') order by power desc, slug`)).rows.map(r => r.slug);
+    assert.equal((await ladder())[0], SMT);
+    const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
+    await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...(await ladder()).filter(s => s !== god)]]);
+    const after = await ladder();
+    assert.deepEqual(after.slice(0, 2), [SMT, god]);
+    const p = (await db.query(`select private.chat_staff_power($1) s, private.chat_staff_power($2) g`, [SMT, god])).rows[0];
+    assert(p.s > p.g);
+  } finally { await db.close(); }
+});
+
+test('part 2: PomKnee styles their own check mark; nobody else can', async () => {
+  const { db, call } = await setup();
+  try {
+    await call('PomKnee', `select public.chat_set_smt_check('🔥', array['#FF0000','#00ff00'], 'pulse')`);
+    const v = JSON.parse((await db.query(`select value from public.app_settings where key='smt_check'`)).rows[0].value);
+    assert.deepEqual(v, { symbol: '🔥', colors: ['#ff0000', '#00ff00'], animation: 'pulse' });
+    assert.equal((await call('alice', `select value from public.app_settings where key='smt_check'`)).length, 1, 'everyone can read it');
+    await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('<b>', array['#ff0000'], 'spin')`), /8 characters/);
+    await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('x', array['red'], 'spin')`), /colours/);
+    await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('x', array['#ff0000'], 'explode')`), /spin, pulse/);
+    await assert.rejects(call('owner', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Super Mega Tuff/);
+    await call('PomKnee', `select public.chat_set_smt_check(null, null, null)`);
+    assert.equal((await db.query(`select value from public.app_settings where key='smt_check'`)).rows[0].value, '');
+  } finally { await db.close(); }
+});
+
+test('part 2: PomKnee can clear their own timeout', async () => {
+  const { db, call, profile } = await setup();
+  try {
+    await db.exec(`alter table public.profiles disable trigger zz_chat_super_mega_tuff_guard;
+      update public.profiles set timeout_until = now() + interval '1 hour', timeout_by='owner' where username='PomKnee';
+      alter table public.profiles enable trigger zz_chat_super_mega_tuff_guard;`);
+    await call('PomKnee', `select public.chat_staff_timeout_user('PomKnee','', 'PomKnee', 0)`);
+    assert.equal((await profile('PomKnee')).timeout_until, null);
+  } finally { await db.close(); }
+});
+
+test('part 2: new trolls replace the old ones, and the one-shot refresh', async () => {
+  const { db, call } = await setup();
+  try {
+    const fx = await call('PomKnee', `select public.chat_troll_apply('alice', array['reverse_mouse','backwards_typing','auto_refresh','runaway_buttons'], 5) r`);
+    assert.equal(fx[0].r.length, 4);
+    for (const old of ['rainbow', 'comic_sans', 'blur', 'no_cursor']) {
+      await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array[$1], 5)`, [old]), /Unknown troll/);
+    }
+    await call('PomKnee', `select public.chat_troll_refresh('alice')`);
+    const sent = (await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows;
+    assert.deepEqual(sent, [{ topic: 'chat:user:alice' }]);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_refresh('owner')`), /owner and PRESTON/);
+    await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /Only the Super Mega Tuff/);
   } finally { await db.close(); }
 });

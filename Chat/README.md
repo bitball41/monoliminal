@@ -26,15 +26,38 @@ show a plain badge and no troll menu.
   mode, and QuoteBot's per-member limits.
 - **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
   1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
-  messages), shows silly popups, flips or mirrors the page, shakes, switches to
-  Comic Sans, cycles colours, blurs, rains emoji or hides the cursor. Effects
+  messages), shows silly popups, flips or mirrors the page, shakes or rains
+  emoji (see part 2 for the rest). Effects
   run only in the target's browser, never post anything as them, expire on
-  their own, and skip shaking/rainbow/rain when the device asks for reduced
+  their own, and skip shaking/rain when the device asks for reduced
   motion. The owner, PRESTON and the bots cannot be trolled. The owner sees
   and stops active trolls from Staff → Trolls. Every troll is in the staff
   audit log.
 
 Tests: `scripts/chat-super-mega-tuff.test.mjs`.
+
+## Super Mega Tuff Co-owner, part 2
+
+Needs [`20261117185020_chat_super_mega_tuff_co_owner_2.sql`](../Backend/migrations/20261117185020_chat_super_mega_tuff_co_owner_2.sql).
+
+- **Top of the staff ladder.** The role now sits above every custom role,
+  God Tier included; only Owner and PRESTON are higher. Reordering roles or
+  creating new ones keeps it first.
+- **Custom check mark.** Staff → 😈 Tuff powers → Your check mark: any emoji or
+  up to 8 characters (or the normal ✓), 1–4 colours, and spin, pulse, bounce
+  or no animation, with a live preview. Saved in `app_settings.smt_check`
+  (`chat_set_smt_check`, holder only) and shown to everyone live. Symbol and
+  colours are validated on the server and again before rendering.
+- **Remove my timeout.** The role can't be timed out, but if a timeout is ever
+  on the account, the timeout bar has a "Remove my timeout" button.
+- **New trolls** replace Rainbow, Comic Sans, Blurry and No cursor:
+  - Reverse mouse: the real pointer is hidden and a mirrored one is drawn;
+    clicks and scrolling go to the mirrored spot, the opposite way.
+  - Backwards typing: typed text comes out reversed.
+  - Auto refresh: the page reloads every one to two minutes while active.
+  - Runaway buttons: buttons jump away from the mouse.
+  - Plus a one-shot "Refresh their page now" (`chat_troll_refresh`).
+  Old active trolls of the removed kinds are cleared by the migration.
 
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites
 
