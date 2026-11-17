@@ -60,6 +60,9 @@ troll list in force, new functions callable by signed-in accounts only).
   - Auto refresh: the page reloads every one to two minutes while active.
   - Runaway buttons: buttons jump away from the mouse.
   - Plus a one-shot "Refresh their page now" (`chat_troll_refresh`).
+- **Secret entrance.** For the role holder only, clicking (or Enter on) the
+  "Corazon" title at the top of the sidebar opens the troll menu. It looks
+  like plain text; a faint 😈 appears on hover. For everyone else it stays text.
   Old active trolls of the removed kinds are cleared by the migration.
 
 ## Chat 6.1, part 3: custom roles, profile extras, appearance, editable rules, account sticker favorites

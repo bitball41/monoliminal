@@ -1079,6 +1079,9 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .smt-check-editor .smt-colors { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .smt-check-editor input[type="color"] { width: 44px; height: 34px; padding: 2px; border-radius: 8px; }
     .smt-check-preview { font-size: 1.6rem; display: flex; align-items: center; gap: 4px; }
+    #sidebar-brand-title.smt-secret { cursor: default; position: relative; outline-offset: 3px; }
+    #sidebar-brand-title.smt-secret::after { content: '😈'; position: absolute; left: 100%; top: -.2em; margin-left: 3px; font-size: .55em; opacity: 0; transition: opacity .6s; pointer-events: none; }
+    #sidebar-brand-title.smt-secret:hover::after, #sidebar-brand-title.smt-secret:focus-visible::after { opacity: .35; }
     /* Troll effects (Super Mega Tuff Co-owner). Drawn only on the target's screen. */
     html.troll-upside_down body { transform: rotate(180deg); }
     html.troll-mirror body { transform: scaleX(-1); }
@@ -3570,7 +3573,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
     <aside class="sidebar" id="sidebar" aria-label="Channels and direct messages">
       <div class="brand">
         <div class="brand-copy">
-          <div class="brand-title">Corazon</div>
+          <div class="brand-title" id="sidebar-brand-title">Corazon</div>
           <div class="brand-subtitle">Chat</div>
         </div>
       </div>
@@ -17358,6 +17361,7 @@ void main() {
     /* ============================= 26. MEMBERS PANEL ============================= */
     function renderSelf() {
       if (!me) return;
+      syncSecretTrollTrigger();
       const effStatus = presenceStatusOf(me.username);
       const avatar = $('self-avatar');
       const identity = avatarImageHtml(me);
@@ -17815,6 +17819,26 @@ void main() {
       });
       $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null }, 'Check mark reset.'));
     }
+
+    // Secret entrance: for the Super Mega Tuff Co-owner only, the sidebar's
+    // "Corazon" title opens the troll menu. For everyone else it stays text.
+    function syncSecretTrollTrigger() {
+      const title = $('sidebar-brand-title');
+      if (!title) return;
+      const armed = isSuperMegaTuff();
+      if (title.classList.contains('smt-secret') === armed) return;
+      title.classList.toggle('smt-secret', armed);
+      if (armed) { title.tabIndex = 0; title.setAttribute('role', 'button'); title.setAttribute('aria-label', 'Corazon (troll menu)'); }
+      else { title.removeAttribute('tabindex'); title.removeAttribute('role'); title.removeAttribute('aria-label'); }
+    }
+    document.addEventListener('click', event => {
+      if (event.target.closest?.('#sidebar-brand-title') && isSuperMegaTuff()) openTrollMenu();
+    });
+    document.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target.id === 'sidebar-brand-title' && isSuperMegaTuff()) {
+        event.preventDefault(); openTrollMenu();
+      }
+    });
 
     function canTroll(target) {
       if (!me || !isSuperMegaTuff()) return false;
