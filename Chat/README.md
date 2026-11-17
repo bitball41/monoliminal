@@ -68,9 +68,11 @@ troll list in force, new functions callable by signed-in accounts only).
 
 ## Super Mega Tuff Co-owner, part 3
 
-Needs [`20261117201254_chat_super_mega_tuff_co_owner_3.sql`](../Backend/migrations/20261117201254_chat_super_mega_tuff_co_owner_3.sql)
-(**not applied yet**). Until it is, the database keeps the part 1 rules: nobody can
-moderate the holder and QuoteBot has no limits for them.
+Needs [`20261117203705_chat_super_mega_tuff_co_owner_3.sql`](../Backend/migrations/20261117203705_chat_super_mega_tuff_co_owner_3.sql)
+(**applied 2026-11-17**, ledger version `20261117203705`; checked first with a
+rolled-back dry run on live data: PRESTON refused, Conno's timeout, clear, ban
+and unban accepted, PomKnee can't lift Conno's timeout, a second quote within
+a second refused, all eleven trolls accepted).
 
 - **Only Conno can consequence PomKnee.** The owner account `connor` can ban,
   time out, kick, delete or otherwise moderate the role holder. Everyone else,
