@@ -6401,9 +6401,20 @@ function loadAppearancePreferences() {
     }
     // Rings when a new message from someone else carries this account's mention marker.
     // This does not depend on the notifications table reaching this browser.
+    // @everyone uses its own marker so it never looks like a member id to the database.
+    const PHOENIX_EVERYONE_MARKER='[[phoenix-everyone]]';
+    function phoenixMessageFromOwner(row){
+      if(!row)return false;
+      if(row.is_owner===true||row.role==='owner')return true;
+      const member=row.user_id!=null?knownMemberUsers?.[String(row.user_id)]:null;
+      return !!(member&&(member.is_owner===true||member.role==='owner'));
+    }
     function phoenixMessageMentionsMe(row){
-      const myId=String(currentUserId||'');
-      return !!myId&&String(row?.text||'').includes('[[phoenix-mention:'+myId+']]');
+      const myId=String(currentUserId||'');if(!myId)return false;
+      const text=String(row?.text||'');
+      if(text.includes('[[phoenix-mention:'+myId+']]'))return true;
+      // Only the owner's @everyone counts, and it never pings the owner who sent it.
+      return text.includes('@everyone'+PHOENIX_EVERYONE_MARKER)&&String(row?.user_id||'')!==myId&&phoenixMessageFromOwner(row);
     }
     function phoenixCheckMentionBell(row){
       if(!row?.id||!currentUserId)return;
@@ -6739,9 +6750,9 @@ function loadAppearancePreferences() {
       if (rawText.startsWith('[POLL]')) {
         appendPhoenixPoll(messageBody,data);
       } else if (rawText.startsWith('[IMAGE_MESSAGE]')) {
-        renderImageMessage(messageBody, rawText.substring(15));
+        renderImageMessage(messageBody, rawText.substring(15), data);
       } else if (rawText.startsWith('[VIDEO_MESSAGE]')) {
-        renderVideoMessage(messageBody, rawText.substring(15));
+        renderVideoMessage(messageBody, rawText.substring(15), data);
       } else if (rawText.startsWith('[FILE]')) {
         renderAttachment(messageBody, rawText.substring(6));
       } else if (rawText.startsWith('[GIF]')) {
@@ -6757,7 +6768,7 @@ function loadAppearancePreferences() {
       } else {
         const text = document.createElement('div');
         text.className = 'msg-text';
-        renderMessageText(text, rawText);
+        renderMessageText(text, rawText, data);
         if (data.edited_at) {
           const edited = document.createElement('span');
           edited.className = 'msg-edited';
@@ -7020,9 +7031,9 @@ function loadAppearancePreferences() {
       if (rawText.startsWith('[POLL]')) {
         content.appendChild(header);appendPhoenixPoll(content,data);
       } else if (rawText.startsWith('[IMAGE_MESSAGE]')) {
-        content.appendChild(header);renderImageMessage(content, rawText.substring(15));
+        content.appendChild(header);renderImageMessage(content, rawText.substring(15), data);
       } else if (rawText.startsWith('[VIDEO_MESSAGE]')) {
-        content.appendChild(header);renderVideoMessage(content, rawText.substring(15));
+        content.appendChild(header);renderVideoMessage(content, rawText.substring(15), data);
       } else if (rawText.startsWith('[FILE]')) {
         renderAttachment(item, rawText.substring(6));
       } else if (rawText.startsWith('[GIF]')) {
@@ -7054,7 +7065,7 @@ function loadAppearancePreferences() {
       scrollChat();
     }
 
-    function renderImageMessage(container, encoded) {
+    function renderImageMessage(container, encoded, authorRow=null) {
       try {
         const message = JSON.parse(encoded);
         const textValue = String(message.text || '');
@@ -7063,7 +7074,7 @@ function loadAppearancePreferences() {
           textNode.className = 'msg-text';
           textNode.style.display = 'block';
           textNode.style.whiteSpace = 'pre-wrap';
-          renderMessageText(textNode, textValue);
+          renderMessageText(textNode, textValue, authorRow);
           container.appendChild(textNode);
         }
         const file = message.image || message;
@@ -7073,7 +7084,7 @@ function loadAppearancePreferences() {
       }
     }
 
-    function renderVideoMessage(container, encoded) {
+    function renderVideoMessage(container, encoded, authorRow=null) {
       try {
         const message = JSON.parse(encoded);
         const textValue = String(message.text || '');
@@ -7082,7 +7093,7 @@ function loadAppearancePreferences() {
           textNode.className = 'msg-text';
           textNode.style.display = 'block';
           textNode.style.whiteSpace = 'pre-wrap';
-          renderMessageText(textNode, textValue);
+          renderMessageText(textNode, textValue, authorRow);
           container.appendChild(textNode);
         }
         renderAttachment(container, JSON.stringify(message.video || message));
@@ -7368,10 +7379,10 @@ function loadAppearancePreferences() {
       }
     }
 
-    function renderMessageText(container, rawText) {
+    function renderMessageText(container, rawText, authorRow=null) {
       // Only the private marker written by a clicked suggestion creates a mention.
       // A plain @word (including abbreviations such as @E.O.C.) remains ordinary text.
-      const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32}\[\[phoenix-mention:([^\]]+)\]\])/g;
+      const tokenRegex = /(\[\[emoji:https:\/\/[^\]\s]+\]\])|(@[A-Za-z0-9_-]{1,32}\[\[phoenix-mention:([^\]]+)\]\])|(@everyone\[\[phoenix-everyone\]\])/gi;
       const value = String(rawText || '');
       let last = 0, match;
       const myId = String(currentUserId || '');
@@ -7382,6 +7393,12 @@ function loadAppearancePreferences() {
           const url = token.slice(8, -2);
           if (isSafeCustomEmojiUrl(url)) { const img=document.createElement('img');img.className='message-custom-emoji';img.src=url;img.alt='custom emoji';img.loading='lazy';img.onerror=()=>img.replaceWith(document.createTextNode('🖼️'));container.appendChild(img); }
           else container.appendChild(document.createTextNode('🖼️'));
+        } else if (match[4]) {
+          const everyone = document.createElement('span'); everyone.className='mention'; everyone.textContent='@everyone';
+          const fromOwner = phoenixMessageFromOwner(authorRow);
+          if (fromOwner && String(authorRow?.user_id||'') !== myId) { everyone.classList.add('mention-me'); everyone.title='Everyone was mentioned'; }
+          else everyone.title = fromOwner ? 'You mentioned everyone' : '@everyone';
+          container.appendChild(everyone);
         } else {
           const username = token.slice(0, token.indexOf('[['));
           const mention = document.createElement('span'); mention.className='mention'; mention.textContent=username;
@@ -7543,7 +7560,7 @@ function loadAppearancePreferences() {
       phoenixSelectedMentions=phoenixSelectedMentions.filter(m=>m.end<=prefix||m.start>=oldEnd).map(m=>{if(m.start>=oldEnd)return {...m,start:m.start+delta,end:m.end+delta};return m;});
       phoenixMentionPreviousInput=nextValue;
     }
-    function phoenixTextWithMentionIds(value){let result=value;for(const m of [...phoenixSelectedMentions].sort((a,b)=>b.start-a.start)){if(result.slice(m.start,m.end)==='@'+m.username)result=result.slice(0,m.end)+'[[phoenix-mention:'+m.id+']]'+result.slice(m.end);}return result;}
+    function phoenixTextWithMentionIds(value){let result=value;for(const m of [...phoenixSelectedMentions].sort((a,b)=>b.start-a.start)){if(m.id==='everyone')continue;if(result.slice(m.start,m.end)==='@'+m.username)result=result.slice(0,m.end)+'[[phoenix-mention:'+m.id+']]'+result.slice(m.end);}if(isOwner)result=result.replace(/(^|\s)@everyone(?![A-Za-z0-9_\[-])/gi,'$1@everyone'+PHOENIX_EVERYONE_MARKER);return result;}
     function phoenixMentionDisplayName(user){return String(user?.display_name||user?.name||user?.username||'Member');}
     function getPhoenixMentionQuery(input){
       const caret=input.selectionStart??input.value.length;
@@ -7559,13 +7576,14 @@ function loadAppearancePreferences() {
       const query=String(queryInfo.query||'').toLowerCase();
       const users=Object.values(knownMemberUsers||{}).filter(u=>u?.id&&(isOwner||String(u.id)!==String(currentUserId))&&(String(u.username||'').toLowerCase().includes(query)||phoenixMentionDisplayName(u).toLowerCase().includes(query)));
       phoenixMentionMatches=users.sort((a,b)=>phoenixMentionDisplayName(a).localeCompare(phoenixMentionDisplayName(b),undefined,{sensitivity:'base'})||String(a.username||'').localeCompare(String(b.username||'')));
+      if(isOwner&&'everyone'.startsWith(query))phoenixMentionMatches.unshift({id:'everyone',username:'everyone',display_name:'Everyone',__phoenixEveryone:true});
       phoenixMentionRange={start:queryInfo.start,end:queryInfo.end};phoenixMentionActiveIndex=0;picker.replaceChildren();
       if(!phoenixMentionMatches.length){closePhoenixMentionPicker();return;}
       phoenixMentionMatches.slice(0,8).forEach((user,index)=>{
         const button=document.createElement('button');button.type='button';button.className='phoenix-mention-option'+(index===0?' active':'');button.setAttribute('role','option');
-        const avatar=document.createElement('span');avatar.className='phoenix-mention-avatar';const photo=user.pfp_url||user.avatar_url||'';
+        const avatar=document.createElement('span');avatar.className='phoenix-mention-avatar';const photo=user.__phoenixEveryone?'':(user.pfp_url||user.avatar_url||'');
         if(photo){const img=document.createElement('img');img.src=photo;img.alt='';img.onerror=()=>{img.remove();avatar.textContent=phoenixMentionDisplayName(user).charAt(0).toUpperCase();};avatar.append(img);}else avatar.textContent=phoenixMentionDisplayName(user).charAt(0).toUpperCase();
-        const labels=document.createElement('span');labels.className='phoenix-mention-label';const name=document.createElement('strong');name.textContent=phoenixMentionDisplayName(user);const handle=document.createElement('small');handle.textContent='@'+String(user.username||'');labels.append(name,handle);button.append(avatar,labels);
+        const labels=document.createElement('span');labels.className='phoenix-mention-label';const name=document.createElement('strong');name.textContent=phoenixMentionDisplayName(user);const handle=document.createElement('small');handle.textContent=user.__phoenixEveryone?'@everyone · pings all members':'@'+String(user.username||'');labels.append(name,handle);button.append(avatar,labels);
         button.onmousedown=e=>e.preventDefault();button.onclick=()=>selectPhoenixMention(user);picker.append(button);
       });picker.hidden=false;
     }
