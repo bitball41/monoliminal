@@ -6386,18 +6386,34 @@ function loadAppearancePreferences() {
         osc.start(start);osc.stop(start+0.44);
       });
     }
-    function playPhoenixMentionDing(){
-      if(!phoenixMentionSoundEnabled())return;
+    // Pings from the owner always ring, even with "Sound notifications" turned off.
+    // If the browser still blocks sound (no tap yet), the owner's ping asks for one tap and then rings.
+    function playPhoenixMentionDing({fromOwner=false}={}){
+      if(!currentUser)return;
+      if(!fromOwner&&!phoenixMentionSoundEnabled())return;
       const nowMs=Date.now();
       if(nowMs-phoenixMentionLastDingAt<1500)return;
       phoenixMentionLastDingAt=nowMs;
       try{
         const ctx=phoenixMentionAudio();if(!ctx)return;
+        let rang=false;
+        const ring=()=>{if(rang||ctx.state!=='running')return;rang=true;schedulePhoenixMentionBell(ctx);};
         // Schedule only once the context is actually running; a suspended context's
         // clock is frozen, so a bell scheduled then would never be heard on time.
-        if(ctx.state==='running')schedulePhoenixMentionBell(ctx);
-        else ctx.resume().then(()=>{if(ctx.state==='running')schedulePhoenixMentionBell(ctx);}).catch(e=>console.warn('Mention sound is blocked until you click or tap the page:',e));
+        if(ctx.state==='running'){ring();return;}
+        ctx.resume().then(ring).catch(e=>console.warn('Mention sound is blocked until you click or tap the page:',e));
+        if(fromOwner)setTimeout(()=>{if(!rang&&ctx.state!=='running')phoenixAskToHearOwnerPing(ctx,ring);},400);
       }catch(e){console.warn('Mention sound could not play:',e);}
+    }
+    function phoenixAskToHearOwnerPing(ctx,ring){
+      phoenixNotice('The owner pinged you. Tap OK to hear it.','🔔 Owner ping');
+      const ok=document.getElementById('phoenix-notice-ok');if(!ok)return;
+      const close=ok.onclick;
+      ok.onclick=()=>{unlockPhoenixMentionAudio();ctx.resume().then(ring).catch(()=>{});if(typeof close==='function')close();};
+    }
+    function phoenixUsernameIsOwner(username){
+      const name=String(username||'').toLowerCase();if(!name)return false;
+      return Object.values(knownMemberUsers||{}).some(u=>String(u?.username||'').toLowerCase()===name&&(u.is_owner===true||u.role==='owner'));
     }
     // Rings when a new message from someone else carries this account's mention marker.
     // This does not depend on the notifications table reaching this browser.
@@ -6427,7 +6443,7 @@ function loadAppearancePreferences() {
       if(!Number.isFinite(created)||created<phoenixMentionSessionStartedAt-5000||created<Date.now()-120000)return;
       phoenixMentionRungMessageIds.add(key);
       if(phoenixMentionRungMessageIds.size>2000)phoenixMentionRungMessageIds.delete(phoenixMentionRungMessageIds.values().next().value);
-      playPhoenixMentionDing();
+      playPhoenixMentionDing({fromOwner:phoenixMessageFromOwner(row)});
     }
     function loadNotifications(){
       if(!sessionToken)return Promise.resolve();
@@ -6441,8 +6457,8 @@ function loadAppearancePreferences() {
           const rows=Array.isArray(data)?data:[];
           notificationUnreadCount=rows.filter(n=>!n.read_at).length;updateNotificationDot();
           const currentIds=new Set(rows.map(n=>String(n.id)));
-          const hasNewMention=phoenixNotificationSnapshot!==''&&rows.some(n=>n.type==='mention'&&!phoenixNotificationIds.has(String(n.id))&&!(n.message_id!=null&&phoenixMentionRungMessageIds.has(String(n.message_id))));
-          if(hasNewMention){rows.forEach(n=>{if(n.type==='mention'&&n.message_id!=null)phoenixMentionRungMessageIds.add(String(n.message_id));});playPhoenixMentionDing();}
+          const newMentions=phoenixNotificationSnapshot===''?[]:rows.filter(n=>n.type==='mention'&&!phoenixNotificationIds.has(String(n.id))&&!(n.message_id!=null&&phoenixMentionRungMessageIds.has(String(n.message_id))));
+          if(newMentions.length){newMentions.forEach(n=>{if(n.message_id!=null)phoenixMentionRungMessageIds.add(String(n.message_id));});playPhoenixMentionDing({fromOwner:newMentions.some(n=>n.actor_is_owner===true||phoenixUsernameIsOwner(n.actor_username))});}
           phoenixNotificationIds=currentIds;
           const signature=JSON.stringify(rows);
           if(signature!==phoenixNotificationSnapshot){phoenixNotificationSnapshot=signature;renderNotifications(rows);}
