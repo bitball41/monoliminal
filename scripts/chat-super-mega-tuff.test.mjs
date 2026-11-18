@@ -11,7 +11,7 @@ const SMT = 'super_mega_tuff_co_owner';
 
 async function setup() {
   const db = new PGlite({ extensions: { pgcrypto } });
-  const people = { owner: 'owner', connor: 'owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
+  const people = { owner: 'owner', connor: 'owner', kirk: 'co_owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
   const ids = Object.fromEntries(Object.keys(people).map((name, i) => [name, `00000000-0000-4000-8000-0000000004${String(i + 10)}`]));
   await db.exec(await file('Backend/tests/authorization-fixture.sql'));
   for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort()) {
@@ -38,7 +38,7 @@ test('the role tops the staff ladder with co-owner powers and is permanent', asy
     assert.equal(r.tier, 5); assert.equal(r.builtin, true); assert.equal(r.label, 'Super Mega Tuff Co-owner');
     const p = (await db.query(`select private.chat_staff_power($1) s, private.chat_staff_power('co_owner') c`, [SMT])).rows[0];
     assert(p.s > p.c, 'above co-owner');
-    assert.equal(p.s, (await db.query(`select max(power) m from public.chat_staff_roles where slug not in ('owner','preston')`)).rows[0].m);
+    assert.equal(p.s, (await db.query(`select max(power) m from public.chat_staff_roles where slug not in ('owner','preston')`)).rows[0].m, 'top step (shared with Phoenix)');
     const admins = (await db.query(`select count(distinct power)::int n from public.chat_staff_roles where slug in ('admin','dusty','super_mega_tuff_admin')`)).rows[0].n;
     assert.equal(admins, 1, 'the three admin roles stay tied');
     const pom = await profile('PomKnee');
@@ -93,7 +93,7 @@ test('only Conno can ban, time out or kick it; anyone else (another owner too) i
     pom = await profile('PomKnee');
     assert.equal(pom.is_banned, true); assert.equal(pom.banned_by, 'connor');
     // A banned holder loses the powers until unbanned.
-    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only the Super Mega Tuff/);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
     await call('connor', `select public.chat_unban_user('connor','', 'PomKnee')`);
     assert.equal((await profile('PomKnee')).is_banned, false);
     // The permission does not leak to later statements outside Conno's call.
@@ -161,7 +161,7 @@ test('it spams with lighter limits, QuoteBot included; everyone else keeps the n
   } finally { await db.close(); }
 });
 
-test('troll menu: PomKnee only, never the owner, broadcast to the target, owner can stop it', async () => {
+test('troll menu: broadcast to the target, never the owner, Conno can stop it', async () => {
   const { db, call } = await setup();
   try {
     const fx = await call('PomKnee', `select public.chat_troll_apply('alice', array['fail_send','popups','fail_send'], 5) r`);
@@ -172,17 +172,18 @@ test('troll menu: PomKnee only, never the owner, broadcast to the target, owner 
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r.map(e => e.effect), ['fail_send', 'popups']);
     assert.deepEqual((await call('bob', `select public.chat_my_troll_effects() r`))[0].r, []);
 
-    await assert.rejects(call('coowner', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only the Super Mega Tuff/);
-    await assert.rejects(call('alice', `select public.chat_troll_list()`), /Only the Super Mega Tuff/);
+    await assert.rejects(call('coowner', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
+    await assert.rejects(call('alice', `select public.chat_troll_list()`), /troll menu is not available/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('owner', array['popups'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('PomKnee', array['popups'], 5)`), /yourself/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('bob', array['delete_account'], 5)`), /Unknown troll/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('bob', array['popups'], 600)`), /1 and 60 minutes/);
     await assert.rejects(call('alice', `select * from private.chat_troll_effects`));
 
-    const list = (await call('owner', `select public.chat_troll_list() r`))[0].r;
+    const list = (await call('connor', `select public.chat_troll_list() r`))[0].r;
     assert.equal(list[0].target, 'alice');
-    await call('owner', `select public.chat_troll_clear('alice')`);
+    await assert.rejects(call('owner', `select public.chat_troll_clear('alice')`), /troll menu is not available/);
+    await call('connor', `select public.chat_troll_clear('alice')`);
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await db.query(`update private.chat_troll_effects set expires_at = now() - interval '1 second'`);
   } finally { await db.close(); }
@@ -193,12 +194,13 @@ test('part 2: pinned above every custom role, even after reordering or new roles
   try {
     await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
     const ladder = async () => (await db.query(`select slug from public.chat_staff_roles where slug not in ('member','owner','preston') order by power desc, slug`)).rows.map(r => r.slug);
-    // Phoenix (20261118032602) shares the top spot.
+    // Phoenix (20261118032602) is its equal, tied on the top step (20261118142807).
     assert.deepEqual((await ladder()).slice(0, 2).sort(), ['phoenix', SMT]);
     const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...(await ladder()).filter(s => s !== god)]]);
     const after = await ladder();
     assert.deepEqual(after.slice(0, 3), ['phoenix', SMT, god]);
+    assert.equal((await db.query(`select private.chat_staff_power('phoenix') = private.chat_staff_power($1) t`, [SMT])).rows[0].t, true);
     const p = (await db.query(`select private.chat_staff_power($1) s, private.chat_staff_power($2) g`, [SMT, god])).rows[0];
     assert(p.s > p.g);
   } finally { await db.close(); }
@@ -254,12 +256,39 @@ test('Conno can troll too (PomKnee included); other owners and staff cannot', as
     await assert.rejects(call('connor', `select public.chat_troll_apply('owner', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     for (const who of ['owner', 'coowner', 'manager', 'alice']) {
-      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
-      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
+      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /troll menu is not available/);
+      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /troll menu is not available/);
     }
     // A banned Conno loses it like anyone else.
     await db.query(`update public.profiles set is_banned=true where username='connor'`);
-    await assert.rejects(call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`), /Only the Super Mega Tuff/);
+    await assert.rejects(call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`), /troll menu is not available/);
+  } finally { await db.close(); }
+});
+
+test('troll menu is locked to the exact @PomKnee, @connor and @kirk accounts, not roles', async () => {
+  const { db, call } = await setup();
+  try {
+    // Any role, even the top ones, is not enough on its own.
+    for (const who of ['owner', 'coowner', 'manager', 'alice']) {
+      for (const sql of [`select public.chat_troll_apply('bob', array['shake'], 5)`, `select public.chat_troll_refresh('bob')`,
+                         `select public.chat_troll_list()`, `select public.chat_troll_clear('bob')`])
+        await assert.rejects(call(who, sql), /troll menu is not available/);
+    }
+    // PomKnee keeps it whatever their role; Conno whatever his.
+    await call('connor', `select public.chat_set_staff_role('connor','', 'PomKnee', 'member')`);
+    await call('PomKnee', `select public.chat_troll_apply('bob', array['shake'], 5)`);
+    await db.query(`update public.profiles set staff_role='co_owner' where username='connor'`);
+    await call('connor', `select public.chat_troll_apply('alice', array['popups'], 5)`);
+    assert.equal((await call('connor', `select public.chat_troll_list() r`))[0].r.length, 2);
+    // Kirk too (20261118142807), whatever his role; here he is a plain co-owner.
+    await call('kirk', `select public.chat_troll_apply('manager', array['auto_refresh'], 60)`);
+    await call('kirk', `select public.chat_troll_refresh('manager')`);
+    assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 3);
+    // Look-alike accounts are refused, in any capitalisation.
+    for (const name of ['pomknee', 'POMKNEE', 'Connor', 'CONNOR', 'Kirk', 'KIRK']) {
+      await assert.rejects(db.query(`insert into public.profiles(username,display_name,staff_role) values($1,$1,'member')`, [name]), /reserved/);
+    }
+    await db.query(`insert into public.profiles(username,display_name,staff_role) values('pomknee2','x','member')`);
   } finally { await db.close(); }
 });
 
@@ -275,6 +304,6 @@ test('part 2: new trolls replace the old ones, and the one-shot refresh', async 
     const sent = (await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows;
     assert.deepEqual(sent, [{ topic: 'chat:user:alice' }]);
     await assert.rejects(call('PomKnee', `select public.chat_troll_refresh('owner')`), /owner and PRESTON/);
-    await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /Only the Super Mega Tuff/);
+    await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /troll menu is not available/);
   } finally { await db.close(); }
 });

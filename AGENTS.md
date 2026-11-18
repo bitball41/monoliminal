@@ -20,3 +20,17 @@
 - `Phoenix chat/` is a friend's separate app with its own Supabase project
   (`wahnihvqlqjnlvwcybis`). The connected Supabase plugin is the WRONG database
   for Phoenix Chat: never use it for Phoenix Chat queries, migrations, or SQL.
+
+## Troll menu access and the Phoenix rank (owner decision, Conno)
+
+- **Phoenix (`kirk`) and Super Mega Tuff Co-owner (`PomKnee`) are equals:**
+  tied on the top step of the staff ladder, under Owner and PRESTON. Don't put
+  either one above or below the other; `private.chat_staff_apply_ladder`
+  enforces the tie (`20261118142807_chat_phoenix_equal_to_smt.sql`).
+- **Troll menu, by exact account, never by role:** full menu for `PomKnee`,
+  `connor` and `kirk`, and Kirk's menu is never smaller than PomKnee's.
+  The PRESTON account has the limited menu
+  (`20261118142342_chat_troll_menu_preston_limited.sql`). Nobody can troll
+  Kirk (troll protection), the owner or PRESTON.
+- Source of truth: `private.chat_troll_tier()` and the ladder function. Change
+  either only when Conno asks.

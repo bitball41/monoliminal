@@ -109,7 +109,7 @@ test('only Conno can ban, time out or kick Kirk; PomKnee and Kirk cannot moderat
     await assert.rejects(call('kirk', `select public.chat_staff_timeout_user('kirk','', 'kirk', 10)`), /Only Conno/);
     await call('connor', `select public.chat_ban_user('connor','', 'kirk','too hot')`);
     assert.equal((await profile('kirk')).is_banned, true);
-    await assert.rejects(call('kirk', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
+    await assert.rejects(call('kirk', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
     await call('connor', `select public.chat_unban_user('connor','', 'kirk')`);
     assert.equal((await profile('kirk')).is_banned, false);
   } finally { await db.close(); }
@@ -156,7 +156,15 @@ test('Kirk has every troll and sees and stops them; nobody can troll Kirk', asyn
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('kirk', array['shake'], 5)`), /yourself/);
-    await assert.rejects(call('coowner', `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
+    await assert.rejects(call('coowner', `select public.chat_troll_apply('bob', array['shake'], 5)`), /troll menu is not available/);
+    // Never smaller than PomKnee's (20261118142807): 60 minutes, co-owners too,
+    // and he sees and stops trolls someone else started.
+    await call('kirk', `select public.chat_troll_apply('coowner', array['auto_refresh'], 60)`);
+    await call('PomKnee', `select public.chat_troll_apply('bob', array['popups'], 60)`);
+    assert((await call('kirk', `select public.chat_troll_list() r`))[0].r.some(x => x.target === 'bob'));
+    await call('kirk', `select public.chat_troll_clear('bob')`);
+    assert.deepEqual((await call('bob', `select public.chat_my_troll_effects() r`))[0].r, []);
+    await assert.rejects(call('kirk', `select public.chat_troll_apply('bob', array['popups'], 61)`), /1 and 60 minutes/);
   } finally { await db.close(); }
 });
 

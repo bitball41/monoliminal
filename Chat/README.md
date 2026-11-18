@@ -30,6 +30,19 @@ functions not callable when signed out).
 
 Tests: `scripts/chat-phoenix.test.mjs`.
 
+### Phoenix, part 3: equals, full troll menu
+
+Needs [`20261118142807_chat_phoenix_equal_to_smt.sql`](../Backend/migrations/20261118142807_chat_phoenix_equal_to_smt.sql)
+(**applied 2026-11-18**, ledger version `20261118142807`; rolled-back dry run on
+live data first; verified live: Phoenix and Super Mega Tuff Co-owner both 599,
+everyone else unchanged). Conno's final call: the two roles are equals, neither
+above nor below. It replaces `20261118135935_chat_phoenix_below_smt.sql`.
+Troll menus come from `20261118142342_chat_troll_menu_preston_limited.sql`
+(applied by another session and copied here from the ledger): Kirk has the
+full menu, the same as PomKnee and Conno; the PRESTON account has a limited
+one. The other session's `20261118133411`, `20261118134804` and
+`20261118135935` are copied here too so the folder matches the database.
+
 ### Phoenix, part 2
 
 Needs [`20261118133619_chat_phoenix_protection.sql`](../Backend/migrations/20261118133619_chat_phoenix_protection.sql)
