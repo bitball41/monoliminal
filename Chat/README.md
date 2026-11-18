@@ -180,9 +180,11 @@ brands, no links, nothing loads from outside, and the button does nothing.
 Each ad is a modal the target has to wait out: the rest of Chat is blocked
 (no clicks, typing or Escape) until the countdown ends, then it can be closed.
 Image ads close after 5 seconds; video ads (an animated canvas with a progress
-bar and timer) play 8–12 seconds to the end. A new ad comes 15–40 seconds
-after the last one closes, and any ad on screen disappears when the troll
-ends.
+bar and timer) play 8–12 seconds to the end. There are 21 image ads and 10
+video ads. Every 20 seconds after the last ad closes, a heads-up counts down
+("📺 Ads will pop up in 3… 2… 1…") and the next ad appears; one in four is a
+double ad ("Sponsored · 1 of 2", then "2 of 2" straight after). Any ad or
+heads-up on screen disappears when the troll ends.
 
 ## Troll protection for PomKnee
 
