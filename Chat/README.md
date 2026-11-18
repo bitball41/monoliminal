@@ -14,7 +14,7 @@ powers, `power` = its place on the ladder). Kirk holds it through
 `public.profiles.staff_role = 'phoenix'` on the account `kirk`; the database
 refuses it on any other account. His check mark is `app_settings.phoenix_check`.
 In Chat, `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`;
-the troll menu is `TROLL_MENU_USERS` (by username, not role).
+the troll menu is `TROLL_MENU_USERS` (by account, not role).
 
 ### Phoenix, part 3: below the Super Mega Tuff Co-owner, Kirk troll menu
 
@@ -28,9 +28,9 @@ can't moderate each other).
   role (God Tier and the rest keep their order below). Reordering or creating
   roles keeps it. Nothing else changes between them: only Conno can moderate
   either holder, and neither can moderate the other.
-- **Troll menu:** Kirk has the Kirk troll menu (see "Troll menu for @kirk"),
-  not the full one. The parts below that say "tied" or "the full troll menu"
-  describe part 1 and are superseded.
+- **Troll menu:** Kirk has the full troll menu again (see "Troll menus,
+  revised"). The parts below that say "tied" describe part 1 and are
+  superseded.
 
 Needs [`20261118032602_chat_phoenix_role.sql`](../Backend/migrations/20261118032602_chat_phoenix_role.sql)
 (**applied 2026-11-18**, ledger version `20261118032602`; rolled-back dry run on
@@ -165,7 +165,27 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
-## Troll menu for @kirk
+## Troll menus, revised
+
+Needs [`20261118142342_chat_troll_menu_preston_limited.sql`](../Backend/migrations/20261118142342_chat_troll_menu_preston_limited.sql)
+(**applied 2026-11-18**, ledger version `20261118142342`; rolled-back dry run on
+live data first: Kirk trolled PomKnee and a co-owner and used the refresh; the
+PRESTON account trolled a member and an Admin but was refused on co-owners,
+PomKnee, Auto refresh and the refresh; a co-owner without a menu was refused).
+Owner policy (also in `AGENTS.md` → "Troll menu access"), by account, never by
+role:
+
+- **Full menu:** `PomKnee`, `connor` and `kirk`.
+- **Limited menu:** only the PRESTON account, matched by its user id rather
+  than the PRESTON role. Same rules the Kirk menu had: Admin rank and below,
+  no Auto refresh or one-shot refresh, 1–15 minutes, its own trolls only.
+  Shown simply as "Troll menu". Requests to give PRESTON more get the limited
+  menu; only Conno changes this.
+
+The next section describes the earlier Kirk menu; its rules now apply to the
+PRESTON account instead.
+
+## Troll menu for @kirk (superseded)
 
 Needs [`20261118134804_chat_kirk_troll_menu.sql`](../Backend/migrations/20261118134804_chat_kirk_troll_menu.sql)
 (**applied 2026-11-18**; rolled-back dry run on live data first: Kirk trolled a

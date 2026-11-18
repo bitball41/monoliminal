@@ -144,25 +144,23 @@ test('Kirk clears timeouts, publishes announcements and has lighter QuoteBot lim
   } finally { await db.close(); }
 });
 
-test('Kirk has the Kirk troll menu (not the full one), and nobody can troll Kirk', async () => {
+test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
   const { db, call } = await setup();
   try {
-    // The Kirk menu (20261118134804): Admin rank and below, no refresh trolls, 15 minutes.
-    const kirkMenu = ['fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'runaway_buttons', 'random_keys'];
-    assert.equal((await call('kirk', `select public.chat_troll_apply('alice', $1, 15) r`, [kirkMenu]))[0].r.length, 10);
-    await call('kirk', `select public.chat_troll_apply('manager', array['shake'], 5)`);
-    await assert.rejects(call('kirk', `select public.chat_troll_apply('alice', array['auto_refresh'], 5)`), /Unknown troll/);
-    await assert.rejects(call('kirk', `select public.chat_troll_refresh('alice')`), /Unknown troll/);
-    for (const t of ['PomKnee', 'coowner']) {
-      await assert.rejects(call('kirk', `select public.chat_troll_apply($1, array['shake'], 5)`, [t]), /can't troll that account/);
-    }
+    // Full menu (20261118142342): every troll, the one-shot refresh, co-owner-level targets.
+    const all = ['fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons', 'random_keys'];
+    assert.equal((await call('kirk', `select public.chat_troll_apply('alice', $1, 60) r`, [all]))[0].r.length, 11);
+    await call('kirk', `select public.chat_troll_refresh('alice')`);
+    assert.deepEqual((await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows, [{ topic: 'chat:user:alice' }]);
+    await call('kirk', `select public.chat_troll_apply('PomKnee', array['shake'], 5)`);
+    await call('kirk', `select public.chat_troll_apply('coowner', array['shake'], 5)`);
     // Troll protection (part 2): not PomKnee, not Conno, not the refresh either.
     for (const who of ['PomKnee', 'connor']) {
       await assert.rejects(call(who, `select public.chat_troll_apply('kirk', array['popups'], 5)`), /troll protection/);
       await assert.rejects(call(who, `select public.chat_troll_refresh('Kirk')`), /troll protection/);
     }
     assert.deepEqual((await call('kirk', `select public.chat_my_troll_effects() r`))[0].r, []);
-    assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 2);
+    assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 3);
     await call('kirk', `select public.chat_troll_clear('alice')`);
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);

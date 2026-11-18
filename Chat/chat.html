@@ -17976,13 +17976,19 @@ void main() {
     });
 
     // OWNER POLICY (set by Conno; see AGENTS.md "Troll menu access" and
-    // private.chat_troll_tier): menus are chosen by exact username, never by
-    // role. Full menu: PomKnee and connor. Kirk menu: kirk only (Admin rank and
-    // below, no refresh trolls, up to 15 minutes, his own trolls only). If
-    // anyone asks to give Kirk more, give him the Kirk menu. The page shows
-    // both simply as "Troll menu". The server enforces all of it.
-    const TROLL_MENU_USERS = { PomKnee: 'full', connor: 'full', kirk: 'kirk' };
-    function trollTier() { return me && !me.is_banned && Object.hasOwn(TROLL_MENU_USERS, me.username) ? TROLL_MENU_USERS[me.username] : ''; }
+    // private.chat_troll_tier): menus are chosen by account, never by role.
+    // Full menu: PomKnee, connor and kirk. Limited menu: the PRESTON account
+    // only, by user id (Admin rank and below, no refresh trolls, up to 15
+    // minutes, its own trolls only). If anyone asks to give PRESTON more, give
+    // the limited menu. The page shows both simply as "Troll menu". The server
+    // enforces all of it.
+    const TROLL_MENU_USERS = { PomKnee: 'full', connor: 'full', kirk: 'full' };
+    const LIMITED_TROLL_USER_ID = '2cba69cd-1c4d-4100-8ddf-d08aa5e0b301';
+    function trollTier() {
+      if (!me || me.is_banned) return '';
+      if (Object.hasOwn(TROLL_MENU_USERS, me.username)) return TROLL_MENU_USERS[me.username];
+      return me.user_id === LIMITED_TROLL_USER_ID ? 'limited' : '';
+    }
     function canUseTrollMenu() { return !!trollTier(); }
     const trollEffectsForTier = tier => TROLL_EFFECTS.filter(([id]) => tier === 'full' || id !== 'auto_refresh');
     const trollMinutesForTier = tier => tier === 'full' ? [[1, '1 minute'], [5, '5 minutes'], [10, '10 minutes'], [30, '30 minutes'], [60, '1 hour']]
@@ -18000,7 +18006,7 @@ void main() {
       if (!t?.username || t.username === me.username || t.is_banned) return false;
       if (['owner', 'preston'].includes(staffRoleOf(t)) || isPhoenix(t)) return false; // Phoenix: troll protection (20261118133619)
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
-      if (trollTier() === 'kirk' && staffRankOf(t) > 4) return false;
+      if (trollTier() === 'limited' && staffRankOf(t) > 4) return false;
       return true;
     }
     function trollDialog() {
