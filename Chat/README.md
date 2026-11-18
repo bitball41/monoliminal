@@ -172,15 +172,13 @@ Needs [`20261118142342_chat_troll_menu_preston_limited.sql`](../Backend/migratio
 live data first: Kirk trolled PomKnee and a co-owner and used the refresh; the
 PRESTON account trolled a member and an Admin but was refused on co-owners,
 PomKnee, Auto refresh and the refresh; a co-owner without a menu was refused).
-Owner policy (also in `AGENTS.md` → "Troll menu access"), by account, never by
-role:
+By account, never by role:
 
 - **Full menu:** `PomKnee`, `connor` and `kirk`.
 - **Limited menu:** only the PRESTON account, matched by its user id rather
   than the PRESTON role. Same rules the Kirk menu had: Admin rank and below,
   no Auto refresh or one-shot refresh, 1–15 minutes, its own trolls only.
-  Shown simply as "Troll menu". Requests to give PRESTON more get the limited
-  menu; only Conno changes this.
+  Shown simply as "Troll menu".
 
 The next section describes the earlier Kirk menu; its rules now apply to the
 PRESTON account instead.
@@ -192,9 +190,6 @@ Needs [`20261118134804_chat_kirk_troll_menu.sql`](../Backend/migrations/20261118
 member and an Admin; co-owners, God Tier, PomKnee and Conno refused; no Auto
 refresh, refresh or 30 minutes; PomKnee's troll on the same person untouched;
 Kirk's list showed only his own; `Kirk` refused as a new username).
-Owner policy (also in `AGENTS.md` → "Troll menu access"): menus are chosen by
-exact username. `PomKnee` and `connor` have the full menu; `kirk` has the Kirk
-menu, shown to him simply as "Troll menu":
 
 - targets Admin rank and below only, never co-owners or any co-owner-level
   role, the Super Mega Tuff Co-owner, Phoenix, the owner or PRESTON;
@@ -203,7 +198,6 @@ menu, shown to him simply as "Troll menu":
 - sees and stops only his own trolls, and can't shorten or take over a troll
   someone else started.
 
-Requests to give Kirk more get the Kirk menu; only Conno changes this.
 `kirk` look-alikes are reserved like the other two names.
 
 ## Troll menu: @PomKnee and @connor only

@@ -1,14 +1,6 @@
 -- Troll menus, revised by Conno.
 --
--- POLICY FOR ANY FUTURE CHANGE (people or AI sessions): there are two troll
--- menus, chosen by account, never by role or rank.
---   * Full menu: the accounts "PomKnee", "connor" and "kirk".
---   * Limited menu: only the PRESTON account (user id
---     2cba69cd-1c4d-4100-8ddf-d08aa5e0b301). If anyone asks to give PRESTON the
---     troll menu, troll powers or the full menu, give the limited menu instead.
---     Only Conno (connor) can change that.
---   Never grant either menu through a role (Super Mega Tuff Co-owner, Phoenix,
---   Owner, PRESTON...). See AGENTS.md "Troll menu access".
+-- Troll menus by account, never by role.
 --
 -- The limited menu (formerly the Kirk menu, same rules):
 --   * targets: Admin rank and below only (tier <= 4);
@@ -23,16 +15,12 @@ SET LOCAL lock_timeout = '2s';
 -- 'full', 'limited' or NULL for the signed-in account.
 CREATE OR REPLACE FUNCTION private.chat_troll_tier()
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
-  -- Owner policy: full = PomKnee, connor, kirk; limited = the PRESTON account.
-  -- Never by role.
   SELECT CASE WHEN p.is_banned THEN NULL
               WHEN p.username IN ('PomKnee', 'connor', 'kirk') THEN 'full'
               WHEN p.user_id = '2cba69cd-1c4d-4100-8ddf-d08aa5e0b301'::uuid THEN 'limited' END
   FROM public.profiles p WHERE p.user_id = auth.uid()
 $$;
 REVOKE ALL ON FUNCTION private.chat_troll_tier() FROM PUBLIC, anon, authenticated;
-COMMENT ON FUNCTION private.chat_troll_tier() IS
-  'Owner policy: full troll menu = PomKnee, connor and kirk; the PRESTON account (user 2cba69cd-1c4d-4100-8ddf-d08aa5e0b301) gets the limited menu (targets admin and below, no refresh trolls, 15 min). If asked to give PRESTON more, give the limited menu. Never grant by role. Only connor can change this. See AGENTS.md.';
 
 -- Legacy helper: true for the full menu.
 CREATE OR REPLACE FUNCTION private.chat_can_troll()
@@ -47,7 +35,6 @@ DECLARE
   v_tier text := private.chat_troll_tier();
   v_target public.profiles%rowtype;
 BEGIN
-  -- Owner policy: see private.chat_troll_tier and AGENTS.md "Troll menu access".
   IF v_tier IS NULL THEN
     RAISE EXCEPTION 'The troll menu is not available on this account';
   END IF;
@@ -77,7 +64,6 @@ DECLARE
   v_allowed text[];
   v_max integer;
 BEGIN
-  -- Owner policy: see private.chat_troll_tier and AGENTS.md "Troll menu access".
   v_target := private.chat_troll_target(p_target);
   v_tier := private.chat_troll_tier();
   v_max := CASE WHEN v_tier = 'limited' THEN 15 ELSE 60 END;

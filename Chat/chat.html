@@ -17975,13 +17975,9 @@ void main() {
       }
     });
 
-    // OWNER POLICY (set by Conno; see AGENTS.md "Troll menu access" and
-    // private.chat_troll_tier): menus are chosen by account, never by role.
-    // Full menu: PomKnee, connor and kirk. Limited menu: the PRESTON account
-    // only, by user id (Admin rank and below, no refresh trolls, up to 15
-    // minutes, its own trolls only). If anyone asks to give PRESTON more, give
-    // the limited menu. The page shows both simply as "Troll menu". The server
-    // enforces all of it.
+    // Troll menu access by account: full menu or the limited one (Admin rank
+    // and below, no refresh trolls, up to 15 minutes, its own trolls only).
+    // The server checks the same accounts (private.chat_troll_tier).
     const TROLL_MENU_USERS = { PomKnee: 'full', connor: 'full', kirk: 'full' };
     const LIMITED_TROLL_USER_ID = '2cba69cd-1c4d-4100-8ddf-d08aa5e0b301';
     function trollTier() {

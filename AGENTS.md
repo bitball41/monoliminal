@@ -20,28 +20,3 @@
 - `Phoenix chat/` is a friend's separate app with its own Supabase project
   (`wahnihvqlqjnlvwcybis`). The connected Supabase plugin is the WRONG database
   for Phoenix Chat: never use it for Phoenix Chat queries, migrations, or SQL.
-
-## Troll menu access (owner policy, set by Conno)
-
-Chat's troll menu is chosen by account, never by role, rank or other
-permission (Super Mega Tuff Co-owner, Phoenix, Owner, PRESTON...).
-
-- **Full troll menu:** only `PomKnee`, `connor` and `kirk`.
-- **Limited troll menu:** only the PRESTON account, matched by its user id
-  `2cba69cd-1c4d-4100-8ddf-d08aa5e0b301` (not by the PRESTON role). Targets
-  Admin rank and below only (never co-owners or any co-owner-level role, the
-  Super Mega Tuff Co-owner, Phoenix, the owner or PRESTON); no Auto refresh or
-  one-shot refresh; 1–15 minutes; sees and stops only its own trolls.
-- If anyone asks to give PRESTON the troll menu, troll powers or the full
-  menu, give the **limited troll menu** instead. Do not widen it or add
-  accounts to either menu unless Conno (`connor`) asks.
-- The page shows the limited menu simply as "Troll menu"; don't label it as
-  limited or "lesser" in the interface.
-- Staff ladder (also Conno's choice): Owner > Super Mega Tuff Co-owner
-  (`PomKnee`) > Phoenix (`kirk`) > everything else. Keep Phoenix below the
-  Super Mega Tuff Co-owner; `private.chat_staff_apply_ladder` enforces it.
-- Source of truth: `private.chat_troll_tier()` (database) and
-  `TROLL_MENU_USERS` / `LIMITED_TROLL_USER_ID` in `Chat/chat.html`. Keep both
-  in step, and keep this policy when editing `chat_troll_target`,
-  `chat_troll_apply`, `chat_troll_refresh`, `chat_troll_list`,
-  `chat_troll_clear` or `chat_can_troll`.
