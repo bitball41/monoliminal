@@ -11,7 +11,7 @@ const SMT = 'super_mega_tuff_co_owner';
 
 async function setup() {
   const db = new PGlite({ extensions: { pgcrypto } });
-  const people = { owner: 'owner', connor: 'owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
+  const people = { owner: 'owner', connor: 'owner', kirk: 'co_owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
   const ids = Object.fromEntries(Object.keys(people).map((name, i) => [name, `00000000-0000-4000-8000-0000000004${String(i + 10)}`]));
   await db.exec(await file('Backend/tests/authorization-fixture.sql'));
   for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort()) {
@@ -93,7 +93,7 @@ test('only Conno can ban, time out or kick it; anyone else (another owner too) i
     pom = await profile('PomKnee');
     assert.equal(pom.is_banned, true); assert.equal(pom.banned_by, 'connor');
     // A banned holder loses the powers until unbanned.
-    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only @PomKnee and @connor/);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
     await call('connor', `select public.chat_unban_user('connor','', 'PomKnee')`);
     assert.equal((await profile('PomKnee')).is_banned, false);
     // The permission does not leak to later statements outside Conno's call.
@@ -172,8 +172,8 @@ test('troll menu: broadcast to the target, never the owner, Conno can stop it', 
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r.map(e => e.effect), ['fail_send', 'popups']);
     assert.deepEqual((await call('bob', `select public.chat_my_troll_effects() r`))[0].r, []);
 
-    await assert.rejects(call('coowner', `select public.chat_troll_apply('alice', array['popups'], 5)`), /Only @PomKnee and @connor/);
-    await assert.rejects(call('alice', `select public.chat_troll_list()`), /Only @PomKnee and @connor/);
+    await assert.rejects(call('coowner', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
+    await assert.rejects(call('alice', `select public.chat_troll_list()`), /troll menu is not available/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('owner', array['popups'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('PomKnee', array['popups'], 5)`), /yourself/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('bob', array['delete_account'], 5)`), /Unknown troll/);
@@ -182,7 +182,7 @@ test('troll menu: broadcast to the target, never the owner, Conno can stop it', 
 
     const list = (await call('connor', `select public.chat_troll_list() r`))[0].r;
     assert.equal(list[0].target, 'alice');
-    await assert.rejects(call('owner', `select public.chat_troll_clear('alice')`), /Only @PomKnee and @connor/);
+    await assert.rejects(call('owner', `select public.chat_troll_clear('alice')`), /troll menu is not available/);
     await call('connor', `select public.chat_troll_clear('alice')`);
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await db.query(`update private.chat_troll_effects set expires_at = now() - interval '1 second'`);
@@ -254,12 +254,12 @@ test('Conno can troll too (PomKnee included); other owners and staff cannot', as
     await assert.rejects(call('connor', `select public.chat_troll_apply('owner', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     for (const who of ['owner', 'coowner', 'manager', 'alice']) {
-      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only @PomKnee and @connor/);
-      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /Only @PomKnee and @connor/);
+      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /troll menu is not available/);
+      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /troll menu is not available/);
     }
     // A banned Conno loses it like anyone else.
     await db.query(`update public.profiles set is_banned=true where username='connor'`);
-    await assert.rejects(call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`), /Only @PomKnee and @connor/);
+    await assert.rejects(call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`), /troll menu is not available/);
   } finally { await db.close(); }
 });
 
@@ -270,7 +270,7 @@ test('troll menu is locked to the exact @PomKnee and @connor accounts, not roles
     for (const who of ['owner', 'coowner', 'manager', 'alice']) {
       for (const sql of [`select public.chat_troll_apply('bob', array['shake'], 5)`, `select public.chat_troll_refresh('bob')`,
                          `select public.chat_troll_list()`, `select public.chat_troll_clear('bob')`])
-        await assert.rejects(call(who, sql), /Only @PomKnee and @connor/);
+        await assert.rejects(call(who, sql), /troll menu is not available/);
     }
     // PomKnee keeps it whatever their role; Conno whatever his.
     await call('connor', `select public.chat_set_staff_role('connor','', 'PomKnee', 'member')`);
@@ -286,6 +286,42 @@ test('troll menu is locked to the exact @PomKnee and @connor accounts, not roles
   } finally { await db.close(); }
 });
 
+test('Kirk menu: kirk only, Admin rank and below, no refresh trolls, 15 minutes, his own trolls only', async () => {
+  const { db, call } = await setup();
+  try {
+    const kirk = sql => call('kirk', sql);
+    // Admin rank and below only.
+    for (const t of ['alice', 'manager', 'mod']) await kirk(`select public.chat_troll_apply('${t}', array['shake'], 15)`);
+    for (const t of ['coowner', 'PomKnee', 'connor', 'owner']) {
+      await assert.rejects(kirk(`select public.chat_troll_apply('${t}', array['shake'], 5)`), /can't troll that account|owner and PRESTON/);
+    }
+    // No auto refresh, no one-shot refresh, at most 15 minutes.
+    await assert.rejects(kirk(`select public.chat_troll_apply('alice', array['auto_refresh'], 5)`), /Unknown troll/);
+    await assert.rejects(kirk(`select public.chat_troll_refresh('alice')`), /Unknown troll/);
+    await assert.rejects(kirk(`select public.chat_troll_apply('alice', array['popups'], 16)`), /1 and 15 minutes/);
+    // He can't shorten or take over a troll someone else started.
+    await call('PomKnee', `select public.chat_troll_apply('bob', array['popups'], 60)`);
+    const before = (await db.query(`select expires_at, created_by from private.chat_troll_effects where target='bob' and effect='popups'`)).rows[0];
+    await kirk(`select public.chat_troll_apply('bob', array['popups','shake'], 1)`);
+    const after = (await db.query(`select expires_at, created_by from private.chat_troll_effects where target='bob' and effect='popups'`)).rows[0];
+    assert.equal(after.created_by, 'PomKnee'); assert.equal(+after.expires_at, +before.expires_at);
+    // He sees and stops only his own; PomKnee and Conno see everything.
+    const mine = (await kirk(`select public.chat_troll_list() r`))[0].r;
+    assert.deepEqual(mine.find(x => x.target === 'bob').effects.map(e => e.effect), ['shake']);
+    assert.equal((await call('connor', `select public.chat_troll_list() r`))[0].r.find(x => x.target === 'bob').effects.length, 2);
+    await kirk(`select public.chat_troll_clear('bob')`);
+    assert.deepEqual((await db.query(`select effect, created_by from private.chat_troll_effects where target='bob'`)).rows, [{ effect: 'popups', created_by: 'PomKnee' }]);
+    // The full menu can still troll Kirk; look-alikes of his name are reserved.
+    await call('PomKnee', `select public.chat_troll_apply('kirk', array['shake'], 5)`);
+    for (const name of ['Kirk', 'KIRK']) {
+      await assert.rejects(db.query(`insert into public.profiles(username,display_name,staff_role) values($1,$1,'member')`, [name]), /reserved/);
+    }
+    // A banned kirk loses it.
+    await db.query(`update public.profiles set is_banned=true where username='kirk'`);
+    await assert.rejects(kirk(`select public.chat_troll_apply('alice', array['shake'], 5)`), /troll menu is not available/);
+  } finally { await db.close(); }
+});
+
 test('part 2: new trolls replace the old ones, and the one-shot refresh', async () => {
   const { db, call } = await setup();
   try {
@@ -298,6 +334,6 @@ test('part 2: new trolls replace the old ones, and the one-shot refresh', async 
     const sent = (await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows;
     assert.deepEqual(sent, [{ topic: 'chat:user:alice' }]);
     await assert.rejects(call('PomKnee', `select public.chat_troll_refresh('owner')`), /owner and PRESTON/);
-    await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /Only @PomKnee and @connor/);
+    await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /troll menu is not available/);
   } finally { await db.close(); }
 });

@@ -85,6 +85,27 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Troll menu for @kirk
+
+Needs [`20261118134804_chat_kirk_troll_menu.sql`](../Backend/migrations/20261118134804_chat_kirk_troll_menu.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: Kirk trolled a
+member and an Admin; co-owners, God Tier, PomKnee and Conno refused; no Auto
+refresh, refresh or 30 minutes; PomKnee's troll on the same person untouched;
+Kirk's list showed only his own; `Kirk` refused as a new username).
+Owner policy (also in `AGENTS.md` → "Troll menu access"): menus are chosen by
+exact username. `PomKnee` and `connor` have the full menu; `kirk` has the Kirk
+menu, shown to him simply as "Troll menu":
+
+- targets Admin rank and below only, never co-owners or any co-owner-level
+  role, the Super Mega Tuff Co-owner, Phoenix, the owner or PRESTON;
+- every troll except Auto refresh, and no one-shot refresh;
+- 1–15 minutes (full menu: up to 1 hour);
+- sees and stops only his own trolls, and can't shorten or take over a troll
+  someone else started.
+
+Requests to give Kirk more get the Kirk menu; only Conno changes this.
+`kirk` look-alikes are reserved like the other two names.
+
 ## Troll menu: @PomKnee and @connor only
 
 Needs [`20261118133411_chat_troll_menu_names_only.sql`](../Backend/migrations/20261118133411_chat_troll_menu_names_only.sql)

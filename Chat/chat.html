@@ -17933,10 +17933,18 @@ void main() {
     });
 
     // The troll menu: the Super Mega Tuff Co-owner and Conno (20261117231513).
-    // Only these exact accounts (20261118133411). Roles, rank and other
-    // permissions never unlock it; the server checks the same names.
-    const TROLL_MENU_USERS = ['PomKnee', 'connor'];
-    function canUseTrollMenu() { return !!me && TROLL_MENU_USERS.includes(me.username) && !me.is_banned; }
+    // OWNER POLICY (set by Conno; see AGENTS.md "Troll menu access" and
+    // private.chat_troll_tier): menus are chosen by exact username, never by
+    // role. Full menu: PomKnee and connor. Kirk menu: kirk only (Admin rank and
+    // below, no refresh trolls, up to 15 minutes, his own trolls only). If
+    // anyone asks to give Kirk more, give him the Kirk menu. The page shows
+    // both simply as "Troll menu". The server enforces all of it.
+    const TROLL_MENU_USERS = { PomKnee: 'full', connor: 'full', kirk: 'kirk' };
+    function trollTier() { return me && !me.is_banned && Object.hasOwn(TROLL_MENU_USERS, me.username) ? TROLL_MENU_USERS[me.username] : ''; }
+    function canUseTrollMenu() { return !!trollTier(); }
+    const trollEffectsForTier = tier => TROLL_EFFECTS.filter(([id]) => tier === 'full' || id !== 'auto_refresh');
+    const trollMinutesForTier = tier => tier === 'full' ? [[1, '1 minute'], [5, '5 minutes'], [10, '10 minutes'], [30, '30 minutes'], [60, '1 hour']]
+      : [[1, '1 minute'], [5, '5 minutes'], [10, '10 minutes'], [15, '15 minutes']];
     // Closes the menu if this account may not use it (checked before every action).
     function trollMenuAllowed() {
       if (canUseTrollMenu()) return true;
@@ -17948,8 +17956,9 @@ void main() {
       if (!me || !canUseTrollMenu()) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t?.username || t.username === me.username || t.is_banned) return false;
-      if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
+      if (['owner', 'preston', 'phoenix'].includes(staffRoleOf(t))) return false;
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
+      if (trollTier() === 'kirk' && staffRankOf(t) > 4) return false;
       return true;
     }
     function trollDialog() {
@@ -17964,11 +17973,11 @@ void main() {
           <form id="troll-form" hidden>
             <div class="troll-row">
               <div class="field"><label for="troll-target">Who</label><input id="troll-target" list="troll-targets" autocomplete="off" placeholder="@username" required><datalist id="troll-targets"></datalist></div>
-              <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></div>
+              <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"></select></div>
             </div>
-            <div class="troll-grid">${TROLL_EFFECTS.map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('')}</div>
+            <div class="troll-grid" id="troll-grid"></div>
             <div class="group-actions"><button class="primary-button" type="submit">Unleash 😈</button><button class="secondary-button" type="button" id="troll-refresh-target">🔄 Refresh their page now</button><button class="secondary-button" type="button" id="troll-stop-target">Stop trolling them</button></div>
-            <p class="field-help">Effects only show on their screen and wear off on their own. The owner and PRESTON can’t be trolled.</p>
+            <p class="field-help">Effects only show on their screen and wear off on their own. Some people can’t be trolled.</p>
           </form>
           <div class="profile-menu-label" style="padding-left:0">Active trolls</div>
           <div class="troll-active" id="troll-active"><p class="field-help">Loading…</p></div>
@@ -17994,6 +18003,7 @@ void main() {
       $('troll-refresh-target').addEventListener('click', async () => {
         if (!trollMenuAllowed()) return;
         const target = $('troll-target').value.trim().replace(/^@/, '');
+        if (trollTier() !== 'full') return;
         if (!target) { toast({ type: 'warning', text: 'Pick who to refresh.' }); return; }
         const { error } = await sb.rpc('chat_troll_refresh', { p_target: profileOf(target)?.username || target });
         toast(error ? { type: 'error', text: error.message || 'Could not refresh them.' } : { type: 'success', text: `@${target}’s page is reloading 🔄` });
@@ -18028,6 +18038,14 @@ void main() {
       const dialog = trollDialog();
       const form = $('troll-form');
       form.hidden = false;
+      // The trolls and lengths offered depend on the account (same look for both).
+      const tier = trollTier();
+      if (dialog.dataset.tier !== tier) {
+        dialog.dataset.tier = tier;
+        $('troll-grid').innerHTML = trollEffectsForTier(tier).map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('');
+        $('troll-minutes').innerHTML = trollMinutesForTier(tier).map(([value, label]) => `<option value="${value}" ${value === 5 ? 'selected' : ''}>${label}</option>`).join('');
+        $('troll-refresh-target').hidden = tier !== 'full';
+      }
       {
         $('troll-targets').innerHTML = [...profiles.values()].filter(canTroll)
           .sort((a, b) => a.username.localeCompare(b.username))
