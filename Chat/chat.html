@@ -4084,6 +4084,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
           </div>
           <div class="photo-background-actions">
             <button type="button" class="secondary-button" id="photo-background-upload">Choose photo</button>
+            <button type="button" class="secondary-button" id="photo-background-gif">Choose a GIF</button>
             <button type="button" class="ghost-button" id="photo-background-remove" disabled>Remove photo</button>
             <input type="file" id="photo-background-file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden>
           </div>
@@ -4099,7 +4100,7 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
             <label for="photo-background-position">Vertical position</label>
             <input id="photo-background-position" type="range" min="0" max="100" step="1" value="50">
           </div>
-          <p id="photo-background-message" class="field-help" role="status" aria-live="polite">Choose or drop an image up to 15 MB. Animated images are saved as still photos.</p>
+          <p id="photo-background-message" class="field-help" role="status" aria-live="polite">Choose or drop an image up to 15 MB, or pick a GIF. GIFs stay animated.</p>
         </div>
 
         <div class="settings-section-title">Message density</div>
@@ -6342,12 +6343,12 @@ void main() {
       photoBackgroundOperation++;
       clearTimeout(photoBackgroundSaveTimer);
       photoBackgroundSaveTimer = 0;
-      if (photoBackgroundUrl) URL.revokeObjectURL(photoBackgroundUrl);
+      if (photoBackgroundUrl && photoBackgroundUrl.startsWith('blob:')) URL.revokeObjectURL(photoBackgroundUrl);
       photoBackgroundUrl = '';
       photoBackground = null;
       photoBackgroundOwner = '';
       photoBackgroundBusy = false;
-      photoBackgroundMessage('Choose or drop an image up to 15 MB. Animated images are saved as still photos.');
+      photoBackgroundMessage('Choose or drop an image up to 15 MB, or pick a GIF. GIFs stay animated.');
       renderPhotoBackgroundControls();
     }
     function photoBackgroundStore(action, owner, value) {
@@ -6385,13 +6386,18 @@ void main() {
       const number = Number(value);
       return value == null || !Number.isFinite(number) ? fallback : Math.max(min, Math.min(max, number));
     }
+    // A background is a stored image (JPEG/PNG/WebP, or an uploaded GIF kept as
+    // is so it stays animated) or the https address of a GIF from the picker.
+    const isPhotoBackgroundGifUrl = url => typeof url === 'string' && url.length <= 2048 && /^https:\/\/[^\s"'<>]+$/i.test(url);
     function setPhotoBackgroundRecord(owner, record) {
-      if (!(record?.blob instanceof Blob) || !/^image\/(jpeg|png|webp)$/.test(record.blob.type)) return false;
-      const nextUrl = URL.createObjectURL(record.blob);
-      if (photoBackgroundUrl) URL.revokeObjectURL(photoBackgroundUrl);
+      const hasBlob = record?.blob instanceof Blob && /^image\/(jpeg|png|webp|gif)$/.test(record.blob.type);
+      const hasUrl = !hasBlob && isPhotoBackgroundGifUrl(record?.url);
+      if (!hasBlob && !hasUrl) return false;
+      const nextUrl = hasBlob ? URL.createObjectURL(record.blob) : record.url;
+      if (photoBackgroundUrl && photoBackgroundUrl.startsWith('blob:')) URL.revokeObjectURL(photoBackgroundUrl);
       photoBackgroundOwner = owner;
       photoBackground = {
-        blob: record.blob,
+        ...(hasBlob ? { blob: record.blob } : { url: record.url }),
         dim: photoBackgroundNumber(record.dim, 40, 0, 85),
         blur: photoBackgroundNumber(record.blur, 0, 0, 24),
         x: photoBackgroundNumber(record.x, 50, 0, 100),
@@ -6422,7 +6428,9 @@ void main() {
       $('photo-background-settings').hidden = !ready;
       const upload = $('photo-background-upload');
       upload.disabled = photoBackgroundBusy;
-      upload.textContent = photoBackgroundBusy ? 'Saving photo…' : ready ? 'Change photo' : 'Choose photo';
+      upload.textContent = photoBackgroundBusy ? 'Saving…' : ready ? 'Change photo' : 'Choose photo';
+      const gifButton = $('photo-background-gif');
+      if (gifButton) gifButton.disabled = photoBackgroundBusy;
       $('photo-background-remove').disabled = !ready || photoBackgroundBusy;
       for (const id of PHOTO_BACKGROUND_INPUTS) $(id).disabled = photoBackgroundBusy;
       if (ready) {
@@ -6477,6 +6485,13 @@ void main() {
         const image = await loadImageFile(file);
         if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 60000000)
           throw new Error('This photo is too large. Try a smaller image.');
+        // GIFs are kept exactly as uploaded so they stay animated (like GIF banners).
+        if (/^image\/gif$/i.test(file.type)) {
+          if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner) return;
+          await savePhotoBackgroundRecord(owner, operation, selectionRevision,
+            { blob: file.slice(0, file.size, 'image/gif'), dim: photoBackground?.dim ?? 40, blur: photoBackground?.blur ?? 0, x: 50, position: 50, fit: photoBackground?.fit || 'cover' }, 'GIF');
+          return;
+        }
         const scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
         const canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
@@ -6489,20 +6504,42 @@ void main() {
         if (!blob) throw new Error('Could not read this photo. Try another image.');
         if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner) return;
         const record = { blob, dim: photoBackground?.dim ?? 40, blur: photoBackground?.blur ?? 0, x: 50, position: 50, fit: photoBackground?.fit || 'cover' };
-        await writePhotoBackground(owner, record);
-        if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner || $('app-shell').hidden) return;
-        setPhotoBackgroundRecord(owner, record);
-        if (chatBackgroundChoice === 'photo') activeChatBackground?.updateTheme?.();
-        if (selectionRevision === chatBackgroundSelectionRevision) {
-          chooseChatBackground('photo');
-          photoBackgroundMessage('Photo saved. Only you see it, in this browser.');
-        } else {
-          renderPhotoBackgroundControls();
-          photoBackgroundMessage('Photo saved. Select My Photo to use it.');
-        }
+        await savePhotoBackgroundRecord(owner, operation, selectionRevision, record, 'Photo');
       } catch (error) {
         if (operation === photoBackgroundOperation && currentPhotoOwner() === owner)
           photoBackgroundMessage(error?.name === 'QuotaExceededError' ? 'Your browser storage is full. Free some space and try again.' : (error.message || 'Could not save this photo.'));
+      } finally {
+        if (operation === photoBackgroundOperation) { photoBackgroundBusy = false; renderPhotoBackgroundControls(); }
+      }
+    }
+    async function savePhotoBackgroundRecord(owner, operation, selectionRevision, record, noun) {
+      await writePhotoBackground(owner, record);
+      if (operation !== photoBackgroundOperation || currentPhotoOwner() !== owner || $('app-shell').hidden) return;
+      setPhotoBackgroundRecord(owner, record);
+      if (chatBackgroundChoice === 'photo') activeChatBackground?.updateTheme?.();
+      if (selectionRevision === chatBackgroundSelectionRevision) {
+        chooseChatBackground('photo');
+        photoBackgroundMessage(`${noun} saved. Only you see it, in this browser.`);
+      } else {
+        renderPhotoBackgroundControls();
+        photoBackgroundMessage(`${noun} saved. Select My Photo to use it.`);
+      }
+    }
+    // A GIF from the picker: only its address is saved, so it loads like a GIF message.
+    async function choosePhotoBackgroundGif(url) {
+      if (!me || $('app-shell').hidden || photoBackgroundBusy) return;
+      if (!isPhotoBackgroundGifUrl(url)) { photoBackgroundMessage('That GIF could not be used as a background.'); return; }
+      const owner = currentPhotoOwner(), operation = ++photoBackgroundOperation;
+      const selectionRevision = chatBackgroundSelectionRevision;
+      clearTimeout(photoBackgroundSaveTimer);
+      photoBackgroundBusy = true;
+      renderPhotoBackgroundControls();
+      try {
+        const record = { url, dim: photoBackground?.dim ?? 40, blur: photoBackground?.blur ?? 0, x: 50, position: 50, fit: photoBackground?.fit || 'cover' };
+        await savePhotoBackgroundRecord(owner, operation, selectionRevision, record, 'GIF');
+      } catch (error) {
+        if (operation === photoBackgroundOperation && currentPhotoOwner() === owner)
+          photoBackgroundMessage(error?.name === 'QuotaExceededError' ? 'Your browser storage is full. Free some space and try again.' : (error.message || 'Could not save this GIF.'));
       } finally {
         if (operation === photoBackgroundOperation) { photoBackgroundBusy = false; renderPhotoBackgroundControls(); }
       }
@@ -16489,8 +16526,7 @@ void main() {
 
     function positionOpenMediaPickers() {
       if (mediaPickerIsOpen($('gif-dialog'))) {
-        const anchor = gifPickerTarget === 'pfp' ? $('set-pfp-gif-btn') : gifPickerTarget === 'banner' ? $('set-banner-gif-btn') : $('gif-btn');
-        positionComposerPicker($('gif-dialog'), anchor);
+        positionComposerPicker($('gif-dialog'), gifPickerAnchor());
       }
       if (mediaPickerIsOpen($('sticker-dialog'))) positionComposerPicker($('sticker-dialog'), $('sticker-btn'));
       if (mediaPickerIsOpen($('emoji-dialog'))) positionComposerPicker($('emoji-dialog'), $('emoji-btn'));
@@ -16507,13 +16543,17 @@ void main() {
         gifDialogHomeMarker = document.createComment('gif-dialog home');
         picker.before(gifDialogHomeMarker);
       }
-      const inSettings = (target === 'pfp' || target === 'banner') && !!settings?.open;
+      const inSettings = (target === 'pfp' || target === 'banner' || target === 'background') && !!settings?.open;
       if (inSettings ? picker.parentNode === settings : picker.previousSibling === gifDialogHomeMarker) return;
       hideMediaPicker(picker);
       if (inSettings) settings.append(picker);
       else gifDialogHomeMarker.after(picker);
     }
 
+    function gifPickerAnchor() {
+      return gifPickerTarget === 'pfp' ? $('set-pfp-gif-btn') : gifPickerTarget === 'banner' ? $('set-banner-gif-btn')
+        : gifPickerTarget === 'background' ? $('photo-background-gif') : $('gif-btn');
+    }
     function openGifPicker(query, target = 'message') {
       if (appSettings.gifs_enabled === 'false') {
         toast({ type: 'warning', text: 'GIFs are currently disabled.' });
@@ -16521,10 +16561,10 @@ void main() {
       }
       const q = typeof query === 'string' ? query.trim() : '';
       hostGifPicker(target);
-      gifPickerTarget = (target === 'pfp' || target === 'banner') ? target : 'message';
-      $('gif-title').textContent = gifPickerTarget === 'pfp' ? 'Avatar GIFs' : gifPickerTarget === 'banner' ? 'Banner GIFs' : 'GIFs';
-      const anchor = gifPickerTarget === 'pfp' ? $('set-pfp-gif-btn') : gifPickerTarget === 'banner' ? $('set-banner-gif-btn') : $('gif-btn');
-      showMediaPicker($('gif-dialog'), anchor);
+      gifPickerTarget = (target === 'pfp' || target === 'banner' || target === 'background') ? target : 'message';
+      $('gif-title').textContent = gifPickerTarget === 'pfp' ? 'Avatar GIFs' : gifPickerTarget === 'banner' ? 'Banner GIFs'
+        : gifPickerTarget === 'background' ? 'Background GIFs' : 'GIFs';
+      showMediaPicker($('gif-dialog'), gifPickerAnchor());
       if (q) $('gif-search').value = q;
       resetGifScroll();
       setGifTab(q ? 'browse' : gifTab, true);
@@ -16754,6 +16794,11 @@ void main() {
       }
       if (appSettings.gifs_enabled === 'false') {
         toast({ type: 'warning', text: 'GIFs are currently disabled.' });
+        return;
+      }
+      if (gifPickerTarget === 'background') {
+        hideMediaPicker($('gif-dialog'));
+        await choosePhotoBackgroundGif(item.url);
         return;
       }
       if (gifPickerTarget === 'banner' || gifPickerTarget === 'pfp') {
@@ -21764,6 +21809,7 @@ void main() {
       $('set-reduce-motion').addEventListener('click', () => applyReduceMotion(!settings.reduceMotion));
       $('set-confirm-close').addEventListener('click', () => applyConfirmClose(!settings.confirmClose));
       $('photo-background-upload').addEventListener('click', () => $('photo-background-file').click());
+      $('photo-background-gif').addEventListener('click', () => openGifPicker('', 'background'));
       $('photo-background-file').addEventListener('change', () => {
         const input = $('photo-background-file');
         const file = input.files[0]; input.value = '';

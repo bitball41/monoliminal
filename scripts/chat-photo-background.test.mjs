@@ -134,3 +134,41 @@ test('blur and horizontal crop are saved, clamped, applied to the live photo and
   assert.equal(old.state().photo.blur,0);assert.equal(old.state().photo.x,50);
   assert.equal(old.$('photo-background-blur-value').textContent,'Off');
 });
+
+test('an uploaded GIF is kept as is, so the background stays animated, and restores after reopening',async()=>{
+  const r=setup();
+  const gif=new Blob(['GIF89a animated frames'],{type:'image/gif'});
+  await r.c.uploadPhotoBackground(gif);
+  assert.equal(r.state().choice,'photo');
+  const saved=r.records.get('alice').blob;
+  assert.equal(saved.type,'image/gif');assert.equal(saved.size,gif.size);
+  assert.equal(r.canvases.length,0,'GIFs are not redrawn into a still JPEG');
+  assert.match(r.$('photo-background-message').textContent,/GIF saved/);
+  const next=setup(r.records,r.preferences);next.c.restoreChatBackground();await settle();
+  assert.equal(next.state().choice,'photo');assert.equal(next.state().photo.blob.type,'image/gif');
+  assert.equal(next.$('chat-background-stage').children.length,1);
+});
+
+test('a GIF from the picker is saved by address, survives setting changes and reopening, and is never revoked',async()=>{
+  const r=setup();const url='https://static.klipy.com/ii/abc/dancing.gif';
+  await r.c.choosePhotoBackgroundGif(url);
+  assert.equal(r.state().choice,'photo');assert.equal(r.state().url,url);
+  assert.deepEqual(Object.keys(r.records.get('alice')).sort(),['blur','dim','fit','position','url','x']);
+  assert.equal(r.$('chat-background-stage').children[0].src,url);
+  r.$('photo-background-dim').value='70';r.c.changePhotoBackgroundAppearance();await r.flush();
+  assert.equal(r.records.get('alice').url,url);assert.equal(r.records.get('alice').dim,70);
+  const next=setup(r.records,r.preferences);next.c.restoreChatBackground();await settle();
+  assert.equal(next.state().url,url);assert.equal(next.$('chat-background-stage').children.length,1);
+  await r.c.removePhotoBackground();
+  assert.equal(r.records.has('alice'),false);assert(!r.revoked.includes(url),'a remote GIF address is not an object URL');
+});
+
+test('only https GIF addresses are accepted; a bad one keeps the current background',async()=>{
+  const r=setup();await r.c.uploadPhotoBackground(file);const current=r.state().url;
+  for(const bad of ['javascript:alert(1)','http://example.com/a.gif','https://x.test/a.gif" onerror="x','', 'https://'+'a'.repeat(2050)]){
+    await r.c.choosePhotoBackgroundGif(bad);
+    assert.equal(r.state().url,current);
+  }
+  assert.match(r.$('photo-background-message').textContent,/could not be used/);
+  assert.equal(r.c.setPhotoBackgroundRecord('alice',{url:'data:image/gif;base64,AAAA'}),false);
+});
