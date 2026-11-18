@@ -17933,7 +17933,17 @@ void main() {
     });
 
     // The troll menu: the Super Mega Tuff Co-owner and Conno (20261117231513).
-    function canUseTrollMenu() { return isSuperMegaTuff() || isConno(); }
+    // Only these exact accounts (20261118132901). Roles, rank and other
+    // permissions never unlock it; the server checks the same names.
+    const TROLL_MENU_USERS = ['PomKnee', 'connor'];
+    function canUseTrollMenu() { return !!me && TROLL_MENU_USERS.includes(me.username) && !me.is_banned; }
+    // Closes the menu if this account may not use it (checked before every action).
+    function trollMenuAllowed() {
+      if (canUseTrollMenu()) return true;
+      const dialog = $('troll-dialog');
+      if (dialog?.open) dialog.close();
+      return false;
+    }
     function canTroll(target) {
       if (!me || !canUseTrollMenu()) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
@@ -17967,6 +17977,7 @@ void main() {
       qs('[data-troll-close]', dialog).addEventListener('click', () => dialog.close());
       $('troll-form').addEventListener('submit', async event => {
         event.preventDefault();
+        if (!trollMenuAllowed()) return;
         const target = $('troll-target').value.trim().replace(/^@/, '');
         const effects = qsa('input[name="troll-effect"]:checked', dialog).map(i => i.value);
         if (!effects.length) { toast({ type: 'warning', text: 'Pick at least one troll.' }); return; }
@@ -17981,6 +17992,7 @@ void main() {
         finally { button.disabled = false; }
       });
       $('troll-refresh-target').addEventListener('click', async () => {
+        if (!trollMenuAllowed()) return;
         const target = $('troll-target').value.trim().replace(/^@/, '');
         if (!target) { toast({ type: 'warning', text: 'Pick who to refresh.' }); return; }
         const { error } = await sb.rpc('chat_troll_refresh', { p_target: profileOf(target)?.username || target });
@@ -17993,6 +18005,7 @@ void main() {
       return dialog;
     }
     async function stopTroll(username) {
+      if (!trollMenuAllowed()) return;
       const { error } = await sb.rpc('chat_troll_clear', { p_target: username });
       if (error) { toast({ type: 'error', text: error.message || 'Could not stop the troll.' }); return; }
       toast({ type: 'success', text: `@${username} is free.` });
@@ -18000,7 +18013,7 @@ void main() {
     }
     async function renderActiveTrolls() {
       const box = $('troll-active');
-      if (!box) return;
+      if (!box || !trollMenuAllowed()) return;
       const { data, error } = await sb.rpc('chat_troll_list');
       if (error) { box.innerHTML = `<p class="field-help">${esc(error.message || 'Could not load trolls.')}</p>`; return; }
       const names = Object.fromEntries(TROLL_EFFECTS.map(([id, icon, label]) => [id, `${icon} ${label}`]));
@@ -18011,11 +18024,11 @@ void main() {
       qsa('[data-troll-stop]', box).forEach(b => b.addEventListener('click', () => { b.disabled = true; stopTroll(b.dataset.trollStop); }));
     }
     function openTrollMenu(username = '') {
-      if (!canUseTrollMenu() && !isOwner()) return;
+      if (!trollMenuAllowed()) return;
       const dialog = trollDialog();
       const form = $('troll-form');
-      form.hidden = !canUseTrollMenu();
-      if (canUseTrollMenu()) {
+      form.hidden = false;
+      {
         $('troll-targets').innerHTML = [...profiles.values()].filter(canTroll)
           .sort((a, b) => a.username.localeCompare(b.username))
           .map(p => `<option value="${esc(p.username)}">${esc(displayNameOf(p))}</option>`).join('');
@@ -19787,10 +19800,10 @@ void main() {
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
-        if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
+        if (isSuperMegaTuff() || canUseTrollMenu()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
           (isSuperMegaTuff() ? consoleCard('Announcement banner', 'Shown above community conversations. Leave it empty to hide the banner.', `<div class="field"><label for="smt-announcement">Announcement</label><input id="smt-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Leave empty to hide the banner"></div><div class="field"><label for="smt-whatsnew">What’s new</label><textarea id="smt-whatsnew" rows="4" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div><button id="smt-save-broadcast" class="primary-button" type="button">Publish</button> <span id="smt-broadcast-status" class="field-help" role="status"></span>`) : '')
           + (isSuperMegaTuff() ? consoleCard('Your check mark', 'Make your badge whatever you want. Everyone sees it.', smtCheckEditorHtml()) : '')
-          + consoleCard('Troll menu', canUseTrollMenu() ? 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.' : 'See who is being trolled and stop it.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') });
+          + (canUseTrollMenu() ? consoleCard('Troll menu', 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') : '') });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
         el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', consoleCommunityStats(), panels, staffPanel);
