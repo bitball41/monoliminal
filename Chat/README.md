@@ -85,6 +85,16 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Animated GIF chat backgrounds
+
+Settings → Appearance → Chat background → Your photo now takes GIFs like
+profile banners do. An uploaded GIF is kept exactly as uploaded (it used to be
+redrawn into a still JPEG), so it stays animated; "Choose a GIF" opens the GIF
+picker ("Background GIFs") and saves the chosen GIF's https address. Dim, blur,
+fit and position work the same, and the background is still personal: only
+you see it, saved in this browser. Tests: three new cases in
+`scripts/chat-photo-background.test.mjs`.
+
 ## Troll menu for Conno
 
 Needs [`20261117231513_chat_conno_troll_menu.sql`](../Backend/migrations/20261117231513_chat_conno_troll_menu.sql)
