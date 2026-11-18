@@ -85,6 +85,25 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Troll menu: @PomKnee and @connor only
+
+Needs [`20261118133411_chat_troll_menu_names_only.sql`](../Backend/migrations/20261118133411_chat_troll_menu_names_only.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: PomKnee and
+connor allowed, Kirk with the Phoenix role and PRESTON refused, look-alike
+names refused).
+
+- The troll menu (trolls, the one-shot refresh, seeing and stopping trolls)
+  depends on the account, not a role: only the exact usernames `PomKnee` and
+  `connor`. Roles and permissions (Super Mega Tuff Co-owner, Phoenix, Owner,
+  PRESTON) never unlock it on their own. Conno always has it whatever his
+  role; PomKnee keeps it if their role changes. Banned accounts don't.
+- Usernames are case-sensitive, so look-alikes (`pomknee`, `Connor`, any
+  capitalisation) are reserved: no account can be created with or renamed to
+  them.
+- The page shows the menu (hidden "Corazon" title, profile card, Staff tab) to
+  those two accounts only, and re-checks before every action; if the account
+  doesn't match, the menu closes without calling the server.
+
 ## Animated GIF chat backgrounds
 
 Settings → Appearance → Chat background → Your photo now takes GIFs like
