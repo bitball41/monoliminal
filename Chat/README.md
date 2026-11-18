@@ -165,6 +165,15 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Troll protection for PomKnee
+
+Needs [`20261118145536_chat_smt_troll_protection.sql`](../Backend/migrations/20261118145536_chat_smt_troll_protection.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: Conno, Kirk
+and the PRESTON account were refused on PomKnee, the one-shot refresh too, and
+could still troll a member). Nobody can troll the Super Mega Tuff Co-owner,
+like the Phoenix; any troll already on PomKnee ends, and the troll option is
+hidden on PomKnee's and Kirk's profile cards.
+
 ## Troll menus, revised
 
 Needs [`20261118142342_chat_troll_menu_preston_limited.sql`](../Backend/migrations/20261118142342_chat_troll_menu_preston_limited.sql)

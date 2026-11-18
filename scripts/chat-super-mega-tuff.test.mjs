@@ -245,7 +245,7 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
 test('Conno can troll too; PomKnee has troll protection; other owners and staff cannot', async () => {
   const { db, call } = await setup();
   try {
-    // Troll protection (20261118143639): nobody trolls the Super Mega Tuff Co-owner, Conno included.
+    // Troll protection (20261118145536): nobody trolls the Super Mega Tuff Co-owner, Conno included.
     await assert.rejects(call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
     await assert.rejects(call('connor', `select public.chat_troll_refresh('PomKnee')`), /troll protection/);
     const fx = await call('connor', `select public.chat_troll_apply('manager', array['random_keys','popups'], 5) r`);

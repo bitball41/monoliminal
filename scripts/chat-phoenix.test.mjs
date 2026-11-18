@@ -188,7 +188,7 @@ test('each holder styles only their own check mark', async () => {
 test('trolls already on PomKnee end when the protection is applied', async () => {
   const db = new PGlite({ extensions: { pgcrypto } });
   try {
-    const FIX = '20261118143639_chat_smt_troll_protection.sql';
+    const FIX = '20261118145536_chat_smt_troll_protection.sql';
     await db.exec(await file('Backend/tests/authorization-fixture.sql'));
     const names = (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort();
     for (const name of names.filter(n => n < FIX)) await db.exec(await file('Backend/migrations/' + name));
