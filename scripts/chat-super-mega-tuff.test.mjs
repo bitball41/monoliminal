@@ -194,12 +194,12 @@ test('part 2: pinned above every custom role, even after reordering or new roles
   try {
     await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
     const ladder = async () => (await db.query(`select slug from public.chat_staff_roles where slug not in ('member','owner','preston') order by power desc, slug`)).rows.map(r => r.slug);
-    // Phoenix (20261118032602) sits directly below (20261118135935).
-    assert.deepEqual((await ladder()).slice(0, 2), [SMT, 'phoenix']);
+    // Phoenix (20261118032602) shares the top spot (20261118142807).
+    assert.deepEqual((await ladder()).slice(0, 2).sort(), ['phoenix', SMT]);
     const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...(await ladder()).filter(s => s !== god)]]);
     const after = await ladder();
-    assert.deepEqual(after.slice(0, 3), [SMT, 'phoenix', god]);
+    assert.deepEqual(after.slice(0, 3), ['phoenix', SMT, god]);
     const p = (await db.query(`select private.chat_staff_power($1) s, private.chat_staff_power($2) g`, [SMT, god])).rows[0];
     assert(p.s > p.g);
   } finally { await db.close(); }

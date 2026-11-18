@@ -5,8 +5,8 @@ previously called Liminal Chat.
 
 ## Phoenix (Kirk only)
 
-**Current state (part 3, below):** Phoenix sits directly below the Super Mega
-Tuff Co-owner, and Kirk has the Kirk troll menu, not the full one.
+**Current state:** Phoenix and the Super Mega Tuff Co-owner are equals, tied at
+the top of the staff ladder (part 4), and Kirk has the full troll menu.
 
 **Where it's stored:** the role is the row `slug = 'phoenix'` in
 `public.chat_staff_roles` (label "Phoenix", badge `phoenix`, tier 5 = co-owner
@@ -16,7 +16,14 @@ refuses it on any other account. His check mark is `app_settings.phoenix_check`.
 In Chat, `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`;
 the troll menu is `TROLL_MENU_USERS` (by account, not role).
 
-### Phoenix, part 3: below the Super Mega Tuff Co-owner, Kirk troll menu
+### Phoenix, part 4: equal again
+
+[`20261118142807_chat_phoenix_equal_to_smt.sql`](../Backend/migrations/20261118142807_chat_phoenix_equal_to_smt.sql)
+(**applied 2026-11-18**, ledger version `20261118142807`) puts the two roles
+back on the same top step, tied: neither is above the other, and reordering or
+new roles keep them tied. Part 3 below is superseded.
+
+### Phoenix, part 3: below the Super Mega Tuff Co-owner (superseded)
 
 Needs [`20261118135935_chat_phoenix_below_smt.sql`](../Backend/migrations/20261118135935_chat_phoenix_below_smt.sql)
 (**applied 2026-11-18**, ledger version `20261118135935`; rolled-back dry run on

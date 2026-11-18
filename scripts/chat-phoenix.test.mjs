@@ -1,6 +1,5 @@
-// Phoenix (Kirk only): directly below the Super Mega Tuff Co-owner, with its
-// perks, and the Kirk troll menu. Checked against every migration in an
-// isolated database.
+// Phoenix (Kirk only): equal to the Super Mega Tuff Co-owner, checked against
+// every migration in an isolated database.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -35,15 +34,13 @@ async function setup() {
   return { db, call, profile, power };
 }
 
-test('Phoenix sits directly below the Super Mega Tuff Co-owner, with co-owner powers', async () => {
+test('Phoenix is tied with the Super Mega Tuff Co-owner at the top, with co-owner powers', async () => {
   const { db, profile, power } = await setup();
   try {
     const r = (await db.query(`select * from public.chat_staff_roles where slug=$1`, [PHX])).rows[0];
     assert.equal(r.tier, 5); assert.equal(r.builtin, true); assert.equal(r.label, 'Phoenix'); assert.equal(r.badge, 'phoenix');
-    assert(await power(SMT) > await power(PHX), 'the Super Mega Tuff Co-owner is above Phoenix');
+    assert.equal(await power(PHX), await power(SMT), 'equals: neither is above the other');
     assert(await power(PHX) > await power('co_owner'));
-    const top = (await db.query(`select slug from public.chat_staff_roles where slug not in ('owner','preston') order by power desc limit 2`)).rows.map(r => r.slug);
-    assert.deepEqual(top, [SMT, PHX]);
     assert(await power(PHX) < await power('owner'));
     const admins = (await db.query(`select count(distinct power)::int n from public.chat_staff_roles where slug in ('admin','dusty','super_mega_tuff_admin')`)).rows[0].n;
     assert.equal(admins, 1, 'the three admin roles stay tied');
@@ -52,19 +49,19 @@ test('Phoenix sits directly below the Super Mega Tuff Co-owner, with co-owner po
   } finally { await db.close(); }
 });
 
-test('the order stays Super Mega Tuff Co-owner, then Phoenix, after reordering and new roles', async () => {
+test('both stay tied on top after reordering and new roles', async () => {
   const { db, call, power } = await setup();
   try {
     await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
     const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
     const rest = (await db.query(`select array_agg(slug order by power desc, slug) o from public.chat_staff_roles where slug not in ('member','owner','preston') and slug <> $1`, [god])).rows[0].o;
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...rest]]);
-    assert(await power(SMT) > await power(PHX));
+    assert.equal(await power(PHX), await power(SMT));
     assert(await power(PHX) > await power(god));
     assert(await power(god) > await power('co_owner'));
-    // Moving them down, or Phoenix above, is undone.
+    // Moving either down, or one above the other, is undone.
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, PHX, ...rest.filter(s => s !== SMT && s !== PHX), SMT]]);
-    assert(await power(SMT) > await power(PHX));
+    assert.equal(await power(PHX), await power(SMT));
     assert(await power(PHX) > await power(god));
     // A new co-owner-level role still lands below both.
     await call('owner', `select public.chat_save_staff_role(null,'Head Honcho',null,5)`);
