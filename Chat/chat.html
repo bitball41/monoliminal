@@ -1065,6 +1065,33 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       animation: smt-badge-spin 3s linear infinite;
     }
     .role-check.super-mega-tuff-co-owner svg { animation: smt-badge-spin 3s linear infinite reverse; }
+    /* Phoenix: a flickering flame (teardrop pointing up) with rising embers. */
+    .role-check.phoenix {
+      position: relative; overflow: visible; clip-path: none;
+      border-radius: 50% 0 50% 50%; transform: rotate(-45deg);
+      background: radial-gradient(circle at 30% 70%, #fef08a 0 18%, #fbbf24 34%, #f97316 58%, #dc2626 84%, #7f1d1d);
+      box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9);
+      animation: phoenix-flicker 1.6s ease-in-out infinite;
+    }
+    .role-check.phoenix svg { transform: rotate(45deg); color: #fff7ed; filter: drop-shadow(0 0 1px #7c2d12); }
+    .role-check.phoenix::before, .role-check.phoenix::after {
+      content: ''; position: absolute; width: 3px; height: 3px; border-radius: 50%; pointer-events: none;
+      background: #fde047; box-shadow: 0 0 4px #f97316; opacity: 0;
+      animation: phoenix-ember 1.8s ease-out infinite;
+    }
+    .role-check.phoenix::before { right: 10%; top: 10%; }
+    .role-check.phoenix::after { right: 40%; top: -5%; animation-delay: .9s; }
+    @keyframes phoenix-flicker {
+      0%, 100% { box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9); filter: brightness(1); }
+      30% { box-shadow: 0 0 15px rgba(239, 68, 68, .9), 0 0 6px rgba(253, 224, 71, 1); filter: brightness(1.2) saturate(1.2); }
+      55% { box-shadow: 0 0 8px rgba(249, 115, 22, .7), 0 0 3px rgba(254, 240, 138, .8); filter: brightness(.95); }
+      80% { box-shadow: 0 0 13px rgba(251, 146, 60, .95), 0 0 5px rgba(254, 240, 138, 1); filter: brightness(1.12); }
+    }
+    @keyframes phoenix-ember {
+      0% { transform: translate(0, 0) scale(1); opacity: 0; }
+      15% { opacity: 1; }
+      100% { transform: translate(6px, -6px) scale(.3); opacity: 0; }
+    }
     @keyframes smt-badge-spin { to { transform: rotate(360deg); } }
     .role-check.smt-custom { background: var(--smt-bg); box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
     .role-check .smt-symbol { font-size: .74em; line-height: 1; display: block; }
@@ -1123,7 +1150,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     #troll-dialog .troll-active-item small { display: block; color: var(--muted); }
     @media (prefers-reduced-motion: reduce) {
       .role-check.super-mega-tuff-co-owner, .role-check.super-mega-tuff-co-owner svg { animation: none; }
+      .role-check.phoenix { animation: none; }
+      .role-check.phoenix::before, .role-check.phoenix::after { display: none; }
     }
+    :root[data-reduce-motion="true"] .role-check.phoenix::before, :root[data-reduce-motion="true"] .role-check.phoenix::after { display: none; }
     .role-check.owner {
       background: linear-gradient(135deg, #ef4444, #b91c1c);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
@@ -7814,6 +7844,7 @@ void main() {
       dusty: { rank: 4, power: 400, label: 'Dusty', check: 'super-mega-tuff' },
       co_owner:{ rank: 5, power: 500, label: 'Co-owner', check: 'co-owner' },
       super_mega_tuff_co_owner: { rank: 5, power: 550, label: 'Super Mega Tuff Co-owner', check: 'super-mega-tuff-co-owner' },
+      phoenix: { rank: 5, power: 550, label: 'Phoenix', check: 'phoenix' },
       owner:   { rank: 6, power: 650, label: 'Owner',   check: 'owner' },
       preston: { rank: 7, power: 750, label: 'Preston', check: 'preston' },
     };
@@ -7909,8 +7940,13 @@ void main() {
     // announcements, skips spam limits and has the troll menu. Only the owner
     // can change the role. The server enforces all of it.
     const SMT_ROLE = 'super_mega_tuff_co_owner';
-    const SMT_HOLDER = 'pomknee';
-    function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === SMT_ROLE; }
+    // Phoenix (20261118032602): Kirk only, tied with the Super Mega Tuff
+    // Co-owner and given every one of its powers. Each role has one holder.
+    const PHOENIX_ROLE = 'phoenix';
+    const TOP_ROLE_HOLDERS = { [SMT_ROLE]: 'pomknee', [PHOENIX_ROLE]: 'kirk' };
+    // True for either top role: every "tuff" power below applies to both.
+    function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && Object.hasOwn(TOP_ROLE_HOLDERS, staffRoleOf(profileOrUsername)); }
+    function isPhoenix(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === PHOENIX_ROLE; }
     // Only Conno (the owner account "connor") can moderate the role holder.
     const SMT_JUDGE = 'connor';
     const isConno = () => !!me && String(me.username || '').toLowerCase() === SMT_JUDGE && staffRoleOf(me) === 'owner';
@@ -7929,7 +7965,7 @@ void main() {
       const t = typeof target === 'string' ? profileOf(target) : target;
       return Object.entries(STAFF_ROLE_META)
         .filter(([slug, meta]) => meta.rank <= 5 && meta.power < myStaffPower()
-          && (slug !== SMT_ROLE || (t && String(t.username || '').toLowerCase() === SMT_HOLDER)))
+          && (!Object.hasOwn(TOP_ROLE_HOLDERS, slug) || (t && String(t.username || '').toLowerCase() === TOP_ROLE_HOLDERS[slug])))
         .sort(([, a], [, b]) => b.power - a.power).map(([slug]) => slug);
     }
     function canAssignStaffRole(target, role) {
@@ -7945,7 +7981,7 @@ void main() {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t.username || t.username === me.username || isQuoteBot(t.username)) return false;
-      if (staffRoleOf(t) === SMT_ROLE) return isConno();
+      if (isSuperMegaTuff(t)) return isConno();
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
       return myStaffPower() > staffPowerOf(t);
     }
@@ -7953,6 +7989,8 @@ void main() {
     // The Super Mega Tuff Co-owner styles their own check (app_settings.smt_check,
     // validated by chat_set_smt_check and again here before it reaches the page).
     const SMT_ANIMATIONS = ['spin', 'pulse', 'bounce', 'none'];
+    // Phoenix has its own (app_settings.phoenix_check); without one it is the fire badge.
+    const smtCheckKey = profileOrUsername => (isPhoenix(profileOrUsername) ? 'phoenix_check' : 'smt_check');
     function smtCheckStyle(raw = appSettings.smt_check) {
       let v;
       try { v = JSON.parse(raw || ''); } catch { return null; }
@@ -7972,7 +8010,7 @@ void main() {
       const meta = STAFF_ROLE_META[role];
       if (!meta || !meta.check) return '';
       const title = opts.title || meta.label;
-      if (role === SMT_ROLE) { const style = smtCheckStyle(); if (style) return smtCheckHtml(style, title); }
+      if (Object.hasOwn(TOP_ROLE_HOLDERS, role)) { const style = smtCheckStyle(appSettings[smtCheckKey(profileOrUsername)]); if (style) return smtCheckHtml(style, title); }
       // Custom roles carry their own colour (validated #rrggbb).
       const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
       return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
@@ -11728,7 +11766,7 @@ void main() {
       }
     }
     // 30 seconds off after a burst: members after 5 messages in 5 seconds,
-    // the Super Mega Tuff Co-owner after 15.
+    // the Super Mega Tuff Co-owner and Phoenix after 15.
     function spamGuard() {
       const burst = isSuperMegaTuff() ? 15 : 5, rest = 30000;
       const now = Date.now();
@@ -15745,7 +15783,7 @@ void main() {
       if (row.key === 'force_refresh_at') { handleAppUpdateSignal(row.value); return; }
       if (row.key === 'app_enabled' && row.value === 'false' && !isOwner()) { showMaintenance(); return; }
       if (row.key === 'announcement') renderAnnouncement();
-      if (row.key === 'smt_check') {
+      if (row.key === 'smt_check' || row.key === 'phoenix_check') {
         renderSelf(); renderMembers(); renderDmList();
         if (msgCache.has(viewKey(currentView))) renderTimeline({ preserve: true });
       }
@@ -17677,6 +17715,7 @@ void main() {
       ['Update required', 'Please update your vibes to continue.'],
       ['Are you sure?', 'Are you sure you’re sure?'],
       ['Fun fact', 'PomKnee is super mega tuff.'],
+      ['🔥 Fun fact', 'The Phoenix always rises.'],
       ['Loading…', 'Loading more nonsense ███▒▒▒ 61%'],
       ['Hmm', 'That message was a little too cringe.'],
       ['🏆 Achievement unlocked', 'Got trolled.'],
@@ -17871,14 +17910,16 @@ void main() {
     }
 
     function smtCheckEditorHtml() {
-      const style = smtCheckStyle() || { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin' };
+      const style = smtCheckStyle(appSettings[smtCheckKey(me)]) || (isPhoenix()
+        ? { symbol: '🔥', colors: ['#fde047', '#f97316', '#dc2626'], animation: 'pulse' }
+        : { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin' });
       const colors = [0, 1, 2, 3].map(i => style.colors[i] || '');
       return `<div class="smt-check-editor">
         <div class="smt-check-preview" id="smt-check-preview" aria-live="polite"></div>
         <div class="field"><label for="smt-check-symbol">Symbol (emoji or up to 8 characters; empty for a ✓)</label><input id="smt-check-symbol" maxlength="32" value="${esc(style.symbol)}" placeholder="✓"></div>
         <div class="field"><label>Colours (untick to use fewer)</label><div class="smt-colors">${colors.map((c, i) => `<label class="smt-color"><input type="checkbox" data-smt-color-on="${i}" ${c ? 'checked' : ''} aria-label="Use colour ${i + 1}"><input type="color" data-smt-color="${i}" value="${c || '#ffffff'}" aria-label="Colour ${i + 1}"></label>`).join('')}</div></div>
         <div class="field"><label for="smt-check-anim">Animation</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
-        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">Reset to default</button></div>
+        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">${isPhoenix() ? 'Back to the fire badge' : 'Reset to default'}</button></div>
       </div>`;
     }
     function bindSmtCheckEditor(root) {
@@ -17912,7 +17953,7 @@ void main() {
       $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null }, 'Check mark reset.'));
     }
 
-    // Secret entrance: for the Super Mega Tuff Co-owner only, the sidebar's
+    // Secret entrance: for the Super Mega Tuff Co-owner, Phoenix and Conno, the sidebar's
     // "Corazon" title opens the troll menu. For everyone else it stays text.
     function syncSecretTrollTrigger() {
       const title = $('sidebar-brand-title');
@@ -17932,7 +17973,7 @@ void main() {
       }
     });
 
-    // The troll menu: the Super Mega Tuff Co-owner and Conno (20261117231513).
+    // The troll menu: the Super Mega Tuff Co-owner, Phoenix and Conno.
     function canUseTrollMenu() { return isSuperMegaTuff() || isConno(); }
     function canTroll(target) {
       if (!me || !canUseTrollMenu()) return false;
@@ -19787,7 +19828,7 @@ void main() {
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
-        if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
+        if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isPhoenix() ? '🔥 Phoenix powers' : isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
           (isSuperMegaTuff() ? consoleCard('Announcement banner', 'Shown above community conversations. Leave it empty to hide the banner.', `<div class="field"><label for="smt-announcement">Announcement</label><input id="smt-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Leave empty to hide the banner"></div><div class="field"><label for="smt-whatsnew">What’s new</label><textarea id="smt-whatsnew" rows="4" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div><button id="smt-save-broadcast" class="primary-button" type="button">Publish</button> <span id="smt-broadcast-status" class="field-help" role="status"></span>`) : '')
           + (isSuperMegaTuff() ? consoleCard('Your check mark', 'Make your badge whatever you want. Everyone sees it.', smtCheckEditorHtml()) : '')
           + consoleCard('Troll menu', canUseTrollMenu() ? 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.' : 'See who is being trolled and stop it.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') });

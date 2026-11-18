@@ -3,6 +3,33 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Phoenix (Kirk only)
+
+Needs [`20261118032602_chat_phoenix_role.sql`](../Backend/migrations/20261118032602_chat_phoenix_role.sql)
+(**applied 2026-11-18**, ledger version `20261118032602`; rolled-back dry run on
+live data first, then verified live: `kirk` holds `phoenix`, Phoenix and Super
+Mega Tuff Co-owner tied at the top under Owner and PRESTON, God Tier and the
+rest of the ladder unchanged, Kirk removed from the co-owner registry, new
+functions not callable when signed out).
+
+- **Equal to the Super Mega Tuff Co-owner.** The built-in role `phoenix` has
+  co-owner powers and shares the top spot with PomKnee's role; reordering or
+  new roles keep both there, tied. Being tied, Kirk and PomKnee can't moderate
+  each other.
+- **Every perk that role has:** one holder (the database refuses it on any
+  account but Kirk, only the owner can change it), only Conno can ban, time
+  out, kick or delete Kirk (a timeout from Conno sticks), clears anyone's
+  timeout, publishes the announcement banner and What's new, lighter spam and
+  QuoteBot limits, and the full troll menu (all eleven trolls, the one-shot
+  refresh, Staff → Trolls, the profile-card entry and the hidden "Corazon"
+  title). Kirk and PomKnee can troll each other; nobody can troll Conno.
+- **Fire badge.** A flickering flame-shaped check with rising embers (still
+  under reduced motion). Staff → 🔥 Phoenix powers → Your check mark lets Kirk
+  restyle it like PomKnee's; it's saved separately in `app_settings.phoenix_check`,
+  so neither can change the other's. "Back to the fire badge" restores it.
+
+Tests: `scripts/chat-phoenix.test.mjs`.
+
 ## Super Mega Tuff Co-owner (PomKnee only)
 
 Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)

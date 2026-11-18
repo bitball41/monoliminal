@@ -193,11 +193,12 @@ test('part 2: pinned above every custom role, even after reordering or new roles
   try {
     await call('owner', `select public.chat_save_staff_role(null,'God Tier',null,5)`);
     const ladder = async () => (await db.query(`select slug from public.chat_staff_roles where slug not in ('member','owner','preston') order by power desc, slug`)).rows.map(r => r.slug);
-    assert.equal((await ladder())[0], SMT);
+    // Phoenix (20261118032602) shares the top spot.
+    assert.deepEqual((await ladder()).slice(0, 2).sort(), ['phoenix', SMT]);
     const god = (await db.query(`select slug from public.chat_staff_roles where label='God Tier'`)).rows[0].slug;
     await call('owner', `select public.chat_reorder_staff_roles($1)`, [[god, ...(await ladder()).filter(s => s !== god)]]);
     const after = await ladder();
-    assert.deepEqual(after.slice(0, 2), [SMT, god]);
+    assert.deepEqual(after.slice(0, 3), ['phoenix', SMT, god]);
     const p = (await db.query(`select private.chat_staff_power($1) s, private.chat_staff_power($2) g`, [SMT, god])).rows[0];
     assert(p.s > p.g);
   } finally { await db.close(); }
@@ -253,8 +254,8 @@ test('Conno can troll too (PomKnee included); other owners and staff cannot', as
     await assert.rejects(call('connor', `select public.chat_troll_apply('owner', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     for (const who of ['owner', 'coowner', 'manager', 'alice']) {
-      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only the Super Mega Tuff Co-owner or Conno/);
-      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /Only the Super Mega Tuff Co-owner or Conno/);
+      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
+      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /Only the Super Mega Tuff Co-owner, Phoenix or Conno/);
     }
     // A banned Conno loses it like anyone else.
     await db.query(`update public.profiles set is_banned=true where username='connor'`);
