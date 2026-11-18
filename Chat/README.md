@@ -85,6 +85,18 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Troll menu for Conno
+
+Needs [`20261117231513_chat_conno_troll_menu.sql`](../Backend/migrations/20261117231513_chat_conno_troll_menu.sql)
+(**applied 2026-11-17**, ledger version `20261117231513`; rolled-back dry run on live
+data first: Conno trolled PomKnee and a member and sent a refresh, PRESTON was
+refused, PomKnee still can't troll Conno).
+The owner account `connor` gets the full troll menu (every troll, the one-shot
+refresh, the profile-card entry, Staff → Trolls and the hidden "Corazon"
+title), same as the Super Mega Tuff Co-owner. Nobody else does. Targets are
+unchanged: never yourself, the owner, PRESTON, the bots or a banned account,
+so Conno can troll PomKnee but PomKnee can't troll Conno.
+
 ## Super Mega Tuff Co-owner: benchmark (2026-11-17)
 
 Local, offline measurements, not production results.

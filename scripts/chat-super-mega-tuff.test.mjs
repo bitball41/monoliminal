@@ -240,6 +240,28 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
   } finally { await db.close(); }
 });
 
+test('Conno can troll too (PomKnee included); other owners and staff cannot', async () => {
+  const { db, call } = await setup();
+  try {
+    const fx = await call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5) r`);
+    assert.deepEqual(fx[0].r.map(e => e.effect), ['popups', 'random_keys']);
+    await call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`);
+    await call('connor', `select public.chat_troll_refresh('alice')`);
+    assert.deepEqual((await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows, [{ topic: 'chat:user:alice' }]);
+    assert.equal((await call('connor', `select public.chat_troll_list() r`))[0].r.length, 2);
+    await assert.rejects(call('connor', `select public.chat_troll_apply('connor', array['shake'], 5)`), /yourself/);
+    await assert.rejects(call('connor', `select public.chat_troll_apply('owner', array['shake'], 5)`), /owner and PRESTON/);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
+    for (const who of ['owner', 'coowner', 'manager', 'alice']) {
+      await assert.rejects(call(who, `select public.chat_troll_apply('bob', array['shake'], 5)`), /Only the Super Mega Tuff Co-owner or Conno/);
+      await assert.rejects(call(who, `select public.chat_troll_refresh('bob')`), /Only the Super Mega Tuff Co-owner or Conno/);
+    }
+    // A banned Conno loses it like anyone else.
+    await db.query(`update public.profiles set is_banned=true where username='connor'`);
+    await assert.rejects(call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`), /Only the Super Mega Tuff/);
+  } finally { await db.close(); }
+});
+
 test('part 2: new trolls replace the old ones, and the one-shot refresh', async () => {
   const { db, call } = await setup();
   try {
