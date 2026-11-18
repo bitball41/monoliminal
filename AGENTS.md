@@ -36,6 +36,9 @@ permission (Super Mega Tuff Co-owner, Phoenix, Owner, PRESTON...).
   widen it or add accounts to either menu unless Conno (`connor`) asks.
 - The page shows the Kirk menu simply as "Troll menu"; don't label it as
   limited or "lesser" in the interface.
+- Staff ladder (also Conno's choice): Owner > Super Mega Tuff Co-owner
+  (`PomKnee`) > Phoenix (`kirk`) > everything else. Keep Phoenix below the
+  Super Mega Tuff Co-owner; `private.chat_staff_apply_ladder` enforces it.
 - Source of truth: `private.chat_troll_tier()` (database) and
   `TROLL_MENU_USERS` in `Chat/chat.html`. Keep both in step, and keep this
   policy when editing `chat_troll_target`, `chat_troll_apply`,

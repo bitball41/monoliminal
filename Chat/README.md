@@ -3,6 +3,86 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Phoenix (Kirk only)
+
+**Current state (part 3, below):** Phoenix sits directly below the Super Mega
+Tuff Co-owner, and Kirk has the Kirk troll menu, not the full one.
+
+**Where it's stored:** the role is the row `slug = 'phoenix'` in
+`public.chat_staff_roles` (label "Phoenix", badge `phoenix`, tier 5 = co-owner
+powers, `power` = its place on the ladder). Kirk holds it through
+`public.profiles.staff_role = 'phoenix'` on the account `kirk`; the database
+refuses it on any other account. His check mark is `app_settings.phoenix_check`.
+In Chat, `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`;
+the troll menu is `TROLL_MENU_USERS` (by username, not role).
+
+### Phoenix, part 3: below the Super Mega Tuff Co-owner, Kirk troll menu
+
+Needs [`20261118135935_chat_phoenix_below_smt.sql`](../Backend/migrations/20261118135935_chat_phoenix_below_smt.sql)
+(**applied 2026-11-18**, ledger version `20261118135935`; rolled-back dry run on
+live data first, then verified live: Super Mega Tuff Co-owner 599 > Phoenix 598
+> God Tier 597 > Co-owner 596, admin roles still tied; PomKnee and Kirk still
+can't moderate each other).
+
+- **Order:** Owner > Super Mega Tuff Co-owner > Phoenix > every other staff
+  role (God Tier and the rest keep their order below). Reordering or creating
+  roles keeps it. Nothing else changes between them: only Conno can moderate
+  either holder, and neither can moderate the other.
+- **Troll menu:** Kirk has the Kirk troll menu (see "Troll menu for @kirk"),
+  not the full one. The parts below that say "tied" or "the full troll menu"
+  describe part 1 and are superseded.
+
+Needs [`20261118032602_chat_phoenix_role.sql`](../Backend/migrations/20261118032602_chat_phoenix_role.sql)
+(**applied 2026-11-18**, ledger version `20261118032602`; rolled-back dry run on
+live data first, then verified live: `kirk` holds `phoenix`, Phoenix and Super
+Mega Tuff Co-owner tied at the top under Owner and PRESTON, God Tier and the
+rest of the ladder unchanged, Kirk removed from the co-owner registry, new
+functions not callable when signed out).
+
+- **Equal to the Super Mega Tuff Co-owner.** The built-in role `phoenix` has
+  co-owner powers and shares the top spot with PomKnee's role; reordering or
+  new roles keep both there, tied. Being tied, Kirk and PomKnee can't moderate
+  each other.
+- **Every perk that role has:** one holder (the database refuses it on any
+  account but Kirk, only the owner can change it), only Conno can ban, time
+  out, kick or delete Kirk (a timeout from Conno sticks), clears anyone's
+  timeout, publishes the announcement banner and What's new, lighter spam and
+  QuoteBot limits, and the full troll menu (all eleven trolls, the one-shot
+  refresh, Staff → Trolls, the profile-card entry and the hidden "Corazon"
+  title). Nobody can troll Kirk (part 2) or Conno.
+- **Fire badge.** A flickering flame-shaped check with rising embers (still
+  under reduced motion). Staff → 🔥 Phoenix powers → Your check mark lets Kirk
+  restyle it like PomKnee's; it's saved separately in `app_settings.phoenix_check`,
+  so neither can change the other's. "Back to the fire badge" restores it.
+
+Tests: `scripts/chat-phoenix.test.mjs`.
+
+### Phoenix, part 2
+
+Needs [`20261118133619_chat_phoenix_protection.sql`](../Backend/migrations/20261118133619_chat_phoenix_protection.sql)
+(**applied 2026-11-18**, ledger version `20261118133619`; rolled-back dry run on
+live data first: Conno and PomKnee refused on Kirk, Conno can still troll
+PomKnee; verified live afterwards, no active trolls on Kirk).
+
+- **Troll protection.** Nobody can troll Kirk, PomKnee and Conno included,
+  like the owner and PRESTON; the troll button doesn't appear on his profile.
+  Any trolls already on him were ended. He keeps his own troll menu.
+- **Lifts any timeout on himself**, Conno's included, from the timeout bar's
+  "Remove my timeout". Only Conno can time him out to begin with. PomKnee still
+  can't lift a timeout from Conno.
+- **No 30-second cooldown.** The message burst cooldown is enforced only by
+  Chat, and Chat skips it for the Phoenix. (GIFs stay 5 per 5 seconds.)
+
+## Fix: saving a quote card as a sticker
+
+The lightbox "+" on a QuoteBot card failed with "Could not save that as a
+sticker. Failed to fetch". The card is drawn in the browser, so its link is a
+`blob:` URL, and saving reads it with `fetch()` before uploading; the page's
+Content-Security-Policy `connect-src` didn't allow `blob:` or `data:`, so the
+browser blocked the read. `connect-src` now includes `blob: data:` (local,
+in-memory data only; no new hosts). Test: the CSP case in
+`scripts/chat-sticker-urls.test.mjs`.
+
 ## Super Mega Tuff Co-owner (PomKnee only)
 
 Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)

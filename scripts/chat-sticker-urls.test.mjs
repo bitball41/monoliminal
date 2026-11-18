@@ -56,3 +56,13 @@ test('saving a local image as a sticker uploads the file instead of storing its 
   await assert.rejects(c.copyUrlIntoStickerBucket('blob:null/5678', { kind: 'sticker', name: 'x' }), /cannot be a sticker/);
   assert.match(html, /if \(!\/\^https:\\\/\\\/\/i\.test\(storedUrl\)\) throw/, 'never inserts a non-hosted sticker URL');
 });
+
+test('the page lets Chat read its own blob: and data: images (quote cards saved as stickers)', async () => {
+  // copyUrlIntoStickerBucket fetch()es a local link before uploading it. Without
+  // blob:/data: in connect-src the browser blocks that with "Failed to fetch".
+  const html = await file('Chat/chat.html');
+  const csp = html.match(/http-equiv="Content-Security-Policy"\s+content="([^"]+)"/)[1];
+  const connect = csp.split(';').map(d => d.trim()).find(d => d.startsWith('connect-src')).split(/\s+/);
+  assert(connect.includes('blob:'), 'connect-src allows blob:');
+  assert(connect.includes('data:'), 'connect-src allows data:');
+});
