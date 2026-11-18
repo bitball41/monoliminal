@@ -242,10 +242,13 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
   } finally { await db.close(); }
 });
 
-test('Conno can troll too (PomKnee included); other owners and staff cannot', async () => {
+test('Conno can troll too; PomKnee has troll protection; other owners and staff cannot', async () => {
   const { db, call } = await setup();
   try {
-    const fx = await call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5) r`);
+    // Troll protection (20261118143639): nobody trolls the Super Mega Tuff Co-owner, Conno included.
+    await assert.rejects(call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
+    await assert.rejects(call('connor', `select public.chat_troll_refresh('PomKnee')`), /troll protection/);
+    const fx = await call('connor', `select public.chat_troll_apply('manager', array['random_keys','popups'], 5) r`);
     assert.deepEqual(fx[0].r.map(e => e.effect), ['popups', 'random_keys']);
     await call('connor', `select public.chat_troll_apply('alice', array['shake'], 5)`);
     await call('connor', `select public.chat_troll_refresh('alice')`);
@@ -298,8 +301,9 @@ test('limited menu: only the PRESTON account (by user id), Admin rank and below,
       .then(() => db.query(sql)).then(r => r.rows).finally(() => db.exec('reset role'));
     // Admin rank and below only.
     for (const t of ['alice', 'manager', 'mod']) await pres(`select public.chat_troll_apply('${t}', array['shake'], 15)`);
-    for (const t of ['coowner', 'PomKnee', 'kirk']) {
-      await assert.rejects(pres(`select public.chat_troll_apply('${t}', array['shake'], 5)`), /can't troll that account/);
+    await assert.rejects(pres(`select public.chat_troll_apply('coowner', array['shake'], 5)`), /can't troll that account/);
+    for (const t of ['PomKnee', 'kirk']) {
+      await assert.rejects(pres(`select public.chat_troll_apply('${t}', array['shake'], 5)`), /troll protection|can't troll that account/);
     }
     await assert.rejects(pres(`select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     // No auto refresh, no one-shot refresh, at most 15 minutes.

@@ -152,7 +152,7 @@ test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
     assert.equal((await call('kirk', `select public.chat_troll_apply('alice', $1, 60) r`, [all]))[0].r.length, 11);
     await call('kirk', `select public.chat_troll_refresh('alice')`);
     assert.deepEqual((await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows, [{ topic: 'chat:user:alice' }]);
-    await call('kirk', `select public.chat_troll_apply('PomKnee', array['shake'], 5)`);
+    await assert.rejects(call('kirk', `select public.chat_troll_apply('PomKnee', array['shake'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
     await call('kirk', `select public.chat_troll_apply('coowner', array['shake'], 5)`);
     // Troll protection (part 2): not PomKnee, not Conno, not the refresh either.
     for (const who of ['PomKnee', 'connor']) {
@@ -160,7 +160,7 @@ test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
       await assert.rejects(call(who, `select public.chat_troll_refresh('Kirk')`), /troll protection/);
     }
     assert.deepEqual((await call('kirk', `select public.chat_my_troll_effects() r`))[0].r, []);
-    assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 3);
+    assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 2);
     await call('kirk', `select public.chat_troll_clear('alice')`);
     assert.deepEqual((await call('alice', `select public.chat_my_troll_effects() r`))[0].r, []);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
@@ -182,6 +182,24 @@ test('each holder styles only their own check mark', async () => {
     assert.notEqual(await get('smt_check'), '', 'Kirk never touches PomKnee’s check');
     await assert.rejects(call('owner', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Super Mega Tuff Co-owner or Phoenix/);
     await assert.rejects(call('kirk', `select public.chat_set_smt_check('<b>', array['#ff0000'], 'spin')`), /8 characters/);
+  } finally { await db.close(); }
+});
+
+test('trolls already on PomKnee end when the protection is applied', async () => {
+  const db = new PGlite({ extensions: { pgcrypto } });
+  try {
+    const FIX = '20261118143639_chat_smt_troll_protection.sql';
+    await db.exec(await file('Backend/tests/authorization-fixture.sql'));
+    const names = (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort();
+    for (const name of names.filter(n => n < FIX)) await db.exec(await file('Backend/migrations/' + name));
+    await db.exec(await file('Backend/tests/authorization-triggers.sql'));
+    await db.exec(`insert into public.profiles(username,display_name,staff_role) values('PomKnee','PomKnee','super_mega_tuff_co_owner'),('alice','alice','member');
+      insert into private.chat_troll_effects(target,effect,expires_at,created_by) values
+        ('PomKnee','popups',now()+interval '5 minutes','connor'),('alice','shake',now()+interval '5 minutes','PomKnee');`);
+    await db.exec(await file('Backend/migrations/' + FIX));
+    assert.deepEqual((await db.query(`select target from private.chat_troll_effects`)).rows, [{ target: 'alice' }]);
+    const sent = (await db.query(`select topic, payload from realtime.messages where event='troll_effects'`)).rows;
+    assert.deepEqual(sent, [{ topic: 'chat:user:PomKnee', payload: { effects: [] } }]);
   } finally { await db.close(); }
 });
 

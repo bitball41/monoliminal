@@ -18000,7 +18000,8 @@ void main() {
       if (!me || !canUseTrollMenu()) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t?.username || t.username === me.username || t.is_banned) return false;
-      if (['owner', 'preston'].includes(staffRoleOf(t)) || isPhoenix(t)) return false; // Phoenix: troll protection (20261118133619)
+      // Troll protection: the Phoenix (20261118133619) and the Super Mega Tuff Co-owner (20261118143639).
+      if (['owner', 'preston'].includes(staffRoleOf(t)) || isSuperMegaTuff(t)) return false;
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
       if (trollTier() === 'limited' && staffRankOf(t) > 4) return false;
       return true;
