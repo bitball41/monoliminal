@@ -104,7 +104,7 @@ show a plain badge and no troll menu.
 - **Lighter spam limits** (see part 3; part 1 removed them entirely).
 - **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
   1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
-  messages), shows silly popups, flips or mirrors the page, shakes or rains
+  messages), shows popup ads, flips or mirrors the page, shakes or rains
   emoji (see part 2 for the rest). Effects
   run only in the target's browser, never post anything as them, expire on
   their own, and skip shaking/rain when the device asks for reduced
@@ -164,6 +164,18 @@ a second refused, all eleven trolls accepted).
   (members: 2). QuoteBot: 1 second between quotes (members: 5), 30 per
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
+
+## Popup ads troll
+
+The "Popups" troll is now **Popup ads**: made-up parody ads styled like real
+web ads ("Ad" tag, Sponsored, AdChoices, a call-to-action button). No real
+brands, no links, nothing loads from outside, and the button does nothing.
+Each ad is a modal the target has to wait out: the rest of Chat is blocked
+(no clicks, typing or Escape) until the countdown ends, then it can be closed.
+Image ads close after 5 seconds; video ads (an animated canvas with a progress
+bar and timer) play 8–12 seconds to the end. A new ad comes 15–40 seconds
+after the last one closes, and any ad on screen disappears when the troll
+ends.
 
 ## Troll protection for PomKnee
 
