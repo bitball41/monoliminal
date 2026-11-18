@@ -30,6 +30,16 @@ functions not callable when signed out).
 
 Tests: `scripts/chat-phoenix.test.mjs`.
 
+## Fix: saving a quote card as a sticker
+
+The lightbox "+" on a QuoteBot card failed with "Could not save that as a
+sticker. Failed to fetch". The card is drawn in the browser, so its link is a
+`blob:` URL, and saving reads it with `fetch()` before uploading; the page's
+Content-Security-Policy `connect-src` didn't allow `blob:` or `data:`, so the
+browser blocked the read. `connect-src` now includes `blob: data:` (local,
+in-memory data only; no new hosts). Test: the CSP case in
+`scripts/chat-sticker-urls.test.mjs`.
+
 ## Super Mega Tuff Co-owner (PomKnee only)
 
 Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)
