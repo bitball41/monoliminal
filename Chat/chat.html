@@ -7954,7 +7954,8 @@ void main() {
     const timeoutIsFromConno = t => String(t?.timeout_by || '').toLowerCase() === SMT_JUDGE;
     function canClearTimeoutOf(target) {
       const t = typeof target === 'string' ? profileOf(target) : target;
-      if (isSuperMegaTuff()) return !(t?.username === me.username && timeoutIsFromConno(t));
+      // The Phoenix may lift any timeout on itself, Conno's included.
+      if (isSuperMegaTuff()) return isPhoenix() || !(t?.username === me.username && timeoutIsFromConno(t));
       return canModerateUser(target);
     }
     // The owner may still change the untouchable role holder's role.
@@ -11766,8 +11767,9 @@ void main() {
       }
     }
     // 30 seconds off after a burst: members after 5 messages in 5 seconds,
-    // the Super Mega Tuff Co-owner and Phoenix after 15.
+    // the Super Mega Tuff Co-owner after 15. The Phoenix has no cooldown.
     function spamGuard() {
+      if (isPhoenix()) return true;
       const burst = isSuperMegaTuff() ? 15 : 5, rest = 30000;
       const now = Date.now();
       if (now < cooldownUntil) {
@@ -16044,7 +16046,7 @@ void main() {
     function updateTimeoutUi() {
       const timedOut = isTimedOut();
       $('timeout-bar').hidden = !timedOut;
-      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && !timeoutIsFromConno(me));
+      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && (isPhoenix() || !timeoutIsFromConno(me)));
       $('message-input').disabled = timedOut;
       $('send-btn').disabled = timedOut;
       applyFeatureControls();
@@ -17980,6 +17982,7 @@ void main() {
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t?.username || t.username === me.username || t.is_banned) return false;
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
+      if (isPhoenix(t)) return false; // troll protection (20261118133619)
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
       return true;
     }

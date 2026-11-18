@@ -22,13 +22,29 @@ functions not callable when signed out).
   timeout, publishes the announcement banner and What's new, lighter spam and
   QuoteBot limits, and the full troll menu (all eleven trolls, the one-shot
   refresh, Staff → Trolls, the profile-card entry and the hidden "Corazon"
-  title). Kirk and PomKnee can troll each other; nobody can troll Conno.
+  title). Nobody can troll Kirk (part 2) or Conno.
 - **Fire badge.** A flickering flame-shaped check with rising embers (still
   under reduced motion). Staff → 🔥 Phoenix powers → Your check mark lets Kirk
   restyle it like PomKnee's; it's saved separately in `app_settings.phoenix_check`,
   so neither can change the other's. "Back to the fire badge" restores it.
 
 Tests: `scripts/chat-phoenix.test.mjs`.
+
+### Phoenix, part 2
+
+Needs [`20261118133619_chat_phoenix_protection.sql`](../Backend/migrations/20261118133619_chat_phoenix_protection.sql)
+(**applied 2026-11-18**, ledger version `20261118133619`; rolled-back dry run on
+live data first: Conno and PomKnee refused on Kirk, Conno can still troll
+PomKnee; verified live afterwards, no active trolls on Kirk).
+
+- **Troll protection.** Nobody can troll Kirk, PomKnee and Conno included,
+  like the owner and PRESTON; the troll button doesn't appear on his profile.
+  Any trolls already on him were ended. He keeps his own troll menu.
+- **Lifts any timeout on himself**, Conno's included, from the timeout bar's
+  "Remove my timeout". Only Conno can time him out to begin with. PomKnee still
+  can't lift a timeout from Conno.
+- **No 30-second cooldown.** The message burst cooldown is enforced only by
+  Chat, and Chat skips it for the Phoenix. (GIFs stay 5 per 5 seconds.)
 
 ## Fix: saving a quote card as a sticker
 
