@@ -179,8 +179,14 @@ web ads ("Ad" tag, Sponsored, AdChoices, a call-to-action button). No real
 brands, no links, nothing loads from outside, and the button does nothing.
 Each ad is a modal the target has to wait out: the rest of Chat is blocked
 (no clicks, typing or Escape) until the countdown ends, then it can be closed.
-Image ads close after 5 seconds; video ads (an animated canvas with a progress
-bar and timer) play 8–12 seconds to the end. There are 21 image ads and 10
+Half the ads are videos. Image ads close after 5 seconds; video ads (an
+animated canvas with a progress bar and timer) play 8–12 seconds to the end.
+Extra annoyances, all bounded: a decoy ✕ inside the ad adds 2 seconds (twice
+at most); video ads may "buffer" once for 1–2 seconds, pausing the countdown;
+the real close shrinks to a tiny ✕ and may jump to the other side; the
+call-to-action button wiggles (not under reduced motion); and about half the
+time closing asks "Leaving so soon?" with a big "Keep watching" (one bonus ad)
+and a tiny "no thanks". There are 21 image ads and 10
 video ads. Every 20 seconds after the last ad closes, a heads-up counts down
 ("📺 Ads will pop up in 3… 2… 1…") and the next ad appears; one in four is a
 double ad ("Sponsored · 1 of 2", then "2 of 2" straight after). Any ad or

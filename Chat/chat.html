@@ -1157,6 +1157,22 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .troll-ad-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.25); }
     .troll-ad-bar span { display: block; height: 100%; width: 0; background: #facc15; }
     .troll-ad-time { position: absolute; left: 10px; bottom: 10px; font: 600 12px Arial, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+    .troll-ad-hero { position: relative; }
+    .troll-ad-decoy { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25);
+      background: rgba(255,255,255,.85); color: #3f3f46; font: 700 13px Arial, sans-serif; cursor: pointer; padding: 0; }
+    .troll-ad-close-tiny { padding: 0 4px; font-size: 9px; line-height: 14px; min-width: 0; opacity: .55; }
+    .troll-ad-buffer { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 700 18px Arial, sans-serif; }
+    .troll-ad-buffer[hidden] { display: none; }
+    .troll-ad-confirm { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; padding: 24px; text-align: center; background: rgba(255,255,255,.97); color: #18181b; }
+    .troll-ad-video .troll-ad-confirm { background: rgba(15,15,15,.97); color: #fff; }
+    .troll-ad-confirm[hidden] { display: none; }
+    .troll-ad-confirm strong { font-size: 20px; }
+    .troll-ad-confirm p { margin: 0; opacity: .75; }
+    .troll-ad-confirm div { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .troll-ad-keep { border: 0; border-radius: 6px; background: #16a34a; color: #fff; font: 700 16px Arial, sans-serif; padding: 12px 22px; cursor: pointer; }
+    .troll-ad-leave { border: 0; background: none; color: #a1a1aa; font: 400 10px Arial, sans-serif; text-decoration: underline; cursor: pointer; padding: 2px; }
+    .troll-ad-annoying .troll-ad-cta { animation: troll-ad-wiggle 1.2s ease-in-out infinite; }
+    @keyframes troll-ad-wiggle { 0%, 70%, 100% { transform: none; } 75% { transform: rotate(-4deg) scale(1.08); } 85% { transform: rotate(4deg) scale(1.08); } 92% { transform: rotate(-2deg) scale(1.04); } }
     .troll-popup p { margin: 0 0 14px; color: var(--text-soft, #ccc); }
     .troll-popup .troll-popup-actions { position: relative; height: 36px; }
     .troll-popup .troll-popup-actions button { position: absolute; right: 0; top: 0; transition: right .15s, top .15s; }
@@ -17724,7 +17740,7 @@ void main() {
     // run only in the target's browser and never send anything as them.
     const TROLL_EFFECTS = [
       ['fail_send', '📵', 'Messages fail', 'Most of their messages “fail to send”.'],
-      ['popups', '🪟', 'Popup ads', 'Fake ads every 20 seconds (videos, sometimes two in a row) block their chat until they finish.'],
+      ['popups', '🪟', 'Popup ads', 'Annoying fake ads every 20 seconds (half are videos, sometimes two in a row) block their chat until they finish.'],
       ['upside_down', '🙃', 'Upside down', 'Their whole chat is flipped.'],
       ['mirror', '🪞', 'Mirror', 'Everything is backwards.'],
       ['shake', '🫨', 'Earthquake', 'The screen shakes every few seconds.'],
@@ -17958,76 +17974,124 @@ void main() {
     }
     function closeTrollAd() {
       if (!trollAd) return;
-      cancelAnimationFrame(trollAd.frame); clearInterval(trollAd.tick);
+      cancelAnimationFrame(trollAd.frame); clearInterval(trollAd.tick); trollAd.timers.forEach(clearTimeout);
       if (trollAd.dialog.open) trollAd.dialog.close();
       trollAd.dialog.remove();
       trollAd = null;
     }
     // index/total: a double ad shows "1 of 2", then "2 of 2" straight after.
-    function showTrollPopup(index = 1, total = 1) {
+    // Extra annoyances, all bounded: a decoy ✕ adds 2 s (twice at most), video
+    // ads may "buffer" once, the real close shrinks and jumps, and sometimes a
+    // "Leaving so soon?" step offers one bonus ad.
+    function showTrollPopup(index = 1, total = 1, bonus = false) {
       if (!trollActive('popups')) return;
       if (trollAd) return;
-      if (document.hidden && index === 1) { scheduleTrollPopup(); return; }
-      const sponsor = total > 1 ? `Sponsored · ${index} of ${total}` : 'Sponsored';
-      const video = Math.random() < 0.4;
+      if (document.hidden && index === 1 && !bonus) { scheduleTrollPopup(); return; }
+      const sponsor = bonus ? 'Sponsored · bonus ad 🎁' : total > 1 ? `Sponsored · ${index} of ${total}` : 'Sponsored';
+      const video = Math.random() < 0.5;
       const seconds = video ? 8 + Math.floor(Math.random() * 5) : 5;
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       const dialog = document.createElement('dialog');
-      dialog.className = 'troll-ad' + (video ? ' troll-ad-video' : '');
+      dialog.className = 'troll-ad' + (video ? ' troll-ad-video' : '') + (calm ? '' : ' troll-ad-annoying');
       dialog.setAttribute('aria-label', 'Advertisement');
       const ad = video ? TROLL_VIDEO_ADS[Math.floor(Math.random() * TROLL_VIDEO_ADS.length)] : TROLL_ADS[Math.floor(Math.random() * TROLL_ADS.length)];
+      const decoy = '<button type="button" class="troll-ad-decoy" aria-label="Close ad">✕</button>';
       dialog.innerHTML = video
         ? `<div class="troll-ad-top"><span class="troll-ad-tag">Ad</span><span class="troll-ad-sponsor">${sponsor}</span><button type="button" class="troll-ad-close" disabled></button></div>
-           <div class="troll-ad-screen"><canvas width="640" height="360"></canvas><div class="troll-ad-bar"><span></span></div><div class="troll-ad-time"></div></div>
-           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><button type="button" class="troll-ad-cta">Learn more</button></div>`
+           <div class="troll-ad-screen"><canvas width="640" height="360"></canvas>${decoy}<div class="troll-ad-buffer" hidden>⏳ Buffering…</div><div class="troll-ad-bar"><span></span></div><div class="troll-ad-time"></div></div>
+           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><button type="button" class="troll-ad-cta">Learn more</button></div>
+           <div class="troll-ad-confirm" hidden></div>`
         : `<div class="troll-ad-top"><span class="troll-ad-tag">Ad</span><span class="troll-ad-sponsor">${sponsor}</span><button type="button" class="troll-ad-close" disabled></button></div>
-           <div class="troll-ad-hero"><span class="troll-ad-emoji"></span></div>
+           <div class="troll-ad-hero"><span class="troll-ad-emoji"></span>${decoy}</div>
            <div class="troll-ad-body"><strong class="troll-ad-brand"></strong><p class="troll-ad-copy"></p><button type="button" class="troll-ad-cta"></button></div>
-           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><span class="troll-ad-fine">Ads help keep Corazon free*</span></div>`;
+           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><span class="troll-ad-fine">Ads help keep Corazon free*</span></div>
+           <div class="troll-ad-confirm" hidden></div>`;
       if (!video) {
         qs('.troll-ad-emoji', dialog).textContent = ad[0];
         qs('.troll-ad-brand', dialog).textContent = ad[1];
         qs('.troll-ad-copy', dialog).textContent = ad[2];
         qs('.troll-ad-cta', dialog).textContent = ad[3];
       }
-      const close = qs('.troll-ad-close', dialog), cta = qs('.troll-ad-cta', dialog);
-      const state = { dialog, done: false, left: seconds, frame: 0, tick: 0 };
+      const close = qs('.troll-ad-close', dialog), cta = qs('.troll-ad-cta', dialog), fake = qs('.troll-ad-decoy', dialog);
+      // total: the ad's length in seconds, grown by decoy penalties; played: video playback.
+      const state = { dialog, done: false, left: seconds, total: seconds, played: 0, paused: false, buffered: false, penalties: 0, frame: 0, tick: 0, timers: [] };
       trollAd = state;
       const label = () => {
         close.disabled = !state.done;
-        close.textContent = state.done ? '✕ Close' : video ? `Video will end in ${state.left}` : `Close in ${state.left}`;
+        close.classList.toggle('troll-ad-close-tiny', state.done);
+        close.textContent = state.done ? '✕' : state.paused ? 'Buffering…' : video ? `Video will end in ${state.left}` : `Close in ${state.left}`;
       };
       label();
-      cta.addEventListener('click', () => { cta.textContent = ['lol no', 'Nice try', 'Loading… (forever)', 'Out of stock'][Math.floor(Math.random() * 4)]; });
-      const finish = () => { closeTrollAd(); if (index < total) showTrollPopup(index + 1, total); else scheduleTrollPopup(); };
-      close.addEventListener('click', () => { if (state.done) finish(); });
+      cta.addEventListener('click', () => { cta.textContent = ['lol no', 'Nice try', 'Loading… (forever)', 'Out of stock', 'Sold out (to you)'][Math.floor(Math.random() * 5)]; });
+      fake.addEventListener('click', () => {
+        if (!state.done && state.penalties < 2) {
+          state.penalties += 1; state.left += 2; state.total += 2;
+          fake.textContent = '+2s 😈';
+          fake.title = 'That ✕ was part of the ad 😈';
+        } else fake.textContent = '😈';
+        label();
+      });
+      const finish = (bonusNext = false) => {
+        closeTrollAd();
+        if (bonusNext) showTrollPopup(1, 1, true);
+        else if (index < total) showTrollPopup(index + 1, total);
+        else scheduleTrollPopup();
+      };
+      // About half the time closing asks "Leaving so soon?" first (never on a bonus ad).
+      const askFirst = !bonus && Math.random() < 0.5;
+      const confirmBox = qs('.troll-ad-confirm', dialog);
+      const tryClose = () => {
+        if (!state.done) return;
+        if (!askFirst || !confirmBox.hidden) { finish(); return; }
+        const keep = '<button type="button" class="troll-ad-keep">Keep watching ▶</button>';
+        const leave = '<button type="button" class="troll-ad-leave">no thanks, I hate free stuff</button>';
+        confirmBox.innerHTML = `<strong>Leaving so soon? 🥺</strong><p>You’re one ad away from absolutely nothing.</p><div>${Math.random() < 0.5 ? keep + leave : leave + keep}</div>`;
+        confirmBox.hidden = false;
+        qs('.troll-ad-keep', confirmBox).addEventListener('click', () => finish(true));
+        qs('.troll-ad-leave', confirmBox).addEventListener('click', () => finish());
+        qs('.troll-ad-keep', confirmBox).focus({ preventScroll: true });
+      };
+      close.addEventListener('click', tryClose);
       // Escape does nothing until the ad is done.
-      dialog.addEventListener('cancel', event => { event.preventDefault(); if (state.done) finish(); });
+      dialog.addEventListener('cancel', event => { event.preventDefault(); tryClose(); });
       state.tick = setInterval(() => {
+        if (state.paused) return;
         state.left = Math.max(0, state.left - 1);
-        if (!state.left) { state.done = true; clearInterval(state.tick); }
+        if (!state.left) {
+          state.done = true; clearInterval(state.tick);
+          // The real close jumps to the other side of the bar once it unlocks.
+          if (Math.random() < 0.5) close.parentElement.prepend(close);
+        }
         label();
       }, 1000);
       if (video) {
+        // Buffering: once, somewhere in the middle, for 1-2 s (the countdown waits too).
+        const bufferAt = (seconds * (0.3 + Math.random() * 0.4)) * 1000;
         const canvas = qs('canvas', dialog), ctx = canvas.getContext('2d');
-        const bar = qs('.troll-ad-bar span', dialog), time = qs('.troll-ad-time', dialog);
-        const started = performance.now(), total = seconds * 1000;
-        const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        const bar = qs('.troll-ad-bar span', dialog), time = qs('.troll-ad-time', dialog), buffering = qs('.troll-ad-buffer', dialog);
         const [emoji, lines] = ad;
+        let last = performance.now();
         const draw = now => {
           if (!ctx || trollAd !== state) return;
-          const t = Math.min(1, (now - started) / total), hue = calm ? 260 : (now / 20) % 360;
+          const dt = now - last; last = now;
+          if (!state.paused) state.played += dt;
+          if (!state.buffered && Math.random() < 0.6 && state.played >= bufferAt) {
+            state.buffered = true; state.paused = true; buffering.hidden = false; label();
+            state.timers.push(setTimeout(() => { state.paused = false; buffering.hidden = true; label(); }, 1000 + Math.random() * 1000));
+          } else if (!state.buffered && state.played >= bufferAt) state.buffered = true;
+          const t = Math.min(1, state.played / (state.total * 1000)), hue = calm ? 260 : (now / 20) % 360;
           const g = ctx.createLinearGradient(0, 0, 640, 360);
           g.addColorStop(0, `hsl(${hue} 70% 35%)`); g.addColorStop(1, `hsl(${(hue + 80) % 360} 70% 20%)`);
           ctx.fillStyle = g; ctx.fillRect(0, 0, 640, 360);
-          const bounce = calm ? 0 : Math.abs(Math.sin(now / 260)) * 40;
+          const bounce = calm || state.paused ? 0 : Math.abs(Math.sin(now / 260)) * 40;
           ctx.font = '120px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(emoji, 320, 150 - bounce);
           ctx.font = '700 38px system-ui, sans-serif'; ctx.fillStyle = '#fff';
           ctx.fillText(lines[Math.min(lines.length - 1, Math.floor(t * lines.length))], 320, 290);
           bar.style.width = `${(t * 100).toFixed(1)}%`;
-          const s = Math.floor((now - started) / 1000);
-          time.textContent = `0:${String(Math.min(s, seconds)).padStart(2, '0')} / 0:${String(seconds).padStart(2, '0')}`;
+          const sec = Math.floor(state.played / 1000);
+          time.textContent = `0:${String(Math.min(sec, state.total)).padStart(2, '0')} / 0:${String(state.total).padStart(2, '0')}`;
           if (t < 1) state.frame = requestAnimationFrame(draw);
         };
         state.frame = requestAnimationFrame(draw);
