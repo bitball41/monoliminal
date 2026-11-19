@@ -151,11 +151,9 @@ test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
     assert.deepEqual((await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows, [{ topic: 'chat:user:alice' }]);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('PomKnee', array['shake'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
     await call('kirk', `select public.chat_troll_apply('coowner', array['shake'], 5)`);
-    // Troll protection (part 2): not PomKnee, not Conno, not the refresh either.
-    for (const who of ['PomKnee', 'connor']) {
-      await assert.rejects(call(who, `select public.chat_troll_apply('kirk', array['popups'], 5)`), /troll protection/);
-      await assert.rejects(call(who, `select public.chat_troll_refresh('Kirk')`), /troll protection/);
-    }
+    // Troll protection (part 2): not PomKnee, not the refresh either (Conno: below).
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('kirk', array['popups'], 5)`), /troll protection/);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_refresh('Kirk')`), /troll protection/);
     assert.deepEqual((await call('kirk', `select public.chat_my_troll_effects() r`))[0].r, []);
     assert.equal((await call('kirk', `select public.chat_troll_list() r`))[0].r.length, 2);
     await call('kirk', `select public.chat_troll_clear('alice')`);
@@ -163,6 +161,9 @@ test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
     await assert.rejects(call('kirk', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('kirk', array['shake'], 5)`), /yourself/);
     await assert.rejects(call('coowner', `select public.chat_troll_apply('bob', array['shake'], 5)`), /troll menu is not available/);
+    // Conno gets past Kirk's protection (20261119021452), the refresh included.
+    assert.equal((await call('connor', `select public.chat_troll_apply('kirk', array['popups'], 5) r`))[0].r.length, 1);
+    await call('connor', `select public.chat_troll_refresh('Kirk')`);
   } finally { await db.close(); }
 });
 

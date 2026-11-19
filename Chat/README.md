@@ -172,6 +172,15 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Conno can troll PomKnee and Kirk
+
+[`20261119021452_chat_conno_trolls_protected.sql`](../Backend/migrations/20261119021452_chat_conno_trolls_protected.sql)
+(**applied 2026-11-19**; rolled-back dry run on live data first). The troll
+protection on PomKnee (Super Mega Tuff Co-owner) and Kirk (Phoenix) now lets
+the `connor` account through, trolls and the one-shot refresh. Everyone else,
+the two of them and PRESTON included, is still refused. The troll option
+shows on their profiles for Conno only.
+
 ## Popup ads troll
 
 The "Popups" troll is now **Popup ads**: made-up parody ads styled like real
