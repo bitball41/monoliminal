@@ -4130,9 +4130,11 @@ console.error('Phoenix Chat login failed:', err);
       const sameAccount=()=>token===sessionToken&&account===String(currentUserId)&&phoenixCanStaffAbility('can_manage_users');
       try{
         await loadPhoenixSubroles();if(!sameAccount())return;
-        const [userResult,statusResult]=await Promise.allSettled([
-          withTimeout(db.rpc('get_users',{p_session_token:token})),(isOwner?withTimeout(db.rpc('phoenix_staff_member_statuses',{p_session_token:token})):Promise.resolve({data:[],error:null}))
+        const [userResult,statusResult,timeoutResult]=await Promise.allSettled([
+          withTimeout(db.rpc('get_users',{p_session_token:token})),(isOwner?withTimeout(db.rpc('phoenix_staff_member_statuses',{p_session_token:token})):Promise.resolve({data:[],error:null})),
+          withTimeout(db.rpc('phoenix_active_timeouts',{p_session_token:token}))
         ]);
+        const activeTimeouts=timeoutResult.status==='fulfilled'&&!timeoutResult.value.error&&Array.isArray(timeoutResult.value.data)?timeoutResult.value.data:null;
         if(!sameAccount())return;
         if(userResult.status!=='fulfilled')throw userResult.reason;
         if(userResult.value.error)throw userResult.value.error;
@@ -4146,7 +4148,7 @@ console.error('Phoenix Chat login failed:', err);
           const status=byId.get(String(user.id))||user;
           if(user.is_banned||status.is_banned){const banDate=status.banned_at?new Date(status.banned_at).toLocaleString():'Date not recorded';const row=phoenixStaffListRow(phoenixStaffMemberName(user),status.ban_reason||'No reason provided','Banned by '+(status.banned_by?'@'+status.banned_by:'unknown moderator')+' · '+banDate);const unban=document.createElement('button');unban.type='button';unban.className='staff-small-button';unban.textContent='Unban';unban.onclick=async()=>{await unbanUser(user.id,user.username);if(sameAccount())loadStaffMembersPanel();};row.appendChild(unban);bannedBox.appendChild(row);}
           const until=new Date(status.timeout_until||0).getTime();
-          if(until>Date.now()){const minutes=Math.ceil((until-Date.now())/60000),duration=minutes>=1440?Math.floor(minutes/1440)+'d '+Math.floor(minutes%1440/60)+'h':minutes>=60?Math.floor(minutes/60)+'h '+minutes%60+'m':minutes+'m';const row=phoenixStaffListRow(phoenixStaffMemberName(user),status.timeout_reason||'No reason recorded',duration+' remaining'+(status.timeout_by?' · By @'+status.timeout_by:''));timeoutBox.appendChild(row);}
+          if(!activeTimeouts&&until>Date.now()){const minutes=Math.ceil((until-Date.now())/60000),duration=minutes>=1440?Math.floor(minutes/1440)+'d '+Math.floor(minutes%1440/60)+'h':minutes>=60?Math.floor(minutes/60)+'h '+minutes%60+'m':minutes+'m';const row=phoenixStaffListRow(phoenixStaffMemberName(user),status.timeout_reason||'No reason recorded',duration+' remaining'+(status.timeout_by?' · By @'+status.timeout_by:''));timeoutBox.appendChild(row);}
           if(isOwner&&!user.is_owner){const row=createPhoenixStaffAssignmentRow(user),select=document.createElement('select');select.className='phoenix-user-subrole-select';select.setAttribute('aria-label','Staff role for '+user.username);
             for(const [value,label]of[['','Member'],['manager','Coordinators'],['admin','Operators'],['co-owner','Right Hands'],['ai','AI']]){const op=document.createElement('option');op.value=value;op.textContent=label;select.appendChild(op);}select.value=user.role||'';select.onchange=async()=>{await changeUserRole(user.id,user.username,select);filterPhoenixStaffAssignments();};row.appendChild(select);roleBox.appendChild(row);}
           const row=createPhoenixStaffAssignmentRow(user),select=document.createElement('select');select.className='phoenix-user-subrole-select';select.setAttribute('aria-label','Subrole for '+user.username);const none=document.createElement('option');none.value='';none.textContent='No subrole';select.appendChild(none);
@@ -4155,7 +4157,16 @@ console.error('Phoenix Chat login failed:', err);
         if(!roleBox.children.length)phoenixStaffEmpty(roleBox,'No other members to assign staff roles.');
         if(!subBox.children.length)phoenixStaffEmpty(subBox,'No members to assign subroles.');
         if(!bannedBox.children.length)phoenixStaffEmpty(bannedBox,'No banned accounts.');
-        if(!timeoutBox.children.length)phoenixStaffEmpty(timeoutBox,statusesAvailable?'No active timeouts.':'Timeout details are unavailable.');
+        if(activeTimeouts){
+          for(const t of activeTimeouts){
+            const left=Math.max(0,new Date(t.timeout_until).getTime()-Date.now());
+            const row=phoenixStaffListRow(t.display_name||t.username,t.timeout_reason||'No reason recorded',phoenixFormatTimeoutRemaining(left)+' remaining'+(t.timeout_by?' · By '+t.timeout_by:''));
+            if(t.can_clear){const clear=document.createElement('button');clear.type='button';clear.className='staff-small-button';clear.textContent='Clear time out';clear.onclick=async()=>{clear.disabled=true;clear.textContent='Clearing…';const ok=await clearPhoenixTimeout(t.id,t.username);if(!ok&&clear.isConnected){clear.disabled=false;clear.textContent='Clear time out';}};row.appendChild(clear);}
+            else{const note=document.createElement('small');note.className='staff-result-count';note.textContent='Given by a higher rank';note.title=t.clear_blocked_reason||'';row.appendChild(note);}
+            timeoutBox.appendChild(row);
+          }
+        }
+        if(!timeoutBox.children.length)phoenixStaffEmpty(timeoutBox,(activeTimeouts||statusesAvailable)?'No active timeouts.':'Timeout details are unavailable.');
         filterPhoenixStaffAssignments();
       }catch(err){if(!sameAccount())return;for(const box of [roleBox,subBox,bannedBox,timeoutBox]){box.replaceChildren();phoenixStaffEmpty(box,'Could not load members: '+errorText(err));}}
     }
@@ -8587,8 +8598,19 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
     async function timeoutPhoenixMember(userId, username, seconds, reason=''){
       if(!userId||!phoenixCanStaffAbility('can_timeout'))return;
       if(!Number.isInteger(seconds)||seconds<60||seconds>86400){phoenixNotice('Choose a timeout between 1 minute and 24 hours.','Invalid timeout');return;}
-      try{const {error}=await withTimeout(db.rpc('timeout_user',{p_session_token:sessionToken,p_user_id:userId,p_duration_seconds:seconds,p_reason:reason.trim()||null}));if(error)throw error;phoenixToast('@'+username+' was timed out for '+phoenixFormatTimeoutRemaining(seconds*1000)+'.','success');if($('staff-timeout-list')&&phoenixCanStaffAbility('can_manage_users'))loadStaffMembersPanel();}
-      catch(err){phoenixNotice('Could not timeout member: '+errorText(err),'Timeout failed');}
+      try{const {error}=await withTimeout(db.rpc('timeout_user',{p_session_token:sessionToken,p_user_id:userId,p_duration_seconds:seconds,p_reason:reason.trim()||null}));if(error)throw error;phoenixToast('@'+username+' was timed out for '+phoenixFormatTimeoutRemaining(seconds*1000)+'.','success');if($('staff-timeout-list')&&phoenixCanStaffAbility('can_manage_users'))loadStaffMembersPanel();return true;}
+      catch(err){phoenixNotice('Could not timeout member: '+errorText(err),'Timeout failed');return false;}
+    }
+    // Clearing a timeout is allowed only when whoever gave it was the same rank as you or lower.
+    // The database enforces that rule (see Phoenix chat/SQL/2026-11-19-clear-timeouts.sql).
+    async function clearPhoenixTimeout(userId, username){
+      if(!userId||!phoenixCanStaffAbility('can_timeout'))return false;
+      try{const {error}=await withTimeout(db.rpc('clear_timeout_user',{p_session_token:sessionToken,p_user_id:userId}));if(error)throw error;phoenixToast('@'+username+'’s timeout was cleared.','success');if($('staff-timeout-list')&&phoenixCanStaffAbility('can_manage_users'))loadStaffMembersPanel();return true;}
+      catch(err){phoenixNotice('Could not clear timeout: '+errorText(err),'Clear timeout failed');return false;}
+    }
+    async function phoenixTimeoutStatus(userId){
+      const {data,error}=await withTimeout(db.rpc('phoenix_timeout_status',{p_session_token:sessionToken,p_user_id:userId}),8000);
+      if(error)throw error;return data||{timed_out:false};
     }
 
     async function openModerationProfile(userId, username, role, targetIsOwner, targetBanned, profileOverride = null) {
@@ -8682,6 +8704,7 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
       if(userId && !actualOwner && String(userId)!==String(currentUserId) && phoenixCanStaffAbility('can_timeout')){
         const timeoutBox=document.createElement('div');timeoutBox.className='phoenix-timeout-controls';
         timeoutBox.style.cssText='display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--theme-border,#3c5948);border-radius:9px;background:var(--theme-surface,#102219);';
+        const buildTimeoutSlider=()=>{timeoutBox.replaceChildren();
         const timeoutTitle=document.createElement('strong');timeoutTitle.textContent='⏱ Timeout length';
         const timeoutValue=document.createElement('output');timeoutValue.style.cssText='font-weight:700;color:var(--theme-accent,#9bd8b3);text-align:right;';
         const timeoutRange=document.createElement('input');timeoutRange.type='range';timeoutRange.min='1';timeoutRange.max='1440';timeoutRange.step='1';timeoutRange.value='10';timeoutRange.style.cssText='width:100%;accent-color:var(--theme-accent,#79d69b);cursor:pointer;';
@@ -8693,8 +8716,31 @@ const { error } = await withTimeout(db.rpc('clear_all_messages', {
         const minLabel=document.createElement('span');minLabel.textContent='1 min';const maxLabel=document.createElement('span');maxLabel.textContent='24 hours';timeoutScale.append(minLabel,maxLabel);
         const reason=document.createElement('input');reason.type='text';reason.maxLength=240;reason.placeholder='Reason (optional)';reason.setAttribute('aria-label','Optional timeout reason');reason.style.cssText='width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--theme-border,#3c5948);border-radius:7px;background:var(--theme-input,#0b1b13);color:var(--theme-text,#d9e9df);';
         const applyTimeout=document.createElement('button');applyTimeout.type='button';applyTimeout.textContent='Apply timeout';applyTimeout.className='danger-button';
-        applyTimeout.onclick=async()=>{const minutes=Number(timeoutRange.value);applyTimeout.disabled=true;applyTimeout.textContent='Applying…';try{await timeoutPhoenixMember(userId,actualUsername,minutes*60,reason.value);}finally{applyTimeout.disabled=false;applyTimeout.textContent='Apply timeout';}};
-        timeoutBox.append(timeoutTitle,timeoutValue,timeoutRange,timeoutScale,reason,applyTimeout);actions.appendChild(timeoutBox);
+        applyTimeout.onclick=async()=>{const minutes=Number(timeoutRange.value);applyTimeout.disabled=true;applyTimeout.textContent='Applying…';let ok=false;try{ok=await timeoutPhoenixMember(userId,actualUsername,minutes*60,reason.value);}finally{applyTimeout.disabled=false;applyTimeout.textContent='Apply timeout';}if(ok&&isCurrentProfile())refreshTimeoutBox();};
+        timeoutBox.append(timeoutTitle,timeoutValue,timeoutRange,timeoutScale,reason,applyTimeout);};
+        // While someone is timed out, hide the slider and show their timeout with a Clear button.
+        const buildTimeoutStatus=(status)=>{timeoutBox.replaceChildren();
+          const title=document.createElement('strong');title.textContent='⏱ Timed out';
+          const until=new Date(status.timeout_until).getTime(),left=document.createElement('span');left.style.cssText='font-weight:700;color:var(--theme-accent,#9bd8b3);';
+          left.textContent=phoenixFormatTimeoutRemaining(Math.max(0,until-Date.now()))+' left';
+          const detail=document.createElement('small');detail.style.cssText='color:var(--theme-muted,#91a99a);line-height:1.4;';
+          detail.textContent=(status.timeout_by?'By '+status.timeout_by:'By a moderator')+(status.timeout_reason?' · '+status.timeout_reason:'');
+          timeoutBox.append(title,left,detail);
+          if(status.can_clear){
+            const clear=document.createElement('button');clear.type='button';clear.className='danger-button';clear.textContent='Clear time out';
+            clear.onclick=async()=>{clear.disabled=true;clear.textContent='Clearing…';const ok=await clearPhoenixTimeout(userId,actualUsername);if(!isCurrentProfile())return;if(ok)buildTimeoutSlider();else{clear.disabled=false;clear.textContent='Clear time out';}};
+            timeoutBox.appendChild(clear);
+          }else{
+            const note=document.createElement('small');note.style.cssText='color:var(--theme-muted,#91a99a);';
+            note.textContent=status.clear_blocked_reason||'You cannot clear this timeout.';timeoutBox.appendChild(note);
+          }
+        };
+        const refreshTimeoutBox=async()=>{
+          try{const status=await phoenixTimeoutStatus(userId);if(!isCurrentProfile())return;if(status.timed_out)buildTimeoutStatus(status);else buildTimeoutSlider();}
+          catch(err){if(isCurrentProfile())buildTimeoutSlider();} // Database update not applied yet: keep the old slider.
+        };
+        const checking=document.createElement('small');checking.textContent='Checking timeout…';checking.style.color='var(--theme-muted,#91a99a)';timeoutBox.appendChild(checking);
+        actions.appendChild(timeoutBox);refreshTimeoutBox();
       }
       if(userId && !actualOwner && String(userId)!==String(currentUserId) && phoenixCanStaffAbility('can_ban')){
         const ban=document.createElement('button');ban.type='button';ban.textContent=targetBanned?'🔓 Unban member':'🚫 Ban member';
