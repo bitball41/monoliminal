@@ -1065,32 +1065,36 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       animation: smt-badge-spin 3s linear infinite;
     }
     .role-check.super-mega-tuff-co-owner svg { animation: smt-badge-spin 3s linear infinite reverse; }
-    /* Phoenix: a flickering flame (teardrop pointing up) with rising embers. */
+    /* Phoenix: a fire-coloured phoenix (wings raised, flame tail) with a flickering glow and rising embers. */
     .role-check.phoenix {
       position: relative; overflow: visible; clip-path: none;
-      border-radius: 50% 0 50% 50%; transform: rotate(-45deg);
-      background: radial-gradient(circle at 30% 70%, #fef08a 0 18%, #fbbf24 34%, #f97316 58%, #dc2626 84%, #7f1d1d);
-      box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9);
+      width: 1.3em; height: 1.3em; vertical-align: -0.24em;
+      filter: drop-shadow(0 0 2px rgba(249, 115, 22, .9)) drop-shadow(0 0 1px rgba(254, 240, 138, .9));
       animation: phoenix-flicker 1.6s ease-in-out infinite;
     }
-    .role-check.phoenix svg { transform: rotate(45deg); color: #fff7ed; filter: drop-shadow(0 0 1px #7c2d12); }
+    .role-check.phoenix .phoenix-bird {
+      display: block; width: 100%; height: 100%;
+      background: linear-gradient(to top, #7f1d1d, #dc2626 22%, #f97316 50%, #fbbf24 75%, #fef08a);
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M11 8.6Q9.6 4.6 6.6 1Q7.4 2.8 7 4Q5.6 2.6 2.8 1.8Q4.4 3.6 4.4 5.2Q2.8 4.6.8 4.8Q2.6 6 3.2 7.4Q2.2 7.6 1.2 8.6Q4.8 8.8 6.4 10.4Q8.6 11.8 11 12.2Z%22/%3E%3Cpath d=%22M13 8.6Q14.4 4.6 17.4 1Q16.6 2.8 17 4Q18.4 2.6 21.2 1.8Q19.6 3.6 19.6 5.2Q21.2 4.6 23.2 4.8Q21.4 6 20.8 7.4Q21.8 7.6 22.8 8.6Q19.2 8.8 17.6 10.4Q15.4 11.8 13 12.2Z%22/%3E%3Cpath d=%22M12 6.4Q14.4 6.6 14 10.4Q13.8 13.6 12 15Q10.2 13.6 10 10.4Q9.6 6.6 12 6.4Z%22/%3E%3Ccircle cx=%2212%22 cy=%225.4%22 r=%221.6%22/%3E%3Cpath d=%22M13.3 4.7 15.6 5.6 13.3 6.3Z%22/%3E%3Cpath d=%22M11.4 4.2Q10.4 2.6 11.4.6Q11.6 2.4 12.8 3.4Q12.6 1.8 13.6 1Q13.2 2.8 13.4 4.6Z%22/%3E%3Cpath d=%22M10.6 13.4Q7.6 15.4 6.8 19.6Q8.4 17.6 9.8 17.4Q8.6 20 9.6 23Q10.4 20.6 11.4 19.6Q11.6 21.8 12.6 23.6Q13 21 12.8 19.4Q14 20 14.8 22.8Q15.4 19.6 14.2 17.4Q15.8 17.6 17.2 19.6Q16.4 15.4 13.4 13.4Z%22/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M11 8.6Q9.6 4.6 6.6 1Q7.4 2.8 7 4Q5.6 2.6 2.8 1.8Q4.4 3.6 4.4 5.2Q2.8 4.6.8 4.8Q2.6 6 3.2 7.4Q2.2 7.6 1.2 8.6Q4.8 8.8 6.4 10.4Q8.6 11.8 11 12.2Z%22/%3E%3Cpath d=%22M13 8.6Q14.4 4.6 17.4 1Q16.6 2.8 17 4Q18.4 2.6 21.2 1.8Q19.6 3.6 19.6 5.2Q21.2 4.6 23.2 4.8Q21.4 6 20.8 7.4Q21.8 7.6 22.8 8.6Q19.2 8.8 17.6 10.4Q15.4 11.8 13 12.2Z%22/%3E%3Cpath d=%22M12 6.4Q14.4 6.6 14 10.4Q13.8 13.6 12 15Q10.2 13.6 10 10.4Q9.6 6.6 12 6.4Z%22/%3E%3Ccircle cx=%2212%22 cy=%225.4%22 r=%221.6%22/%3E%3Cpath d=%22M13.3 4.7 15.6 5.6 13.3 6.3Z%22/%3E%3Cpath d=%22M11.4 4.2Q10.4 2.6 11.4.6Q11.6 2.4 12.8 3.4Q12.6 1.8 13.6 1Q13.2 2.8 13.4 4.6Z%22/%3E%3Cpath d=%22M10.6 13.4Q7.6 15.4 6.8 19.6Q8.4 17.6 9.8 17.4Q8.6 20 9.6 23Q10.4 20.6 11.4 19.6Q11.6 21.8 12.6 23.6Q13 21 12.8 19.4Q14 20 14.8 22.8Q15.4 19.6 14.2 17.4Q15.8 17.6 17.2 19.6Q16.4 15.4 13.4 13.4Z%22/%3E%3C/svg%3E") center / contain no-repeat;
+    }
     .role-check.phoenix::before, .role-check.phoenix::after {
       content: ''; position: absolute; width: 3px; height: 3px; border-radius: 50%; pointer-events: none;
       background: #fde047; box-shadow: 0 0 4px #f97316; opacity: 0;
       animation: phoenix-ember 1.8s ease-out infinite;
     }
-    .role-check.phoenix::before { right: 10%; top: 10%; }
-    .role-check.phoenix::after { right: 40%; top: -5%; animation-delay: .9s; }
+    .role-check.phoenix::before { left: 12%; top: 4%; }
+    .role-check.phoenix::after { right: 12%; top: 0; animation-delay: .9s; }
     @keyframes phoenix-flicker {
-      0%, 100% { box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9); filter: brightness(1); }
-      30% { box-shadow: 0 0 15px rgba(239, 68, 68, .9), 0 0 6px rgba(253, 224, 71, 1); filter: brightness(1.2) saturate(1.2); }
-      55% { box-shadow: 0 0 8px rgba(249, 115, 22, .7), 0 0 3px rgba(254, 240, 138, .8); filter: brightness(.95); }
-      80% { box-shadow: 0 0 13px rgba(251, 146, 60, .95), 0 0 5px rgba(254, 240, 138, 1); filter: brightness(1.12); }
+      0%, 100% { filter: drop-shadow(0 0 2px rgba(249, 115, 22, .9)) drop-shadow(0 0 1px rgba(254, 240, 138, .9)) brightness(1); }
+      30% { filter: drop-shadow(0 0 3px rgba(239, 68, 68, .95)) drop-shadow(0 0 1.5px rgba(253, 224, 71, 1)) brightness(1.2) saturate(1.2); }
+      55% { filter: drop-shadow(0 0 1.5px rgba(249, 115, 22, .75)) drop-shadow(0 0 1px rgba(254, 240, 138, .8)) brightness(.95); }
+      80% { filter: drop-shadow(0 0 2.5px rgba(251, 146, 60, .95)) drop-shadow(0 0 1px rgba(254, 240, 138, 1)) brightness(1.12); }
     }
     @keyframes phoenix-ember {
       0% { transform: translate(0, 0) scale(1); opacity: 0; }
       15% { opacity: 1; }
-      100% { transform: translate(6px, -6px) scale(.3); opacity: 0; }
+      100% { transform: translate(0, -7px) scale(.3); opacity: 0; }
     }
     @keyframes smt-badge-spin { to { transform: rotate(360deg); } }
     .role-check.smt-custom { background: var(--smt-bg); box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
@@ -8057,12 +8061,14 @@ void main() {
       return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+    // The Phoenix badge is a bird drawn in CSS (.phoenix-bird) instead of a check mark.
+    const roleCheckInner = check => (check === 'phoenix' ? '<span class="phoenix-bird" aria-hidden="true"></span>' : ROLE_CHECK_SVG);
     // The Super Mega Tuff Co-owner styles their own check (app_settings.smt_check,
     // validated by chat_set_smt_check and again here before it reaches the page).
     // Effects and shapes; the server (chat_set_badge_style) checks the same lists.
     const SMT_ANIMATIONS = ['none', 'spin', 'pulse', 'bounce', 'shake', 'wobble', 'flip', 'float', 'heartbeat', 'glow', 'rainbow', 'blink'];
     const SMT_SHAPES = { burst: 'Seal (default)', circle: 'Circle', square: 'Rounded square', star: 'Star', heart: 'Heart', diamond: 'Diamond', shield: 'Shield', hexagon: 'Hexagon', plain: 'No background' };
-    // Each styled badge has its own key: Phoenix phoenix_check (else the fire badge),
+    // Each styled badge has its own key: Phoenix phoenix_check (else the phoenix badge),
     // Owner owner_check (else the red owner badge), Super Mega Tuff Co-owner smt_check.
     const isOwnerRole = profileOrUsername => !!profileOrUsername && staffRoleOf(profileOrUsername) === 'owner';
     const smtCheckKey = profileOrUsername => (isPhoenix(profileOrUsername) ? 'phoenix_check' : isOwnerRole(profileOrUsername) ? 'owner_check' : 'smt_check');
@@ -8090,7 +8096,7 @@ void main() {
       if (Object.hasOwn(TOP_ROLE_HOLDERS, role) || role === 'owner') { const style = smtCheckStyle(appSettings[smtCheckKey(profileOrUsername)]); if (style) return smtCheckHtml(style, title); }
       // Custom roles carry their own colour (validated #rrggbb).
       const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
-      return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
+      return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${roleCheckInner(meta.check)}</span>`;
     }
     function roleBadgeHtml(profileOrUsername) {
       return roleCheckHtml(profileOrUsername);
@@ -18155,7 +18161,7 @@ void main() {
         <div class="field"><label>Colours (untick to use fewer)</label><div class="smt-colors">${colors.map((c, i) => `<label class="smt-color"><input type="checkbox" data-smt-color-on="${i}" ${c ? 'checked' : ''} aria-label="Use colour ${i + 1}"><input type="color" data-smt-color="${i}" value="${c || '#ffffff'}" aria-label="Colour ${i + 1}"></label>`).join('')}</div></div>
         <div class="field"><label for="smt-check-anim">Effect</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
         <div class="field"><label for="smt-check-shape">Shape</label><select id="smt-check-shape">${Object.entries(SMT_SHAPES).map(([v, l]) => `<option value="${v}" ${(style.shape || 'burst') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">${isPhoenix() ? 'Back to the fire badge' : isOwnerRole(me) ? 'Back to the owner badge' : 'Reset to default'}</button></div>
+        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">${isPhoenix() ? 'Back to the phoenix badge' : isOwnerRole(me) ? 'Back to the owner badge' : 'Reset to default'}</button></div>
       </div>`;
     }
     function bindSmtCheckEditor(root) {
@@ -18620,7 +18626,7 @@ void main() {
         .sort(([sa, a], [sb, b]) => b.power - a.power || b.rank - a.rank || sa.localeCompare(sb)).map(([slug]) => slug);
     }
     function roleBadgePreview(meta) {
-      return meta.check ? `<span class="role-check ${meta.check}"${meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : ''} aria-hidden="true">${ROLE_CHECK_SVG}</span>` : '';
+      return meta.check ? `<span class="role-check ${meta.check}"${meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : ''} aria-hidden="true">${roleCheckInner(meta.check)}</span>` : '';
     }
     function roleHierarchyHtml() {
       const holders = new Map();
