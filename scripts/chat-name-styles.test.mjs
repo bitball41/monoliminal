@@ -6,6 +6,7 @@ import {PGlite} from '@electric-sql/pglite';
 
 const chat = await readFile(new URL('../Chat/chat.html', import.meta.url), 'utf8');
 const migration = await readFile(new URL('../Backend/migrations/20261025222612_chat_name_styles.sql', import.meta.url), 'utf8');
+const fontsMigration = await readFile(new URL('../Backend/migrations/20261119155549_chat_name_fonts.sql', import.meta.url), 'utf8');
 const section = (start, end) => chat.slice(chat.indexOf(start), chat.indexOf(end, chat.indexOf(start)));
 const esc = value => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 function names() {
@@ -65,5 +66,30 @@ test('name styling is self-only even with permissive legacy RLS; invalid payload
     await assert.rejects(db.query("update profiles set name_style=$1::jsonb where username='alice'",[JSON.stringify(style)]), /only change your own/);
     await db.exec("reset role; set role anon");
     await assert.rejects(db.query("update profiles set name_style='{}'"), /permission denied/);
+  } finally {await db.close();}
+});
+
+test('Agrave Pro, Exile, Comic Sans and Papyrus are offered, rendered and accepted by the database', async () => {
+  const n = names();
+  for (const font of ['agrave', 'exile', 'comic', 'papyrus']) {
+    assert.match(chat, new RegExp(`<option value="${font}">`));
+    assert.match(chat, new RegExp(`\\.name-font-${font} \\{ font-family:`));
+    assert.match(n.displayNameHtml({username:'alice',name_style:{...style,font}}), new RegExp(`name-font-${font} `));
+  }
+  const db = new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated; create schema auth; create schema private;
+      create function auth.uid() returns uuid language sql stable as $$select null::uuid$$;
+      create table public.profiles(username text primary key,user_id uuid,is_banned boolean default false);
+      insert into profiles values ('alice',null,false);`);
+    await db.exec(migration);
+    await db.query("update profiles set name_style=$1::jsonb", [JSON.stringify(style)]);
+    await assert.rejects(db.query("update profiles set name_style=$1::jsonb", [JSON.stringify({...style,font:'papyrus'})]), /profiles_name_style_check/);
+    await db.exec(fontsMigration);
+    assert.deepEqual((await db.query("select name_style from profiles")).rows[0].name_style, style);
+    for (const font of ['agrave', 'exile', 'comic', 'papyrus', 'serif']) await db.query("update profiles set name_style=$1::jsonb", [JSON.stringify({...style,font})]);
+    for (const font of ['wingdings', 'url(bad)', '']) {
+      await assert.rejects(db.query("update profiles set name_style=$1::jsonb", [JSON.stringify({...style,font})]), /profiles_name_style_check/);
+    }
   } finally {await db.close();}
 });

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   
   <link rel="preconnect" href="https://trsirhyucncmyyfyiuje.supabase.co" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Courgette&family=Pacifico&family=Syne:ital,wght@1,700;1,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Courgette&family=Pacifico&family=Syne:ital,wght@1,700;1,800&family=Agrave+Pro&family=Exile&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
   
   <script>
 /* @supabase/supabase-js 2.108.2, bundled locally.
@@ -428,6 +428,11 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .name-font-serif { font-family: Georgia, "Times New Roman", serif; }
     .name-font-script { font-family: "Pacifico", "Brush Script MT", cursive; font-weight: 400; }
     .name-font-display { font-family: "Syne", "Trebuchet MS", sans-serif; font-style: italic; font-weight: 800; }
+    .name-font-agrave { font-family: "Agrave Pro", Georgia, serif; font-weight: 400; }
+    .name-font-exile { font-family: "Exile", "Trebuchet MS", sans-serif; font-weight: 400; }
+    /* Comic Sans and Papyrus are system fonts; Comic Neue stands in where Comic Sans is missing (e.g. Chromebooks). */
+    .name-font-comic { font-family: "Comic Sans MS", "Comic Sans", "Comic Neue", cursive; }
+    .name-font-papyrus { font-family: Papyrus, "Papyrus Condensed", fantasy; font-weight: 400; }
     .name-effect-solid, .name-effect-gradient, .name-effect-shift, .name-effect-fade { color: var(--name-from); }
     /* Fade and Shift move on one shared ~20 Hz clock (tickNameEffects), which
        writes --name-mix/--name-pos on visible names only. A CSS animation made
@@ -4135,6 +4140,8 @@ html[data-theme="corazon"] .auth-brand .brand-subtitle { color: var(--accent-str
               <option value="default">Default</option><option value="rounded">Rounded</option>
               <option value="mono">Monospace</option><option value="serif">Serif</option>
               <option value="script">Pacifico</option><option value="display">Display</option>
+              <option value="agrave">Agrave Pro</option><option value="exile">Exile</option>
+              <option value="comic">Comic Sans</option><option value="papyrus">Papyrus</option>
             </select></div>
             <div class="field"><label for="set-name-effect">Color effect</label><select id="set-name-effect">
               <option value="default">Default</option><option value="solid">Solid color</option>
@@ -8717,7 +8724,7 @@ void main() {
 
     /* Name styles contain only fixed font/effect IDs and six-digit colors.
        Never accept CSS, font URLs, or HTML from a profile. */
-    const NAME_FONTS = Object.freeze(['default', 'rounded', 'mono', 'serif', 'script', 'display']);
+    const NAME_FONTS = Object.freeze(['default', 'rounded', 'mono', 'serif', 'script', 'display', 'agrave', 'exile', 'comic', 'papyrus']);
     const NAME_EFFECTS = Object.freeze(['default', 'solid', 'gradient', 'fade', 'shift']);
     const NAME_SPEEDS = Object.freeze({ slow: '10s', normal: '6s', fast: '3s' });
     function normalizeNameStyle(raw) {
