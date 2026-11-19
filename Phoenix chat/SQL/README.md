@@ -19,3 +19,4 @@ Each file is safe to run more than once.
 | File | What it does | Status |
 | --- | --- | --- |
 | [`2026-11-19-clear-timeouts.sql`](2026-11-19-clear-timeouts.sql) | Records who gave each timeout and their rank; staff can clear a timeout only if whoever gave it was the same rank as them or lower; adds `phoenix_timeout_status` and `phoenix_active_timeouts` for the profile popup and the staff Members tab. | Not yet confirmed as run |
+| [`2026-11-19-dm-group-admin.sql`](2026-11-19-dm-group-admin.sql) | Adds `phoenix_dm_group_admin`: the person who made a group DM, or the owner, can delete it (with its members and messages); the owner can list every group DM with who made it, member and message counts and dates (no message contents). | Not yet confirmed as run |
