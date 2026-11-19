@@ -269,10 +269,10 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
   } finally { await db.close(); }
 });
 
-test('Conno can troll too; PomKnee has troll protection from everyone, Conno included', async () => {
+test('Conno can troll too, PomKnee included; PomKnee is protected from everyone else', async () => {
   const { db, call } = await setup();
   try {
-    // Troll protection (20261118145536, restored for everyone in 20261119125007).
+    // Troll protection (20261118145536) blocks everyone but Conno (20261119171604).
     await assert.rejects(call('kirk', `select public.chat_troll_apply('PomKnee', array['popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
     const fx = await call('connor', `select public.chat_troll_apply('manager', array['random_keys','popups'], 5) r`);
     assert.deepEqual(fx[0].r.map(e => e.effect), ['popups', 'random_keys']);
@@ -280,9 +280,9 @@ test('Conno can troll too; PomKnee has troll protection from everyone, Conno inc
     await call('connor', `select public.chat_troll_refresh('alice')`);
     assert.deepEqual((await db.query(`select topic from realtime.messages where event='troll_refresh'`)).rows, [{ topic: 'chat:user:alice' }]);
     assert.equal((await call('connor', `select public.chat_troll_list() r`))[0].r.length, 2);
-    // Conno doesn't get past it either, the refresh included.
-    await assert.rejects(call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
-    await assert.rejects(call('connor', `select public.chat_troll_refresh('PomKnee')`), /troll protection/);
+    // Conno gets past PomKnee's protection, the refresh included.
+    assert.deepEqual((await call('connor', `select public.chat_troll_apply('PomKnee', array['random_keys','popups'], 5) r`))[0].r.map(e => e.effect), ['popups', 'random_keys']);
+    await call('connor', `select public.chat_troll_refresh('PomKnee')`);
     await assert.rejects(call('connor', `select public.chat_troll_apply('connor', array['shake'], 5)`), /yourself/);
     await assert.rejects(call('connor', `select public.chat_troll_apply('owner', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('PomKnee', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
