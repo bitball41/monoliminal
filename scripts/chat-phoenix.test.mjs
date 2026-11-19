@@ -173,12 +173,12 @@ test('each holder styles only their own check mark', async () => {
     await call('PomKnee', `select public.chat_set_smt_check('😈', array['#7c3aed'], 'spin')`);
     await call('kirk', `select public.chat_set_smt_check('🔥', array['#FDE047','#f97316','#dc2626'], 'pulse')`);
     const get = async key => (await db.query(`select value from public.app_settings where key=$1`, [key])).rows[0]?.value;
-    assert.deepEqual(JSON.parse(await get('smt_check')), { symbol: '😈', colors: ['#7c3aed'], animation: 'spin' });
-    assert.deepEqual(JSON.parse(await get('phoenix_check')), { symbol: '🔥', colors: ['#fde047', '#f97316', '#dc2626'], animation: 'pulse' });
+    assert.deepEqual(JSON.parse(await get('smt_check')), { symbol: '😈', colors: ['#7c3aed'], animation: 'spin', shape: 'burst' });
+    assert.deepEqual(JSON.parse(await get('phoenix_check')), { symbol: '🔥', colors: ['#fde047', '#f97316', '#dc2626'], animation: 'pulse', shape: 'burst' });
     await call('kirk', `select public.chat_set_smt_check(null, null, null)`);
     assert.equal(await get('phoenix_check'), '');
     assert.notEqual(await get('smt_check'), '', 'Kirk never touches PomKnee’s check');
-    await assert.rejects(call('owner', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Super Mega Tuff Co-owner or Phoenix/);
+    await assert.rejects(call('coowner', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Owner, the Super Mega Tuff Co-owner or Phoenix/);
     await assert.rejects(call('kirk', `select public.chat_set_smt_check('<b>', array['#ff0000'], 'spin')`), /8 characters/);
   } finally { await db.close(); }
 });

@@ -172,6 +172,19 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Badge styles: Owner badge, more effects and shapes
+
+[`20261119041342_chat_badge_styles.sql`](../Backend/migrations/20261119041342_chat_badge_styles.sql)
+(**applied 2026-11-19**; rolled-back dry run on live data first). The Owner
+role can now restyle its badge like the Super Mega Tuff Co-owner and Phoenix
+(Staff → 👑 Owner badge & trolls → Your badge), saved in
+`app_settings.owner_check`; without one it keeps the red owner badge. Everyone
+with the editor now picks from 12 effects (none, spin, pulse, bounce, shake,
+wobble, flip, float, heartbeat, glow, rainbow, blink) and 9 shapes (seal,
+circle, rounded square, star, heart, diamond, shield, hexagon, no background).
+`chat_set_badge_style(symbol, colours, effect, shape)` saves; the older
+`chat_set_smt_check` still works and keeps the current shape.
+
 ## Conno can troll PomKnee and Kirk
 
 [`20261119021452_chat_conno_trolls_protected.sql`](../Backend/migrations/20261119021452_chat_conno_trolls_protected.sql)

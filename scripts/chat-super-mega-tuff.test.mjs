@@ -210,14 +210,41 @@ test('part 2: PomKnee styles their own check mark; nobody else can', async () =>
   try {
     await call('PomKnee', `select public.chat_set_smt_check('🔥', array['#FF0000','#00ff00'], 'pulse')`);
     const v = JSON.parse((await db.query(`select value from public.app_settings where key='smt_check'`)).rows[0].value);
-    assert.deepEqual(v, { symbol: '🔥', colors: ['#ff0000', '#00ff00'], animation: 'pulse' });
+    assert.deepEqual(v, { symbol: '🔥', colors: ['#ff0000', '#00ff00'], animation: 'pulse', shape: 'burst' });
     assert.equal((await call('alice', `select value from public.app_settings where key='smt_check'`)).length, 1, 'everyone can read it');
     await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('<b>', array['#ff0000'], 'spin')`), /8 characters/);
     await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('x', array['red'], 'spin')`), /colours/);
-    await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('x', array['#ff0000'], 'explode')`), /spin, pulse/);
-    await assert.rejects(call('owner', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Super Mega Tuff/);
+    await assert.rejects(call('PomKnee', `select public.chat_set_smt_check('x', array['#ff0000'], 'explode')`), /Unknown badge effect/);
+    await assert.rejects(call('alice', `select public.chat_set_smt_check('x', array['#ff0000'], 'spin')`), /Only the Owner, the Super Mega Tuff Co-owner or Phoenix/);
     await call('PomKnee', `select public.chat_set_smt_check(null, null, null)`);
     assert.equal((await db.query(`select value from public.app_settings where key='smt_check'`)).rows[0].value, '');
+  } finally { await db.close(); }
+});
+
+test('badge styles: the Owner styles its own badge; more effects and shapes; old calls keep the shape', async () => {
+  const { db, call } = await setup();
+  try {
+    const get = async key => JSON.parse((await db.query(`select value from public.app_settings where key=$1`, [key])).rows[0]?.value || 'null');
+    // The Owner role writes owner_check, never PomKnee's.
+    await call('connor', `select public.chat_set_badge_style('👑', array['#EF4444','#b91c1c'], 'heartbeat', 'shield')`);
+    assert.deepEqual(await get('owner_check'), { symbol: '👑', colors: ['#ef4444', '#b91c1c'], animation: 'heartbeat', shape: 'shield' });
+    assert.equal(await get('smt_check'), null);
+    // Every effect and shape is accepted; unknown ones are not.
+    for (const a of ['none', 'spin', 'pulse', 'bounce', 'shake', 'wobble', 'flip', 'float', 'heartbeat', 'glow', 'rainbow', 'blink'])
+      await call('PomKnee', `select public.chat_set_badge_style('😈', array['#7c3aed'], $1, 'star')`, [a]);
+    for (const sh of ['burst', 'circle', 'square', 'star', 'heart', 'diamond', 'shield', 'hexagon', 'plain'])
+      await call('PomKnee', `select public.chat_set_badge_style('😈', array['#7c3aed'], 'glow', $1)`, [sh]);
+    await assert.rejects(call('PomKnee', `select public.chat_set_badge_style('x', array['#ff0000'], 'glow', 'blob')`), /Unknown badge shape/);
+    await assert.rejects(call('PomKnee', `select public.chat_set_badge_style('x', array['#ff0000'], 'explode', 'star')`), /Unknown badge effect/);
+    // The old three-argument call keeps the current shape.
+    await call('PomKnee', `select public.chat_set_smt_check('🔥', array['#ff0000'], 'spin')`);
+    assert.deepEqual(await get('smt_check'), { symbol: '🔥', colors: ['#ff0000'], animation: 'spin', shape: 'plain' });
+    // Nobody else styles a badge; resetting clears only your own.
+    for (const who of ['coowner', 'manager', 'alice'])
+      await assert.rejects(call(who, `select public.chat_set_badge_style('x', array['#ff0000'], 'spin', 'star')`), /Only the Owner, the Super Mega Tuff Co-owner or Phoenix/);
+    await call('connor', `select public.chat_set_badge_style(null, null, null, null)`);
+    assert.equal((await db.query(`select value from public.app_settings where key='owner_check'`)).rows[0].value, '');
+    assert.notEqual(await get('smt_check'), null);
   } finally { await db.close(); }
 });
 
