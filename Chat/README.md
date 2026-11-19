@@ -3,6 +3,93 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Phoenix (Kirk only)
+
+**Current state:** Phoenix and the Super Mega Tuff Co-owner are equals, tied at
+the top of the staff ladder (part 4), and Kirk has the full troll menu.
+
+**Where it's stored:** the role is the row `slug = 'phoenix'` in
+`public.chat_staff_roles` (label "Phoenix", badge `phoenix`, tier 5 = co-owner
+powers, `power` = its place on the ladder). Kirk holds it through
+`public.profiles.staff_role = 'phoenix'` on the account `kirk`; the database
+refuses it on any other account. His check mark is `app_settings.phoenix_check`.
+In Chat, `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`;
+the troll menu is `TROLL_MENU_USERS` (by account, not role).
+
+### Phoenix, part 4: equal again
+
+[`20261118142807_chat_phoenix_equal_to_smt.sql`](../Backend/migrations/20261118142807_chat_phoenix_equal_to_smt.sql)
+(**applied 2026-11-18**, ledger version `20261118142807`) puts the two roles
+back on the same top step, tied: neither is above the other, and reordering or
+new roles keep them tied. Part 3 below is superseded.
+
+### Phoenix, part 3: below the Super Mega Tuff Co-owner (superseded)
+
+Needs [`20261118135935_chat_phoenix_below_smt.sql`](../Backend/migrations/20261118135935_chat_phoenix_below_smt.sql)
+(**applied 2026-11-18**, ledger version `20261118135935`; rolled-back dry run on
+live data first, then verified live: Super Mega Tuff Co-owner 599 > Phoenix 598
+> God Tier 597 > Co-owner 596, admin roles still tied; PomKnee and Kirk still
+can't moderate each other).
+
+- **Order:** Owner > Super Mega Tuff Co-owner > Phoenix > every other staff
+  role (God Tier and the rest keep their order below). Reordering or creating
+  roles keeps it. Nothing else changes between them: only Conno can moderate
+  either holder, and neither can moderate the other.
+- **Troll menu:** Kirk has the full troll menu again (see "Troll menus,
+  revised"). The parts below that say "tied" describe part 1 and are
+  superseded.
+
+Needs [`20261118032602_chat_phoenix_role.sql`](../Backend/migrations/20261118032602_chat_phoenix_role.sql)
+(**applied 2026-11-18**, ledger version `20261118032602`; rolled-back dry run on
+live data first, then verified live: `kirk` holds `phoenix`, Phoenix and Super
+Mega Tuff Co-owner tied at the top under Owner and PRESTON, God Tier and the
+rest of the ladder unchanged, Kirk removed from the co-owner registry, new
+functions not callable when signed out).
+
+- **Equal to the Super Mega Tuff Co-owner.** The built-in role `phoenix` has
+  co-owner powers and shares the top spot with PomKnee's role; reordering or
+  new roles keep both there, tied. Being tied, Kirk and PomKnee can't moderate
+  each other.
+- **Every perk that role has:** one holder (the database refuses it on any
+  account but Kirk, only the owner can change it), only Conno can ban, time
+  out, kick or delete Kirk (a timeout from Conno sticks), clears anyone's
+  timeout, publishes the announcement banner and What's new, lighter spam and
+  QuoteBot limits, and the full troll menu (all eleven trolls, the one-shot
+  refresh, Staff → Trolls, the profile-card entry and the hidden "Corazon"
+  title). Nobody can troll Kirk (part 2) or Conno.
+- **Fire badge.** A flickering flame-shaped check with rising embers (still
+  under reduced motion). Staff → 🔥 Phoenix powers → Your check mark lets Kirk
+  restyle it like PomKnee's; it's saved separately in `app_settings.phoenix_check`,
+  so neither can change the other's. "Back to the fire badge" restores it.
+
+Tests: `scripts/chat-phoenix.test.mjs`.
+
+### Phoenix, part 2
+
+Needs [`20261118133619_chat_phoenix_protection.sql`](../Backend/migrations/20261118133619_chat_phoenix_protection.sql)
+(**applied 2026-11-18**, ledger version `20261118133619`; rolled-back dry run on
+live data first: Conno and PomKnee refused on Kirk, Conno can still troll
+PomKnee; verified live afterwards, no active trolls on Kirk).
+
+- **Troll protection.** Nobody can troll Kirk, PomKnee and Conno included,
+  like the owner and PRESTON; the troll button doesn't appear on his profile.
+  Any trolls already on him were ended. He keeps his own troll menu.
+- **Lifts any timeout on himself**, Conno's included, from the timeout bar's
+  "Remove my timeout". Only Conno can time him out to begin with. PomKnee still
+  can't lift a timeout from Conno.
+- **No 30-second cooldown.** The message burst cooldown is enforced only by
+  Chat, and Chat skips it for the Phoenix. (GIFs stay 5 per 5 seconds.)
+
+## Fix: saving a quote card as a sticker
+
+The lightbox "+" on a QuoteBot card failed with "Could not save that as a
+sticker. Failed to fetch". The card is drawn in the browser, so its link is a
+`blob:` URL, and saving reads it with `fetch()` before uploading; the page's
+Content-Security-Policy `connect-src` didn't allow `blob:` or `data:`, so the
+browser blocked the read. `connect-src` now includes `blob: data:` (local,
+in-memory data only; no new hosts). Test: the CSP case in
+`scripts/chat-sticker-urls.test.mjs`.
+
 ## Super Mega Tuff Co-owner (PomKnee only)
 
 Needs [`20261117183155_chat_super_mega_tuff_co_owner.sql`](../Backend/migrations/20261117183155_chat_super_mega_tuff_co_owner.sql)
@@ -24,7 +111,7 @@ show a plain badge and no troll menu.
 - **Lighter spam limits** (see part 3; part 1 removed them entirely).
 - **Troll menu** (profile card → 😈 Troll…, or Staff → 😈 Tuff powers): for
   1–60 minutes, a member's own Chat fakes failed sends (about 70% of their
-  messages), shows silly popups, flips or mirrors the page, shakes or rains
+  messages), shows popup ads, flips or mirrors the page, shakes or rains
   emoji (see part 2 for the rest). Effects
   run only in the target's browser, never post anything as them, expire on
   their own, and skip shaking/rain when the device asks for reduced
@@ -84,6 +171,111 @@ a second refused, all eleven trolls accepted).
   (members: 2). QuoteBot: 1 second between quotes (members: 5), 30 per
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
+
+## Badge styles: Owner badge, more effects and shapes
+
+[`20261119041342_chat_badge_styles.sql`](../Backend/migrations/20261119041342_chat_badge_styles.sql)
+(**applied 2026-11-19**; rolled-back dry run on live data first). The Owner
+role can now restyle its badge like the Super Mega Tuff Co-owner and Phoenix
+(Staff → 👑 Owner badge & trolls → Your badge), saved in
+`app_settings.owner_check`; without one it keeps the red owner badge. Everyone
+with the editor now picks from 12 effects (none, spin, pulse, bounce, shake,
+wobble, flip, float, heartbeat, glow, rainbow, blink) and 9 shapes (seal,
+circle, rounded square, star, heart, diamond, shield, hexagon, no background).
+`chat_set_badge_style(symbol, colours, effect, shape)` saves; the older
+`chat_set_smt_check` still works and keeps the current shape.
+
+## Conno can troll PomKnee and Kirk
+
+[`20261119021452_chat_conno_trolls_protected.sql`](../Backend/migrations/20261119021452_chat_conno_trolls_protected.sql)
+(**applied 2026-11-19**; rolled-back dry run on live data first). The troll
+protection on PomKnee (Super Mega Tuff Co-owner) and Kirk (Phoenix) now lets
+the `connor` account through, trolls and the one-shot refresh. Everyone else,
+the two of them and PRESTON included, is still refused. The troll option
+shows on their profiles for Conno only.
+
+## Popup ads troll
+
+The "Popups" troll is now **Popup ads**: made-up parody ads styled like real
+web ads ("Ad" tag, Sponsored, AdChoices, a call-to-action button). No real
+brands, no links, nothing loads from outside, and the button does nothing.
+Each ad is a modal the target has to wait out: the rest of Chat is blocked
+(no clicks, typing or Escape) until the countdown ends, then it can be closed.
+Half the ads are videos. Image ads close after 5 seconds; video ads (an
+animated canvas with a progress bar and timer) play 8–12 seconds to the end.
+Extra annoyances, all bounded: a decoy ✕ inside the ad adds 2 seconds (twice
+at most); video ads may "buffer" once for 1–2 seconds, pausing the countdown;
+the real close shrinks to a tiny ✕ and may jump to the other side; the
+call-to-action button wiggles (not under reduced motion); and about half the
+time closing asks "Leaving so soon?" with a big "Keep watching" (one bonus ad)
+and a tiny "no thanks". There are 21 image ads and 10
+video ads. Every 20 seconds after the last ad closes, a heads-up counts down
+("📺 Ads will pop up in 3… 2… 1…") and the next ad appears; one in four is a
+double ad ("Sponsored · 1 of 2", then "2 of 2" straight after). Any ad or
+heads-up on screen disappears when the troll ends.
+
+## Troll protection for PomKnee
+
+Needs [`20261118145536_chat_smt_troll_protection.sql`](../Backend/migrations/20261118145536_chat_smt_troll_protection.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: Conno, Kirk
+and the PRESTON account were refused on PomKnee, the one-shot refresh too, and
+could still troll a member). Nobody can troll the Super Mega Tuff Co-owner,
+like the Phoenix; any troll already on PomKnee ends, and the troll option is
+hidden on PomKnee's and Kirk's profile cards.
+
+## Troll menus, revised
+
+Needs [`20261118142342_chat_troll_menu_preston_limited.sql`](../Backend/migrations/20261118142342_chat_troll_menu_preston_limited.sql)
+(**applied 2026-11-18**, ledger version `20261118142342`; rolled-back dry run on
+live data first: Kirk trolled PomKnee and a co-owner and used the refresh; the
+PRESTON account trolled a member and an Admin but was refused on co-owners,
+PomKnee, Auto refresh and the refresh; a co-owner without a menu was refused).
+By account, never by role:
+
+- **Full menu:** `PomKnee`, `connor` and `kirk`.
+- **Limited menu:** only the PRESTON account, matched by its user id rather
+  than the PRESTON role. Same rules the Kirk menu had: Admin rank and below,
+  no Auto refresh or one-shot refresh, 1–15 minutes, its own trolls only.
+  Shown simply as "Troll menu".
+
+The next section describes the earlier Kirk menu; its rules now apply to the
+PRESTON account instead.
+
+## Troll menu for @kirk (superseded)
+
+Needs [`20261118134804_chat_kirk_troll_menu.sql`](../Backend/migrations/20261118134804_chat_kirk_troll_menu.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: Kirk trolled a
+member and an Admin; co-owners, God Tier, PomKnee and Conno refused; no Auto
+refresh, refresh or 30 minutes; PomKnee's troll on the same person untouched;
+Kirk's list showed only his own; `Kirk` refused as a new username).
+
+- targets Admin rank and below only, never co-owners or any co-owner-level
+  role, the Super Mega Tuff Co-owner, Phoenix, the owner or PRESTON;
+- every troll except Auto refresh, and no one-shot refresh;
+- 1–15 minutes (full menu: up to 1 hour);
+- sees and stops only his own trolls, and can't shorten or take over a troll
+  someone else started.
+
+`kirk` look-alikes are reserved like the other two names.
+
+## Troll menu: @PomKnee and @connor only
+
+Needs [`20261118133411_chat_troll_menu_names_only.sql`](../Backend/migrations/20261118133411_chat_troll_menu_names_only.sql)
+(**applied 2026-11-18**; rolled-back dry run on live data first: PomKnee and
+connor allowed, Kirk with the Phoenix role and PRESTON refused, look-alike
+names refused).
+
+- The troll menu (trolls, the one-shot refresh, seeing and stopping trolls)
+  depends on the account, not a role: only the exact usernames `PomKnee` and
+  `connor`. Roles and permissions (Super Mega Tuff Co-owner, Phoenix, Owner,
+  PRESTON) never unlock it on their own. Conno always has it whatever his
+  role; PomKnee keeps it if their role changes. Banned accounts don't.
+- Usernames are case-sensitive, so look-alikes (`pomknee`, `Connor`, any
+  capitalisation) are reserved: no account can be created with or renamed to
+  them.
+- The page shows the menu (hidden "Corazon" title, profile card, Staff tab) to
+  those two accounts only, and re-checks before every action; if the account
+  doesn't match, the menu closes without calling the server.
 
 ## Animated GIF chat backgrounds
 

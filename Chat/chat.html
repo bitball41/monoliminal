@@ -9,7 +9,7 @@
   <meta name="description" content="Corazon Chat, part of the Corazon platform by Crimson Heart.">
   <meta
     http-equiv="Content-Security-Policy"
-    content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src https: data: blob:; connect-src https://*.supabase.co wss://*.supabase.co https://api.microlink.io https://noembed.com https://static.klipy.com stun: turn: turns:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; worker-src blob:; base-uri 'none'"
+    content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src https: data: blob:; connect-src blob: data: https://*.supabase.co wss://*.supabase.co https://api.microlink.io https://noembed.com https://static.klipy.com stun: turn: turns:; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; worker-src blob:; base-uri 'none'"
   >
   <title>Corazon Chat</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23390606'/%3E%3Cpath d='M32 47.5 18.6 34.4a8.6 8.6 0 0 1 12.2-12.2l1.2 1.2 1.2-1.2a8.6 8.6 0 0 1 12.2 12.2z' fill='%23fff1f0'/%3E%3C/svg%3E">
@@ -1065,6 +1065,33 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       animation: smt-badge-spin 3s linear infinite;
     }
     .role-check.super-mega-tuff-co-owner svg { animation: smt-badge-spin 3s linear infinite reverse; }
+    /* Phoenix: a flickering flame (teardrop pointing up) with rising embers. */
+    .role-check.phoenix {
+      position: relative; overflow: visible; clip-path: none;
+      border-radius: 50% 0 50% 50%; transform: rotate(-45deg);
+      background: radial-gradient(circle at 30% 70%, #fef08a 0 18%, #fbbf24 34%, #f97316 58%, #dc2626 84%, #7f1d1d);
+      box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9);
+      animation: phoenix-flicker 1.6s ease-in-out infinite;
+    }
+    .role-check.phoenix svg { transform: rotate(45deg); color: #fff7ed; filter: drop-shadow(0 0 1px #7c2d12); }
+    .role-check.phoenix::before, .role-check.phoenix::after {
+      content: ''; position: absolute; width: 3px; height: 3px; border-radius: 50%; pointer-events: none;
+      background: #fde047; box-shadow: 0 0 4px #f97316; opacity: 0;
+      animation: phoenix-ember 1.8s ease-out infinite;
+    }
+    .role-check.phoenix::before { right: 10%; top: 10%; }
+    .role-check.phoenix::after { right: 40%; top: -5%; animation-delay: .9s; }
+    @keyframes phoenix-flicker {
+      0%, 100% { box-shadow: 0 0 10px rgba(249, 115, 22, .85), 0 0 4px rgba(254, 240, 138, .9); filter: brightness(1); }
+      30% { box-shadow: 0 0 15px rgba(239, 68, 68, .9), 0 0 6px rgba(253, 224, 71, 1); filter: brightness(1.2) saturate(1.2); }
+      55% { box-shadow: 0 0 8px rgba(249, 115, 22, .7), 0 0 3px rgba(254, 240, 138, .8); filter: brightness(.95); }
+      80% { box-shadow: 0 0 13px rgba(251, 146, 60, .95), 0 0 5px rgba(254, 240, 138, 1); filter: brightness(1.12); }
+    }
+    @keyframes phoenix-ember {
+      0% { transform: translate(0, 0) scale(1); opacity: 0; }
+      15% { opacity: 1; }
+      100% { transform: translate(6px, -6px) scale(.3); opacity: 0; }
+    }
     @keyframes smt-badge-spin { to { transform: rotate(360deg); } }
     .role-check.smt-custom { background: var(--smt-bg); box-shadow: 0 0 12px rgba(255, 255, 255, .35); }
     .role-check .smt-symbol { font-size: .74em; line-height: 1; display: block; }
@@ -1074,6 +1101,35 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     .role-check.smt-anim-bounce { animation: smt-badge-bounce 1s ease-in-out infinite; }
     @keyframes smt-badge-pulse { 50% { transform: scale(1.3); filter: brightness(1.3); } }
     @keyframes smt-badge-bounce { 50% { transform: translateY(-3px); } }
+    /* More badge effects (20261119041342). */
+    .role-check.smt-anim-shake { animation: smt-badge-shake 2s ease-in-out infinite; }
+    .role-check.smt-anim-wobble { animation: smt-badge-wobble 1.2s ease-in-out infinite; }
+    .role-check.smt-anim-flip { animation: smt-badge-flip 2.2s ease-in-out infinite; }
+    .role-check.smt-anim-float { animation: smt-badge-float 2.4s ease-in-out infinite; }
+    .role-check.smt-anim-heartbeat { animation: smt-badge-heartbeat 1.3s ease-in-out infinite; }
+    .role-check.smt-anim-glow { animation: smt-badge-glow 1.6s ease-in-out infinite; }
+    .role-check.smt-anim-rainbow { animation: smt-badge-rainbow 3s linear infinite; }
+    .role-check.smt-anim-blink { animation: smt-badge-blink 1.1s steps(2, jump-none) infinite; }
+    @keyframes smt-badge-shake { 0%, 30%, 100% { transform: none; } 5%, 15%, 25% { transform: translateX(-2px) rotate(-6deg); } 10%, 20% { transform: translateX(2px) rotate(6deg); } }
+    @keyframes smt-badge-wobble { 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+    @keyframes smt-badge-flip { 0%, 20% { transform: rotateY(0); } 80%, 100% { transform: rotateY(360deg); } }
+    @keyframes smt-badge-float { 50% { transform: translateY(-3px); } }
+    @keyframes smt-badge-heartbeat { 0%, 60%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1.05); } 45% { transform: scale(1.2); } }
+    @keyframes smt-badge-glow { 50% { filter: brightness(1.6) saturate(1.5); } }
+    @keyframes smt-badge-rainbow { to { filter: hue-rotate(360deg); } }
+    @keyframes smt-badge-blink { 50% { opacity: .3; } }
+    /* Badge shapes ("reskins"); burst is the default seal. */
+    .role-check.smt-shape-circle { clip-path: circle(50%); }
+    .role-check.smt-shape-square { clip-path: inset(0 round 24%); }
+    .role-check.smt-shape-star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+    .role-check.smt-shape-heart { clip-path: polygon(50% 95%, 8% 55%, 2% 35%, 8% 15%, 25% 6%, 42% 12%, 50% 24%, 58% 12%, 75% 6%, 92% 15%, 98% 35%, 92% 55%); }
+    .role-check.smt-shape-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+    .role-check.smt-shape-shield { clip-path: polygon(50% 0%, 96% 14%, 92% 58%, 50% 100%, 8% 58%, 4% 14%); }
+    .role-check.smt-shape-hexagon { clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%); }
+    .role-check.smt-shape-star .smt-symbol, .role-check.smt-shape-heart .smt-symbol, .role-check.smt-shape-diamond .smt-symbol { font-size: .6em; }
+    .role-check.smt-shape-plain { clip-path: none; background: none; box-shadow: none; color: var(--smt-c1); }
+    .role-check.smt-shape-plain .smt-symbol { font-size: 1em; }
+    .role-check.smt-shape-plain svg { width: 1em; height: 1em; }
     @media (prefers-reduced-motion: reduce) { .role-check.smt-custom, .role-check.smt-custom > * { animation: none; } }
     .smt-check-editor { display: grid; gap: 10px; }
     .smt-check-editor .smt-colors { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -1105,6 +1161,47 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
       box-shadow: 0 18px 48px rgba(0, 0, 0, .5); font: 500 .9rem var(--font-ui, system-ui);
     }
     .troll-popup strong { display: block; margin-bottom: 6px; font-size: 1rem; }
+    /* Popup ads (troll): look like ordinary web ads, all made up. */
+    .troll-ad { width: min(380px, calc(100vw - 24px)); padding: 0; border: 1px solid #d4d4d8; border-radius: 6px; background: #fff; color: #18181b;
+      box-shadow: 0 24px 60px rgba(0,0,0,.55); font: 400 14px/1.4 Arial, Helvetica, sans-serif; overflow: hidden; }
+    .troll-ad-video { width: min(560px, calc(100vw - 24px)); background: #0f0f0f; color: #fff; border-color: #27272a; }
+    .troll-ad::backdrop { background: rgba(0,0,0,.6); }
+    .troll-ad-notice { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 10px 18px; border-radius: 999px;
+      background: #18181b; color: #fff; border: 1px solid #facc15; box-shadow: 0 10px 30px rgba(0,0,0,.45); font: 700 15px Arial, Helvetica, sans-serif; white-space: nowrap; }
+    .troll-ad-top { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: 12px; }
+    .troll-ad-tag { background: #facc15; color: #000; font-weight: 700; padding: 1px 6px; border-radius: 3px; }
+    .troll-ad-sponsor { color: #71717a; flex: 1; }
+    .troll-ad-close { border: 1px solid #a1a1aa; background: #f4f4f5; color: #18181b; border-radius: 3px; padding: 3px 9px; font: 600 12px Arial, sans-serif; cursor: pointer; }
+    .troll-ad-close:disabled { opacity: .7; cursor: not-allowed; }
+    .troll-ad-video .troll-ad-close { background: rgba(0,0,0,.6); color: #fff; border-color: #52525b; }
+    .troll-ad-hero { display: grid; place-items: center; height: 170px; background: linear-gradient(135deg, #fde68a, #f472b6 55%, #818cf8); }
+    .troll-ad-emoji { font-size: 92px; line-height: 1; filter: drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
+    .troll-ad-body { padding: 12px 14px 8px; }
+    .troll-ad-brand { display: block; font-size: 20px; margin-bottom: 4px; }
+    .troll-ad-copy { margin: 0 0 12px; color: #3f3f46; }
+    .troll-ad-cta { border: 0; border-radius: 4px; background: #2563eb; color: #fff; font: 700 14px Arial, sans-serif; padding: 9px 16px; cursor: pointer; }
+    .troll-ad-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px 10px; font-size: 11px; color: #a1a1aa; }
+    .troll-ad-screen { position: relative; background: #000; }
+    .troll-ad-screen canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+    .troll-ad-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.25); }
+    .troll-ad-bar span { display: block; height: 100%; width: 0; background: #facc15; }
+    .troll-ad-time { position: absolute; left: 10px; bottom: 10px; font: 600 12px Arial, sans-serif; color: #fff; text-shadow: 0 1px 2px #000; }
+    .troll-ad-hero { position: relative; }
+    .troll-ad-decoy { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0,0,0,.25);
+      background: rgba(255,255,255,.85); color: #3f3f46; font: 700 13px Arial, sans-serif; cursor: pointer; padding: 0; }
+    .troll-ad-close-tiny { padding: 0 4px; font-size: 9px; line-height: 14px; min-width: 0; opacity: .55; }
+    .troll-ad-buffer { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 700 18px Arial, sans-serif; }
+    .troll-ad-buffer[hidden] { display: none; }
+    .troll-ad-confirm { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; padding: 24px; text-align: center; background: rgba(255,255,255,.97); color: #18181b; }
+    .troll-ad-video .troll-ad-confirm { background: rgba(15,15,15,.97); color: #fff; }
+    .troll-ad-confirm[hidden] { display: none; }
+    .troll-ad-confirm strong { font-size: 20px; }
+    .troll-ad-confirm p { margin: 0; opacity: .75; }
+    .troll-ad-confirm div { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .troll-ad-keep { border: 0; border-radius: 6px; background: #16a34a; color: #fff; font: 700 16px Arial, sans-serif; padding: 12px 22px; cursor: pointer; }
+    .troll-ad-leave { border: 0; background: none; color: #a1a1aa; font: 400 10px Arial, sans-serif; text-decoration: underline; cursor: pointer; padding: 2px; }
+    .troll-ad-annoying .troll-ad-cta { animation: troll-ad-wiggle 1.2s ease-in-out infinite; }
+    @keyframes troll-ad-wiggle { 0%, 70%, 100% { transform: none; } 75% { transform: rotate(-4deg) scale(1.08); } 85% { transform: rotate(4deg) scale(1.08); } 92% { transform: rotate(-2deg) scale(1.04); } }
     .troll-popup p { margin: 0 0 14px; color: var(--text-soft, #ccc); }
     .troll-popup .troll-popup-actions { position: relative; height: 36px; }
     .troll-popup .troll-popup-actions button { position: absolute; right: 0; top: 0; transition: right .15s, top .15s; }
@@ -1123,7 +1220,10 @@ https://github.com/mozilla/twemoji-colr | https://creativecommons.org/licenses/b
     #troll-dialog .troll-active-item small { display: block; color: var(--muted); }
     @media (prefers-reduced-motion: reduce) {
       .role-check.super-mega-tuff-co-owner, .role-check.super-mega-tuff-co-owner svg { animation: none; }
+      .role-check.phoenix { animation: none; }
+      .role-check.phoenix::before, .role-check.phoenix::after { display: none; }
     }
+    :root[data-reduce-motion="true"] .role-check.phoenix::before, :root[data-reduce-motion="true"] .role-check.phoenix::after { display: none; }
     .role-check.owner {
       background: linear-gradient(135deg, #ef4444, #b91c1c);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
@@ -7814,6 +7914,7 @@ void main() {
       dusty: { rank: 4, power: 400, label: 'Dusty', check: 'super-mega-tuff' },
       co_owner:{ rank: 5, power: 500, label: 'Co-owner', check: 'co-owner' },
       super_mega_tuff_co_owner: { rank: 5, power: 550, label: 'Super Mega Tuff Co-owner', check: 'super-mega-tuff-co-owner' },
+      phoenix: { rank: 5, power: 550, label: 'Phoenix', check: 'phoenix' },
       owner:   { rank: 6, power: 650, label: 'Owner',   check: 'owner' },
       preston: { rank: 7, power: 750, label: 'Preston', check: 'preston' },
     };
@@ -7909,8 +8010,13 @@ void main() {
     // announcements, skips spam limits and has the troll menu. Only the owner
     // can change the role. The server enforces all of it.
     const SMT_ROLE = 'super_mega_tuff_co_owner';
-    const SMT_HOLDER = 'pomknee';
-    function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === SMT_ROLE; }
+    // Phoenix (20261118032602): Kirk only, tied with the Super Mega Tuff
+    // Co-owner and given every one of its powers. Each role has one holder.
+    const PHOENIX_ROLE = 'phoenix';
+    const TOP_ROLE_HOLDERS = { [SMT_ROLE]: 'pomknee', [PHOENIX_ROLE]: 'kirk' };
+    // True for either top role: every "tuff" power below applies to both.
+    function isSuperMegaTuff(profileOrUsername = me) { return !!profileOrUsername && Object.hasOwn(TOP_ROLE_HOLDERS, staffRoleOf(profileOrUsername)); }
+    function isPhoenix(profileOrUsername = me) { return !!profileOrUsername && staffRoleOf(profileOrUsername) === PHOENIX_ROLE; }
     // Only Conno (the owner account "connor") can moderate the role holder.
     const SMT_JUDGE = 'connor';
     const isConno = () => !!me && String(me.username || '').toLowerCase() === SMT_JUDGE && staffRoleOf(me) === 'owner';
@@ -7918,7 +8024,8 @@ void main() {
     const timeoutIsFromConno = t => String(t?.timeout_by || '').toLowerCase() === SMT_JUDGE;
     function canClearTimeoutOf(target) {
       const t = typeof target === 'string' ? profileOf(target) : target;
-      if (isSuperMegaTuff()) return !(t?.username === me.username && timeoutIsFromConno(t));
+      // The Phoenix may lift any timeout on itself, Conno's included.
+      if (isSuperMegaTuff()) return isPhoenix() || !(t?.username === me.username && timeoutIsFromConno(t));
       return canModerateUser(target);
     }
     // The owner may still change the untouchable role holder's role.
@@ -7929,7 +8036,7 @@ void main() {
       const t = typeof target === 'string' ? profileOf(target) : target;
       return Object.entries(STAFF_ROLE_META)
         .filter(([slug, meta]) => meta.rank <= 5 && meta.power < myStaffPower()
-          && (slug !== SMT_ROLE || (t && String(t.username || '').toLowerCase() === SMT_HOLDER)))
+          && (!Object.hasOwn(TOP_ROLE_HOLDERS, slug) || (t && String(t.username || '').toLowerCase() === TOP_ROLE_HOLDERS[slug])))
         .sort(([, a], [, b]) => b.power - a.power).map(([slug]) => slug);
     }
     function canAssignStaffRole(target, role) {
@@ -7945,14 +8052,21 @@ void main() {
       if (!me || !target) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t.username || t.username === me.username || isQuoteBot(t.username)) return false;
-      if (staffRoleOf(t) === SMT_ROLE) return isConno();
+      if (isSuperMegaTuff(t)) return isConno();
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
       return myStaffPower() > staffPowerOf(t);
     }
     const ROLE_CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.0 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
     // The Super Mega Tuff Co-owner styles their own check (app_settings.smt_check,
     // validated by chat_set_smt_check and again here before it reaches the page).
-    const SMT_ANIMATIONS = ['spin', 'pulse', 'bounce', 'none'];
+    // Effects and shapes; the server (chat_set_badge_style) checks the same lists.
+    const SMT_ANIMATIONS = ['none', 'spin', 'pulse', 'bounce', 'shake', 'wobble', 'flip', 'float', 'heartbeat', 'glow', 'rainbow', 'blink'];
+    const SMT_SHAPES = { burst: 'Seal (default)', circle: 'Circle', square: 'Rounded square', star: 'Star', heart: 'Heart', diamond: 'Diamond', shield: 'Shield', hexagon: 'Hexagon', plain: 'No background' };
+    // Each styled badge has its own key: Phoenix phoenix_check (else the fire badge),
+    // Owner owner_check (else the red owner badge), Super Mega Tuff Co-owner smt_check.
+    const isOwnerRole = profileOrUsername => !!profileOrUsername && staffRoleOf(profileOrUsername) === 'owner';
+    const smtCheckKey = profileOrUsername => (isPhoenix(profileOrUsername) ? 'phoenix_check' : isOwnerRole(profileOrUsername) ? 'owner_check' : 'smt_check');
+    function canStyleBadge() { return !!me && !me.is_banned && (isSuperMegaTuff() || isOwnerRole(me)); }
     function smtCheckStyle(raw = appSettings.smt_check) {
       let v;
       try { v = JSON.parse(raw || ''); } catch { return null; }
@@ -7960,19 +8074,20 @@ void main() {
       const colors = (Array.isArray(v.colors) ? v.colors : []).filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 4);
       if (!colors.length) return null;
       const symbol = typeof v.symbol === 'string' && [...v.symbol].length <= 8 && !/[<>&"'`\\\u0000-\u001f]/.test(v.symbol) ? v.symbol : '';
-      return { symbol, colors, animation: SMT_ANIMATIONS.includes(v.animation) ? v.animation : 'none' };
+      return { symbol, colors, animation: SMT_ANIMATIONS.includes(v.animation) ? v.animation : 'none',
+        shape: Object.hasOwn(SMT_SHAPES, v.shape) ? v.shape : 'burst' };
     }
     function smtCheckHtml(style, title) {
       const bg = style.colors.length === 1 ? style.colors[0] : `conic-gradient(from 0deg, ${style.colors.join(', ')}, ${style.colors[0]})`;
       const inner = style.symbol ? `<span class="smt-symbol">${esc(style.symbol)}</span>` : ROLE_CHECK_SVG;
-      return `<span class="role-check smt-custom smt-anim-${style.animation}" style="--smt-bg:${bg}" title="${esc(title)}" aria-label="${esc(title)}">${inner}</span>`;
+      return `<span class="role-check smt-custom smt-anim-${style.animation} smt-shape-${style.shape || 'burst'}" style="--smt-bg:${bg};--smt-c1:${style.colors[0]}" title="${esc(title)}" aria-label="${esc(title)}">${inner}</span>`;
     }
     function roleCheckHtml(profileOrUsername, opts = {}) {
       const role = staffRoleOf(profileOrUsername);
       const meta = STAFF_ROLE_META[role];
       if (!meta || !meta.check) return '';
       const title = opts.title || meta.label;
-      if (role === SMT_ROLE) { const style = smtCheckStyle(); if (style) return smtCheckHtml(style, title); }
+      if (Object.hasOwn(TOP_ROLE_HOLDERS, role) || role === 'owner') { const style = smtCheckStyle(appSettings[smtCheckKey(profileOrUsername)]); if (style) return smtCheckHtml(style, title); }
       // Custom roles carry their own colour (validated #rrggbb).
       const style = meta.check === 'custom' && meta.color ? ` style="--role-color:${meta.color}"` : '';
       return `<span class="role-check ${meta.check}"${style} title="${esc(title)}" aria-label="${esc(title)}">${ROLE_CHECK_SVG}</span>`;
@@ -11728,8 +11843,9 @@ void main() {
       }
     }
     // 30 seconds off after a burst: members after 5 messages in 5 seconds,
-    // the Super Mega Tuff Co-owner after 15.
+    // the Super Mega Tuff Co-owner after 15. The Phoenix has no cooldown.
     function spamGuard() {
+      if (isPhoenix()) return true;
       const burst = isSuperMegaTuff() ? 15 : 5, rest = 30000;
       const now = Date.now();
       if (now < cooldownUntil) {
@@ -15745,7 +15861,7 @@ void main() {
       if (row.key === 'force_refresh_at') { handleAppUpdateSignal(row.value); return; }
       if (row.key === 'app_enabled' && row.value === 'false' && !isOwner()) { showMaintenance(); return; }
       if (row.key === 'announcement') renderAnnouncement();
-      if (row.key === 'smt_check') {
+      if (row.key === 'smt_check' || row.key === 'phoenix_check' || row.key === 'owner_check') {
         renderSelf(); renderMembers(); renderDmList();
         if (msgCache.has(viewKey(currentView))) renderTimeline({ preserve: true });
       }
@@ -16006,7 +16122,7 @@ void main() {
     function updateTimeoutUi() {
       const timedOut = isTimedOut();
       $('timeout-bar').hidden = !timedOut;
-      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && !timeoutIsFromConno(me));
+      $('smt-untimeout-self').hidden = !(timedOut && isSuperMegaTuff() && (isPhoenix() || !timeoutIsFromConno(me)));
       $('message-input').disabled = timedOut;
       $('send-btn').disabled = timedOut;
       applyFeatureControls();
@@ -17659,7 +17775,7 @@ void main() {
     // run only in the target's browser and never send anything as them.
     const TROLL_EFFECTS = [
       ['fail_send', '📵', 'Messages fail', 'Most of their messages “fail to send”.'],
-      ['popups', '🪟', 'Popups', 'Silly popups keep showing up.'],
+      ['popups', '🪟', 'Popup ads', 'Annoying fake ads every 20 seconds (half are videos, sometimes two in a row) block their chat until they finish.'],
       ['upside_down', '🙃', 'Upside down', 'Their whole chat is flipped.'],
       ['mirror', '🪞', 'Mirror', 'Everything is backwards.'],
       ['shake', '🫨', 'Earthquake', 'The screen shakes every few seconds.'],
@@ -17669,18 +17785,6 @@ void main() {
       ['auto_refresh', '🔄', 'Auto refresh', 'Their page reloads every minute or two.'],
       ['runaway_buttons', '🏃', 'Runaway buttons', 'Buttons dodge their mouse.'],
       ['random_keys', '🎲', 'Random keys', 'Every key they press types a random one instead.'],
-    ];
-    const TROLL_POPUPS = [
-      ['⚠️ Warning', 'Your chat is experiencing too much drip.'],
-      ['Error 418', 'I’m a teapot. Please try again.'],
-      ['🤡', 'Clown detected nearby.'],
-      ['Update required', 'Please update your vibes to continue.'],
-      ['Are you sure?', 'Are you sure you’re sure?'],
-      ['Fun fact', 'PomKnee is super mega tuff.'],
-      ['Loading…', 'Loading more nonsense ███▒▒▒ 61%'],
-      ['Hmm', 'That message was a little too cringe.'],
-      ['🏆 Achievement unlocked', 'Got trolled.'],
-      ['Notice', 'Your keyboard has been flipped. Just kidding. Or am I?'],
     ];
     let trollEffects = new Map(), trollExpiryTimer = 0, trollPopupTimer = 0, trollRainTimer = 0, trollLoadAt = 0;
     const trollActive = effect => (trollEffects.get(effect) || 0) > Date.now();
@@ -17703,7 +17807,7 @@ void main() {
       }
       clearTimeout(trollPopupTimer); trollPopupTimer = 0;
       if (trollActive('popups')) scheduleTrollPopup();
-      else qsa('.troll-popup').forEach(n => n.remove());
+      else { closeTrollAd(); clearTrollAdNotice(); }
       clearInterval(trollRainTimer); trollRainTimer = 0;
       const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if (trollActive('emoji_rain') && !calm) trollRainTimer = setInterval(dropTrollEmoji, 450);
@@ -17744,7 +17848,7 @@ void main() {
     }
     function onTrollClick(event) {
       if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.detail === 0) return;
-      if (event.target.closest?.('.troll-popup')) return;
+      if (event.target.closest?.('.troll-popup, .troll-ad')) return;
       event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       const el = trollTargetAt(event);
       if (!el) return;
@@ -17753,7 +17857,7 @@ void main() {
       el.click();
     }
     function onTrollDown(event) {
-      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.target.closest?.('.troll-popup')) return;
+      if (!event.isTrusted || (event.pointerType && event.pointerType !== 'mouse') || event.target.closest?.('.troll-popup, .troll-ad')) return;
       event.preventDefault();
     }
     function onTrollWheel(event) {
@@ -17805,7 +17909,7 @@ void main() {
     function onTrollPointerOver(event) {
       if (!trollActive('runaway_buttons') || event.pointerType !== 'mouse') return;
       const button = event.target.closest?.('button, [role="button"], .primary-button, .secondary-button');
-      if (!button || button.closest('.troll-popup, #troll-dialog') || Math.random() < 0.25) return;
+      if (!button || button.closest('.troll-popup, .troll-ad, #troll-dialog') || Math.random() < 0.25) return;
       button.classList.add('troll-runaway');
       const dx = (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 60), dy = (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 40);
       button.style.translate = `${dx}px ${dy}px`;
@@ -17836,31 +17940,200 @@ void main() {
       drop.addEventListener('animationend', () => drop.remove());
       trollLayer().appendChild(drop);
     }
+    // Popup ads: made-up parody ads (no real brands, no links, nothing loads from
+    // outside). Each one is a modal the target must wait out: the rest of Chat is
+    // blocked until the countdown ends, then it can be closed.
+    const TROLL_ADS = [
+      ['🦆', 'DuckCoin', 'The only crypto that quacks. Up 0% this year!', 'Invest now'],
+      ['🧦', 'Single Socks', 'Find your missing pair tonight. Hundreds of lonely socks near you.', 'Start matching'],
+      ['🍞', 'Bread Simulator 2', 'Now with realistic crust physics. Rated E for Everyone.', 'Play free'],
+      ['🧠', 'MoreRAM.exe', 'Download 64 GB of RAM in one click. Totally legit. 🤡', 'Download'],
+      ['🎪', 'Clown College', 'Enroll today, graduate never. Scholarships in honk.', 'Apply now'],
+      ['🥔', 'Potato Premium', 'The same potato, but now it’s a subscription.', 'Try 7 days free'],
+      ['🐸', 'Frog Insurance', 'Because you never know. Covers ponds, lily pads and vibes.', 'Get a quote'],
+      ['📦', 'Mystery Box', 'Definitely not empty. Probably. 99% satisfaction*', 'Open box'],
+      ['🪑', 'Chair', 'It’s a chair. You sit on it. Limited time only.', 'Buy chair'],
+      ['🔥', 'Phoenix Energy', 'Rise from the ashes of your homework. 0 calories, 100% vibes.', 'Rise now'],
+      ['🧽', 'Sponge Gym', 'Absorb your full potential. First squeeze is free.', 'Join now'],
+      ['🦖', 'Dino Delivery', 'Your package, delivered in 65 million years or less.', 'Track order'],
+      ['🧃', 'Juice Box Pro', 'Now with two straws. For the juice box power user.', 'Pre-order'],
+      ['🐢', 'TurtleVPN', 'Hide your IP behind a very slow shell.', 'Connect'],
+      ['🧹', 'Broom Rentals', 'Fly or sweep, your choice. Helmets not included.', 'Rent a broom'],
+      ['🎻', 'Sad Violin Hotline', 'Need dramatic music for your L? We play 24/7.', 'Call now'],
+      ['🛸', 'Abduction Insurance', 'Covers beams, probes and missing socks.', 'Get covered'],
+      ['🧀', 'Cheese Wallet', 'Keep your money in cheese. Smells like profit.', 'Open wallet'],
+      ['💤', 'Nap Academy', 'Earn your PhD in sleeping. Classes start whenever.', 'Enroll later'],
+      ['🎈', 'Balloon Airlines', 'Window seats only. Destination: wherever the wind goes.', 'Book flight'],
+      ['🪨', 'Pet Rock Plus', 'The rock you love, now with a monthly leash fee.', 'Adopt now'],
+    ];
+    const TROLL_VIDEO_ADS = [
+      ['🛋️', ['Tired of chatting?', 'Try NOT chatting!', 'No Chat™', 'Available never.']],
+      ['🥫', ['Are you hungry?', 'Introducing…', 'Soup.', 'It’s just soup.']],
+      ['🚀', ['This summer…', 'one ad…', 'will stop your chat…', 'for 10 seconds.']],
+      ['🦷', ['4 out of 5 dentists', 'don’t know', 'what this ad', 'is about.']],
+      ['🐌', ['Slow internet?', 'Meet Snail Fiber™', '3 bytes per hour', 'Unlimited* (*not)']],
+      ['🍕', ['Hungry for pizza?', 'Too bad.', 'This is an ad for rocks.', 'Pet Rock Plus 🪨']],
+      ['🐟', ['Fish don’t have phones.', 'Be like fish.', 'Log off.', '(after this ad)']],
+      ['📺', ['This ad is 10 seconds long.', 'You’ve seen 5 of them.', 'Only 5 more.', 'Thanks for your patience.']],
+      ['🧻', ['Introducing…', 'Paper.', 'Now on a roll.', 'Ask your parents.']],
+      ['🦆', ['DuckCoin', 'Number go…', 'sideways.', 'Quack responsibly.']],
+    ];
+    let trollAd = null, trollAdNotice = null;
+    // Every 20 seconds: 17 s of quiet, a 3-2-1 heads-up, then the ad (sometimes two).
     function scheduleTrollPopup() {
       clearTimeout(trollPopupTimer);
-      trollPopupTimer = setTimeout(showTrollPopup, 8000 + Math.random() * 17000);
+      trollPopupTimer = setTimeout(startTrollAdCountdown, 17000);
     }
-    function showTrollPopup() {
+    function clearTrollAdNotice() {
+      if (!trollAdNotice) return;
+      clearInterval(trollAdNotice.tick); trollAdNotice.el.remove(); trollAdNotice = null;
+    }
+    function startTrollAdCountdown() {
       if (!trollActive('popups')) return;
-      if (document.hidden || qs('.troll-popup')) { scheduleTrollPopup(); return; }
-      const [title, text] = TROLL_POPUPS[Math.floor(Math.random() * TROLL_POPUPS.length)];
-      const pop = document.createElement('div');
-      pop.className = 'troll-popup';
-      pop.setAttribute('role', 'alertdialog');
-      pop.innerHTML = `<strong></strong><p></p><div class="troll-popup-actions"><button class="primary-button" type="button">OK</button></div>`;
-      qs('strong', pop).textContent = title;
-      qs('p', pop).textContent = text;
-      const ok = qs('button', pop);
-      // Sometimes the button runs away, but only twice.
-      let dodges = Math.random() < 0.4 ? 2 : 0;
-      ok.addEventListener('pointerenter', event => {
-        if (!dodges || event.pointerType === 'touch') return;
-        dodges--;
-        ok.style.right = `${Math.floor(Math.random() * 180)}px`;
+      if (document.hidden || trollAd || trollAdNotice) { scheduleTrollPopup(); return; }
+      const el = document.createElement('div');
+      el.className = 'troll-ad-notice';
+      el.setAttribute('role', 'status');
+      trollLayer().appendChild(el);
+      const notice = { el, left: 3, tick: 0 };
+      trollAdNotice = notice;
+      const show = () => { el.textContent = `📺 Ads will pop up in ${notice.left}…`; };
+      show();
+      notice.tick = setInterval(() => {
+        if (trollAdNotice !== notice) return;
+        notice.left -= 1;
+        if (notice.left > 0) { show(); return; }
+        clearTrollAdNotice();
+        showTrollPopup(1, Math.random() < 0.25 ? 2 : 1);
+      }, 1000);
+    }
+    function closeTrollAd() {
+      if (!trollAd) return;
+      cancelAnimationFrame(trollAd.frame); clearInterval(trollAd.tick); trollAd.timers.forEach(clearTimeout);
+      if (trollAd.dialog.open) trollAd.dialog.close();
+      trollAd.dialog.remove();
+      trollAd = null;
+    }
+    // index/total: a double ad shows "1 of 2", then "2 of 2" straight after.
+    // Extra annoyances, all bounded: a decoy ✕ adds 2 s (twice at most), video
+    // ads may "buffer" once, the real close shrinks and jumps, and sometimes a
+    // "Leaving so soon?" step offers one bonus ad.
+    function showTrollPopup(index = 1, total = 1, bonus = false) {
+      if (!trollActive('popups')) return;
+      if (trollAd) return;
+      if (document.hidden && index === 1 && !bonus) { scheduleTrollPopup(); return; }
+      const sponsor = bonus ? 'Sponsored · bonus ad 🎁' : total > 1 ? `Sponsored · ${index} of ${total}` : 'Sponsored';
+      const video = Math.random() < 0.5;
+      const seconds = video ? 8 + Math.floor(Math.random() * 5) : 5;
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      const dialog = document.createElement('dialog');
+      dialog.className = 'troll-ad' + (video ? ' troll-ad-video' : '') + (calm ? '' : ' troll-ad-annoying');
+      dialog.setAttribute('aria-label', 'Advertisement');
+      const ad = video ? TROLL_VIDEO_ADS[Math.floor(Math.random() * TROLL_VIDEO_ADS.length)] : TROLL_ADS[Math.floor(Math.random() * TROLL_ADS.length)];
+      const decoy = '<button type="button" class="troll-ad-decoy" aria-label="Close ad">✕</button>';
+      dialog.innerHTML = video
+        ? `<div class="troll-ad-top"><span class="troll-ad-tag">Ad</span><span class="troll-ad-sponsor">${sponsor}</span><button type="button" class="troll-ad-close" disabled></button></div>
+           <div class="troll-ad-screen"><canvas width="640" height="360"></canvas>${decoy}<div class="troll-ad-buffer" hidden>⏳ Buffering…</div><div class="troll-ad-bar"><span></span></div><div class="troll-ad-time"></div></div>
+           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><button type="button" class="troll-ad-cta">Learn more</button></div>
+           <div class="troll-ad-confirm" hidden></div>`
+        : `<div class="troll-ad-top"><span class="troll-ad-tag">Ad</span><span class="troll-ad-sponsor">${sponsor}</span><button type="button" class="troll-ad-close" disabled></button></div>
+           <div class="troll-ad-hero"><span class="troll-ad-emoji"></span>${decoy}</div>
+           <div class="troll-ad-body"><strong class="troll-ad-brand"></strong><p class="troll-ad-copy"></p><button type="button" class="troll-ad-cta"></button></div>
+           <div class="troll-ad-foot"><span class="troll-ad-info">ⓘ AdChoices</span><span class="troll-ad-fine">Ads help keep Corazon free*</span></div>
+           <div class="troll-ad-confirm" hidden></div>`;
+      if (!video) {
+        qs('.troll-ad-emoji', dialog).textContent = ad[0];
+        qs('.troll-ad-brand', dialog).textContent = ad[1];
+        qs('.troll-ad-copy', dialog).textContent = ad[2];
+        qs('.troll-ad-cta', dialog).textContent = ad[3];
+      }
+      const close = qs('.troll-ad-close', dialog), cta = qs('.troll-ad-cta', dialog), fake = qs('.troll-ad-decoy', dialog);
+      // total: the ad's length in seconds, grown by decoy penalties; played: video playback.
+      const state = { dialog, done: false, left: seconds, total: seconds, played: 0, paused: false, buffered: false, penalties: 0, frame: 0, tick: 0, timers: [] };
+      trollAd = state;
+      const label = () => {
+        close.disabled = !state.done;
+        close.classList.toggle('troll-ad-close-tiny', state.done);
+        close.textContent = state.done ? '✕' : state.paused ? 'Buffering…' : video ? `Video will end in ${state.left}` : `Close in ${state.left}`;
+      };
+      label();
+      cta.addEventListener('click', () => { cta.textContent = ['lol no', 'Nice try', 'Loading… (forever)', 'Out of stock', 'Sold out (to you)'][Math.floor(Math.random() * 5)]; });
+      fake.addEventListener('click', () => {
+        if (!state.done && state.penalties < 2) {
+          state.penalties += 1; state.left += 2; state.total += 2;
+          fake.textContent = '+2s 😈';
+          fake.title = 'That ✕ was part of the ad 😈';
+        } else fake.textContent = '😈';
+        label();
       });
-      ok.addEventListener('click', () => { pop.remove(); scheduleTrollPopup(); });
-      trollLayer().appendChild(pop);
-      ok.focus({ preventScroll: true });
+      const finish = (bonusNext = false) => {
+        closeTrollAd();
+        if (bonusNext) showTrollPopup(1, 1, true);
+        else if (index < total) showTrollPopup(index + 1, total);
+        else scheduleTrollPopup();
+      };
+      // About half the time closing asks "Leaving so soon?" first (never on a bonus ad).
+      const askFirst = !bonus && Math.random() < 0.5;
+      const confirmBox = qs('.troll-ad-confirm', dialog);
+      const tryClose = () => {
+        if (!state.done) return;
+        if (!askFirst || !confirmBox.hidden) { finish(); return; }
+        const keep = '<button type="button" class="troll-ad-keep">Keep watching ▶</button>';
+        const leave = '<button type="button" class="troll-ad-leave">no thanks, I hate free stuff</button>';
+        confirmBox.innerHTML = `<strong>Leaving so soon? 🥺</strong><p>You’re one ad away from absolutely nothing.</p><div>${Math.random() < 0.5 ? keep + leave : leave + keep}</div>`;
+        confirmBox.hidden = false;
+        qs('.troll-ad-keep', confirmBox).addEventListener('click', () => finish(true));
+        qs('.troll-ad-leave', confirmBox).addEventListener('click', () => finish());
+        qs('.troll-ad-keep', confirmBox).focus({ preventScroll: true });
+      };
+      close.addEventListener('click', tryClose);
+      // Escape does nothing until the ad is done.
+      dialog.addEventListener('cancel', event => { event.preventDefault(); tryClose(); });
+      state.tick = setInterval(() => {
+        if (state.paused) return;
+        state.left = Math.max(0, state.left - 1);
+        if (!state.left) {
+          state.done = true; clearInterval(state.tick);
+          // The real close jumps to the other side of the bar once it unlocks.
+          if (Math.random() < 0.5) close.parentElement.prepend(close);
+        }
+        label();
+      }, 1000);
+      if (video) {
+        // Buffering: once, somewhere in the middle, for 1-2 s (the countdown waits too).
+        const bufferAt = (seconds * (0.3 + Math.random() * 0.4)) * 1000;
+        const canvas = qs('canvas', dialog), ctx = canvas.getContext('2d');
+        const bar = qs('.troll-ad-bar span', dialog), time = qs('.troll-ad-time', dialog), buffering = qs('.troll-ad-buffer', dialog);
+        const [emoji, lines] = ad;
+        let last = performance.now();
+        const draw = now => {
+          if (!ctx || trollAd !== state) return;
+          const dt = now - last; last = now;
+          if (!state.paused) state.played += dt;
+          if (!state.buffered && Math.random() < 0.6 && state.played >= bufferAt) {
+            state.buffered = true; state.paused = true; buffering.hidden = false; label();
+            state.timers.push(setTimeout(() => { state.paused = false; buffering.hidden = true; label(); }, 1000 + Math.random() * 1000));
+          } else if (!state.buffered && state.played >= bufferAt) state.buffered = true;
+          const t = Math.min(1, state.played / (state.total * 1000)), hue = calm ? 260 : (now / 20) % 360;
+          const g = ctx.createLinearGradient(0, 0, 640, 360);
+          g.addColorStop(0, `hsl(${hue} 70% 35%)`); g.addColorStop(1, `hsl(${(hue + 80) % 360} 70% 20%)`);
+          ctx.fillStyle = g; ctx.fillRect(0, 0, 640, 360);
+          const bounce = calm || state.paused ? 0 : Math.abs(Math.sin(now / 260)) * 40;
+          ctx.font = '120px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(emoji, 320, 150 - bounce);
+          ctx.font = '700 38px system-ui, sans-serif'; ctx.fillStyle = '#fff';
+          ctx.fillText(lines[Math.min(lines.length - 1, Math.floor(t * lines.length))], 320, 290);
+          bar.style.width = `${(t * 100).toFixed(1)}%`;
+          const sec = Math.floor(state.played / 1000);
+          time.textContent = `0:${String(Math.min(sec, state.total)).padStart(2, '0')} / 0:${String(state.total).padStart(2, '0')}`;
+          if (t < 1) state.frame = requestAnimationFrame(draw);
+        };
+        state.frame = requestAnimationFrame(draw);
+      }
+      document.body.appendChild(dialog);
+      dialog.showModal();
+      close.focus({ preventScroll: true });
     }
     // Pretend a send failed, without contacting the server.
     async function trollEatsSend(entry) {
@@ -17871,14 +18144,18 @@ void main() {
     }
 
     function smtCheckEditorHtml() {
-      const style = smtCheckStyle() || { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin' };
+      const style = smtCheckStyle(appSettings[smtCheckKey(me)]) || (isPhoenix()
+        ? { symbol: '🔥', colors: ['#fde047', '#f97316', '#dc2626'], animation: 'pulse', shape: 'burst' }
+        : isOwnerRole(me) ? { symbol: '', colors: ['#ef4444', '#b91c1c'], animation: 'none', shape: 'burst' }
+        : { symbol: '', colors: ['#fbbf24', '#ff2d95', '#7c3aed', '#22d3ee'], animation: 'spin', shape: 'burst' });
       const colors = [0, 1, 2, 3].map(i => style.colors[i] || '');
       return `<div class="smt-check-editor">
         <div class="smt-check-preview" id="smt-check-preview" aria-live="polite"></div>
         <div class="field"><label for="smt-check-symbol">Symbol (emoji or up to 8 characters; empty for a ✓)</label><input id="smt-check-symbol" maxlength="32" value="${esc(style.symbol)}" placeholder="✓"></div>
         <div class="field"><label>Colours (untick to use fewer)</label><div class="smt-colors">${colors.map((c, i) => `<label class="smt-color"><input type="checkbox" data-smt-color-on="${i}" ${c ? 'checked' : ''} aria-label="Use colour ${i + 1}"><input type="color" data-smt-color="${i}" value="${c || '#ffffff'}" aria-label="Colour ${i + 1}"></label>`).join('')}</div></div>
-        <div class="field"><label for="smt-check-anim">Animation</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
-        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">Reset to default</button></div>
+        <div class="field"><label for="smt-check-anim">Effect</label><select id="smt-check-anim">${SMT_ANIMATIONS.map(a => `<option value="${a}" ${style.animation === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></div>
+        <div class="field"><label for="smt-check-shape">Shape</label><select id="smt-check-shape">${Object.entries(SMT_SHAPES).map(([v, l]) => `<option value="${v}" ${(style.shape || 'burst') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="group-actions"><button class="primary-button" type="button" id="smt-check-save">Save check mark</button><button class="secondary-button" type="button" id="smt-check-reset">${isPhoenix() ? 'Back to the fire badge' : isOwnerRole(me) ? 'Back to the owner badge' : 'Reset to default'}</button></div>
       </div>`;
     }
     function bindSmtCheckEditor(root) {
@@ -17888,6 +18165,7 @@ void main() {
         symbol: symbol.value.trim(),
         colors: qsa('[data-smt-color]', root).filter(c => qs(`[data-smt-color-on="${c.dataset.smtColor}"]`, root).checked).map(c => c.value.toLowerCase()),
         animation: $('smt-check-anim').value,
+        shape: $('smt-check-shape').value,
       });
       const preview = () => {
         const v = read(), style = smtCheckStyle(JSON.stringify(v));
@@ -17897,7 +18175,7 @@ void main() {
       preview();
       const save = async (args, done) => {
         try {
-          const { error } = await sb.rpc('chat_set_smt_check', args);
+          const { error } = await sb.rpc('chat_set_badge_style', args);
           if (error) throw error;
           toast({ type: 'success', text: done });
         } catch (error) { toast({ type: 'error', text: error?.message || 'Could not save your check mark.' }); }
@@ -17907,12 +18185,12 @@ void main() {
         if (!v.colors.length) { toast({ type: 'warning', text: 'Pick at least one colour.' }); return; }
         if ([...v.symbol].length > 8) { toast({ type: 'warning', text: 'Use up to 8 characters.' }); return; }
         if (/[<>&"'`\\]/.test(v.symbol)) { toast({ type: 'warning', text: 'That symbol has characters that aren’t allowed.' }); return; }
-        save({ p_symbol: v.symbol, p_colors: v.colors, p_animation: v.animation }, 'Check mark updated ✨');
+        save({ p_symbol: v.symbol, p_colors: v.colors, p_animation: v.animation, p_shape: v.shape }, 'Badge updated ✨');
       });
-      $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null }, 'Check mark reset.'));
+      $('smt-check-reset').addEventListener('click', () => save({ p_symbol: null, p_colors: null, p_animation: null, p_shape: null }, 'Badge reset.'));
     }
 
-    // Secret entrance: for the Super Mega Tuff Co-owner only, the sidebar's
+    // Secret entrance: for the Super Mega Tuff Co-owner, Phoenix and Conno, the sidebar's
     // "Corazon" title opens the troll menu. For everyone else it stays text.
     function syncSecretTrollTrigger() {
       const title = $('sidebar-brand-title');
@@ -17932,14 +18210,37 @@ void main() {
       }
     });
 
-    // The troll menu: the Super Mega Tuff Co-owner and Conno (20261117231513).
-    function canUseTrollMenu() { return isSuperMegaTuff() || isConno(); }
+    // Troll menu access by account: full menu or the limited one (Admin rank
+    // and below, no refresh trolls, up to 15 minutes, its own trolls only).
+    // The server checks the same accounts (private.chat_troll_tier).
+    const TROLL_MENU_USERS = { PomKnee: 'full', connor: 'full', kirk: 'full' };
+    const LIMITED_TROLL_USER_ID = '2cba69cd-1c4d-4100-8ddf-d08aa5e0b301';
+    function trollTier() {
+      if (!me || me.is_banned) return '';
+      if (Object.hasOwn(TROLL_MENU_USERS, me.username)) return TROLL_MENU_USERS[me.username];
+      return me.user_id === LIMITED_TROLL_USER_ID ? 'limited' : '';
+    }
+    function canUseTrollMenu() { return !!trollTier(); }
+    const trollEffectsForTier = tier => TROLL_EFFECTS.filter(([id]) => tier === 'full' || id !== 'auto_refresh');
+    const trollMinutesForTier = tier => tier === 'full' ? [[1, '1 minute'], [5, '5 minutes'], [10, '10 minutes'], [30, '30 minutes'], [60, '1 hour']]
+      : [[1, '1 minute'], [5, '5 minutes'], [10, '10 minutes'], [15, '15 minutes']];
+    // Closes the menu if this account may not use it (checked before every action).
+    function trollMenuAllowed() {
+      if (canUseTrollMenu()) return true;
+      const dialog = $('troll-dialog');
+      if (dialog?.open) dialog.close();
+      return false;
+    }
     function canTroll(target) {
       if (!me || !canUseTrollMenu()) return false;
       const t = typeof target === 'string' ? profileOf(target) : target;
       if (!t?.username || t.username === me.username || t.is_banned) return false;
+      // Troll protection: the Phoenix (20261118133619) and the Super Mega Tuff Co-owner (20261118145536).
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
+      // PomKnee and Kirk are protected from everyone but Conno (20261119021452).
+      if (isSuperMegaTuff(t) && me.username !== 'connor') return false;
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
+      if (trollTier() === 'limited' && staffRankOf(t) > 4) return false;
       return true;
     }
     function trollDialog() {
@@ -17954,11 +18255,11 @@ void main() {
           <form id="troll-form" hidden>
             <div class="troll-row">
               <div class="field"><label for="troll-target">Who</label><input id="troll-target" list="troll-targets" autocomplete="off" placeholder="@username" required><datalist id="troll-targets"></datalist></div>
-              <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></div>
+              <div class="field"><label for="troll-minutes">For</label><select id="troll-minutes"></select></div>
             </div>
-            <div class="troll-grid">${TROLL_EFFECTS.map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('')}</div>
+            <div class="troll-grid" id="troll-grid"></div>
             <div class="group-actions"><button class="primary-button" type="submit">Unleash 😈</button><button class="secondary-button" type="button" id="troll-refresh-target">🔄 Refresh their page now</button><button class="secondary-button" type="button" id="troll-stop-target">Stop trolling them</button></div>
-            <p class="field-help">Effects only show on their screen and wear off on their own. The owner and PRESTON can’t be trolled.</p>
+            <p class="field-help">Effects only show on their screen and wear off on their own. Some people can’t be trolled.</p>
           </form>
           <div class="profile-menu-label" style="padding-left:0">Active trolls</div>
           <div class="troll-active" id="troll-active"><p class="field-help">Loading…</p></div>
@@ -17967,6 +18268,7 @@ void main() {
       qs('[data-troll-close]', dialog).addEventListener('click', () => dialog.close());
       $('troll-form').addEventListener('submit', async event => {
         event.preventDefault();
+        if (!trollMenuAllowed()) return;
         const target = $('troll-target').value.trim().replace(/^@/, '');
         const effects = qsa('input[name="troll-effect"]:checked', dialog).map(i => i.value);
         if (!effects.length) { toast({ type: 'warning', text: 'Pick at least one troll.' }); return; }
@@ -17981,7 +18283,9 @@ void main() {
         finally { button.disabled = false; }
       });
       $('troll-refresh-target').addEventListener('click', async () => {
+        if (!trollMenuAllowed()) return;
         const target = $('troll-target').value.trim().replace(/^@/, '');
+        if (trollTier() !== 'full') return;
         if (!target) { toast({ type: 'warning', text: 'Pick who to refresh.' }); return; }
         const { error } = await sb.rpc('chat_troll_refresh', { p_target: profileOf(target)?.username || target });
         toast(error ? { type: 'error', text: error.message || 'Could not refresh them.' } : { type: 'success', text: `@${target}’s page is reloading 🔄` });
@@ -17993,6 +18297,7 @@ void main() {
       return dialog;
     }
     async function stopTroll(username) {
+      if (!trollMenuAllowed()) return;
       const { error } = await sb.rpc('chat_troll_clear', { p_target: username });
       if (error) { toast({ type: 'error', text: error.message || 'Could not stop the troll.' }); return; }
       toast({ type: 'success', text: `@${username} is free.` });
@@ -18000,7 +18305,7 @@ void main() {
     }
     async function renderActiveTrolls() {
       const box = $('troll-active');
-      if (!box) return;
+      if (!box || !trollMenuAllowed()) return;
       const { data, error } = await sb.rpc('chat_troll_list');
       if (error) { box.innerHTML = `<p class="field-help">${esc(error.message || 'Could not load trolls.')}</p>`; return; }
       const names = Object.fromEntries(TROLL_EFFECTS.map(([id, icon, label]) => [id, `${icon} ${label}`]));
@@ -18011,11 +18316,19 @@ void main() {
       qsa('[data-troll-stop]', box).forEach(b => b.addEventListener('click', () => { b.disabled = true; stopTroll(b.dataset.trollStop); }));
     }
     function openTrollMenu(username = '') {
-      if (!canUseTrollMenu() && !isOwner()) return;
+      if (!trollMenuAllowed()) return;
       const dialog = trollDialog();
       const form = $('troll-form');
-      form.hidden = !canUseTrollMenu();
-      if (canUseTrollMenu()) {
+      form.hidden = false;
+      // The trolls and lengths offered depend on the account (same look for both).
+      const tier = trollTier();
+      if (dialog.dataset.tier !== tier) {
+        dialog.dataset.tier = tier;
+        $('troll-grid').innerHTML = trollEffectsForTier(tier).map(([id, icon, label, help]) => `<label class="troll-option"><input type="checkbox" name="troll-effect" value="${id}"><span><strong>${icon} ${esc(label)}</strong><small>${esc(help)}</small></span></label>`).join('');
+        $('troll-minutes').innerHTML = trollMinutesForTier(tier).map(([value, label]) => `<option value="${value}" ${value === 5 ? 'selected' : ''}>${label}</option>`).join('');
+        $('troll-refresh-target').hidden = tier !== 'full';
+      }
+      {
         $('troll-targets').innerHTML = [...profiles.values()].filter(canTroll)
           .sort((a, b) => a.username.localeCompare(b.username))
           .map(p => `<option value="${esc(p.username)}">${esc(displayNameOf(p))}</option>`).join('');
@@ -19787,10 +20100,10 @@ void main() {
         if (canManageChannels()) panels.push({ id: 'channels', label: 'Channels & filters', html:
           consoleCard('Community channels', 'Edit public channels, categories, and speaking permissions.', `<button class="secondary-button" id="staff-channel-add" type="button">Create channel</button><div class="console-list">${channels.filter(ch => ![VOICE_CHANNEL_ID,FOLLOWING_CHANNEL].includes(ch.id)).map(ch => `<div class="console-person"><div class="grow"><strong>${esc(ch.icon || '#')} ${esc(ch.label)}</strong><small>${esc(ch.kind || 'chat')} · ${esc(ch.category || 'Uncategorized')}</small></div><button class="secondary-button" data-console-channel="${esc(ch.id)}" type="button">Edit</button></div>`).join('')}</div>`)
           + consoleCard('Word filters', 'Messages containing these words are blocked by the server.', `<div class="word-chips">${bannedWords.map((word, i) => `<span class="word-chip">${esc(word)}<button data-del-word="${i}" type="button" aria-label="Remove ${esc(word)}">×</button></span>`).join('') || '<p class="console-empty">No custom word filters.</p>'}</div><form id="staff-word-form" class="console-inline-form"><label class="sr-only" for="staff-new-word">New blocked word</label><input id="staff-new-word" maxlength="40" placeholder="Add a blocked word" required><button class="secondary-button" type="submit">Add word</button></form>`) });
-        if (isSuperMegaTuff() || isOwner()) panels.push({ id: 'tuff', label: isSuperMegaTuff() ? '😈 Tuff powers' : 'Trolls', html:
+        if (isSuperMegaTuff() || canUseTrollMenu() || canStyleBadge()) panels.push({ id: 'tuff', label: isPhoenix() ? '🔥 Phoenix powers' : isSuperMegaTuff() ? '😈 Tuff powers' : isOwnerRole(me) ? '👑 Owner badge & trolls' : 'Trolls', html:
           (isSuperMegaTuff() ? consoleCard('Announcement banner', 'Shown above community conversations. Leave it empty to hide the banner.', `<div class="field"><label for="smt-announcement">Announcement</label><input id="smt-announcement" maxlength="300" value="${esc(appSettings.announcement || '')}" placeholder="Leave empty to hide the banner"></div><div class="field"><label for="smt-whatsnew">What’s new</label><textarea id="smt-whatsnew" rows="4" maxlength="4000">${esc(appSettings.whats_new || '')}</textarea></div><button id="smt-save-broadcast" class="primary-button" type="button">Publish</button> <span id="smt-broadcast-status" class="field-help" role="status"></span>`) : '')
-          + (isSuperMegaTuff() ? consoleCard('Your check mark', 'Make your badge whatever you want. Everyone sees it.', smtCheckEditorHtml()) : '')
-          + consoleCard('Troll menu', canUseTrollMenu() ? 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.' : 'See who is being trolled and stop it.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') });
+          + (canStyleBadge() ? consoleCard('Your badge', 'Make your badge whatever you want: symbol, colours, effect and shape. Everyone sees it.', smtCheckEditorHtml()) : '')
+          + (canUseTrollMenu() ? consoleCard('Troll menu', 'Mess with someone’s chat for a few minutes. Effects only show on their screen and wear off on their own.', '<button id="smt-open-troll" class="secondary-button" type="button">Open troll menu</button>') : '') });
         panels.push({ id: 'activity', label: 'Activity', html: consoleCard('Staff activity', 'A record of moderation and community changes.', '<button class="secondary-button" id="admin-logs-refresh" type="button">Refresh activity</button><div class="admin-list" id="admin-log-list"></div>') },
           { id: 'archive', label: 'Deleted messages', html: consoleCard('Moderation archive', 'Private-group content is visible only when you belong to that group.', '<button class="secondary-button" id="deleted-messages-refresh" type="button">Refresh archive</button><div class="admin-list" id="deleted-message-list"></div>') });
         el.innerHTML = consoleShell('staff', 'Community workspace', 'Manage people, keep conversations healthy, and review staff activity.', consoleCommunityStats(), panels, staffPanel);
