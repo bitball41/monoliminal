@@ -18237,7 +18237,7 @@ void main() {
       if (!t?.username || t.username === me.username || t.is_banned) return false;
       // Troll protection: the Phoenix (20261118133619) and the Super Mega Tuff Co-owner (20261118145536).
       if (['owner', 'preston'].includes(staffRoleOf(t))) return false;
-      // PomKnee and Kirk are protected from everyone but Conno (20261119021452).
+      // PomKnee and Kirk are protected from everyone but Conno (20261119171604).
       if (isSuperMegaTuff(t) && me.username !== 'connor') return false;
       if (isHiddenBot(t.username) || isQuoteBot(t.username) || ['luna', 'quotebot', 'noelleai'].includes(t.username.toLowerCase())) return false;
       if (trollTier() === 'limited' && staffRankOf(t) > 4) return false;

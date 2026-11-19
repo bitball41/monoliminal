@@ -161,7 +161,7 @@ test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
     await assert.rejects(call('kirk', `select public.chat_troll_apply('connor', array['shake'], 5)`), /owner and PRESTON/);
     await assert.rejects(call('kirk', `select public.chat_troll_apply('kirk', array['shake'], 5)`), /yourself/);
     await assert.rejects(call('coowner', `select public.chat_troll_apply('bob', array['shake'], 5)`), /troll menu is not available/);
-    // Conno gets past Kirk's protection (20261119021452), the refresh included.
+    // Conno gets past Kirk's protection (20261119171604), the refresh included.
     assert.equal((await call('connor', `select public.chat_troll_apply('kirk', array['popups'], 5) r`))[0].r.length, 1);
     await call('connor', `select public.chat_troll_refresh('Kirk')`);
   } finally { await db.close(); }

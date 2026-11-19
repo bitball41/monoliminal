@@ -272,7 +272,7 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
 test('Conno can troll too, PomKnee included; PomKnee is protected from everyone else', async () => {
   const { db, call } = await setup();
   try {
-    // Troll protection (20261118145536) blocks everyone but Conno (20261119021452).
+    // Troll protection (20261118145536) blocks everyone but Conno (20261119171604).
     await assert.rejects(call('kirk', `select public.chat_troll_apply('PomKnee', array['popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
     const fx = await call('connor', `select public.chat_troll_apply('manager', array['random_keys','popups'], 5) r`);
     assert.deepEqual(fx[0].r.map(e => e.effect), ['popups', 'random_keys']);
