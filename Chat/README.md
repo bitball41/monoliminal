@@ -172,6 +172,14 @@ a second refused, all eleven trolls accepted).
   10 minutes (members: 10), the same message once a minute (members: 10
   minutes). Slow mode still doesn't apply, as for every admin-level role.
 
+## Troll protection for PomKnee and Kirk, for everyone again
+
+[`20261119125007_chat_restore_troll_protection.sql`](../Backend/migrations/20261119125007_chat_restore_troll_protection.sql)
+(**applied 2026-11-19**; rolled-back dry run on live data first). Undoes the
+Conno exception below: nobody can troll PomKnee or Kirk, Conno included, the
+one-shot refresh too. The troll option is hidden on their profiles for
+everyone.
+
 ## Badge styles: Owner badge, more effects and shapes
 
 [`20261119041342_chat_badge_styles.sql`](../Backend/migrations/20261119041342_chat_badge_styles.sql)
@@ -185,7 +193,7 @@ circle, rounded square, star, heart, diamond, shield, hexagon, no background).
 `chat_set_badge_style(symbol, colours, effect, shape)` saves; the older
 `chat_set_smt_check` still works and keeps the current shape.
 
-## Conno can troll PomKnee and Kirk
+## Conno can troll PomKnee and Kirk (undone)
 
 [`20261119021452_chat_conno_trolls_protected.sql`](../Backend/migrations/20261119021452_chat_conno_trolls_protected.sql)
 (**applied 2026-11-19**; rolled-back dry run on live data first). The troll
