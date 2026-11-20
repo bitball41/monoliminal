@@ -3,18 +3,25 @@
 Corazon Chat is part of the Corazon platform by Crimson Heart. It was
 previously called Liminal Chat.
 
+## Troll menu removed (2026-11-20)
+
+The troll menu, profile actions, hidden title trigger, effects, send interference
+and Realtime handlers have been removed from Chat. The removal migration
+disables all troll actions for every account and clears active effects, including
+on older clients. Badge editing, announcements and staff roles remain available.
+Earlier troll sections below document historical changes only.
+
 ## Phoenix (Kirk only)
 
 **Current state:** Phoenix and the Super Mega Tuff Co-owner are equals, tied at
-the top of the staff ladder (part 4), and Kirk has the full troll menu.
+the top of the staff ladder (part 4). The troll feature has been retired.
 
 **Where it's stored:** the role is the row `slug = 'phoenix'` in
 `public.chat_staff_roles` (label "Phoenix", badge `phoenix`, tier 5 = co-owner
 powers, `power` = its place on the ladder). Kirk holds it through
 `public.profiles.staff_role = 'phoenix'` on the account `kirk`; the database
 refuses it on any other account. His check mark is `app_settings.phoenix_check`.
-In Chat, `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`;
-the troll menu is `TROLL_MENU_USERS` (by account, not role).
+In Chat: `BUILTIN_STAFF_ROLES.phoenix`, `PHOENIX_ROLE` and `TOP_ROLE_HOLDERS`.
 
 ### Phoenix, part 4: equal again
 

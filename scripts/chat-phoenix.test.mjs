@@ -10,12 +10,13 @@ const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const SMT = 'super_mega_tuff_co_owner';
 const PHX = 'phoenix';
 
-async function setup() {
+async function setup({ historicalTrolls = false } = {}) {
   const db = new PGlite({ extensions: { pgcrypto } });
   const people = { owner: 'owner', connor: 'owner', PomKnee: 'co_owner', kirk: 'co_owner', coowner: 'co_owner', manager: 'manager', alice: 'member', bob: 'member' };
   const ids = Object.fromEntries(Object.keys(people).map((name, i) => [name, `00000000-0000-4000-8000-0000000005${String(i + 10)}`]));
   await db.exec(await file('Backend/tests/authorization-fixture.sql'));
   for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort()) {
+    if (historicalTrolls && name.endsWith('_chat_remove_troll_menu.sql')) continue;
     await db.exec(await file('Backend/migrations/' + name));
   }
   await db.exec(`insert into public.channels(id,label,kind,min_speak_role) values ('general','general','chat','member')`);
@@ -113,7 +114,7 @@ test('only Conno can ban, time out or kick Kirk; PomKnee and Kirk cannot moderat
     await assert.rejects(call('kirk', `select public.chat_staff_timeout_user('kirk','', 'kirk', 10)`), /Only Conno/);
     await call('connor', `select public.chat_ban_user('connor','', 'kirk','too hot')`);
     assert.equal((await profile('kirk')).is_banned, true);
-    await assert.rejects(call('kirk', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
+    await assert.rejects(call('kirk', `select public.chat_troll_apply('alice', array['popups'], 5)`), /permission denied/);
     await call('connor', `select public.chat_unban_user('connor','', 'kirk')`);
     assert.equal((await profile('kirk')).is_banned, false);
   } finally { await db.close(); }
@@ -142,7 +143,7 @@ test('Kirk clears timeouts, publishes announcements and has lighter QuoteBot lim
 });
 
 test('Kirk has the full troll menu, and nobody can troll Kirk', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     // Full menu (20261118142342): every troll, the one-shot refresh, co-owner-level targets.
     const all = ['fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons', 'random_keys'];

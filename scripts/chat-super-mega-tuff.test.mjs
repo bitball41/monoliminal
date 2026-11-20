@@ -9,12 +9,13 @@ import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 const file = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const SMT = 'super_mega_tuff_co_owner';
 
-async function setup() {
+async function setup({ historicalTrolls = false } = {}) {
   const db = new PGlite({ extensions: { pgcrypto } });
   const people = { owner: 'owner', connor: 'owner', kirk: 'co_owner', PomKnee: 'co_owner', coowner: 'co_owner', manager: 'manager', mod: 'mod', alice: 'member', bob: 'member' };
   const ids = Object.fromEntries(Object.keys(people).map((name, i) => [name, `00000000-0000-4000-8000-0000000004${String(i + 10)}`]));
   await db.exec(await file('Backend/tests/authorization-fixture.sql'));
   for (const name of (await readdir(new URL('../Backend/migrations/', import.meta.url))).filter(n => n.endsWith('.sql')).sort()) {
+    if (historicalTrolls && name.endsWith('_chat_remove_troll_menu.sql')) continue;
     await db.exec(await file('Backend/migrations/' + name));
   }
   await db.exec(`insert into public.channels(id,label,kind,min_speak_role) values ('general','general','chat','member')`);
@@ -93,7 +94,7 @@ test('only Conno can ban, time out or kick it; anyone else (another owner too) i
     pom = await profile('PomKnee');
     assert.equal(pom.is_banned, true); assert.equal(pom.banned_by, 'connor');
     // A banned holder loses the powers until unbanned.
-    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /troll menu is not available/);
+    await assert.rejects(call('PomKnee', `select public.chat_troll_apply('alice', array['popups'], 5)`), /permission denied/);
     await call('connor', `select public.chat_unban_user('connor','', 'PomKnee')`);
     assert.equal((await profile('PomKnee')).is_banned, false);
     // The permission does not leak to later statements outside Conno's call.
@@ -162,7 +163,7 @@ test('it spams with lighter limits, QuoteBot included; everyone else keeps the n
 });
 
 test('troll menu: broadcast to the target, never the owner, Conno can stop it', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     const fx = await call('PomKnee', `select public.chat_troll_apply('alice', array['fail_send','popups','fail_send'], 5) r`);
     assert.deepEqual(fx[0].r.map(e => e.effect), ['fail_send', 'popups']);
@@ -260,7 +261,7 @@ test('part 2: PomKnee can clear their own timeout', async () => {
 });
 
 test('part 3: random keys troll, and all eleven trolls in one call', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     const all = ['fail_send', 'popups', 'upside_down', 'mirror', 'shake', 'emoji_rain', 'reverse_mouse', 'backwards_typing', 'auto_refresh', 'runaway_buttons', 'random_keys'];
     const fx = await call('PomKnee', `select public.chat_troll_apply('alice', $1, 5) r`, [all]);
@@ -270,7 +271,7 @@ test('part 3: random keys troll, and all eleven trolls in one call', async () =>
 });
 
 test('Conno can troll too, PomKnee included; PomKnee is protected from everyone else', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     // Troll protection (20261118145536) blocks everyone but Conno (20261119171604).
     await assert.rejects(call('kirk', `select public.chat_troll_apply('PomKnee', array['popups'], 5)`), /Super Mega Tuff Co-owner has troll protection/);
@@ -297,7 +298,7 @@ test('Conno can troll too, PomKnee included; PomKnee is protected from everyone 
 });
 
 test('troll menu is locked to the exact @PomKnee and @connor accounts, not roles', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     // Any role, even the top ones, is not enough on its own.
     for (const who of ['owner', 'coowner', 'manager', 'alice']) {
@@ -320,7 +321,7 @@ test('troll menu is locked to the exact @PomKnee and @connor accounts, not roles
 });
 
 test('limited menu: only the PRESTON account (by user id), Admin rank and below, no refresh trolls, 15 minutes, its own trolls only', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     // The PRESTON account, matched by user id (20261118142342), not by role.
     const PRESTON_ID = '2cba69cd-1c4d-4100-8ddf-d08aa5e0b301';
@@ -364,7 +365,7 @@ test('limited menu: only the PRESTON account (by user id), Admin rank and below,
 });
 
 test('part 2: new trolls replace the old ones, and the one-shot refresh', async () => {
-  const { db, call } = await setup();
+  const { db, call } = await setup({ historicalTrolls: true });
   try {
     const fx = await call('PomKnee', `select public.chat_troll_apply('alice', array['reverse_mouse','backwards_typing','auto_refresh','runaway_buttons'], 5) r`);
     assert.equal(fx[0].r.length, 4);
@@ -376,5 +377,33 @@ test('part 2: new trolls replace the old ones, and the one-shot refresh', async 
     assert.deepEqual(sent, [{ topic: 'chat:user:alice' }]);
     await assert.rejects(call('PomKnee', `select public.chat_troll_refresh('owner')`), /owner and PRESTON/);
     await assert.rejects(call('coowner', `select public.chat_troll_refresh('alice')`), /troll menu is not available/);
+  } finally { await db.close(); }
+});
+
+test('retiring trolls clears old clients and blocks every former operator', async () => {
+  const { db, call } = await setup({ historicalTrolls: true });
+  try {
+    await call('connor', `select public.chat_troll_apply('alice', array['popups','fail_send'], 5)`);
+    const migration = (await readdir(new URL('../Backend/migrations/', import.meta.url))).find(n => n.endsWith('_chat_remove_troll_menu.sql'));
+    await db.exec(await file('Backend/migrations/' + migration));
+    for (const who of ['owner', 'connor', 'PomKnee', 'kirk', 'coowner', 'alice']) {
+      for (const sql of [
+        `select public.chat_troll_apply('bob', array['popups'], 5)`,
+        `select public.chat_troll_refresh('bob')`,
+        `select public.chat_troll_list()`,
+        `select public.chat_troll_clear('bob')`,
+      ]) await assert.rejects(call(who, sql), /permission denied/);
+      assert.deepEqual((await call(who, `select public.chat_my_troll_effects() r`))[0].r, []);
+    }
+    assert.equal((await db.query(`select count(*)::int n from private.chat_troll_effects where expires_at > now()`)).rows[0].n, 0);
+    const sent = (await db.query(`select payload from realtime.messages where event='troll_effects' and payload->'effects' = '[]'::jsonb`)).rows[0];
+    assert.deepEqual(sent.payload.effects, []);
+    assert.equal((await db.query(`select private.chat_can_troll() r`)).rows[0].r, false);
+    assert.equal((await db.query(`select private.chat_troll_tier() r`)).rows[0].r, null);
+    await assert.rejects(db.exec(`set role anon; select public.chat_troll_refresh('bob')`), /permission denied/);
+    await db.exec('reset role');
+    // Applying the migration again remains safe and does not restore access.
+    await db.exec(await file('Backend/migrations/' + migration));
+    assert.equal((await db.query(`select count(*)::int n from private.chat_admin_audit where action='troll_applied'`)).rows[0].n, 1);
   } finally { await db.close(); }
 });
